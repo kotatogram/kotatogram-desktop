@@ -49,10 +49,7 @@ constexpr auto kUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
 
 const auto &DnsDomains() {
 	static auto result = std::vector<QString>{
-		qsl("google.com"),
-		qsl("www.google.com"),
-		qsl("google.ru"),
-		qsl("www.google.ru"),
+		qsl("dns.google.com"),
 	};
 	return result;
 }
@@ -327,7 +324,6 @@ void SpecialConfigRequest::performRequest(const Attempt &attempt) {
 		url.setQuery(qsl("name=%1&type=ANY&random_padding=%2"
 		).arg(Global::TxtDomainString()
 		).arg(GenerateRandomPadding()));
-		request.setRawHeader("Host", "dns.google.com");
 	} break;
 	default: Unexpected("Type in SpecialConfigRequest::performRequest.");
 	}
