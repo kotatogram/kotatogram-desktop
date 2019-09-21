@@ -2983,7 +2983,7 @@ void MainWidget::gotDifference(const MTPupdates_Difference &difference) {
 	} break;
 	case mtpc_updates_differenceTooLong: {
 		auto &d = difference.c_updates_differenceTooLong();
-		LOG(("API Error: updates.differenceTooLong is not supported by Telegram Desktop!"));
+		LOG(("API Error: updates.differenceTooLong is not supported by Kotatogram Desktop!"));
 	} break;
 	};
 }

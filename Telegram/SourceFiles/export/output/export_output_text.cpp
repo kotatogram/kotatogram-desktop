@@ -104,7 +104,7 @@ QByteArray SerializeMessage(
 
 	if (message.media.content.is<UnsupportedMedia>()) {
 		return "Error! This message is not supported "
-			"by this version of Telegram Desktop. "
+			"by this version of Kotatogram Desktop. "
 			"Please update the application.";
 	}
 

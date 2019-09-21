@@ -160,7 +160,7 @@ DeclareSetting(int32, IntRetinaFactor);
 DeclareSetting(int, OtherOnline);
 
 constexpr auto kInterfaceScaleAuto = 0;
-constexpr auto kInterfaceScaleMin = 100;
+constexpr auto kInterfaceScaleMin = 75;
 constexpr auto kInterfaceScaleDefault = 100;
 constexpr auto kInterfaceScaleMax = 300;
 
@@ -194,3 +194,8 @@ inline void SetScaleChecked(int scale) {
 		: snap(scale, kInterfaceScaleMin, kInterfaceScaleMax / cIntRetinaFactor());
 	cSetConfigScale(checked);
 }
+
+DeclareSetting(QString, MainFont);
+DeclareSetting(QString, SemiboldFont);
+DeclareSetting(bool, SemiboldFontIsBold);
+DeclareSetting(QString, MonospaceFont);

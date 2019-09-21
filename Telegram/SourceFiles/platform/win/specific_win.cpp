@@ -429,24 +429,24 @@ void RegisterCustomScheme() {
 	if (!_psSetKeyValue(rkey, 0, '"' + exe + qsl("\" -workdir \"") + cWorkingDir() + qsl("\" -- \"%1\""))) return;
 
 	// URI scheme registration as Default Program - Windows Vista and above
-	if (!_psOpenRegKey(L"Software\\Classes\\tdesktop.tg", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\Classes\\tdesktop.tg\\DefaultIcon", &rkey)) return;
+	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg", &rkey)) return;
+	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg\\DefaultIcon", &rkey)) return;
 	if (!_psSetKeyValue(rkey, 0, '"' + exe + qsl(",1\""))) return;
 
-	if (!_psOpenRegKey(L"Software\\Classes\\tdesktop.tg\\shell", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\Classes\\tdesktop.tg\\shell\\open", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\Classes\\tdesktop.tg\\shell\\open\\command", &rkey)) return;
+	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg\\shell", &rkey)) return;
+	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg\\shell\\open", &rkey)) return;
+	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg\\shell\\open\\command", &rkey)) return;
 	if (!_psSetKeyValue(rkey, 0, '"' + exe + qsl("\" -workdir \"") + cWorkingDir() + qsl("\" -- \"%1\""))) return;
 
-	if (!_psOpenRegKey(L"Software\\TelegramDesktop", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\TelegramDesktop\\Capabilities", &rkey)) return;
-	if (!_psSetKeyValue(rkey, L"ApplicationName", qsl("Telegram Desktop"))) return;
-	if (!_psSetKeyValue(rkey, L"ApplicationDescription", qsl("Telegram Desktop"))) return;
-	if (!_psOpenRegKey(L"Software\\TelegramDesktop\\Capabilities\\UrlAssociations", &rkey)) return;
-	if (!_psSetKeyValue(rkey, L"tg", qsl("tdesktop.tg"))) return;
+	if (!_psOpenRegKey(L"Software\\KotatogramDesktop", &rkey)) return;
+	if (!_psOpenRegKey(L"Software\\KotatogramDesktop\\Capabilities", &rkey)) return;
+	if (!_psSetKeyValue(rkey, L"ApplicationName", qsl("Kotatogram Desktop"))) return;
+	if (!_psSetKeyValue(rkey, L"ApplicationDescription", qsl("Kotatogram Desktop"))) return;
+	if (!_psOpenRegKey(L"Software\\KotatogramDesktop\\Capabilities\\UrlAssociations", &rkey)) return;
+	if (!_psSetKeyValue(rkey, L"tg", qsl("ktgdesktop.tg"))) return;
 
 	if (!_psOpenRegKey(L"Software\\RegisteredApplications", &rkey)) return;
-	if (!_psSetKeyValue(rkey, L"Telegram Desktop", qsl("SOFTWARE\\TelegramDesktop\\Capabilities"))) return;
+	if (!_psSetKeyValue(rkey, L"Kotatogram Desktop", qsl("SOFTWARE\\KotatogramDesktop\\Capabilities"))) return;
 #endif // !TDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME
 }
 

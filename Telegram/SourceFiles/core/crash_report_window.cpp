@@ -167,7 +167,7 @@ NotStartedWindow::NotStartedWindow()
 : _label(this)
 , _log(this)
 , _close(this) {
-	_label.setText(qsl("Could not start Telegram Desktop!\nYou can see complete log below:"));
+	_label.setText(qsl("Could not start Kotatogram Desktop!\nYou can see complete log below:"));
 
 	_log.setPlainText(Logs::full());
 
@@ -303,9 +303,9 @@ LastCrashedWindow::LastCrashedWindow(
 	connect(&_networkSettings, SIGNAL(clicked()), this, SLOT(onNetworkSettings()));
 
 	if (_sendingState == SendingNoReport) {
-		_label.setText(qsl("Last time Telegram Desktop was not closed properly."));
+		_label.setText(qsl("Last time Kotatogram Desktop was not closed properly."));
 	} else {
-		_label.setText(qsl("Last time Telegram Desktop crashed :("));
+		_label.setText(qsl("Last time Kotatogram Desktop crashed :("));
 	}
 
 	if (_updaterData) {
@@ -364,7 +364,7 @@ LastCrashedWindow::LastCrashedWindow(
 	connect(&_showReport, SIGNAL(clicked()), this, SLOT(onViewReport()));
 	_saveReport.setText(qsl("SAVE TO FILE"));
 	connect(&_saveReport, SIGNAL(clicked()), this, SLOT(onSaveReport()));
-	_getApp.setText(qsl("GET THE LATEST OFFICIAL VERSION OF TELEGRAM DESKTOP"));
+	_getApp.setText(qsl("GET THE LATEST VERSION OF KOTATOGRAM DESKTOP"));
 	connect(&_getApp, SIGNAL(clicked()), this, SLOT(onGetApp()));
 
 	_send.setText(qsl("SEND CRASH REPORT"));
@@ -496,12 +496,12 @@ void LastCrashedWindow::onCheckingFinished() {
 	LOG(("Crash report check for sending done, result: %1").arg(QString::fromUtf8(result)));
 
 	if (result == "Old") {
-		_pleaseSendReport.setText(qsl("This report is about some old version of Telegram Desktop."));
+		_pleaseSendReport.setText(qsl("This report is about some old version of Kotatogram Desktop."));
 		_sendingState = SendingTooOld;
 		updateControls();
 		return;
 	} else if (result == "Unofficial") {
-		_pleaseSendReport.setText(qsl("You use some custom version of Telegram Desktop."));
+		_pleaseSendReport.setText(qsl("You use some custom version of Kotatogram Desktop."));
 		_sendingState = SendingUnofficial;
 		updateControls();
 		return;
@@ -781,7 +781,7 @@ void LastCrashedWindow::updateControls() {
 	}
 
 	QRect scr(QApplication::primaryScreen()->availableGeometry());
-	QSize s(2 * padding + QFontMetrics(_label.font()).width(qsl("Last time Telegram Desktop was not closed properly.")) + padding + _networkSettings.width(), h);
+	QSize s(2 * padding + QFontMetrics(_label.font()).width(qsl("Last time Kotatogram Desktop was not closed properly.")) + padding + _networkSettings.width(), h);
 	if (s == size()) {
 		resizeEvent(0);
 	} else {

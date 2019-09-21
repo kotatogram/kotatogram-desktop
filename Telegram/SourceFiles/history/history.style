@@ -9,10 +9,10 @@ using "basic.style";
 using "dialogs/dialogs.style";
 using "ui/widgets/widgets.style";
 
-minPhotoSize: 100px;
+minPhotoSize: 200px;
 minVideoSize: 160px;
 maxMediaSize: 430px;
-maxStickerSize: 256px;
+maxStickerSize: 128px;
 maxGifSize: 320px;
 maxVideoMessageSize: 240px;
 maxSignatureSize: 144px;

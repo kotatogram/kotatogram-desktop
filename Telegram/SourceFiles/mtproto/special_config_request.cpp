@@ -272,7 +272,7 @@ SpecialConfigRequest::SpecialConfigRequest(
 
 	_manager.setProxy(QNetworkProxy::NoProxy);
 	_attempts = {
-		//{ Type::App, qsl("software-download.microsoft.com") },
+		{ Type::App, qsl("software-download.microsoft.com") },
 	};
 	for (const auto &domain : DnsDomains()) {
 		_attempts.push_back({ Type::Dns, domain });
@@ -316,12 +316,12 @@ void SpecialConfigRequest::performRequest(const Attempt &attempt) {
 	url.setHost(attempt.domain);
 	auto request = QNetworkRequest();
 	switch (type) {
-	//case Type::App: {
-	//	url.setPath(cTestMode()
-	//		? qsl("/testv2/config.txt")
-	//		: qsl("/prodv2/config.txt"));
-	//	request.setRawHeader("Host", "tcdnb.azureedge.net");
-	//} break;
+	case Type::App: {
+		url.setPath(cTestMode()
+			? qsl("/testv2/config.txt")
+			: qsl("/prodv2/config.txt"));
+		request.setRawHeader("Host", "tcdnb.azureedge.net");
+	} break;
 	case Type::Dns: {
 		url.setPath(qsl("/resolve"));
 		url.setQuery(qsl("name=%1&type=ANY&random_padding=%2"
@@ -379,7 +379,7 @@ void SpecialConfigRequest::requestFinished(
 	}
 
 	switch (type) {
-	//case Type::App: handleResponse(result); break;
+	case Type::App: handleResponse(result); break;
 	case Type::Dns: {
 		constexpr auto kTypeRestriction = 16; // TXT
 		handleResponse(ConcatenateDnsTxtFields(

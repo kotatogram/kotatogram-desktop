@@ -109,6 +109,13 @@ void Start() {
 	QFont::insertSubstitutions(qsl("Open Sans"), list);
 	QFont::insertSubstitutions(qsl("Open Sans Semibold"), list);
 #endif // Q_OS_WIN || Q_OS_MAC
+
+	if (!cMainFont().isEmpty() && ValidateFont(cMainFont())) {
+		OpenSansOverride = cMainFont();
+	}
+	if (!cSemiboldFont().isEmpty() && ValidateFont(cSemiboldFont())) {
+		OpenSansSemiboldOverride = cSemiboldFont();
+	}
 }
 
 QString GetOverride(const QString &familyName) {

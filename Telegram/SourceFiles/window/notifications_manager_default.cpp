@@ -764,7 +764,7 @@ void Notification::updateNotifyDisplay() {
 		p.setPen(st::dialogsNameFg);
 		if (options.hideNameAndPhoto) {
 			p.setFont(st::msgNameFont);
-			static QString notifyTitle = st::msgNameFont->elided(qsl("Telegram Desktop"), rectForName.width());
+			static QString notifyTitle = st::msgNameFont->elided(qsl("Kotatogram Desktop"), rectForName.width());
 			p.drawText(rectForName.left(), rectForName.top() + st::msgNameFont->ascent, notifyTitle);
 		} else if (reminder) {
 			p.setFont(st::msgNameFont);

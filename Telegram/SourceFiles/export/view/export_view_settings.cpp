@@ -256,7 +256,7 @@ void SettingsWidget::addLocationLabel(
 	}) | rpl::distinct_until_changed(
 	) | rpl::map([](const QString &path) {
 		const auto text = IsDefaultPath(path)
-			? QString("Downloads/Telegram Desktop")
+			? QString("Downloads/Kotatogram Desktop")
 			: path;
 		return Ui::Text::Link(
 			QDir::toNativeSeparators(text),

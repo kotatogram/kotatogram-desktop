@@ -267,7 +267,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		if (user->isBot()) {
 			addInfoLine(tr::lng_info_about_label(), AboutValue(user));
 		} else {
-			addInfoLine(tr::lng_info_bio_label(), BioValue(user));
+			addInfoLine(tr::lng_info_bio_label(), AboutValue(user));
 		}
 		addInfoOneLine(
 			tr::lng_info_username_label(),

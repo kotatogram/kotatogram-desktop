@@ -281,7 +281,7 @@ void RegisterCustomScheme() {
 		if (!QDir(apps).exists()) QDir().mkpath(apps);
 		if (!QDir(icons).exists()) QDir().mkpath(icons);
 
-		QString path = cWorkingDir() + qsl("tdata/"), file = path + qsl("telegramdesktop.desktop");
+		QString path = cWorkingDir() + qsl("tdata/"), file = path + qsl("kotatogramdesktop.desktop");
 		QDir().mkpath(path);
 		QFile f(file);
 		if (f.open(QIODevice::WriteOnly)) {
@@ -303,17 +303,17 @@ void RegisterCustomScheme() {
 			s.setCodec("UTF-8");
 			s << "[Desktop Entry]\n";
 			s << "Version=1.0\n";
-			s << "Name=Telegram Desktop\n";
-			s << "Comment=Official desktop application for the Telegram messaging service\n";
+			s << "Name=Kotatogram Desktop\n";
+			s << "Comment=Experimental Telegram Desktop fork\n";
 			s << "TryExec=" << EscapeShell(QFile::encodeName(cExeDir() + cExeName())) << "\n";
 			s << "Exec=" << EscapeShell(QFile::encodeName(cExeDir() + cExeName())) << " -- %u\n";
 			s << "Icon=telegram\n";
 			s << "Terminal=false\n";
-			s << "StartupWMClass=TelegramDesktop\n";
+			s << "StartupWMClass=KotatogramDesktop\n";
 			s << "Type=Application\n";
 			s << "Categories=Network;InstantMessaging;Qt;\n";
 			s << "MimeType=x-scheme-handler/tg;\n";
-			s << "Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;\n";
+			s << "Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;kotatogram;\n";
 			s << "X-GNOME-UsesNotifications=true\n";
 			f.close();
 
@@ -322,7 +322,7 @@ void RegisterCustomScheme() {
 				QFile(qsl("%1.local/share/applications/telegram.desktop").arg(home)).remove();
 
 				RunShellCommand("update-desktop-database " + EscapeShell(QFile::encodeName(home + qsl(".local/share/applications"))));
-				RunShellCommand("xdg-mime default telegramdesktop.desktop x-scheme-handler/tg");
+				RunShellCommand("xdg-mime default kotatogramdesktop.desktop x-scheme-handler/tg");
 			}
 		} else {
 			LOG(("App Error: Could not open '%1' for write").arg(file));

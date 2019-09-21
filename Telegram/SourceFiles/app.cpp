@@ -223,6 +223,9 @@ namespace App {
 	void initMedia() {
 		if (!::monofont) {
 			QString family;
+			if (!cMonospaceFont().isEmpty()) {
+				tryFontFamily(family, cMonospaceFont());
+			}
 			tryFontFamily(family, qsl("Consolas"));
 			tryFontFamily(family, qsl("Liberation Mono"));
 			tryFontFamily(family, qsl("Menlo"));

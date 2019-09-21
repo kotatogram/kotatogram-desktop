@@ -1,63 +1,26 @@
-# [Telegram Desktop][telegram_desktop] – Official Messenger
+# Kotatogram – experimental [Telegram Desktop][telegram_desktop] fork.
 
-This is the complete source code and the build instructions for the alpha version of the official desktop client for the [Telegram][telegram] messenger, based on the [Telegram API][telegram_api] and the [MTProto][telegram_proto] secure protocol.
+Original README with build instructions and licenses could be found in [Telegram Desktop repository][telegram_desktop_readme].
 
-[![Version](https://badge.fury.io/gh/telegramdesktop%2Ftdesktop.svg)](https://github.com/telegramdesktop/tdesktop/releases)
-[![Build Status](https://travis-ci.org/telegramdesktop/tdesktop.svg?branch=dev)](https://travis-ci.org/telegramdesktop/tdesktop)
-[![Build status](https://ci.appveyor.com/api/projects/status/uiw2y768iy4i5bu8/branch/dev?svg=true)](https://ci.appveyor.com/project/telegramdesktop/tdesktop)
+There will be builds of Kotatogram for Windows, and possibly Linux. No autoupdates for now.
 
-[![Preview of Telegram Desktop][preview_image]][preview_image_url]
+Expect a lot of breaking changes.
 
-The source code is published under GPLv3 with OpenSSL exception, the license is available [here][license].
+## Changes
 
-## Supported systems
-
-* Windows XP - Windows 10 (**not** RT)
-* Mac OS X 10.8 - Mac OS X 10.11
-* Mac OS X 10.6 - Mac OS X 10.7 (separate build)
-* Ubuntu 12.04 - Ubuntu 19.04
-* Fedora 22 - Fedora 30
-* [Snappy](https://snapcraft.io/telegram-desktop)
-* [Flathub](https://flathub.org/apps/details/org.telegram.desktop)
-
-## Third-party
-
-* Qt 5.3.2 and 5.6.2, slightly patched ([LGPL](http://doc.qt.io/qt-5/lgpl.html))
-* OpenSSL 1.0.1g ([OpenSSL License](https://www.openssl.org/source/license.html))
-* zlib 1.2.8 ([zlib License](http://www.zlib.net/zlib_license.html))
-* libexif 0.6.20 ([LGPL](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.en.html))
-* LZMA SDK 9.20 ([public domain](http://www.7-zip.org/sdk.html))
-* liblzma ([public domain](http://tukaani.org/xz/))
-* Google Breakpad ([License](https://chromium.googlesource.com/breakpad/breakpad/+/master/LICENSE))
-* Google Crashpad ([Apache License 2.0](https://chromium.googlesource.com/crashpad/crashpad/+/master/LICENSE))
-* GYP ([BSD License](https://github.com/bnoordhuis/gyp/blob/master/LICENSE))
-* Ninja ([Apache License 2.0](https://github.com/ninja-build/ninja/blob/master/COPYING))
-* OpenAL Soft ([LGPL](https://github.com/kcat/openal-soft/blob/master/COPYING))
-* Opus codec ([BSD License](http://www.opus-codec.org/license/))
-* FFmpeg ([LGPL](https://www.ffmpeg.org/legal.html))
-* Guideline Support Library ([MIT License](https://github.com/Microsoft/GSL/blob/master/LICENSE))
-* Mapbox Variant ([BSD License](https://github.com/mapbox/variant/blob/master/LICENSE))
-* Range-v3 ([Boost License](https://github.com/ericniebler/range-v3/blob/master/LICENSE.txt))
-* Open Sans font ([Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html))
-* Emoji alpha codes ([MIT License](https://github.com/emojione/emojione/blob/master/extras/alpha-codes/LICENSE.md))
-* Catch test framework ([Boost License](https://github.com/philsquared/Catch/blob/master/LICENSE.txt))
-* xxHash ([BSD License](https://github.com/Cyan4973/xxHash/blob/dev/LICENSE))
-
-## Build instructions
-
-* [Visual Studio 2019][msvc]
-* [Xcode 10][xcode]
-* [GYP/CMake on GNU/Linux][cmake]
+* Mention user by name, even if username was set (right mouse click on mention suggestion).
+* Clickable links in user bios.
+* Custom font start options:
+  * `-mainfont` to set main font family (e.g. `-mainfont "Open Sans"`).
+  * `-semiboldfont` to set semibold font family (`-semiboldfont "Open Sans Semibold"`).
+  * `-semiboldisbold` - if you want set semibold font to be bold. If you pass `Open Sans Bold` to `-semiboldfont`, that won't work. You should use family name (e.g. `-semiboldfont "Open Sans" -semiboldisbold`)
+  * `-monospacefont` to set monospaced font (e.g. `-monospacefont "Consolas"`)
+* You can set "Nobody" in profile photo privacy.
+* Minimum photo size in chat has been increased to 200px, so captions should be more readable.
+* Maximum sticker size in chat has been decreased to 128px.
+* Maximum caption field height has been increased to 150px (should fit about 5 lines).
+* Allow interface scales `75-99` to be saved after restarting without start option.
 
 [//]: # (LINKS)
-[telegram]: https://telegram.org
 [telegram_desktop]: https://desktop.telegram.org
-[telegram_api]: https://core.telegram.org
-[telegram_proto]: https://core.telegram.org/mtproto
-[license]: LICENSE
-[msvc]: docs/building-msvc.md
-[xcode]: docs/building-xcode.md
-[xcode_old]: docs/building-xcode-old.md
-[cmake]: docs/building-cmake.md
-[preview_image]: https://github.com/telegramdesktop/tdesktop/blob/dev/docs/assets/preview.png "Preview of Telegram Desktop"
-[preview_image_url]: https://raw.githubusercontent.com/telegramdesktop/tdesktop/dev/docs/assets/preview.png
+[telegram_desktop_readme]: https://github.com/telegramdesktop/tdesktop/blob/dev/README.md

@@ -39,7 +39,7 @@ public:
 
 private:
 	enum class Type {
-		//App,
+		App,
 		Dns,
 	};
 	struct Attempt {
