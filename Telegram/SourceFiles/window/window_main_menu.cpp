@@ -202,7 +202,7 @@ MainMenu::MainMenu(
 	refreshBackground();
 
 	_telegram->setMarkedText(Ui::Text::Link(
-		qsl("kotatogram Desktop"),
+		qsl("Kotatogram Desktop"),
 		qsl("https://t.me/kotatogram")));
 	_telegram->setLinksTrusted();
 	_version->setRichText(textcmdLink(1, tr::lng_settings_current_version(tr::now, lt_version, currentVersionText())) + QChar(' ') + QChar(8211) + QChar(' ') + textcmdLink(2, tr::lng_menu_about(tr::now)));

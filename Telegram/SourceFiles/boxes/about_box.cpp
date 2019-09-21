@@ -27,12 +27,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 rpl::producer<TextWithEntities> Text1() {
-	return rpl::single(
-		qsl("Unofficial experimental fork of ") +
-		Ui::Text::Link(
-			"Telegram Desktop",
-			"https://github.com/telegramdesktop/tdesktop") +
-		qsl("."));
+	return tr::lng_about_text1(
+		lt_api_link,
+		tr::lng_about_text1_api(
+		) | Ui::Text::ToLink("https://core.telegram.org/api"),
+		Ui::Text::WithEntities);
 }
 
 rpl::producer<TextWithEntities> Text2() {
@@ -40,25 +39,19 @@ rpl::producer<TextWithEntities> Text2() {
 		lt_gpl_link,
 		rpl::single(Ui::Text::Link(
 			"GNU GPL",
-			"https://github.com/kotatogram/kotatogram-desktop/blob/master/LICENSE")),
+			"https://github.com/telegramdesktop/tdesktop/blob/master/LICENSE")),
 		lt_github_link,
 		rpl::single(Ui::Text::Link(
 			"GitHub",
-			"https://github.com/kotatogram/kotatogram-desktop")),
+			"https://github.com/telegramdesktop/tdesktop")),
 		Ui::Text::WithEntities);
 }
 
 rpl::producer<TextWithEntities> Text3() {
-	return rpl::single(
-		qsl("Visit ") +
-		Ui::Text::Link(
-			"Telegram FAQ",
-			telegramFaqLink()) +
-		qsl(" or ") +
-		Ui::Text::Link(
-			"Kotatogram channel",
-			telegramFaqLink()) +
-		qsl(" for more info."));
+	return tr::lng_about_text3(
+		lt_faq_link,
+		tr::lng_about_text3_faq() | Ui::Text::ToLink(telegramFaqLink()),
+		Ui::Text::WithEntities);
 }
 
 } // namespace
