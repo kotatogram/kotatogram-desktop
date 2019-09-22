@@ -1,6 +1,6 @@
 # Kotatogram – experimental [Telegram Desktop][telegram_desktop] fork.
 
-![Travis build status](https://img.shields.io/travis/kotatogram/kotatogram-desktop?label=Travis%20Build&style=for-the-badge)
+[![Travis build status](https://img.shields.io/travis/kotatogram/kotatogram-desktop?label=Travis%20Build&style=for-the-badge)](https://travis-ci.org/kotatogram/kotatogram-desktop)
 
 Original README with build instructions and licenses could be found in [Telegram Desktop repository][telegram_desktop_readme].
 
