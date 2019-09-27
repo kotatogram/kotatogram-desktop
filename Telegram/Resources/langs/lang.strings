@@ -2220,4 +2220,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "lng_mac_touchbar_favorite_stickers" = "Favorite stickers";
 
+// Kotatogram keys
+
+"ktg_about_text1" = "Experimental unofficial {tdesktop_link} fork.";
+"ktg_about_text1_tdesktop" = "Telegram Desktop";
+"ktg_about_text3" = "Visit {channel_link} or {faq_link} for more info.";
+"ktg_about_text3_channel" = "Kotatogram channel";
+
 // Keys finished

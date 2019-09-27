@@ -27,10 +27,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 rpl::producer<TextWithEntities> Text1() {
-	return tr::lng_about_text1(
-		lt_api_link,
-		tr::lng_about_text1_api(
-		) | Ui::Text::ToLink("https://core.telegram.org/api"),
+	return tr::ktg_about_text1(
+		lt_tdesktop_link,
+		tr::ktg_about_text1_tdesktop(
+		) | Ui::Text::ToLink("https://desktop.telegram.org/"),
 		Ui::Text::WithEntities);
 }
 
@@ -48,7 +48,9 @@ rpl::producer<TextWithEntities> Text2() {
 }
 
 rpl::producer<TextWithEntities> Text3() {
-	return tr::lng_about_text3(
+	return tr::ktg_about_text3(
+		lt_channel_link,
+		tr::ktg_about_text3_channel() | Ui::Text::ToLink("https://t.me/kotatogram"),
 		lt_faq_link,
 		tr::lng_about_text3_faq() | Ui::Text::ToLink(telegramFaqLink()),
 		Ui::Text::WithEntities);

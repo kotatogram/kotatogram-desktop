@@ -285,7 +285,7 @@ void RegisterCustomScheme() {
 		QDir().mkpath(path);
 		QFile f(file);
 		if (f.open(QIODevice::WriteOnly)) {
-			QString icon = icons + qsl("telegram.png");
+			QString icon = icons + qsl("kotatogram.png");
 			auto iconExists = QFile(icon).exists();
 			if (Local::oldSettingsVersion() < 10021 && iconExists) {
 				// Icon was changed.
@@ -307,19 +307,19 @@ void RegisterCustomScheme() {
 			s << "Comment=Experimental Telegram Desktop fork\n";
 			s << "TryExec=" << EscapeShell(QFile::encodeName(cExeDir() + cExeName())) << "\n";
 			s << "Exec=" << EscapeShell(QFile::encodeName(cExeDir() + cExeName())) << " -- %u\n";
-			s << "Icon=telegram\n";
+			s << "Icon=kotatogram\n";
 			s << "Terminal=false\n";
 			s << "StartupWMClass=KotatogramDesktop\n";
 			s << "Type=Application\n";
 			s << "Categories=Network;InstantMessaging;Qt;\n";
 			s << "MimeType=x-scheme-handler/tg;\n";
-			s << "Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;kotatogram;\n";
+			s << "Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;\n";
 			s << "X-GNOME-UsesNotifications=true\n";
 			f.close();
 
 			if (RunShellCommand("desktop-file-install --dir=" + EscapeShell(QFile::encodeName(home + qsl(".local/share/applications"))) + " --delete-original " + EscapeShell(QFile::encodeName(file)))) {
 				DEBUG_LOG(("App Info: removing old .desktop file"));
-				QFile(qsl("%1.local/share/applications/telegram.desktop").arg(home)).remove();
+				QFile(qsl("%1.local/share/applications/kotatogram.desktop").arg(home)).remove();
 
 				RunShellCommand("update-desktop-database " + EscapeShell(QFile::encodeName(home + qsl(".local/share/applications"))));
 				RunShellCommand("xdg-mime default kotatogramdesktop.desktop x-scheme-handler/tg");

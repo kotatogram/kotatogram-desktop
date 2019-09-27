@@ -558,8 +558,8 @@ void MainWindow::psFirstShow() {
 #define TDESKTOP_LAUNCHER_FILENAME_TO_STRING(V) TDESKTOP_LAUNCHER_FILENAME_TO_STRING_HELPER(V)
 				TDESKTOP_LAUNCHER_FILENAME_TO_STRING(TDESKTOP_LAUNCHER_FILENAME),
 #endif // TDESKTOP_LAUNCHER_FILENAME
-				"telegramdesktop.desktop",
-				"Telegram.desktop"
+				"kotatogramdesktop.desktop",
+				"Kotatogram.desktop"
 			};
 			
 			for (auto it = possibleDesktopFiles.begin(); it != possibleDesktopFiles.end(); it++) {
@@ -574,8 +574,8 @@ void MainWindow::psFirstShow() {
 				LOG(("Could not get Unity Launcher entry!"));
 			}
 		} else {
-			LOG(("SNAP Environment detected, setting Launcher entry to %1-telegramdesktop.desktop!").arg(snapName));
-			_desktopFile = snapName + "_telegramdesktop.desktop";
+			LOG(("SNAP Environment detected, setting Launcher entry to %1-kotatogramdesktop.desktop!").arg(snapName));
+			_desktopFile = snapName + "_kotatogramdesktop.desktop";
 			useUnityCount=true;
 		}
 		_dbusPath = "/com/canonical/unity/launcherentry/" + QString::number(djbStringHash("application://" + _desktopFile));

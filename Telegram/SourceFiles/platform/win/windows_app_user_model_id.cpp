@@ -26,11 +26,11 @@ const PROPERTYKEY pkey_AppUserModel_ID = { { 0x9F4C2855, 0x9F79, 0x4B39, { 0xA8,
 const PROPERTYKEY pkey_AppUserModel_StartPinOption = { { 0x9F4C2855, 0x9F79, 0x4B39, { 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3 } }, 12 };
 
 #ifdef OS_WIN_STORE
-const WCHAR AppUserModelIdRelease[] = L"Telegram.TelegramDesktop.Store";
+const WCHAR AppUserModelIdRelease[] = L"Kotatogram.KotatogramDesktop.Store";
 #else // OS_WIN_STORE
-const WCHAR AppUserModelIdRelease[] = L"Telegram.TelegramDesktop";
+const WCHAR AppUserModelIdRelease[] = L"Kotatogram.KotatogramDesktop";
 #endif // OS_WIN_STORE
-const WCHAR AppUserModelIdAlpha[] = L"Telegram.TelegramDesktop.Alpha";
+const WCHAR AppUserModelIdAlpha[] = L"Kotatogram.KotatogramDesktop.Alpha";
 
 } // namespace
 
@@ -163,7 +163,7 @@ QString systemShortcutPath() {
 void cleanupShortcut() {
 	static const int maxFileLen = MAX_PATH * 10;
 
-	QString path = systemShortcutPath() + qsl("Telegram.lnk");
+	QString path = systemShortcutPath() + qsl("Kotatogram.lnk");
 	std::wstring p = QDir::toNativeSeparators(path).toStdWString();
 
 	DWORD attributes = GetFileAttributes(p.c_str());
@@ -253,11 +253,10 @@ bool validateShortcut() {
 	if (path.isEmpty() || cExeName().isEmpty()) return false;
 
 	if (cAlphaVersion()) {
-		path += qsl("TelegramAlpha.lnk");
+		path += qsl("KotatogramAlpha.lnk");
 		if (validateShortcutAt(path)) return true;
 	} else {
-		if (validateShortcutAt(path + qsl("Kotatogram Desktop/Telegram.lnk"))) return true;
-		//if (validateShortcutAt(path + qsl("Telegram Win (Unofficial)/Telegram.lnk"))) return true;
+		if (validateShortcutAt(path + qsl("Kotatogram Desktop/Kotatogram.lnk"))) return true;
 
 		path += qsl("Kotatogram.lnk");
 		if (validateShortcutAt(path)) return true;
