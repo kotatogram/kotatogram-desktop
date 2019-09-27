@@ -1,0 +1,6 @@
+1.0 (22.09.2019)
+
+- Mention user by name instead of username by right clicking mention suggestion.
+- Clickable links and usernames in profile bios.
+- Custom font selection by start options.
+- Adjusted caption, photo, and sticker sizes.
