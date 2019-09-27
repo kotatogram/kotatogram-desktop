@@ -12,13 +12,15 @@ using "ui/widgets/widgets.style";
 minPhotoSize: 100px;
 minVideoSize: 160px;
 maxMediaSize: 430px;
-maxStickerSize: 128px;
+maxStickerSize: 256px;
 maxGifSize: 320px;
 maxVideoMessageSize: 240px;
 maxSignatureSize: 144px;
 maxWallPaperWidth: 160px;
 maxWallPaperHeight: 240px;
 historyThemeSize: size(272px, 176px);
+
+historyStickerHeight: 128px;
 
 historyMinimalWidth: 380px;
 

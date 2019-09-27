@@ -65,7 +65,7 @@ QSize Sticker::size() {
 	} else {
 		_size = DownscaledSize(
 			_size,
-			{ st::maxStickerSize, st::maxStickerSize });
+			{ st::maxStickerSize, st::historyStickerHeight });
 	}
 	return _size;
 }
