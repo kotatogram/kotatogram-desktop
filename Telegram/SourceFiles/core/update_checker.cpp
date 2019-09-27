@@ -385,8 +385,8 @@ bool UnpackUpdate(const QString &filepath) {
 				LOG(("Update Error: downloaded alpha version %1 is not greater, than mine %2").arg(alphaVersion).arg(cAlphaVersion()));
 				return false;
 			}
-		} else if (int32(version) <= AppVersion) {
-			LOG(("Update Error: downloaded version %1 is not greater, than mine %2").arg(version).arg(AppVersion));
+		} else if (int32(version) <= AppKotatoVersion) {
+			LOG(("Update Error: downloaded version %1 is not greater, than mine %2").arg(version).arg(AppKotatoVersion));
 			return false;
 		}
 
@@ -732,7 +732,7 @@ QString HttpChecker::validateLatestUrl(
 		QString url) const {
 	const auto myVersion = isAvailableAlpha
 		? cAlphaVersion()
-		: uint64(AppVersion);
+		: uint64(AppKotatoVersion);
 	const auto validVersion = (cAlphaVersion() || !isAvailableAlpha);
 	if (!validVersion || availableVersion <= myVersion) {
 		return QString();
@@ -887,7 +887,7 @@ void MtpChecker::start() {
 		return;
 	}
 	const auto updaterVersion = Platform::AutoUpdateVersion();
-	const auto feed = "tdhbcfeed"
+	const auto feed = "ktghbcfeed"
 		+ (updaterVersion > 1 ? QString::number(updaterVersion) : QString());
 	MTP::ResolveChannel(&_mtp, feed, [=](const MTPInputChannel &channel) {
 		_mtp.send(
@@ -989,7 +989,7 @@ auto MtpChecker::parseText(const QByteArray &text) const
 auto MtpChecker::validateLatestLocation(
 		uint64 availableVersion,
 		const FileLocation &location) const -> FileLocation {
-	const auto myVersion = uint64(AppVersion);
+	const auto myVersion = uint64(AppKotatoVersion);
 	return (availableVersion <= myVersion) ? FileLocation() : location;
 }
 
@@ -1072,7 +1072,7 @@ private:
 	rpl::event_stream<Progress> _progress;
 	rpl::event_stream<> _failed;
 	rpl::event_stream<> _ready;
-	Implementation _httpImplementation;
+	//Implementation _httpImplementation;
 	Implementation _mtpImplementation;
 	std::shared_ptr<Loader> _activeLoader;
 	bool _usingMtprotoLoader = (cAlphaVersion() != 0);
@@ -1183,7 +1183,7 @@ int Updater::already() const {
 }
 
 void Updater::stop() {
-	_httpImplementation = Implementation();
+	//_httpImplementation = Implementation();
 	_mtpImplementation = Implementation();
 	_activeLoader = nullptr;
 	_action = Action::Waiting;
@@ -1219,9 +1219,9 @@ void Updater::start(bool forceWait) {
 	}
 
 	if (sendRequest) {
-		startImplementation(
-			&_httpImplementation,
-			std::make_unique<HttpChecker>(_testing));
+		// startImplementation(
+		// 	&_httpImplementation,
+		// 	std::make_unique<HttpChecker>(_testing));
 		startImplementation(
 			&_mtpImplementation,
 			std::make_unique<MtpChecker>(_mtproto, _testing));
@@ -1298,7 +1298,7 @@ void Updater::handleTimeout() {
 				which.failed = true;
 			}
 		};
-		reset(_httpImplementation);
+		//reset(_httpImplementation);
 		reset(_mtpImplementation);
 		if (!tryLoaders()) {
 			cSetLastUpdateCheck(0);
@@ -1310,7 +1310,8 @@ void Updater::handleTimeout() {
 }
 
 bool Updater::tryLoaders() {
-	if (_httpImplementation.checker || _mtpImplementation.checker) {
+	//if (_httpImplementation.checker || _mtpImplementation.checker) {
+	if (_mtpImplementation.checker) {
 		// Some checkers didn't finish yet.
 		return true;
 	}
@@ -1339,18 +1340,19 @@ bool Updater::tryLoaders() {
 			_isLatest.fire({});
 		}
 	};
-	if (_mtpImplementation.failed && _httpImplementation.failed) {
+	//if (_mtpImplementation.failed && _httpImplementation.failed) {
+	if (_mtpImplementation.failed) {
 		_failed.fire({});
 		return false;
-	} else if (!_mtpImplementation.loader) {
-		tryOne(_httpImplementation);
-	} else if (!_httpImplementation.loader) {
-		tryOne(_mtpImplementation);
-	} else {
-		tryOne(_usingMtprotoLoader
-			? _mtpImplementation
-			: _httpImplementation);
-		_usingMtprotoLoader = !_usingMtprotoLoader;
+	// } else if (!_mtpImplementation.loader) {
+	// 	tryOne(_httpImplementation);
+	// } else if (!_httpImplementation.loader) {
+	// 	tryOne(_mtpImplementation);
+	// } else {
+	// 	tryOne(_usingMtprotoLoader
+	// 		? _mtpImplementation
+	// 		: _httpImplementation);
+	// 	_usingMtprotoLoader = !_usingMtprotoLoader;
 	}
 	return true;
 }
@@ -1493,8 +1495,8 @@ bool checkReadyUpdate() {
 				ClearAll();
 				return false;
 			}
-		} else if (versionNum <= AppVersion) {
-			LOG(("Update Error: cant install version %1 having version %2").arg(versionNum).arg(AppVersion));
+		} else if (versionNum <= AppKotatoVersion) {
+			LOG(("Update Error: cant install version %1 having version %2").arg(versionNum).arg(AppKotatoVersion));
 			ClearAll();
 			return false;
 		}
