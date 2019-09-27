@@ -9,7 +9,7 @@ using "basic.style";
 using "dialogs/dialogs.style";
 using "ui/widgets/widgets.style";
 
-minPhotoSize: 200px;
+minPhotoSize: 100px;
 minVideoSize: 160px;
 maxMediaSize: 430px;
 maxStickerSize: 128px;
@@ -371,6 +371,7 @@ botKbScroll: defaultSolidScroll;
 historyDateFadeDuration: 200;
 
 historyPhotoLeft: 14px;
+historyPhotoCaptionedMinWidth: 200px;
 historyMessageRadius: 6px;
 historyBubbleTailInLeft: icon {{ "bubble_tail", msgInBg }};
 historyBubbleTailInLeftSelected: icon {{ "bubble_tail", msgInBgSelected }};
