@@ -19,19 +19,17 @@ bool OnlyAlphaKey = false;
 
 const char *PublicKey = "\
 -----BEGIN RSA PUBLIC KEY-----\n\
-AAAAB3NzaC1yc2EAAAADAQABAAAAgQC1BIvDUH3Kvxk6A+QnYHTYYI9mrdp7rKFr\n\
-B7lHSDhhDnoabdj4kJc7fqs4iiQzvPrT50FdDc6ulKmVwNHgk+Arz9o2ci6v8Zzc\n\
-5Yp0F0/sD7tsKgWm0U36AkyIi7HhY79sxLFwgpIYmlHwLVN8NPcsNPw/L5df+fjf\n\
-+JqQInPtFQ==\n\
+MIGJAoGBALUEi8NQfcq/GToD5CdgdNhgj2at2nusoWsHuUdIOGEOehpt2PiQlzt+\n\
+qziKJDO8+tPnQV0Nzq6UqZXA0eCT4CvP2jZyLq/xnNzlinQXT+wPu2wqBabRTfoC\n\
+TIiLseFjv2zEsXCCkhiaUfAtU3w09yw0/D8vl1/5+N/4mpAic+0VAgMBAAE=\n\
 -----END RSA PUBLIC KEY-----\
 ";
 
 const char *PublicBetaKey = "\
 -----BEGIN RSA PUBLIC KEY-----\n\
-AAAAB3NzaC1yc2EAAAADAQABAAAAgQD4IzJFh7MZNXeDXDwuY8j5RHXbznZd8h/r\n\
-PMaZvDMQlcIVruXWs5AtGb9f9FJ5HoDuIzZEmN8nA6p/k9zY8TcZy9BLCoezI4p8\n\
-jFHt2SEs2iMq3av/L+G7wf2dV+UbsNh2nKFqPxFbF2Pcwk62OdyEaysuB0GwjpaC\n\
-tvkwYpsl+Q==\n\
+MIGJAoGBAPgjMkWHsxk1d4NcPC5jyPlEddvOdl3yH+s8xpm8MxCVwhWu5dazkC0Z\n\
+v1/0UnkegO4jNkSY3ycDqn+T3NjxNxnL0EsKh7MjinyMUe3ZISzaIyrdq/8v4bvB\n\
+/Z1X5Ruw2HacoWo/EVsXY9zCTrY53IRrKy4HQbCOloK2+TBimyX5AgMBAAE=\n\
 -----END RSA PUBLIC KEY-----\
 ";
 
