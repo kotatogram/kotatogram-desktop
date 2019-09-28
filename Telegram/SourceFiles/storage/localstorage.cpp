@@ -2735,7 +2735,7 @@ const QString &AutoupdatePrefix(const QString &replaceWith = {}) {
 QString autoupdatePrefixFile() {
 	Expects(!Core::UpdaterDisabled());
 
-	return cWorkingDir() + "tdata/prefix";
+	return cWorkingDir() + "tdata/kotatoprefix";
 }
 
 const QString &readAutoupdatePrefixRaw() {
@@ -2752,7 +2752,7 @@ const QString &readAutoupdatePrefixRaw() {
 			return AutoupdatePrefix(value);
 		}
 	}
-	return AutoupdatePrefix("https://updates.tdesktop.com");
+	return AutoupdatePrefix("https://kotatogram.github.io");
 }
 
 void writeAutoupdatePrefix(const QString &prefix) {

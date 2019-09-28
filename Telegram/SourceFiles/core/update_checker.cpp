@@ -1072,7 +1072,7 @@ private:
 	rpl::event_stream<Progress> _progress;
 	rpl::event_stream<> _failed;
 	rpl::event_stream<> _ready;
-	//Implementation _httpImplementation;
+	Implementation _httpImplementation;
 	Implementation _mtpImplementation;
 	std::shared_ptr<Loader> _activeLoader;
 	bool _usingMtprotoLoader = (cAlphaVersion() != 0);
@@ -1183,7 +1183,7 @@ int Updater::already() const {
 }
 
 void Updater::stop() {
-	//_httpImplementation = Implementation();
+	_httpImplementation = Implementation();
 	_mtpImplementation = Implementation();
 	_activeLoader = nullptr;
 	_action = Action::Waiting;
@@ -1219,9 +1219,9 @@ void Updater::start(bool forceWait) {
 	}
 
 	if (sendRequest) {
-		// startImplementation(
-		// 	&_httpImplementation,
-		// 	std::make_unique<HttpChecker>(_testing));
+		startImplementation(
+			&_httpImplementation,
+			std::make_unique<HttpChecker>(_testing));
 		startImplementation(
 			&_mtpImplementation,
 			std::make_unique<MtpChecker>(_mtproto, _testing));
@@ -1298,7 +1298,7 @@ void Updater::handleTimeout() {
 				which.failed = true;
 			}
 		};
-		//reset(_httpImplementation);
+		reset(_httpImplementation);
 		reset(_mtpImplementation);
 		if (!tryLoaders()) {
 			cSetLastUpdateCheck(0);
@@ -1310,8 +1310,7 @@ void Updater::handleTimeout() {
 }
 
 bool Updater::tryLoaders() {
-	//if (_httpImplementation.checker || _mtpImplementation.checker) {
-	if (_mtpImplementation.checker) {
+	if (_httpImplementation.checker || _mtpImplementation.checker) {
 		// Some checkers didn't finish yet.
 		return true;
 	}
@@ -1340,19 +1339,18 @@ bool Updater::tryLoaders() {
 			_isLatest.fire({});
 		}
 	};
-	//if (_mtpImplementation.failed && _httpImplementation.failed) {
-	if (_mtpImplementation.failed) {
+	if (_mtpImplementation.failed && _httpImplementation.failed) {
 		_failed.fire({});
 		return false;
-	// } else if (!_mtpImplementation.loader) {
-	// 	tryOne(_httpImplementation);
-	// } else if (!_httpImplementation.loader) {
-	// 	tryOne(_mtpImplementation);
-	// } else {
-	// 	tryOne(_usingMtprotoLoader
-	// 		? _mtpImplementation
-	// 		: _httpImplementation);
-	// 	_usingMtprotoLoader = !_usingMtprotoLoader;
+	} else if (!_mtpImplementation.loader) {
+		tryOne(_httpImplementation);
+	} else if (!_httpImplementation.loader) {
+		tryOne(_mtpImplementation);
+	} else {
+		tryOne(_usingMtprotoLoader
+			? _mtpImplementation
+			: _httpImplementation);
+		_usingMtprotoLoader = !_usingMtprotoLoader;
 	}
 	return true;
 }
@@ -1569,7 +1567,7 @@ void UpdateApplication() {
 #elif defined OS_MAC_STORE // OS_WIN_STORE
 			return "https://itunes.apple.com/ae/app/telegram-desktop/id946399090";
 #else // OS_WIN_STORE || OS_MAC_STORE
-			return "https://desktop.telegram.org";
+			return "https://github.com/kotatogram/kotatogram-desktop";
 #endif // OS_WIN_STORE || OS_MAC_STORE
 		}();
 		UrlClickHandler::Open(url);
