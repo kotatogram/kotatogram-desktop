@@ -146,6 +146,6 @@ QString currentVersionText() {
 	} else if (AppBetaVersion) {
 		result += " beta";
 	}
-	result += qsl(" (TDesktop %1)").arg(AppVersionStr);
+	result += qsl(" (TD %1)").arg(AppVersionStr);
 	return result;
 }
