@@ -274,6 +274,18 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			UsernameValue(user),
 			tr::lng_context_copy_mention(tr::now));
 
+		if (user->isBot()) {
+			addInfoOneLine(
+				tr::ktg_profile_bot_id(),
+				IDValue(user),
+				tr::ktg_profile_copy_id(tr::now));
+		} else {
+			addInfoOneLine(
+				tr::ktg_profile_user_id(),
+				IDValue(user),
+				tr::ktg_profile_copy_id(tr::now));
+		}
+
 		const auto window = &_controller->parentController()->window();
 		AddMainButton(
 			result,
@@ -322,6 +334,23 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				std::move(locationText),
 				QString()
 			)->setLinksTrusted();
+		}
+
+		if (_peer->isChat()) {
+			addInfoOneLine(
+				tr::ktg_profile_group_id(),
+				IDValue(_peer),
+				tr::ktg_profile_copy_id(tr::now));
+		} else if (_peer->isMegagroup()) {
+			addInfoOneLine(
+				tr::ktg_profile_supergroup_id(),
+				IDValue(_peer),
+				tr::ktg_profile_copy_id(tr::now));
+		} else {
+			addInfoOneLine(
+				tr::ktg_profile_channel_id(),
+				IDValue(_peer),
+				tr::ktg_profile_copy_id(tr::now));
 		}
 
 		addInfoLine(tr::lng_info_about_label(), AboutValue(_peer));

@@ -2227,5 +2227,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_about_text3" = "Visit {channel_link} or {faq_link} for more info.";
 "ktg_about_text3_channel" = "Kotatogram channel";
 "ktg_copy_btn_callback" = "Copy callback data";
+"ktg_profile_copy_id" = "Copy ID";
+"ktg_profile_bot_id" = "Bot ID";
+"ktg_profile_user_id" = "User ID";
+"ktg_profile_group_id" = "Group ID";
+"ktg_profile_supergroup_id" = "Supergroup ID";
+"ktg_profile_channel_id" = "Channel ID";
 
 // Keys finished
