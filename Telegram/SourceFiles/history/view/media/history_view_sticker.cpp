@@ -59,7 +59,7 @@ QSize Sticker::size() {
 		constexpr auto kIdealStickerSize = 512;
 		const auto zoom = GetEmojiStickerZoom(&_document->session());
 		const auto convert = [&](int size) {
-			return int(size * st::maxStickerSize * zoom / kIdealStickerSize);
+			return int(size * st::historyStickerHeight * zoom / kIdealStickerSize);
 		};
 		_size = QSize(convert(_size.width()), convert(_size.height()));
 	} else {
