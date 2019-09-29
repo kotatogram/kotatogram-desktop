@@ -376,6 +376,9 @@ QString ReplyMarkupClickHandler::copyToClipboardText() const {
 		if (button->type == Type::Url || button->type == Type::Auth) {
 			return QString::fromUtf8(button->data);
 		}
+		if (button->type == Type::Callback || button->type == Type::Game) {
+			return QString::fromUtf8(button->data);
+		}
 	}
 	return QString();
 }
@@ -385,6 +388,9 @@ QString ReplyMarkupClickHandler::copyToClipboardContextItemText() const {
 		using Type = HistoryMessageMarkupButton::Type;
 		if (button->type == Type::Url || button->type == Type::Auth) {
 			return tr::lng_context_copy_link(tr::now);
+		}
+		if (button->type == Type::Callback || button->type == Type::Game) {
+			return tr::ktg_copy_btn_callback(tr::now);
 		}
 	}
 	return QString();

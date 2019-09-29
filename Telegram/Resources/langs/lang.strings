@@ -2226,5 +2226,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_about_text1_tdesktop" = "Telegram Desktop";
 "ktg_about_text3" = "Visit {channel_link} or {faq_link} for more info.";
 "ktg_about_text3_channel" = "Kotatogram channel";
+"ktg_copy_btn_callback" = "Copy callback data";
 
 // Keys finished
