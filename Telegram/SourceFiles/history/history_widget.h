@@ -137,6 +137,8 @@ public:
 	void sendFileConfirmed(const std::shared_ptr<FileLoadResult> &file,
 		const std::optional<FullMsgId> &oldId = std::nullopt);
 
+	static bool hasHiddenPinnedMessage(not_null<PeerData*> peer);
+	static bool unhidePinnedMessage(not_null<PeerData*> peer);
 	void updateControlsVisibility();
 	void updateControlsGeometry();
 

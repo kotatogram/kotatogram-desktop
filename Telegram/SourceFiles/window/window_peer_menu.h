@@ -48,6 +48,7 @@ void PeerMenuAddMuteAction(
 	not_null<PeerData*> peer,
 	const PeerMenuCallback &addAction);
 
+void PeerMenuUnhidePinnedMessage(not_null<PeerData*> peer);
 void PeerMenuExportChat(not_null<PeerData*> peer);
 void PeerMenuDeleteContact(not_null<UserData*> user);
 void PeerMenuShareContactBox(

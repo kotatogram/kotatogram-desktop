@@ -5643,6 +5643,32 @@ void HistoryWidget::updatePinnedBar(bool force) {
 	}
 }
 
+bool HistoryWidget::hasHiddenPinnedMessage(not_null<PeerData*> peer) {
+	auto result = false;
+	auto pinnedId = peer->pinnedMessageId();
+	if (pinnedId) {
+		auto it = Global::HiddenPinnedMessages().constFind(peer->id);
+		if (it != Global::HiddenPinnedMessages().cend()) {
+			result = true;
+		}
+	}
+	return result;
+}
+
+bool HistoryWidget::unhidePinnedMessage(not_null<PeerData*> peer) {
+	auto result = false;
+	auto pinnedId = peer->pinnedMessageId();
+	if (pinnedId) {
+		auto it = Global::HiddenPinnedMessages().constFind(peer->id);
+		if (it != Global::HiddenPinnedMessages().cend()) {
+			Global::RefHiddenPinnedMessages().remove(peer->id);
+			Local::writeUserSettings();
+			result = true;
+		}
+	}
+	return result;
+}
+
 bool HistoryWidget::pinnedMsgVisibilityUpdated() {
 	auto result = false;
 	auto pinnedId = _peer->pinnedMessageId();

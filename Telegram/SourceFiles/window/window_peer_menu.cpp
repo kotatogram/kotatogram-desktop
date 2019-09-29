@@ -29,6 +29,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_message.h" // GetErrorTextForSending.
+#include "history/history_widget.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "support/support_helper.h"
@@ -387,6 +388,11 @@ void Filler::addUserActions(not_null<UserData*> user) {
 				user->session().supportHelper().editInfo(user);
 			});
 		}
+		if (user->isSelf() && HistoryWidget::hasHiddenPinnedMessage(user)) {
+			_addAction(
+				tr::lng_pinned_message(tr::now),
+				[=] { PeerMenuUnhidePinnedMessage(user); });
+		}
 		if (!user->isContact() && !user->isSelf() && !user->isBot()) {
 			_addAction(
 				tr::lng_info_add_as_contact(tr::now),
@@ -439,6 +445,11 @@ void Filler::addChatActions(not_null<ChatData*> chat) {
 				controller->showEditPeerBox(chat);
 			});
 		}
+		if (HistoryWidget::hasHiddenPinnedMessage(chat)) {
+			_addAction(
+				tr::lng_pinned_message(tr::now),
+				[=] { PeerMenuUnhidePinnedMessage(chat); });
+		}
 		if (chat->canAddMembers()) {
 			_addAction(
 				tr::lng_profile_add_participant(tr::now),
@@ -484,6 +495,11 @@ void Filler::addChannelActions(not_null<ChannelData*> channel) {
 			_addAction(text, [=] {
 				controller->showEditPeerBox(channel);
 			});
+		}
+		if (HistoryWidget::hasHiddenPinnedMessage(channel)) {
+			_addAction(
+				tr::lng_pinned_message(tr::now),
+				[=] { PeerMenuUnhidePinnedMessage(channel); });
 		}
 		if (channel->canAddMembers()) {
 			_addAction(
@@ -636,6 +652,15 @@ void FolderFiller::addTogglesForArchive() {
 //}
 
 } // namespace
+
+void PeerMenuUnhidePinnedMessage(not_null<PeerData*> peer) {
+	auto unhidden = HistoryWidget::unhidePinnedMessage(peer);
+	if (unhidden) {
+		Notify::peerUpdatedDelayed(
+			peer,
+			Notify::PeerUpdate::Flag::PinnedMessageChanged);
+	}
+}
 
 void PeerMenuExportChat(not_null<PeerData*> peer) {
 	peer->owner().startExport(peer);
