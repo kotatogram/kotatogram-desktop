@@ -198,6 +198,13 @@ rpl::producer<bool> CanAddContactValue(not_null<UserData*> user) {
 	) | rpl::map(!_1);
 }
 
+rpl::producer<bool> HasLinkedChatValue(not_null<ChannelData*> channel) {
+	return Notify::PeerUpdateValue(
+		channel,
+		Notify::PeerUpdate::Flag::ChannelLinkedChat
+	) | rpl::map([channel] { return channel->linkedChat() != nullptr; });
+}
+
 rpl::producer<bool> AmInChannelValue(not_null<ChannelData*> channel) {
 	return Notify::PeerUpdateValue(
 		channel,

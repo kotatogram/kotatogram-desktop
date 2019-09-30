@@ -50,6 +50,7 @@ rpl::producer<bool> IsContactValue(not_null<UserData*> user);
 rpl::producer<bool> CanInviteBotToGroupValue(not_null<UserData*> user);
 rpl::producer<bool> CanShareContactValue(not_null<UserData*> user);
 rpl::producer<bool> CanAddContactValue(not_null<UserData*> user);
+rpl::producer<bool> HasLinkedChatValue(not_null<ChannelData*> channel);
 rpl::producer<bool> AmInChannelValue(not_null<ChannelData*> channel);
 rpl::producer<int> MembersCountValue(not_null<PeerData*> peer);
 rpl::producer<int> AdminsCountValue(not_null<PeerData*> peer);
