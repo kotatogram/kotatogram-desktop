@@ -49,9 +49,9 @@ GYP_DEFINES=""
 run() {
   # Move files to subdir
   cd ..
-  mv kotatogram-desktop kotatogram-desktop2
-  mkdir kotatogram-desktop
-  mv kotatogram-desktop2 "$UPSTREAM"
+  mv tdesktop tdesktop2
+  mkdir tdesktop
+  mv tdesktop2 "$UPSTREAM"
 
   mkdir "$BUILD"
 

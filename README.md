@@ -1,7 +1,5 @@
 # Kotatogram – experimental [Telegram Desktop][telegram_desktop] fork.
 
-[![Travis build status](https://img.shields.io/travis/kotatogram/kotatogram-desktop?label=Travis%20Build&style=for-the-badge)](https://travis-ci.org/kotatogram/kotatogram-desktop) [![Appveyor build status](https://img.shields.io/appveyor/ci/RadRussianRus/kotatogram-desktop?label=Appveyor%20build&style=for-the-badge)](https://ci.appveyor.com/project/RadRussianRus/kotatogram-desktop)
-
 Original README with build instructions and licenses could be found in [Telegram Desktop repository][telegram_desktop_readme].
 
 Also there is [updated instruction on how to build app in Ubuntu 16.04][docs_ubuntu_16].
