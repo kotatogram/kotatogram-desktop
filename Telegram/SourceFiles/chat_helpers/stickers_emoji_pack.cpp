@@ -321,57 +321,19 @@ EmojiImageLoader::EmojiImageLoader(
 QImage EmojiImageLoader::prepare(EmojiPtr emoji) {
 	const auto loaded = _images->ensureLoaded();
 	const auto factor = cIntRetinaFactor();
-	const auto side = st::largeEmojiSize + 2 * st::largeEmojiOutline;
-	auto tinted = QImage(
-		QSize(st::largeEmojiSize, st::largeEmojiSize) * factor,
-		QImage::Format_ARGB32_Premultiplied);
-	tinted.fill(Qt::white);
-	if (loaded) {
-		QPainter p(&tinted);
-		p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
-		_images->draw(
-			p,
-			emoji,
-			st::largeEmojiSize * factor,
-			0,
-			0);
-	}
+	const auto side = st::largeEmojiSize;
 	auto result = QImage(
 		QSize(side, side) * factor,
 		QImage::Format_ARGB32_Premultiplied);
 	result.fill(Qt::transparent);
 	if (loaded) {
 		QPainter p(&result);
-		const auto delta = st::largeEmojiOutline * factor;
-		const auto planar = std::array<QPoint, 4>{ {
-			{ 0, -1 },
-			{ -1, 0 },
-			{ 1, 0 },
-			{ 0, 1 },
-		} };
-		for (const auto &shift : planar) {
-			for (auto i = 0; i != delta; ++i) {
-				p.drawImage(QPoint(delta, delta) + shift * (i + 1), tinted);
-			}
-		}
-		const auto diagonal = std::array<QPoint, 4>{ {
-			{ -1, -1 },
-			{ 1, -1 },
-			{ -1, 1 },
-			{ 1, 1 },
-		} };
-		const auto corrected = int(std::round(delta / sqrt(2.)));
-		for (const auto &shift : diagonal) {
-			for (auto i = 0; i != corrected; ++i) {
-				p.drawImage(QPoint(delta, delta) + shift * (i + 1), tinted);
-			}
-		}
 		_images->draw(
 			p,
 			emoji,
 			st::largeEmojiSize * factor,
-			delta,
-			delta);
+			0,
+			0);
 	}
 	return result;
 }
