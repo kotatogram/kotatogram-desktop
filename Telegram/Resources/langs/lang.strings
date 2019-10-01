@@ -2235,5 +2235,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_profile_group_id" = "Group ID";
 "ktg_profile_supergroup_id" = "Supergroup ID";
 "ktg_profile_channel_id" = "Channel ID";
+"ktg_pinned_message_show" = "Show pinned message";
+"ktg_pinned_message_hide" = "Hide pinned message";
 
 // Keys finished

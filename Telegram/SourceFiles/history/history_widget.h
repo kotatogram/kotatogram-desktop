@@ -138,7 +138,7 @@ public:
 		const std::optional<FullMsgId> &oldId = std::nullopt);
 
 	static bool hasHiddenPinnedMessage(not_null<PeerData*> peer);
-	static bool unhidePinnedMessage(not_null<PeerData*> peer);
+	static bool switchPinnedHidden(not_null<PeerData*> peer, bool hidden);
 	void updateControlsVisibility();
 	void updateControlsGeometry();
 

@@ -5654,13 +5654,17 @@ bool HistoryWidget::hasHiddenPinnedMessage(not_null<PeerData*> peer) {
 	return result;
 }
 
-bool HistoryWidget::unhidePinnedMessage(not_null<PeerData*> peer) {
+bool HistoryWidget::switchPinnedHidden(not_null<PeerData*> peer, bool hidden) {
 	auto result = false;
 	auto pinnedId = peer->pinnedMessageId();
 	if (pinnedId) {
 		auto it = Global::HiddenPinnedMessages().constFind(peer->id);
-		if (it != Global::HiddenPinnedMessages().cend()) {
+		if (it != Global::HiddenPinnedMessages().cend() && !hidden) {
 			Global::RefHiddenPinnedMessages().remove(peer->id);
+			Local::writeUserSettings();
+			result = true;
+		} else if (it == Global::HiddenPinnedMessages().cend() && hidden) {
+			Global::RefHiddenPinnedMessages().insert(peer->id, pinnedId);
 			Local::writeUserSettings();
 			result = true;
 		}
@@ -5671,7 +5675,7 @@ bool HistoryWidget::unhidePinnedMessage(not_null<PeerData*> peer) {
 bool HistoryWidget::pinnedMsgVisibilityUpdated() {
 	auto result = false;
 	auto pinnedId = _peer->pinnedMessageId();
-	if (pinnedId && !_peer->canPinMessages()) {
+	if (pinnedId) {
 		auto it = Global::HiddenPinnedMessages().constFind(_peer->id);
 		if (it != Global::HiddenPinnedMessages().cend()) {
 			if (it.value() == pinnedId) {
