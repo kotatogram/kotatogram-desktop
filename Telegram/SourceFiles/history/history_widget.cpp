@@ -1961,15 +1961,19 @@ void HistoryWidget::setupScheduledToggle() {
 void HistoryWidget::refreshScheduledToggle() {
 	const auto canWrite = _history && _peer->canWrite();
 	const auto has = canWrite && (session().data().scheduledMessages().count(_history) > 0);
-	if (!_scheduled && canWrite) {
-		_scheduled.create(this, (has ? st::historyScheduledToggle : st::historyScheduledToggleEmpty));
-		_scheduled->show();
-		_scheduled->addClickHandler([=] {
-			controller()->showSection(
-				HistoryView::ScheduledMemento(_history));
-		});
-	} else if (_scheduled && !canWrite) {
+	if (_scheduled && !canWrite) {
 		_scheduled.destroy();
+	} else if (canWrite) {
+		if (_scheduled) {
+			_scheduled->setIconOverride(has ? st::historyScheduledToggle : st::historyScheduledToggleEmpty);
+		} else {
+			_scheduled.create(this, (has ? st::historyScheduledToggle : st::historyScheduledToggleEmpty));
+			_scheduled->show();
+			_scheduled->addClickHandler([=] {
+				controller()->showSection(
+					HistoryView::ScheduledMemento(_history));
+			});
+		}
 	}
 }
 
