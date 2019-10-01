@@ -2222,6 +2222,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 // Kotatogram keys
 
+"ktg_intro_about" = "Welcome to unofficial messaging app\nbased on Telegram Desktop.";
+
 "ktg_about_text1" = "Experimental unofficial {tdesktop_link} fork.";
 "ktg_about_text1_tdesktop" = "Telegram Desktop";
 "ktg_about_text3" = "Visit {channel_link} or {faq_link} for more info.";

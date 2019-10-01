@@ -21,7 +21,7 @@ StartWidget::StartWidget(
 : Step(parent, account, data, true) {
 	setMouseTracking(true);
 	setTitleText(rpl::single(qsl("Kotatogram Desktop")));
-	setDescriptionText(tr::lng_intro_about());
+	setDescriptionText(tr::ktg_intro_about());
 	show();
 }
 
