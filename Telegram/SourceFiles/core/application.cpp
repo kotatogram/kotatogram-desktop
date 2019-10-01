@@ -161,6 +161,18 @@ Application::~Application() {
 }
 
 void Application::run() {
+	if (!cMainFont().isEmpty()) {
+		style::internal::SetMainFont(cMainFont());
+	}
+	if (!cSemiboldFont().isEmpty()) {
+		style::internal::SetSemiboldFont(cSemiboldFont());
+	}
+	if (cSemiboldFontIsBold()) {
+		style::internal::SetSemiboldIsBold(cSemiboldFontIsBold());
+	}
+	if (!cMonospaceFont().isEmpty()) {
+		style::internal::SetMonospaceFont(cMonospaceFont());
+	}
 	style::internal::StartFonts();
 
 	ThirdParty::start();

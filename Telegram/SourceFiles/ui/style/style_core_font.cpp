@@ -76,7 +76,23 @@ bool Started = false;
 QString OpenSansOverride;
 QString OpenSansSemiboldOverride;
 
+QString CustomMainFont;
+QString CustomSemiboldFont;
+bool CustomSemiboldIsBold = false;
+
 } // namespace
+
+void SetMainFont(const QString &familyName) {
+	CustomMainFont = familyName;
+}
+
+void SetSemiboldFont(const QString &familyName) {
+	CustomSemiboldFont = familyName;
+}
+
+void SetSemiboldIsBold(bool isBold) {
+	CustomSemiboldIsBold = isBold;
+}
 
 void StartFonts() {
 	if (Started) {
@@ -119,11 +135,11 @@ void StartFonts() {
 	QFont::insertSubstitutions("Open Sans Semibold", list);
 #endif // Q_OS_WIN || Q_OS_MAC
 
-	if (!cMainFont().isEmpty() && ValidateFont(cMainFont())) {
-		OpenSansOverride = cMainFont();
+	if (!CustomMainFont.isEmpty() && ValidateFont(CustomMainFont)) {
+		OpenSansOverride = CustomMainFont;
 	}
-	if (!cSemiboldFont().isEmpty() && ValidateFont(cSemiboldFont())) {
-		OpenSansSemiboldOverride = cSemiboldFont();
+	if (!CustomSemiboldFont.isEmpty() && ValidateFont(CustomSemiboldFont)) {
+		OpenSansSemiboldOverride = CustomSemiboldFont;
 	}
 }
 
@@ -169,7 +185,7 @@ FontData::FontData(int size, uint32 flags, int family, Font *other)
 	f.setPixelSize(size);
 	if (_flags & FontBold) {
 		f.setBold(true);
-	} else if (fontFamilies[family] == "Open Sans Semibold" && cSemiboldFontIsBold()) {
+	} else if (fontFamilies[family] == "Open Sans Semibold" && CustomSemiboldIsBold) {
 		f.setBold(true);
 	}
 	f.setItalic(_flags & FontItalic);

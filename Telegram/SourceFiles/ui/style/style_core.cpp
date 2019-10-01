@@ -30,6 +30,7 @@ auto PaletteChanges = rpl::event_stream<>();
 auto ShortAnimationRunning = rpl::variable<bool>(false);
 auto RunningShortAnimations = 0;
 auto ResolvedMonospaceFont = style::font();
+QString CustomMonospaceFont;
 
 std::vector<internal::ModuleBase*> &StyleModules() {
 	static auto result = std::vector<internal::ModuleBase*>();
@@ -52,8 +53,8 @@ void ResolveMonospaceFont() {
 			family = attempt;
 		}
 	};
-	if (!cMonospaceFont().isEmpty()) {
-		tryFont(cMonospaceFont());
+	if (!CustomMonospaceFont.isEmpty()) {
+		tryFont(CustomMonospaceFont);
 	}
 	tryFont("Consolas");
 	tryFont("Liberation Mono");
@@ -68,6 +69,10 @@ void ResolveMonospaceFont() {
 }
 
 } // namespace
+
+void SetMonospaceFont(const QString &familyName) {
+	CustomMonospaceFont = familyName;
+}
 
 void registerModule(ModuleBase *module) {
 	StyleModules().push_back(module);

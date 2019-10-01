@@ -15,6 +15,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace style {
 namespace internal {
 
+void SetMainFont(const QString &familyName);
+void SetSemiboldFont(const QString &familyName);
+void SetSemiboldIsBold(bool isBold);
+
 void StartFonts();
 [[nodiscard]] QString GetFontOverride(const QString &familyName);
 
