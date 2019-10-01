@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ui/widgets/input_fields.h"
 #include "base/timer.h"
+#include "base/qt_connection.h"
 
 #include <QtGui/QClipboard>
 
@@ -20,16 +21,7 @@ namespace Window {
 class SessionController;
 } // namespace Window
 
-QString ConvertTagToMimeTag(const QString &tagId);
 QString PrepareMentionTag(not_null<UserData*> user);
-
-EntitiesInText ConvertTextTagsToEntities(const TextWithTags::Tags &tags);
-TextWithTags::Tags ConvertEntitiesToTextTags(
-	const EntitiesInText &entities);
-std::unique_ptr<QMimeData> MimeDataFromText(const TextForMimeData &text);
-void SetClipboardText(
-	const TextForMimeData &text,
-	QClipboard::Mode mode = QClipboard::Clipboard);
 TextWithTags PrepareEditText(not_null<HistoryItem*> item);
 
 Fn<bool(
@@ -58,20 +50,6 @@ struct AutocompleteQuery {
 };
 AutocompleteQuery ParseMentionHashtagBotCommandQuery(
 	not_null<const Ui::InputField*> field);
-
-class QtConnectionOwner final {
-public:
-	QtConnectionOwner(QMetaObject::Connection connection = {});
-	QtConnectionOwner(QtConnectionOwner &&other);
-	QtConnectionOwner &operator=(QtConnectionOwner &&other);
-	~QtConnectionOwner();
-
-private:
-	void disconnect();
-
-	QMetaObject::Connection _data;
-
-};
 
 class MessageLinksParser : private QObject {
 public:
@@ -104,7 +82,7 @@ private:
 	rpl::variable<QStringList> _list;
 	int _lastLength = 0;
 	base::Timer _timer;
-	QtConnectionOwner _connection;
+	base::qt_connection _connection;
 
 };
 

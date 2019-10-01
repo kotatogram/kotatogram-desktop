@@ -32,6 +32,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image.h"
 #include "window/window_session_controller.h"
 #include "main/main_session.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
 
@@ -877,7 +879,7 @@ void StickersBox::Inner::paintRow(Painter &p, not_null<Row*> set, int index) {
 
 		{
 			PainterHighQualityEnabler hq(p);
-			p.drawEllipse(rtlrect(namex + set->titleWidth + st::stickersFeaturedUnreadSkip, namey + st::stickersFeaturedUnreadTop, st::stickersFeaturedUnreadSize, st::stickersFeaturedUnreadSize, width()));
+			p.drawEllipse(style::rtlrect(namex + set->titleWidth + st::stickersFeaturedUnreadSkip, namey + st::stickersFeaturedUnreadTop, st::stickersFeaturedUnreadSize, st::stickersFeaturedUnreadSize, width()));
 		}
 	}
 

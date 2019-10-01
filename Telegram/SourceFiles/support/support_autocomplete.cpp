@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
+#include "facades.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_window.h"
 #include "styles/style_boxes.h"
@@ -538,7 +539,7 @@ void ConfirmContactBox::prepare() {
 	_contact->initDimensions();
 
 	_submit = [=, original = std::move(_submit)](Qt::KeyboardModifiers m) {
-		const auto weak = make_weak(this);
+		const auto weak = Ui::MakeWeak(this);
 		original(m);
 		if (weak) {
 			closeBox();

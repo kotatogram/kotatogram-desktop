@@ -11,6 +11,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/sender.h"
 #include "styles/style_widgets.h"
 
+#include <QtCore/QTimer>
+
 class ConfirmBox;
 class PeerListBox;
 
@@ -137,7 +139,10 @@ private:
 
 };
 
-class SetupChannelBox : public BoxContent, public RPCSender {
+class SetupChannelBox
+	: public BoxContent
+	, public RPCSender
+	, private base::Subscriber {
 public:
 	SetupChannelBox(
 		QWidget*,
@@ -232,7 +237,10 @@ private:
 
 };
 
-class RevokePublicLinkBox : public BoxContent, public RPCSender {
+class RevokePublicLinkBox
+	: public BoxContent
+	, public RPCSender
+	, private base::Subscriber {
 public:
 	RevokePublicLinkBox(
 		QWidget*,

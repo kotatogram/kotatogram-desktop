@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "mainwidget.h"
 #include "lang/lang_keys.h"
+#include "facades.h"
 #include "styles/style_info.h"
 #include "styles/style_profile.h"
 
@@ -1035,7 +1036,7 @@ object_ptr<Ui::RpWidget> WrapWidget::createTopBarSurrogate(
 		Assert(_topBar != nullptr);
 
 		auto result = object_ptr<Ui::AbstractButton>(parent);
-		result->addClickHandler([weak = make_weak(this)]{
+		result->addClickHandler([weak = Ui::MakeWeak(this)]{
 			if (weak) {
 				weak->_controller->showBackFromStack();
 			}

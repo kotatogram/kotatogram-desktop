@@ -8,6 +8,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "ui/rp_widget.h"
+#include "base/object_ptr.h"
+
+class BoxContent;
 
 namespace Ui {
 class MaskedInputField;

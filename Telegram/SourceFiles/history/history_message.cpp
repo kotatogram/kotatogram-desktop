@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "apiwrap.h"
+#include "api/api_text_entities.h"
 #include "history/history.h"
 #include "history/history_item_components.h"
 #include "history/history_location_manager.h"
@@ -36,6 +37,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_media_types.h"
 #include "data/data_channel.h"
 #include "data/data_user.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_widgets.h"
 #include "styles/style_history.h"
@@ -224,7 +227,7 @@ void FastShareMessage(not_null<HistoryItem*> item) {
 		}
 	};
 	auto submitCallback = [=](
-			QVector<PeerData*> &&result,
+			std::vector<not_null<PeerData*>> &&result,
 			TextWithTags &&comment,
 			Api::SendOptions options) {
 		if (!data->requests.empty()) {
@@ -251,7 +254,7 @@ void FastShareMessage(not_null<HistoryItem*> item) {
 			auto text = TextWithEntities();
 			if (result.size() > 1) {
 				text.append(
-					Ui::Text::Bold(App::peerName(error.second))
+					Ui::Text::Bold(error.second->name)
 				).append("\n\n");
 			}
 			text.append(error.first);
@@ -440,7 +443,7 @@ HistoryMessage::HistoryMessage(
 	}
 	setText({
 		TextUtilities::Clean(qs(data.vmessage())),
-		TextUtilities::EntitiesFromMTP(data.ventities().value_or_empty())
+		Api::EntitiesFromMTP(data.ventities().value_or_empty())
 	});
 	if (const auto groupedId = data.vgrouped_id()) {
 		setGroupId(
@@ -1049,7 +1052,7 @@ void HistoryMessage::applyEdition(const MTPDmessage &message) {
 
 	const auto textWithEntities = TextWithEntities{
 		qs(message.vmessage()),
-		TextUtilities::EntitiesFromMTP(message.ventities().value_or_empty())
+		Api::EntitiesFromMTP(message.ventities().value_or_empty())
 	};
 	setReplyMarkup(message.vreply_markup());
 	if (!isLocalUpdateMedia()) {
@@ -1312,7 +1315,7 @@ QString HistoryMessage::notificationHeader() const {
 	if (out() && isFromScheduled() && !_history->peer->isSelf()) {
 		return tr::lng_from_you(tr::now);
 	} else if (!_history->peer->isUser() && !isPost()) {
-		return App::peerName(from());
+		return from()->name;
 	}
 	return QString();
 }

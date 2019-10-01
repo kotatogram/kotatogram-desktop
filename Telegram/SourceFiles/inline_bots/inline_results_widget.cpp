@@ -32,6 +32,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/labels.h"
 #include "observer_peer.h"
 #include "history/view/history_view_cursor_state.h"
+#include "facades.h"
+#include "app.h"
 
 #include <QtWidgets/QApplication>
 
@@ -144,6 +146,10 @@ QPoint Inner::tooltipPos() const {
 	return _lastMousePos;
 }
 
+bool Inner::tooltipWindowActive() const {
+	return Ui::InFocusChain(window());
+}
+
 Inner::~Inner() = default;
 
 void Inner::paintEvent(QPaintEvent *e) {
@@ -237,7 +243,7 @@ void Inner::mouseReleaseEvent(QMouseEvent *e) {
 		int row = _selected / MatrixRowShift, column = _selected % MatrixRowShift;
 		selectInlineResult(row, column);
 	} else {
-		App::activateClickHandler(activated, e->button());
+		ActivateClickHandler(window(), activated, e->button());
 	}
 }
 
@@ -445,7 +451,7 @@ void Inner::refreshSwitchPmButton(const CacheEntry *entry) {
 			_switchPmButton.create(this, nullptr, st::switchPmButton);
 			_switchPmButton->show();
 			_switchPmButton->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
-			connect(_switchPmButton, SIGNAL(clicked()), this, SLOT(onSwitchPm()));
+			_switchPmButton->addClickHandler([=] { onSwitchPm(); });
 		}
 		_switchPmButton->setText(rpl::single(entry->switchPmText));
 		_switchPmStartToken = entry->switchPmStartToken;
@@ -924,8 +930,7 @@ void Widget::startShowAnimation() {
 		_showAnimation = std::make_unique<Ui::PanelAnimation>(st::emojiPanAnimation, Ui::PanelAnimation::Origin::BottomLeft);
 		auto inner = rect().marginsRemoved(st::emojiPanMargins);
 		_showAnimation->setFinalImage(std::move(image), QRect(inner.topLeft() * cIntRetinaFactor(), inner.size() * cIntRetinaFactor()));
-		auto corners = App::cornersMask(ImageRoundRadius::Small);
-		_showAnimation->setCornerMasks(corners[0], corners[1], corners[2], corners[3]);
+		_showAnimation->setCornerMasks(Images::CornersMask(ImageRoundRadius::Small));
 		_showAnimation->start();
 	}
 	hideChildren();

@@ -24,6 +24,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "window/window_session_controller.h"
 #include "history/view/history_view_cursor_state.h"
+#include "facades.h"
+#include "app.h"
 
 #include <QtWidgets/QApplication>
 
@@ -354,7 +356,7 @@ void GifsListWidget::mouseReleaseEvent(QMouseEvent *e) {
 		int row = _selected / MatrixRowShift, column = _selected % MatrixRowShift;
 		selectInlineResult(row, column);
 	} else {
-		App::activateClickHandler(activated, e->button());
+		ActivateClickHandler(window(), activated, e->button());
 	}
 }
 

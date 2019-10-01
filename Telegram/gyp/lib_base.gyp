@@ -6,22 +6,19 @@
 
 {
   'includes': [
-    'common.gypi',
+    'common/common.gypi',
   ],
   'targets': [{
     'target_name': 'lib_base',
-    'type': 'static_library',
     'includes': [
-      'common.gypi',
-      'openssl.gypi',
-      'qt.gypi',
-      'telegram_linux.gypi',
-      'pch.gypi',
+      'common/library.gypi',
+      'modules/openssl.gypi',
+      'modules/qt.gypi',
+      'modules/pch.gypi',
     ],
     'variables': {
       'src_loc': '../SourceFiles',
       'res_loc': '../Resources',
-      'libs_loc': '../../../Libraries',
       'official_build_target%': '',
       'submodules_loc': '../ThirdParty',
       'pch_source': '<(src_loc)/base/base_pch.cpp',
@@ -45,10 +42,13 @@
     'sources': [
       '<(src_loc)/base/algorithm.h',
       '<(src_loc)/base/assertion.h',
+      '<(src_loc)/base/base_integration.h',
       '<(src_loc)/base/basic_types.h',
       '<(src_loc)/base/binary_guard.h',
       '<(src_loc)/base/build_config.h',
       '<(src_loc)/base/bytes.h',
+      '<(src_loc)/base/crc32hash.cpp',
+      '<(src_loc)/base/crc32hash.h',
       '<(src_loc)/base/concurrent_timer.cpp',
       '<(src_loc)/base/concurrent_timer.h',
       '<(src_loc)/base/flags.h',
@@ -60,6 +60,7 @@
       '<(src_loc)/base/invoke_queued.h',
       '<(src_loc)/base/last_used_cache.h',
       '<(src_loc)/base/match_method.h',
+      '<(src_loc)/base/object_ptr.h',
       '<(src_loc)/base/observer.cpp',
       '<(src_loc)/base/observer.h',
       '<(src_loc)/base/ordered_set.h',
@@ -71,6 +72,8 @@
       '<(src_loc)/base/qthelp_regex.h',
       '<(src_loc)/base/qthelp_url.cpp',
       '<(src_loc)/base/qthelp_url.h',
+      '<(src_loc)/base/qt_connection.h',
+      '<(src_loc)/base/qt_signal_producer.h',
       '<(src_loc)/base/runtime_composer.cpp',
       '<(src_loc)/base/runtime_composer.h',
       '<(src_loc)/base/thread_safe_wrap.h',

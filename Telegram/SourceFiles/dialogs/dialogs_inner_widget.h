@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/animations.h"
 #include "ui/rp_widget.h"
 #include "base/flags.h"
+#include "base/object_ptr.h"
 
 namespace Main {
 class Session;
@@ -36,6 +37,7 @@ namespace Dialogs {
 class Row;
 class FakeRow;
 class IndexedList;
+enum class Mode;
 
 struct ChosenRow {
 	Key key;

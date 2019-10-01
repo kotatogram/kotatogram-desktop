@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/update_checker.h"
 #include "data/data_countries.h"
 #include "layout.h"
+#include "app.h"
 #include "styles/style_boxes.h"
 
 namespace Passport {
@@ -1222,7 +1223,7 @@ void PanelController::startScopeEdit(
 					std::move(scans),
 					std::move(translations),
 					PrepareSpecialFiles(*_editDocument));
-			const auto weak = make_weak(result.data());
+			const auto weak = Ui::MakeWeak(result.data());
 			_panelHasUnsavedChanges = [=] {
 				return weak ? weak->hasUnsavedChanges() : false;
 			};
@@ -1240,7 +1241,7 @@ void PanelController::startScopeEdit(
 					_editValue->nativeNames),
 				_editValue->error,
 				_editValue->data.parsedInEdit);
-			const auto weak = make_weak(result.data());
+			const auto weak = Ui::MakeWeak(result.data());
 			_panelHasUnsavedChanges = [=] {
 				return weak ? weak->hasUnsavedChanges() : false;
 			};

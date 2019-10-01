@@ -38,6 +38,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat.h"
 #include "data/data_user.h"
 #include "data/data_folder.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_history.h"
 #include "styles/style_info.h"
@@ -725,7 +727,7 @@ void Widget::onDraggingScrollDelta(int delta) {
 }
 
 void Widget::onDraggingScrollTimer() {
-	auto delta = (_draggingScrollDelta > 0) ? qMin(_draggingScrollDelta * 3 / 20 + 1, int32(MaxScrollSpeed)) : qMax(_draggingScrollDelta * 3 / 20 - 1, -int32(MaxScrollSpeed));
+	auto delta = (_draggingScrollDelta > 0) ? qMin(_draggingScrollDelta * 3 / 20 + 1, int32(Ui::kMaxScrollSpeed)) : qMax(_draggingScrollDelta * 3 / 20 - 1, -int32(Ui::kMaxScrollSpeed));
 	_scroll->scrollToY(_scroll->scrollTop() + delta);
 }
 

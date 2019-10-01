@@ -18,9 +18,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/shadow.h"
 #include "ui/wrap/fade_wrap.h"
 #include "ui/text/text_utilities.h"
+#include "ui/painter.h"
 #include "base/timer.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
+#include "app.h"
 
 struct AbstractBox::LoadingProgress {
 	LoadingProgress(
@@ -134,7 +136,7 @@ void BoxContent::onDraggingScrollDelta(int delta) {
 }
 
 void BoxContent::onDraggingScrollTimer() {
-	auto delta = (_draggingScrollDelta > 0) ? qMin(_draggingScrollDelta * 3 / 20 + 1, int32(MaxScrollSpeed)) : qMax(_draggingScrollDelta * 3 / 20 - 1, -int32(MaxScrollSpeed));
+	auto delta = (_draggingScrollDelta > 0) ? qMin(_draggingScrollDelta * 3 / 20 + 1, int32(Ui::kMaxScrollSpeed)) : qMax(_draggingScrollDelta * 3 / 20 - 1, -int32(Ui::kMaxScrollSpeed));
 	_scroll->scrollToY(_scroll->scrollTop() + delta);
 }
 
@@ -275,7 +277,6 @@ AbstractBox::AbstractBox(
 : LayerWidget(layer)
 , _layer(layer)
 , _content(std::move(content)) {
-	subscribe(Lang::Current().updated(), [=] { refreshLang(); });
 	_content->setParent(this);
 	_content->setDelegate(this);
 
@@ -397,10 +398,6 @@ bool AbstractBox::closeByOutsideClick() const {
 	return _closeByOutsideClick;
 }
 
-void AbstractBox::refreshLang() {
-	InvokeQueued(this, [this] { updateButtonsPositions(); });
-}
-
 bool AbstractBox::hasTitle() const {
 	return (_title != nullptr) || !_additionalTitle.current().isEmpty();
 }
@@ -463,7 +460,10 @@ QPointer<Ui::RoundButton> AbstractBox::addButton(
 	auto result = QPointer<Ui::RoundButton>(_buttons.back());
 	result->setClickedCallback(std::move(clickCallback));
 	result->show();
-	updateButtonsPositions();
+	result->widthValue(
+	) | rpl::start_with_next([=] {
+		updateButtonsPositions();
+	}, result->lifetime());
 	return result;
 }
 
@@ -475,7 +475,10 @@ QPointer<Ui::RoundButton> AbstractBox::addLeftButton(
 	auto result = QPointer<Ui::RoundButton>(_leftButton);
 	result->setClickedCallback(std::move(clickCallback));
 	result->show();
-	updateButtonsPositions();
+	result->widthValue(
+	) | rpl::start_with_next([=] {
+		updateButtonsPositions();
+	}, result->lifetime());
 	return result;
 }
 
@@ -596,3 +599,39 @@ void BoxContentDivider::paintEvent(QPaintEvent *e) {
 	auto dividerFillBottom = myrtlrect(0, height() - st::profileDividerBottom.height(), width(), st::profileDividerBottom.height());
 	st::profileDividerBottom.fill(p, dividerFillBottom);
 }
+
+namespace Ui {
+namespace internal {
+
+void showBox(
+	object_ptr<BoxContent> content,
+	LayerOptions options,
+	anim::type animated) {
+	if (auto w = App::wnd()) {
+		w->ui_showBox(std::move(content), options, animated);
+	}
+}
+
+} // namespace internal
+
+void hideLayer(anim::type animated) {
+	if (auto w = App::wnd()) {
+		w->ui_showBox(
+			{ nullptr },
+			LayerOption::CloseOther,
+			animated);
+	}
+}
+
+void hideSettingsAndLayer(anim::type animated) {
+	if (auto w = App::wnd()) {
+		w->ui_hideSettingsAndLayer(animated);
+	}
+}
+
+bool isLayerShown() {
+	if (auto w = App::wnd()) return w->ui_isLayerShown();
+	return false;
+}
+
+} // namespace Ui

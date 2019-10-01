@@ -28,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/toast/toast.h"
+#include "ui/inactive_press.h"
 #include "lang/lang_keys.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "data/data_session.h"
@@ -35,6 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_media_types.h"
 #include "data/data_document.h"
 #include "data/data_peer.h"
+#include "facades.h"
 #include "styles/style_history.h"
 
 #include <QtWidgets/QApplication>
@@ -1089,6 +1091,10 @@ QPoint ListWidget::tooltipPos() const {
 	return _mousePosition;
 }
 
+bool ListWidget::tooltipWindowActive() const {
+	return Ui::InFocusChain(window());
+}
+
 Context ListWidget::elementContext() {
 	return _delegate->listContext();
 }
@@ -1544,11 +1550,11 @@ void ListWidget::keyPressEvent(QKeyEvent *e) {
 		}
 	} else if (e == QKeySequence::Copy
 		&& (hasSelectedText() || hasSelectedItems())) {
-		SetClipboardText(getSelectedText());
+		TextUtilities::SetClipboardText(getSelectedText());
 #ifdef Q_OS_MAC
 	} else if (e->key() == Qt::Key_E
 		&& e->modifiers().testFlag(Qt::ControlModifier)) {
-		SetClipboardText(getSelectedText(), QClipboard::FindBuffer);
+		TextUtilities::SetClipboardText(getSelectedText(), QClipboard::FindBuffer);
 #endif // Q_OS_MAC
 	} else if (e == QKeySequence::Delete) {
 		_delegate->listDeleteRequest();
@@ -1892,8 +1898,10 @@ void ListWidget::mouseActionStart(
 	const auto pressElement = _overElement;
 
 	_mouseAction = MouseAction::None;
-	_pressWasInactive = _controller->widget()->wasInactivePress();
-	if (_pressWasInactive) _controller->widget()->setInactivePress(false);
+	_pressWasInactive = Ui::WasInactivePress(_controller->widget());
+	if (_pressWasInactive) {
+		Ui::MarkInactivePress(_controller->widget(), false);
+	}
 
 	if (ClickHandler::getPressed()) {
 		_mouseAction = MouseAction::PrepareDrag;
@@ -2015,7 +2023,7 @@ void ListWidget::mouseActionFinish(
 		activated = nullptr;
 	} else if (activated) {
 		mouseActionCancel();
-		App::activateClickHandler(activated, {
+		ActivateClickHandler(window(), activated, {
 			button,
 			QVariant::fromValue(pressState.itemId)
 		});
@@ -2057,7 +2065,7 @@ void ListWidget::mouseActionFinish(
 	if (_selectedTextItem
 		&& _selectedTextRange.from != _selectedTextRange.to) {
 		if (const auto view = viewForItem(_selectedTextItem)) {
-			SetClipboardText(
+			TextUtilities::SetClipboardText(
 				view->selectedText(_selectedTextRange),
 				QClipboard::Selection);
 }
@@ -2302,7 +2310,7 @@ std::unique_ptr<QMimeData> ListWidget::prepareDrag() {
 		}
 		return TextForMimeData();
 	}();
-	if (auto mimeData = MimeDataFromText(selectedText)) {
+	if (auto mimeData = TextUtilities::MimeDataFromText(selectedText)) {
 		clearDragSelection();
 //		_widget->noSelectingScroll(); #TODO scroll
 

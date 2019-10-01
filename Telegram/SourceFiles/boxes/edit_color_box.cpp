@@ -8,11 +8,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/edit_color_box.h"
 
 #include "lang/lang_keys.h"
-#include "styles/style_boxes.h"
 #include "ui/widgets/shadow.h"
-#include "platform/platform_info.h"
-#include "styles/style_mediaview.h"
 #include "ui/widgets/input_fields.h"
+#include "ui/ui_utility.h"
+#include "platform/platform_info.h"
+#include "app.h"
+#include "styles/style_boxes.h"
+#include "styles/style_mediaview.h"
 
 class EditColorBox::Picker : public TWidget {
 public:
@@ -64,8 +66,8 @@ private:
 };
 
 QCursor EditColorBox::Picker::generateCursor() {
-	auto diameter = ConvertScale(16);
-	auto line = ConvertScale(1);
+	auto diameter = style::ConvertScale(16);
+	auto line = style::ConvertScale(1);
 	auto size = ((diameter + 2 * line) >= 32) ? 64 : 32;
 	auto cursor = QImage(QSize(size, size) * cIntRetinaFactor(), QImage::Format_ARGB32_Premultiplied);
 	cursor.setDevicePixelRatio(cRetinaFactor());
@@ -873,7 +875,7 @@ void EditColorBox::fieldSubmitted() {
 }
 
 void EditColorBox::saveColor() {
-	const auto weak = make_weak(this);
+	const auto weak = Ui::MakeWeak(this);
 	_cancelCallback = nullptr;
 	if (_saveCallback) {
 		_saveCallback(_new.toRgb());

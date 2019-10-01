@@ -14,16 +14,23 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/bytes.h"
 #include "base/openssl_help.h"
 #include "base/parse_helper.h"
-#include "main/main_session.h"
+#include "ui/style/style_core.h"
+#include "ui/painter.h"
+#include "ui/ui_utility.h"
+#include "ui/ui_log.h"
+#include "styles/style_basic.h"
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QFile>
+#include <QtCore/QDir>
+
+#include <crl/crl_async.h>
 
 namespace Ui {
 namespace Emoji {
 namespace {
 
-constexpr auto kSaveRecentEmojiTimeout = 3000;
 constexpr auto kUniversalSize = 72;
 constexpr auto kImagesPerRow = 32;
 constexpr auto kImageRowsPerSprite = 16;
@@ -73,7 +80,6 @@ auto InstanceLarge = std::unique_ptr<Instance>();
 auto Universal = std::shared_ptr<UniversalImages>();
 auto CanClearUniversal = false;
 auto Updates = rpl::event_stream<>();
-auto UpdatesRecent = rpl::event_stream<>();
 
 #if defined Q_OS_MAC && !defined OS_MAC_OLD
 auto TouchbarSize = -1;
@@ -180,7 +186,7 @@ void SaveToFile(int id, const QImage &image, int size, int index) {
 	if (!f.open(QIODevice::WriteOnly)) {
 		if (!QDir::current().mkpath(internal::CacheFileFolder())
 			|| !f.open(QIODevice::WriteOnly)) {
-			LOG(("App Error: Could not open emoji cache '%1' for size %2_%3"
+			UI_LOG(("App Error: Could not open emoji cache '%1' for size %2_%3"
 				).arg(f.fileName()
 				).arg(size
 				).arg(index));
@@ -206,7 +212,7 @@ void SaveToFile(int id, const QImage &image, int size, int index) {
 		|| !write(data)
 		|| !write(openssl::Sha256(bytes::make_span(header), data))
 		|| false) {
-		LOG(("App Error: Could not write emoji cache '%1' for size %2"
+		UI_LOG(("App Error: Could not write emoji cache '%1' for size %2"
 			).arg(f.fileName()
 			).arg(size));
 	}
@@ -279,7 +285,7 @@ std::vector<QImage> LoadSprites(int id) {
 	auto result = std::vector<QImage>();
 	const auto folder = (id != 0)
 		? internal::SetDataPath(id) + '/'
-		: qsl(":/gui/emoji/");
+		: QStringLiteral(":/gui/emoji/");
 	const auto base = folder + "emoji_";
 	return ranges::view::ints(
 		0,
@@ -344,47 +350,6 @@ std::vector<QImage> LoadAndValidateSprites(int id) {
 	return result;
 }
 
-void AppendPartToResult(TextWithEntities &result, const QChar *start, const QChar *from, const QChar *to) {
-	if (to <= from) {
-		return;
-	}
-	for (auto &entity : result.entities) {
-		if (entity.offset() >= to - start) break;
-		if (entity.offset() + entity.length() < from - start) continue;
-		if (entity.offset() >= from - start) {
-			entity.extendToLeft(from - start - result.text.size());
-		}
-		if (entity.offset() + entity.length() <= to - start) {
-			entity.shrinkFromRight(from - start - result.text.size());
-		}
-	}
-	result.text.append(from, to - from);
-}
-
-bool IsReplacementPart(ushort ch) {
-	return (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || (ch == '-') || (ch == '+') || (ch == '_');
-}
-
-EmojiPtr FindReplacement(const QChar *start, const QChar *end, int *outLength) {
-	if (start != end && *start == ':') {
-		auto maxLength = GetSuggestionMaxLength();
-		for (auto till = start + 1; till != end; ++till) {
-			if (*till == ':') {
-				auto text = QString::fromRawData(start, till + 1 - start);
-				auto emoji = GetSuggestionEmoji(QStringToUTF16(text));
-				auto result = Find(QStringFromUTF16(emoji));
-				if (result) {
-					if (outLength) *outLength = (till + 1 - start);
-				}
-				return result;
-			} else if (!IsReplacementPart(till->unicode()) || (till - start) > maxLength) {
-				break;
-			}
-		}
-	}
-	return internal::FindReplace(start, end, outLength);
-}
-
 void ClearUniversalChecked() {
 	Expects(InstanceNormal != nullptr && InstanceLarge != nullptr);
 
@@ -401,7 +366,7 @@ void ClearUniversalChecked() {
 namespace internal {
 
 QString CacheFileFolder() {
-	return cWorkingDir() + "tdata/emoji";
+	return Integration::Instance().emojiCacheFolder();
 }
 
 QString SetDataPath(int id) {
@@ -512,8 +477,8 @@ void Init() {
 	const auto persprite = kImagesPerRow * kImageRowsPerSprite;
 	SpritesCount = (count / persprite) + ((count % persprite) ? 1 : 0);
 
-	SizeNormal = ConvertScale(18, cScale() * cIntRetinaFactor());
-	SizeLarge = int(ConvertScale(18 * 4 / 3., cScale() * cIntRetinaFactor()));
+	SizeNormal = style::ConvertScale(18, style::Scale() * style::DevicePixelRatio());
+	SizeLarge = int(style::ConvertScale(18 * 4 / 3., style::Scale() * style::DevicePixelRatio()));
 	Universal = std::make_shared<UniversalImages>(ReadCurrentSetId());
 	CanClearUniversal = false;
 
@@ -521,9 +486,9 @@ void Init() {
 	InstanceLarge = std::make_unique<Instance>(SizeLarge);
 
 #if defined Q_OS_MAC && !defined OS_MAC_OLD
-	if (cScale() != kScaleForTouchBar) {
-		TouchbarSize = int(ConvertScale(18 * 4 / 3.,
-			kScaleForTouchBar * cIntRetinaFactor()));
+	if (style::Scale() != kScaleForTouchBar) {
+		TouchbarSize = int(style::ConvertScale(18 * 4 / 3.,
+			kScaleForTouchBar * style::DevicePixelRatio()));
 		TouchbarInstance = std::make_unique<Instance>(TouchbarSize);
 		TouchbarEmoji = TouchbarInstance.get();
 	} else {
@@ -563,19 +528,6 @@ void ClearIrrelevantCache() {
 			}
 		}
 	});
-}
-
-tr::phrase<> CategoryTitle(int index) {
-	switch (index) {
-	case 1: return tr::lng_emoji_category1;
-	case 2: return tr::lng_emoji_category2;
-	case 3: return tr::lng_emoji_category3;
-	case 4: return tr::lng_emoji_category4;
-	case 5: return tr::lng_emoji_category5;
-	case 6: return tr::lng_emoji_category6;
-	case 7: return tr::lng_emoji_category7;
-	}
-	Unexpected("Index in CategoryTitle.");
 }
 
 std::vector<Set> Sets() {
@@ -649,7 +601,7 @@ int GetSizeLarge() {
 
 #if defined Q_OS_MAC && !defined OS_MAC_OLD
 int GetSizeTouchbar() {
-	return (cScale() == kScaleForTouchBar)
+	return (style::Scale() == kScaleForTouchBar)
 		? GetSizeLarge()
 		: TouchbarSize;
 }
@@ -713,177 +665,54 @@ QString IdFromOldKey(uint64 oldKey) {
 	return QString();
 }
 
-void ReplaceInText(TextWithEntities &result) {
-	auto newText = TextWithEntities();
-	newText.entities = std::move(result.entities);
-	auto currentEntity = newText.entities.begin();
-	auto entitiesEnd = newText.entities.end();
-	auto emojiStart = result.text.constData();
-	auto emojiEnd = emojiStart;
-	auto end = emojiStart + result.text.size();
-	auto canFindEmoji = true;
-	for (auto ch = emojiEnd; ch != end;) {
-		auto emojiLength = 0;
-		auto emoji = canFindEmoji ? FindReplacement(ch, end, &emojiLength) : nullptr;
-		auto newEmojiEnd = ch + emojiLength;
-
-		while (currentEntity != entitiesEnd && ch >= emojiStart + currentEntity->offset() + currentEntity->length()) {
-			++currentEntity;
-		}
-		if (emoji &&
-			(ch == emojiStart || !ch->isLetterOrNumber() || !(ch - 1)->isLetterOrNumber()) &&
-			(newEmojiEnd == end || !newEmojiEnd->isLetterOrNumber() || newEmojiEnd == emojiStart || !(newEmojiEnd - 1)->isLetterOrNumber()) &&
-			(currentEntity == entitiesEnd || (ch < emojiStart + currentEntity->offset() && newEmojiEnd <= emojiStart + currentEntity->offset()) || (ch >= emojiStart + currentEntity->offset() + currentEntity->length() && newEmojiEnd > emojiStart + currentEntity->offset() + currentEntity->length()))
-			) {
-			if (newText.text.isEmpty()) newText.text.reserve(result.text.size());
-
-			AppendPartToResult(newText, emojiStart, emojiEnd, ch);
-
-			if (emoji->hasVariants()) {
-				auto it = cEmojiVariants().constFind(emoji->nonColoredId());
-				if (it != cEmojiVariants().cend()) {
-					emoji = emoji->variant(it.value());
-				}
-			}
-			newText.text.append(emoji->text());
-
-			ch = emojiEnd = newEmojiEnd;
-			canFindEmoji = true;
-		} else {
-			if (internal::IsReplaceEdge(ch)) {
-				canFindEmoji = true;
-			} else {
-				canFindEmoji = false;
-			}
-			++ch;
+QVector<EmojiPtr> GetDefaultRecent() {
+	const auto defaultRecent = {
+		0xD83DDE02LLU,
+		0xD83DDE18LLU,
+		0x2764LLU,
+		0xD83DDE0DLLU,
+		0xD83DDE0ALLU,
+		0xD83DDE01LLU,
+		0xD83DDC4DLLU,
+		0x263ALLU,
+		0xD83DDE14LLU,
+		0xD83DDE04LLU,
+		0xD83DDE2DLLU,
+		0xD83DDC8BLLU,
+		0xD83DDE12LLU,
+		0xD83DDE33LLU,
+		0xD83DDE1CLLU,
+		0xD83DDE48LLU,
+		0xD83DDE09LLU,
+		0xD83DDE03LLU,
+		0xD83DDE22LLU,
+		0xD83DDE1DLLU,
+		0xD83DDE31LLU,
+		0xD83DDE21LLU,
+		0xD83DDE0FLLU,
+		0xD83DDE1ELLU,
+		0xD83DDE05LLU,
+		0xD83DDE1ALLU,
+		0xD83DDE4ALLU,
+		0xD83DDE0CLLU,
+		0xD83DDE00LLU,
+		0xD83DDE0BLLU,
+		0xD83DDE06LLU,
+		0xD83DDC4CLLU,
+		0xD83DDE10LLU,
+		0xD83DDE15LLU,
+	};
+	auto result = QVector<EmojiPtr>();
+	for (const auto oldKey : defaultRecent) {
+		if (const auto emoji = FromOldKey(oldKey)) {
+			result.push_back(emoji);
 		}
 	}
-	if (newText.text.isEmpty()) {
-		result.entities = std::move(newText.entities);
-	} else {
-		AppendPartToResult(newText, emojiStart, emojiEnd, end);
-		result = std::move(newText);
-	}
-}
-
-RecentEmojiPack &GetRecent() {
-	if (cRecentEmoji().isEmpty()) {
-		RecentEmojiPack result;
-		auto haveAlready = [&result](EmojiPtr emoji) {
-			for (auto &row : result) {
-				if (row.first->id() == emoji->id()) {
-					return true;
-				}
-			}
-			return false;
-		};
-		if (!cRecentEmojiPreload().isEmpty()) {
-			auto preload = cRecentEmojiPreload();
-			cSetRecentEmojiPreload(RecentEmojiPreload());
-			result.reserve(preload.size());
-			for (auto i = preload.cbegin(), e = preload.cend(); i != e; ++i) {
-				if (auto emoji = Ui::Emoji::Find(i->first)) {
-					if (!haveAlready(emoji)) {
-						result.push_back(qMakePair(emoji, i->second));
-					}
-				}
-			}
-		}
-		auto defaultRecent = {
-			0xD83DDE02LLU,
-			0xD83DDE18LLU,
-			0x2764LLU,
-			0xD83DDE0DLLU,
-			0xD83DDE0ALLU,
-			0xD83DDE01LLU,
-			0xD83DDC4DLLU,
-			0x263ALLU,
-			0xD83DDE14LLU,
-			0xD83DDE04LLU,
-			0xD83DDE2DLLU,
-			0xD83DDC8BLLU,
-			0xD83DDE12LLU,
-			0xD83DDE33LLU,
-			0xD83DDE1CLLU,
-			0xD83DDE48LLU,
-			0xD83DDE09LLU,
-			0xD83DDE03LLU,
-			0xD83DDE22LLU,
-			0xD83DDE1DLLU,
-			0xD83DDE31LLU,
-			0xD83DDE21LLU,
-			0xD83DDE0FLLU,
-			0xD83DDE1ELLU,
-			0xD83DDE05LLU,
-			0xD83DDE1ALLU,
-			0xD83DDE4ALLU,
-			0xD83DDE0CLLU,
-			0xD83DDE00LLU,
-			0xD83DDE0BLLU,
-			0xD83DDE06LLU,
-			0xD83DDC4CLLU,
-			0xD83DDE10LLU,
-			0xD83DDE15LLU,
-		};
-		for (auto oldKey : defaultRecent) {
-			if (result.size() >= kRecentLimit) break;
-
-			if (auto emoji = Ui::Emoji::FromOldKey(oldKey)) {
-				if (!haveAlready(emoji)) {
-					result.push_back(qMakePair(emoji, 1));
-				}
-			}
-		}
-		cSetRecentEmoji(result);
-	}
-	return cRefRecentEmoji();
-}
-
-void AddRecent(EmojiPtr emoji) {
-	auto &recent = GetRecent();
-	auto i = recent.begin(), e = recent.end();
-	for (; i != e; ++i) {
-		if (i->first == emoji) {
-			++i->second;
-			if (i->second > 0x8000) {
-				for (auto j = recent.begin(); j != e; ++j) {
-					if (j->second > 1) {
-						j->second /= 2;
-					} else {
-						j->second = 1;
-					}
-				}
-			}
-			for (; i != recent.begin(); --i) {
-				if ((i - 1)->second > i->second) {
-					break;
-				}
-				qSwap(*i, *(i - 1));
-			}
-			break;
-		}
-	}
-	if (i == e) {
-		while (recent.size() >= kRecentLimit) {
-			recent.pop_back();
-		}
-		recent.push_back(qMakePair(emoji, 1));
-		for (i = recent.end() - 1; i != recent.begin(); --i) {
-			if ((i - 1)->second > i->second) {
-				break;
-			}
-			qSwap(*i, *(i - 1));
-		}
-	}
-	UpdatesRecent.fire({});
-}
-
-rpl::producer<> UpdatedRecent() {
-	return UpdatesRecent.events();
+	return result;
 }
 
 const QPixmap &SinglePixmap(EmojiPtr emoji, int fontHeight) {
-	auto &map = (fontHeight == st::msgFont->height * cIntRetinaFactor())
+	auto &map = (fontHeight == st::normalFont->height * style::DevicePixelRatio())
 		? MainEmojiMap
 		: OtherEmojiMap[fontHeight];
 	auto i = map.find(emoji->index());
@@ -894,7 +723,7 @@ const QPixmap &SinglePixmap(EmojiPtr emoji, int fontHeight) {
 		SizeNormal + st::emojiPadding * 2,
 		fontHeight,
 		QImage::Format_ARGB32_Premultiplied);
-	image.setDevicePixelRatio(cRetinaFactor());
+	image.setDevicePixelRatio(style::DevicePixelRatio());
 	image.fill(Qt::transparent);
 	{
 		QPainter p(&image);
@@ -903,18 +732,18 @@ const QPixmap &SinglePixmap(EmojiPtr emoji, int fontHeight) {
 			p,
 			emoji,
 			SizeNormal,
-			st::emojiPadding * cIntRetinaFactor(),
+			st::emojiPadding * style::DevicePixelRatio(),
 			(fontHeight - SizeNormal) / 2);
 	}
 	return map.emplace(
 		emoji->index(),
-		App::pixmapFromImageInPlace(std::move(image))
+		PixmapFromImage(std::move(image))
 	).first->second;
 }
 
 void Draw(QPainter &p, EmojiPtr emoji, int size, int x, int y) {
 #if defined Q_OS_MAC && !defined OS_MAC_OLD
-	const auto s = (cScale() == kScaleForTouchBar)
+	const auto s = (style::Scale() == kScaleForTouchBar)
 		? SizeLarge
 		: TouchbarSize;
 	if (size == s) {
@@ -988,6 +817,10 @@ void Instance::checkUniversalImages() {
 void Instance::generateCache() {
 	checkUniversalImages();
 
+	const auto cachePath = internal::CacheFileFolder();
+	if (cachePath.isEmpty()) {
+		return;
+	}
 	const auto size = _size;
 	const auto index = _sprites.size();
 	crl::async([
@@ -1013,8 +846,8 @@ void Instance::generateCache() {
 }
 
 void Instance::pushSprite(QImage &&data) {
-	_sprites.push_back(App::pixmapFromImageInPlace(std::move(data)));
-	_sprites.back().setDevicePixelRatio(cRetinaFactor());
+	_sprites.push_back(PixmapFromImage(std::move(data)));
+	_sprites.back().setDevicePixelRatio(style::DevicePixelRatio());
 }
 
 const std::shared_ptr<UniversalImages> &SourceImages() {

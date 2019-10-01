@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/popup_menu.h"
 #include "ui/image/image.h"
 #include "ui/toast/toast.h"
+#include "ui/ui_utility.h"
 #include "chat_helpers/message_field.h"
 #include "boxes/confirm_box.h"
 #include "boxes/sticker_set_box.h"
@@ -27,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_groups.h"
 #include "data/data_channel.h"
+#include "data/data_file_origin.h"
 #include "core/file_utilities.h"
 #include "platform/platform_info.h"
 #include "window/window_peer_menu.h"
@@ -37,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h" // App::wnd()->sessionController
 #include "main/main_session.h"
 #include "apiwrap.h"
+#include "facades.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
@@ -238,7 +241,7 @@ bool AddForwardSelectedAction(
 	}
 
 	menu->addAction(tr::lng_context_forward_selected(tr::now), [=] {
-		const auto weak = make_weak(list);
+		const auto weak = Ui::MakeWeak(list);
 		const auto callback = [=] {
 			if (const auto strong = weak.data()) {
 				strong->cancelSelection();
@@ -323,7 +326,7 @@ bool AddSendNowSelectedAction(
 	const auto history = *histories.begin();
 
 	menu->addAction(tr::lng_context_send_now_selected(tr::now), [=] {
-		const auto weak = make_weak(list);
+		const auto weak = Ui::MakeWeak(list);
 		const auto callback = [=] {
 			request.navigation->showBackFromStack();
 		};
@@ -397,7 +400,7 @@ bool AddDeleteSelectedAction(
 	}
 
 	menu->addAction(tr::lng_context_delete_selected(tr::now), [=] {
-		const auto weak = make_weak(list);
+		const auto weak = Ui::MakeWeak(list);
 		auto items = ExtractIdsList(request.selectedItems);
 		const auto box = Ui::show(Box<DeleteMessagesBox>(
 			&request.navigation->session(),
@@ -574,7 +577,7 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 			? tr::lng_context_copy_selected(tr::now)
 			: tr::lng_context_copy_selected_items(tr::now);
 		result->addAction(text, [=] {
-			SetClipboardText(list->getSelectedText());
+			TextUtilities::SetClipboardText(list->getSelectedText());
 		});
 	}
 
@@ -607,11 +610,11 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 				if (const auto item = owner->message(itemId)) {
 					if (asGroup) {
 						if (const auto group = owner->groups().find(item)) {
-							SetClipboardText(HistoryGroupText(group));
+							TextUtilities::SetClipboardText(HistoryGroupText(group));
 							return;
 						}
 					}
-					SetClipboardText(HistoryItemText(item));
+					TextUtilities::SetClipboardText(HistoryItemText(item));
 				}
 			});
 		}

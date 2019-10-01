@@ -7,6 +7,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "ui/effects/animation_value.h"
+
+#include <crl/crl_time.h>
+#include <rpl/lifetime.h>
+
 namespace Ui {
 namespace Animations {
 
@@ -67,6 +72,32 @@ public:
 	[[nodiscard]] float64 value(float64 final) const;
 
 private:
+	class ShortTracker {
+	public:
+		ShortTracker() {
+			restart();
+		}
+		ShortTracker(const ShortTracker &other) = delete;
+		ShortTracker &operator=(const ShortTracker &other) = delete;
+		~ShortTracker() {
+			release();
+		}
+		void restart() {
+			if (!std::exchange(_paused, true)) {
+				style::internal::StartShortAnimation();
+			}
+		}
+		void release() {
+			if (std::exchange(_paused, false)) {
+				style::internal::StopShortAnimation();
+			}
+		}
+
+	private:
+		bool _paused = false;
+
+	};
+
 	struct Data {
 		explicit Data(float64 initial) : value(initial) {
 		}
@@ -83,7 +114,7 @@ private:
 		float64 value = 0.;
 		float64 duration = 0.;
 		bool *markOnDelete = nullptr;
-		MTP::PauseHolder pause;
+		ShortTracker tracker;
 	};
 
 	template <typename Callback>
@@ -104,6 +135,7 @@ private:
 class Manager final : private QObject {
 public:
 	Manager();
+	~Manager();
 
 	void update();
 
@@ -324,7 +356,7 @@ inline void Simple::start(
 		if (!deleted) {
 			that->markOnDelete = nullptr;
 			if (!result) {
-				that->pause.release();
+				that->tracker.release();
 			}
 		}
 		return result;
@@ -347,10 +379,10 @@ inline void Simple::prepare(float64 from, crl::time duration) {
 	if (!_data) {
 		_data = std::make_unique<Data>(from);
 	} else if (!isLong) {
-		_data->pause.restart();
+		_data->tracker.restart();
 	}
 	if (isLong) {
-		_data->pause.release();
+		_data->tracker.release();
 	}
 }
 

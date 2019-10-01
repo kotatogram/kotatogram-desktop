@@ -25,6 +25,7 @@ struct StateRequest;
 enum class CursorState : char;
 enum class PointState : char;
 class EmptyPainter;
+class Element;
 } // namespace HistoryView
 
 namespace Window {
@@ -109,6 +110,7 @@ public:
 	// Ui::AbstractTooltipShower interface.
 	QString tooltipText() const override;
 	QPoint tooltipPos() const override;
+	bool tooltipWindowActive() const override;
 
 	// HistoryView::ElementDelegate interface.
 	static not_null<HistoryView::ElementDelegate*> ElementDelegate();

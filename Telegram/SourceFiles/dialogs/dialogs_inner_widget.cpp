@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/text_options.h"
+#include "ui/ui_utility.h"
 #include "data/data_drafts.h"
 #include "data/data_folder.h"
 #include "data/data_session.h"
@@ -41,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/multi_select.h"
 #include "ui/empty_userpic.h"
 #include "ui/unread_badge.h"
+#include "facades.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_window.h"
@@ -119,7 +121,7 @@ InnerWidget::InnerWidget(
 		? Global::DialogsMode()
 		: Dialogs::Mode::All;
 
-	connect(_addContactLnk, SIGNAL(clicked()), App::wnd(), SLOT(onShowAddContact()));
+	_addContactLnk->addClickHandler([] { App::wnd()->onShowAddContact(); });
 	_cancelSearchInChat->setClickedCallback([=] { cancelSearchInChat(); });
 	_cancelSearchInChat->hide();
 	_cancelSearchFromUser->setClickedCallback([=] {
@@ -1074,7 +1076,7 @@ void InnerWidget::checkReorderPinnedStart(QPoint localPosition) {
 	if (!_pressed || _dragging || _state != WidgetState::Default) {
 		return;
 	} else if (qAbs(localPosition.y() - _dragStart.y())
-		< ConvertScale(kStartReorderThreshold)) {
+		< style::ConvertScale(kStartReorderThreshold)) {
 		return;
 	}
 	_dragging = _pressed;
@@ -2273,12 +2275,7 @@ void InnerWidget::refreshSearchInChatLabel() {
 			dialog,
 			Ui::DialogTextOptions());
 	}
-	const auto from = [&] {
-		if (const auto from = _searchFromUser) {
-			return App::peerName(from);
-		}
-		return QString();
-	}();
+	const auto from = _searchFromUser ? _searchFromUser->name : QString();
 	if (!from.isEmpty()) {
 		const auto fromUserText = tr::lng_dlg_search_from(
 			tr::now,

@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/wrap/slide_wrap.h"
 
+#include "styles/style_basic.h"
+
 #include <rpl/combine.h>
 #include <range/v3/algorithm/find.hpp>
 
@@ -107,7 +109,7 @@ void SlideWrap<RpWidget>::animationStep() {
 	}
 	auto shouldBeHidden = !_toggled && !_animation.animating();
 	if (shouldBeHidden != isHidden()) {
-		const auto guard = make_weak(this);
+		const auto guard = MakeWeak(this);
 		setVisible(!shouldBeHidden);
 		if (shouldBeHidden && guard) {
 			SendPendingMoveResizeEvents(this);

@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/sandbox.h"
 #include "core/local_url_handlers.h"
 #include "core/launcher.h"
+#include "core/core_ui_integration.h"
 #include "chat_helpers/emoji_keywords.h"
 #include "storage/localstorage.h"
 #include "platform/platform_specific.h"
@@ -61,6 +62,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/confirm_phone_box.h"
 #include "boxes/confirm_box.h"
 #include "boxes/share_box.h"
+#include "facades.h"
+#include "app.h"
 
 #include <QtWidgets/QDesktopWidget>
 #include <QtCore/QMimeDatabase>
@@ -78,6 +81,7 @@ Application *Application::Instance = nullptr;
 
 struct Application::Private {
 	base::Timer quitTimer;
+	UiIntegration uiIntegration;
 };
 
 Application::Application(not_null<Launcher*> launcher)
@@ -95,6 +99,8 @@ Application::Application(not_null<Launcher*> launcher)
 , _logoNoMargin(Window::LoadLogoNoMargin()) {
 	Expects(!_logo.isNull());
 	Expects(!_logoNoMargin.isNull());
+
+	Ui::Integration::Set(&_private->uiIntegration);
 
 	activeAccount().sessionChanges(
 	) | rpl::start_with_next([=] {
@@ -155,13 +161,14 @@ Application::~Application() {
 }
 
 void Application::run() {
-	Fonts::Start();
+	style::internal::StartFonts();
 
 	ThirdParty::start();
 	Global::start();
 	refreshGlobalProxy(); // Depends on Global::started().
 
 	startLocalStorage();
+	ValidateScale();
 
 	if (Local::oldSettingsVersion() < AppVersion) {
 		psNewVersion();
@@ -176,10 +183,19 @@ void Application::run() {
 	_translator = std::make_unique<Lang::Translator>();
 	QCoreApplication::instance()->installTranslator(_translator.get());
 
-	style::startManager();
+	style::startManager(cScale());
 	Ui::InitTextOptions();
 	Ui::Emoji::Init();
 	Media::Player::start(_audio.get());
+
+	style::ShortAnimationPlaying(
+	) | rpl::start_with_next([=](bool playing) {
+		if (playing) {
+			MTP::internal::pause();
+		} else {
+			MTP::internal::unpause();
+		}
+	}, _lifetime);
 
 	DEBUG_LOG(("Application Info: inited..."));
 
@@ -729,11 +745,11 @@ QPoint Application::getPointForCallPanelCenter() const {
 }
 
 // macOS Qt bug workaround, sometimes no leaveEvent() gets to the nested widgets.
-void Application::registerLeaveSubscription(QWidget *widget) {
+void Application::registerLeaveSubscription(not_null<QWidget*> widget) {
 #ifdef Q_OS_MAC
 	if (const auto topLevel = widget->window()) {
 		if (topLevel == _window->widget()) {
-			auto weak = make_weak(widget);
+			auto weak = Ui::MakeWeak(widget);
 			auto subscription = _window->widget()->leaveEvents(
 			) | rpl::start_with_next([weak] {
 				if (const auto window = weak.data()) {
@@ -747,7 +763,7 @@ void Application::registerLeaveSubscription(QWidget *widget) {
 #endif // Q_OS_MAC
 }
 
-void Application::unregisterLeaveSubscription(QWidget *widget) {
+void Application::unregisterLeaveSubscription(not_null<QWidget*> widget) {
 #ifdef Q_OS_MAC
 	_leaveSubscriptions = std::move(
 		_leaveSubscriptions
@@ -764,25 +780,6 @@ void Application::postponeCall(FnMut<void()> &&callable) {
 
 void Application::refreshGlobalProxy() {
 	Sandbox::Instance().refreshGlobalProxy();
-}
-
-void Application::activateWindowDelayed(not_null<QWidget*> widget) {
-	Sandbox::Instance().activateWindowDelayed(widget);
-}
-
-void Application::pauseDelayedWindowActivations() {
-	Sandbox::Instance().pauseDelayedWindowActivations();
-}
-
-void Application::resumeDelayedWindowActivations() {
-	Sandbox::Instance().resumeDelayedWindowActivations();
-}
-
-void Application::preventWindowActivation() {
-	pauseDelayedWindowActivations();
-	postponeCall([=] {
-		resumeDelayedWindowActivations();
-	});
 }
 
 void Application::QuitAttempt() {

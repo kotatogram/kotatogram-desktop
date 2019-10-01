@@ -25,12 +25,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
-#include "ui/widgets/input_fields.h"
 #include "ui/widgets/labels.h"
 #include "ui/toast/toast.h"
 #include "ui/special_buttons.h"
+#include "ui/special_fields.h"
 #include "ui/text_options.h"
 #include "ui/unread_badge.h"
+#include "ui/ui_utility.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
 #include "data/data_user.h"
@@ -40,6 +41,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "observer_peer.h"
 #include "main/main_session.h"
+#include "facades.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
@@ -578,7 +580,7 @@ void GroupInfoBox::createGroup(
 	}).fail([=](const RPCError &error) {
 		_creationRequestId = 0;
 		if (error.type() == qstr("NO_CHAT_TITLE")) {
-			auto weak = make_weak(this);
+			auto weak = Ui::MakeWeak(this);
 			selectUsersBox->closeBox();
 			if (weak) {
 				_title->showError();
@@ -617,7 +619,7 @@ void GroupInfoBox::submit() {
 	if (_type != Type::Group) {
 		createChannel(title, description);
 	} else {
-		auto initBox = [title, weak = make_weak(this)](
+		auto initBox = [title, weak = Ui::MakeWeak(this)](
 				not_null<PeerListBox*> box) {
 			auto create = [box, title, weak] {
 				if (weak) {
@@ -1361,7 +1363,7 @@ void RevokePublicLinkBox::Inner::updateSelected() {
 	PeerData *selected = nullptr;
 	auto top = _rowsTop;
 	for (const auto &row : _rows) {
-		auto revokeLink = rtlrect(width() - st::contactsPadding.right() - st::contactsCheckPosition.x() - _revokeWidth, top + st::contactsPadding.top() + (st::contactsPhotoSize - st::normalFont->height) / 2, _revokeWidth, st::normalFont->height, width());
+		auto revokeLink = style::rtlrect(width() - st::contactsPadding.right() - st::contactsCheckPosition.x() - _revokeWidth, top + st::contactsPadding.top() + (st::contactsPhotoSize - st::normalFont->height) / 2, _revokeWidth, st::normalFont->height, width());
 		if (revokeLink.contains(point)) {
 			selected = row.peer;
 			break;

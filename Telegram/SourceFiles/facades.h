@@ -9,8 +9,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/type_traits.h"
 #include "base/observer.h"
+#include "ui/effects/animation_value.h"
 
-class BoxContent;
+class History;
 
 namespace Data {
 struct FileOrigin;
@@ -73,43 +74,11 @@ void activateBotCommand(
 void searchByHashtag(const QString &tag, PeerData *inPeer);
 void showSettings();
 
-void activateClickHandler(ClickHandlerPtr handler, ClickContext context);
-void activateClickHandler(ClickHandlerPtr handler, Qt::MouseButton button);
-
 } // namespace App
 
-
-enum class LayerOption {
-	CloseOther = (1 << 0),
-	KeepOther = (1 << 1),
-	ShowAfterOther = (1 << 2),
-};
-using LayerOptions = base::flags<LayerOption>;
-inline constexpr auto is_flag_type(LayerOption) { return true; };
-
 namespace Ui {
-namespace internal {
 
-void showBox(
-	object_ptr<BoxContent> content,
-	LayerOptions options,
-	anim::type animated);
-
-} // namespace internal
-
-template <typename BoxType>
-QPointer<BoxType> show(
-		object_ptr<BoxType> content,
-		LayerOptions options = LayerOption::CloseOther,
-		anim::type animated = anim::type::normal) {
-	auto result = QPointer<BoxType>(content.data());
-	internal::showBox(std::move(content), options, animated);
-	return result;
-}
-
-void hideLayer(anim::type animated = anim::type::normal);
-void hideSettingsAndLayer(anim::type animated = anim::type::normal);
-bool isLayerShown();
+// Legacy global methods.
 
 void showPeerProfile(const PeerId &peer);
 void showPeerProfile(const PeerData *peer);
@@ -199,7 +168,6 @@ void finish();
 
 DeclareRefVar(SingleQueuedInvokation, HandleUnreadCounterUpdate);
 DeclareRefVar(SingleQueuedInvokation, HandleDelayedPeerUpdates);
-DeclareRefVar(SingleQueuedInvokation, HandleObservables);
 
 DeclareVar(Adaptive::WindowLayout, AdaptiveWindowLayout);
 DeclareVar(Adaptive::ChatLayout, AdaptiveChatLayout);

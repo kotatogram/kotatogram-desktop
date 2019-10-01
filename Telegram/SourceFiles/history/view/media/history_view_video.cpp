@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_document.h"
 #include "data/data_file_origin.h"
+#include "app.h"
 #include "styles/style_history.h"
 
 namespace HistoryView {
@@ -56,7 +57,7 @@ QSize Video::sizeForAspectRatio() const {
 }
 
 QSize Video::countOptimalDimensions() const {
-	const auto desired = ConvertScale(_data->dimensions);
+	const auto desired = style::ConvertScale(_data->dimensions);
 	const auto size = desired.isEmpty() ? sizeForAspectRatio() : desired;
 	auto tw = size.width();
 	auto th = size.height();
@@ -183,7 +184,7 @@ void Video::draw(Painter &p, const QRect &r, TextSelection selection, crl::time 
 	auto roundRadius = inWebPage ? ImageRoundRadius::Small : ImageRoundRadius::Large;
 	auto roundCorners = inWebPage ? RectPart::AllCorners : ((isBubbleTop() ? (RectPart::TopLeft | RectPart::TopRight) : RectPart::None)
 		| ((isBubbleBottom() && _caption.isEmpty()) ? (RectPart::BottomLeft | RectPart::BottomRight) : RectPart::None));
-	QRect rthumb(rtlrect(paintx, painty, paintw, painth, width()));
+	QRect rthumb(style::rtlrect(paintx, painty, paintw, painth, width()));
 
 	const auto good = _data->goodThumbnail();
 	if (good && good->loaded()) {
@@ -277,7 +278,7 @@ void Video::drawCornerStatus(Painter &p, bool selected) const {
 	const auto statusH = cornerDownload ? (st::historyVideoDownloadSize + 2 * padding.y()) : (st::normalFont->height + 2 * padding.y());
 	const auto statusX = st::msgDateImgDelta + padding.x();
 	const auto statusY = st::msgDateImgDelta + padding.y();
-	const auto around = rtlrect(statusX - padding.x(), statusY - padding.y(), statusW, statusH, width());
+	const auto around = style::rtlrect(statusX - padding.x(), statusY - padding.y(), statusW, statusH, width());
 	const auto statusTextTop = statusY + (cornerDownload ? (((statusH - 2 * st::normalFont->height) / 3)  - padding.y()) : 0);
 	App::roundRect(p, around, selected ? st::msgDateImgBgSelected : st::msgDateImgBg, selected ? DateSelectedCorners : DateCorners);
 	p.setFont(st::normalFont);
@@ -553,8 +554,8 @@ void Video::validateGroupedCache(
 	}
 
 	const auto original = sizeForAspectRatio();
-	const auto originalWidth = ConvertScale(original.width());
-	const auto originalHeight = ConvertScale(original.height());
+	const auto originalWidth = style::ConvertScale(original.width());
+	const auto originalHeight = style::ConvertScale(original.height());
 	const auto pixSize = Ui::GetImageScaleSizeForGeometry(
 		{ originalWidth, originalHeight },
 		{ width, height });

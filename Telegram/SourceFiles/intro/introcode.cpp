@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/text/text_utilities.h"
 #include "boxes/confirm_box.h"
+#include "app.h"
 #include "styles/style_intro.h"
 
 namespace Intro {
@@ -90,7 +91,7 @@ CodeWidget::CodeWidget(
 	connect(_code, SIGNAL(changed()), this, SLOT(onInputChange()));
 	connect(_callTimer, SIGNAL(timeout()), this, SLOT(onSendCall()));
 	connect(_checkRequest, SIGNAL(timeout()), this, SLOT(onCheckRequest()));
-	connect(_noTelegramCode, SIGNAL(clicked()), this, SLOT(onNoTelegramCode()));
+	_noTelegramCode->addClickHandler([=] { onNoTelegramCode(); });
 
 	_code->setDigitsCountMax(getData()->codeLength);
 	setErrorBelowLink(true);

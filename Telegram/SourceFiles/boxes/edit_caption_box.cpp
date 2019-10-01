@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/edit_caption_box.h"
 
 #include "apiwrap.h"
+#include "api/api_text_entities.h"
 #include "main/main_session.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "chat_helpers/message_field.h"
@@ -21,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_photo.h"
 #include "data/data_user.h"
 #include "data/data_session.h"
+#include "data/data_file_origin.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "lang/lang_keys.h"
@@ -31,12 +33,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat_helpers.h"
 #include "styles/style_history.h"
 #include "ui/image/image.h"
+#include "ui/widgets/input_fields.h"
+#include "ui/widgets/checkbox.h"
+#include "ui/widgets/checkbox.h"
 #include "ui/special_buttons.h"
 #include "ui/text_options.h"
-#include "ui/widgets/input_fields.h"
 #include "window/window_session_controller.h"
-#include "ui/widgets/checkbox.h"
 #include "confirm_box.h"
+#include "facades.h"
+#include "app.h"
 
 #include <QtCore/QMimeData>
 
@@ -810,10 +815,10 @@ void EditCaptionBox::paintEvent(QPaintEvent *e) {
 //		App::roundRect(p, x, y, w, h, st::msgInBg, MessageInCorners, &st::msgInShadow);
 
 		if (_thumbw) {
-			QRect rthumb(rtlrect(x + 0, y + 0, st::msgFileThumbSize, st::msgFileThumbSize, width()));
+			QRect rthumb(style::rtlrect(x + 0, y + 0, st::msgFileThumbSize, st::msgFileThumbSize, width()));
 			p.drawPixmap(rthumb.topLeft(), _thumb);
 		} else {
-			const QRect inner(rtlrect(x + 0, y + 0, st::msgFileSize, st::msgFileSize, width()));
+			const QRect inner(style::rtlrect(x + 0, y + 0, st::msgFileSize, st::msgFileSize, width()));
 			p.setPen(Qt::NoPen);
 			p.setBrush(st::msgFileInBg);
 
@@ -896,7 +901,7 @@ void EditCaptionBox::save() {
 	const auto textWithTags = _field->getTextWithAppliedMarkdown();
 	auto sending = TextWithEntities{
 		textWithTags.text,
-		ConvertTextTagsToEntities(textWithTags.tags)
+		TextUtilities::ConvertTextTagsToEntities(textWithTags.tags)
 	};
 	const auto prepareFlags = Ui::ItemTextOptions(
 		item->history(),
@@ -904,9 +909,9 @@ void EditCaptionBox::save() {
 	TextUtilities::PrepareForSending(sending, prepareFlags);
 	TextUtilities::Trim(sending);
 
-	const auto sentEntities = TextUtilities::EntitiesToMTP(
+	const auto sentEntities = Api::EntitiesToMTP(
 		sending.entities,
-		TextUtilities::ConvertOption::SkipLocal);
+		Api::ConvertOption::SkipLocal);
 	if (!sentEntities.v.isEmpty()) {
 		flags |= MTPmessages_EditMessage::Flag::f_entities;
 	}
@@ -915,7 +920,7 @@ void EditCaptionBox::save() {
 		const auto textWithTags = _field->getTextWithAppliedMarkdown();
 		auto sending = TextWithEntities{
 			textWithTags.text,
-			ConvertTextTagsToEntities(textWithTags.tags)
+			TextUtilities::ConvertTextTagsToEntities(textWithTags.tags)
 		};
 		item->setText(sending);
 

@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/abstract_box.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/ui_utility.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "core/event_filter.h"
@@ -38,21 +39,12 @@ using EditLinkAction = Ui::InputField::EditLinkAction;
 using EditLinkSelection = Ui::InputField::EditLinkSelection;
 
 constexpr auto kParseLinksTimeout = crl::time(1000);
-const auto kMentionTagStart = qstr("mention://user.");
-
-bool IsMentionLink(const QString &link) {
-	return link.startsWith(kMentionTagStart);
-}
 
 // For mention tags save and validate userId, ignore tags for different userId.
 class FieldTagMimeProcessor : public Ui::InputField::TagMimeProcessor {
 public:
-	QString mimeTagFromTag(const QString &tagId) override {
-		return ConvertTagToMimeTag(tagId);
-	}
-
 	QString tagFromMimeTag(const QString &mimeTag) override {
-		if (IsMentionLink(mimeTag)) {
+		if (TextUtilities::IsMentionLink(mimeTag)) {
 			auto match = QRegularExpression(":(\\d+)$").match(mimeTag);
 			if (!match.hasMatch()
 				|| match.capturedRef(1).toInt() != Auth().userId()) {
@@ -153,7 +145,7 @@ void EditLinkBox::prepare() {
 			url->showError();
 			return;
 		}
-		const auto weak = make_weak(this);
+		const auto weak = Ui::MakeWeak(this);
 		_callback(linkText, linkUrl);
 		if (weak) {
 			closeBox();
@@ -215,126 +207,11 @@ TextWithEntities StripSupportHashtag(TextWithEntities &&text) {
 
 } // namespace
 
-QString ConvertTagToMimeTag(const QString &tagId) {
-	if (IsMentionLink(tagId)) {
-		return tagId + ':' + QString::number(Auth().userId());
-	}
-	return tagId;
-}
-
 QString PrepareMentionTag(not_null<UserData*> user) {
-	return kMentionTagStart
+	return TextUtilities::kMentionTagStart
 		+ QString::number(user->bareId())
 		+ '.'
 		+ QString::number(user->accessHash());
-}
-
-EntitiesInText ConvertTextTagsToEntities(const TextWithTags::Tags &tags) {
-	EntitiesInText result;
-	if (tags.isEmpty()) {
-		return result;
-	}
-
-	result.reserve(tags.size());
-	for (const auto &tag : tags) {
-		const auto push = [&](
-				EntityType type,
-				const QString &data = QString()) {
-			result.push_back(
-				EntityInText(type, tag.offset, tag.length, data));
-		};
-		if (IsMentionLink(tag.id)) {
-			if (auto match = qthelp::regex_match("^(\\d+\\.\\d+)(/|$)", tag.id.midRef(kMentionTagStart.size()))) {
-				push(EntityType::MentionName, match->captured(1));
-			}
-		} else if (tag.id == Ui::InputField::kTagBold) {
-			push(EntityType::Bold);
-		} else if (tag.id == Ui::InputField::kTagItalic) {
-			push(EntityType::Italic);
-		} else if (tag.id == Ui::InputField::kTagUnderline) {
-			push(EntityType::Underline);
-		} else if (tag.id == Ui::InputField::kTagStrikeOut) {
-			push(EntityType::StrikeOut);
-		} else if (tag.id == Ui::InputField::kTagCode) {
-			push(EntityType::Code);
-		} else if (tag.id == Ui::InputField::kTagPre) { // #TODO entities
-			push(EntityType::Pre);
-		} else /*if (ValidateUrl(tag.id)) */{ // We validate when we insert.
-			push(EntityType::CustomUrl, tag.id);
-		}
-	}
-	return result;
-}
-
-TextWithTags::Tags ConvertEntitiesToTextTags(const EntitiesInText &entities) {
-	TextWithTags::Tags result;
-	if (entities.isEmpty()) {
-		return result;
-	}
-
-	result.reserve(entities.size());
-	for (const auto &entity : entities) {
-		const auto push = [&](const QString &tag) {
-			result.push_back({ entity.offset(), entity.length(), tag });
-		};
-		switch (entity.type()) {
-		case EntityType::MentionName: {
-			auto match = QRegularExpression(R"(^(\d+\.\d+)$)").match(entity.data());
-			if (match.hasMatch()) {
-				push(kMentionTagStart + entity.data());
-			}
-		} break;
-		case EntityType::CustomUrl: {
-			const auto url = entity.data();
-			if (Ui::InputField::IsValidMarkdownLink(url)
-				&& !IsMentionLink(url)) {
-				push(url);
-			}
-		} break;
-		case EntityType::Bold: push(Ui::InputField::kTagBold); break;
-		case EntityType::Italic: push(Ui::InputField::kTagItalic); break;
-		case EntityType::Underline:
-			push(Ui::InputField::kTagUnderline);
-			break;
-		case EntityType::StrikeOut:
-			push(Ui::InputField::kTagStrikeOut);
-			break;
-		case EntityType::Code: push(Ui::InputField::kTagCode); break; // #TODO entities
-		case EntityType::Pre: push(Ui::InputField::kTagPre); break;
-		}
-	}
-	return result;
-}
-
-std::unique_ptr<QMimeData> MimeDataFromText(
-		const TextForMimeData &text) {
-	if (text.empty()) {
-		return nullptr;
-	}
-
-	auto result = std::make_unique<QMimeData>();
-	result->setText(text.expanded);
-	auto tags = ConvertEntitiesToTextTags(text.rich.entities);
-	if (!tags.isEmpty()) {
-		for (auto &tag : tags) {
-			tag.id = ConvertTagToMimeTag(tag.id);
-		}
-		result->setData(
-			TextUtilities::TagsTextMimeType(),
-			text.rich.text.toUtf8());
-		result->setData(
-			TextUtilities::TagsMimeType(),
-			TextUtilities::SerializeTags(tags));
-	}
-	return result;
-}
-
-void SetClipboardText(
-		const TextForMimeData &text,
-		QClipboard::Mode mode) {
-	if (auto data = MimeDataFromText(text)) {
-		QGuiApplication::clipboard()->setMimeData(data.release(), mode);
-	}
 }
 
 TextWithTags PrepareEditText(not_null<HistoryItem*> item) {
@@ -343,7 +220,7 @@ TextWithTags PrepareEditText(not_null<HistoryItem*> item) {
 		: item->originalText();
 	return TextWithTags{
 		original.text,
-		ConvertEntitiesToTextTags(original.entities)
+		TextUtilities::ConvertEntitiesToTextTags(original.entities)
 	};
 }
 
@@ -354,7 +231,7 @@ Fn<bool(
 	EditLinkAction action)> DefaultEditLinkCallback(
 		not_null<Main::Session*> session,
 		not_null<Ui::InputField*> field) {
-	const auto weak = make_weak(field);
+	const auto weak = Ui::MakeWeak(field);
 	return [=](
 			EditLinkSelection selection,
 			QString text,
@@ -362,7 +239,7 @@ Fn<bool(
 			EditLinkAction action) {
 		if (action == EditLinkAction::Check) {
 			return Ui::InputField::IsValidMarkdownLink(link)
-				&& !IsMentionLink(link);
+				&& !TextUtilities::IsMentionLink(link);
 		}
 		Ui::show(Box<EditLinkBox>(session, text, link, [=](
 				const QString &text,
@@ -384,7 +261,7 @@ void InitMessageField(
 	field->setTagMimeProcessor(std::make_unique<FieldTagMimeProcessor>());
 
 	field->document()->setDocumentMargin(4.);
-	field->setAdditionalMargin(ConvertScale(4) - 4);
+	field->setAdditionalMargin(style::ConvertScale(4) - 4);
 
 	field->customTab(true);
 	field->setInstantReplaces(Ui::InstantReplaces::Default());
@@ -551,28 +428,6 @@ AutocompleteQuery ParseMentionHashtagBotCommandQuery(
 	return result;
 }
 
-QtConnectionOwner::QtConnectionOwner(QMetaObject::Connection connection)
-: _data(connection) {
-}
-
-QtConnectionOwner::QtConnectionOwner(QtConnectionOwner &&other)
-: _data(base::take(other._data)) {
-}
-
-QtConnectionOwner &QtConnectionOwner::operator=(QtConnectionOwner &&other) {
-	disconnect();
-	_data = base::take(other._data);
-	return *this;
-}
-
-void QtConnectionOwner::disconnect() {
-	QObject::disconnect(base::take(_data));
-}
-
-QtConnectionOwner::~QtConnectionOwner() {
-	disconnect();
-}
-
 MessageLinksParser::MessageLinksParser(not_null<Ui::InputField*> field)
 : _field(field)
 , _timer([=] { parse(); }) {
@@ -638,7 +493,7 @@ void MessageLinksParser::parse() {
 		Expects(tag != tagsEnd);
 
 		if (Ui::InputField::IsValidMarkdownLink(tag->id)
-			&& !IsMentionLink(tag->id)) {
+			&& !TextUtilities::IsMentionLink(tag->id)) {
 			ranges.push_back({ tag->offset, tag->length, tag->id });
 		}
 		++tag;

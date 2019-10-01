@@ -12,9 +12,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
+#include "ui/platform/ui_platform_utility.h"
 #include "ui/text_options.h"
 #include "ui/emoji_config.h"
 #include "ui/empty_userpic.h"
+#include "ui/ui_utility.h"
 #include "dialogs/dialogs_layout.h"
 #include "window/themes/window_theme.h"
 #include "styles/style_dialogs.h"
@@ -25,6 +27,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "platform/platform_specific.h"
+#include "facades.h"
+#include "app.h"
 
 #include <QtCore/QCoreApplication>
 
@@ -387,7 +391,7 @@ Widget::Widget(
 	setAttribute(Qt::WA_MacAlwaysShowToolWindow);
 	setAttribute(Qt::WA_OpaquePaintEvent);
 
-	Platform::InitOnTopPanel(this);
+	Ui::Platform::InitOnTopPanel(this);
 
 	_a_opacity.start([this] { opacityAnimationCallback(); }, 0., 1., st::notifyFastAnim);
 }
@@ -478,7 +482,7 @@ void Widget::addToHeight(int add) {
 	auto newHeight = height() + add;
 	auto newPosition = computePosition(newHeight);
 	updateGeometry(newPosition.x(), newPosition.y(), width(), newHeight);
-	psUpdateOverlayed(this);
+	Ui::Platform::UpdateOverlayed(this);
 }
 
 void Widget::updateGeometry(int x, int y, int width, int height) {
@@ -600,8 +604,8 @@ void Notification::prepareActionsCache() {
 	actionsCacheImg.fill(Qt::transparent);
 	{
 		Painter p(&actionsCacheImg);
-		st::notifyFadeRight.fill(p, rtlrect(0, 0, fadeWidth, actionsCacheHeight, actionsCacheWidth));
-		p.fillRect(rtlrect(fadeWidth, 0, actionsCacheWidth - fadeWidth, actionsCacheHeight, actionsCacheWidth), st::notificationBg);
+		st::notifyFadeRight.fill(p, style::rtlrect(0, 0, fadeWidth, actionsCacheHeight, actionsCacheWidth));
+		p.fillRect(style::rtlrect(fadeWidth, 0, actionsCacheWidth - fadeWidth, actionsCacheHeight, actionsCacheWidth), st::notificationBg);
 		p.drawPixmapRight(replyRight, _reply->y() - actionsTop, actionsCacheWidth, replyCache);
 	}
 	_buttonsCache = App::pixmapFromImageInPlace(std::move(actionsCacheImg));

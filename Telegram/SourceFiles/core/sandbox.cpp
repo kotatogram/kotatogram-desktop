@@ -24,6 +24,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/qthelp_url.h"
 #include "base/qthelp_regex.h"
 #include "ui/effects/animations.h"
+#include "facades.h"
+#include "app.h"
 
 #include <QtGui/QScreen>
 
@@ -81,6 +83,11 @@ Sandbox::Sandbox(
 	char **argv)
 : QApplication(argc, argv)
 , _mainThreadId(QThread::currentThreadId())
+, _handleObservables([=] {
+	Expects(_application != nullptr);
+
+	_application->call_handleObservables();
+})
 , _launcher(launcher) {
 }
 
@@ -150,6 +157,10 @@ void Sandbox::launchApplication() {
 		}
 		setupScreenScale();
 
+		base::InitObservables([] {
+			Instance()._handleObservables.call();
+		});
+
 		_application = std::make_unique<Application>(_launcher);
 
 		// Ideally this should go to constructor.
@@ -188,9 +199,8 @@ void Sandbox::setupScreenScale() {
 			LOG(("Environmental variables: QT_AUTO_SCREEN_SCALE_FACTOR='%1'").arg(QString::fromLatin1(qgetenv("QT_AUTO_SCREEN_SCALE_FACTOR"))));
 			LOG(("Environmental variables: QT_SCREEN_SCALE_FACTORS='%1'").arg(QString::fromLatin1(qgetenv("QT_SCREEN_SCALE_FACTORS"))));
 		}
-		cSetRetinaFactor(ratio);
-		cSetIntRetinaFactor(int32(ratio));
-		cSetScreenScale(kInterfaceScaleDefault);
+		style::SetDevicePixelRatio(int(ratio));
+		cSetScreenScale(style::kScaleDefault);
 	}
 }
 
@@ -512,7 +522,7 @@ bool Sandbox::notify(QObject *receiver, QEvent *e) {
 
 	const auto wrap = createEventNestingLevel();
 	if (e->type() == QEvent::UpdateRequest) {
-		const auto weak = make_weak(receiver);
+		const auto weak = QPointer<QObject>(receiver);
 		_widgetUpdateRequests.fire({});
 		if (!weak) {
 			return true;
@@ -539,30 +549,6 @@ bool Sandbox::nativeEventFilter(
 		long *result) {
 	registerEnterFromEventLoop();
 	return false;
-}
-
-void Sandbox::activateWindowDelayed(not_null<QWidget*> widget) {
-	if (_delayedActivationsPaused) {
-		return;
-	} else if (std::exchange(_windowForDelayedActivation, widget.get())) {
-		return;
-	}
-	crl::on_main(this, [=] {
-		if (const auto widget = base::take(_windowForDelayedActivation)) {
-			if (!widget->isHidden()) {
-				widget->activateWindow();
-			}
-		}
-	});
-}
-
-void Sandbox::pauseDelayedWindowActivations() {
-	_windowForDelayedActivation = nullptr;
-	_delayedActivationsPaused = true;
-}
-
-void Sandbox::resumeDelayedWindowActivations() {
-	_delayedActivationsPaused = false;
 }
 
 rpl::producer<> Sandbox::widgetUpdateRequests() const {
@@ -612,3 +598,11 @@ rpl::producer<> on_main_update_requests() {
 }
 
 } // namespace crl
+
+namespace base {
+
+void EnterFromEventLoop(FnMut<void()> &&method) {
+	Core::Sandbox::Instance().customEnterFromEventLoop(std::move(method));
+}
+
+} // namespace base

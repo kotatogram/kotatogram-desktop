@@ -14,10 +14,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/inner_dropdown.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/emoji_config.h"
+#include "ui/ui_utility.h"
 #include "platform/platform_specific.h"
 #include "core/application.h"
 #include "core/event_filter.h"
 #include "main/main_session.h"
+#include "app.h"
 #include "styles/style_chat_helpers.h"
 
 #include <QtWidgets/QApplication>
@@ -113,7 +115,7 @@ auto SuggestionsWidget::getRowsByQuery() const -> std::vector<Row> {
 	}) | ranges::to_vector;
 
 	auto lastRecent = begin(result);
-	const auto &recent = GetRecent();
+	const auto &recent = GetRecentEmoji();
 	for (const auto &item : recent) {
 		const auto emoji = item.first->original()
 			? item.first->original()

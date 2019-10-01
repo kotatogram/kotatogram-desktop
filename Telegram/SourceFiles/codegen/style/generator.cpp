@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "codegen/style/generator.h"
 
+#include "base/crc32hash.h"
+
 #include <set>
 #include <memory>
 #include <functional>
@@ -32,54 +34,6 @@ const auto kMustBeContrast = std::map<QString, QString>{
 	{ "dialogsMenuIconFg", "dialogsBg" },
 	{ "windowBoldFg", "windowBg" },
 };
-
-// crc32 hash, taken somewhere from the internet
-
-class Crc32Table {
-public:
-	Crc32Table() {
-		quint32 poly = 0x04c11db7;
-		for (auto i = 0; i != 256; ++i) {
-			_data[i] = reflect(i, 8) << 24;
-			for (auto j = 0; j != 8; ++j) {
-				_data[i] = (_data[i] << 1) ^ (_data[i] & (1 << 31) ? poly : 0);
-			}
-			_data[i] = reflect(_data[i], 32);
-		}
-	}
-
-	inline quint32 operator[](int index) const {
-		return _data[index];
-	}
-
-private:
-	quint32 reflect(quint32 val, char ch) {
-		quint32 result = 0;
-		for (int i = 1; i < (ch + 1); ++i) {
-			if (val & 1) {
-				result |= 1 << (ch - i);
-			}
-			val >>= 1;
-		}
-		return result;
-	}
-
-	quint32 _data[256];
-
-};
-
-qint32 hashCrc32(const void *data, int len) {
-	static Crc32Table table;
-
-	const uchar *buffer = static_cast<const uchar *>(data);
-
-	quint32 crc = 0xffffffff;
-	for (int i = 0; i != len; ++i) {
-		crc = (crc >> 8) ^ table[(crc & 0xFF) ^ buffer[i]];
-	}
-
-	return static_cast<qint32>(crc ^ 0xffffffff);
-}
 
 char hexChar(uchar ch) {
 	if (ch < 10) {
@@ -210,6 +164,9 @@ bool Generator::writeHeader() {
 
 	header_->include("ui/style/style_core.h").newline();
 
+	if (!writeHeaderRequiredIncludes()) {
+		return false;
+	}
 	if (!writeHeaderStyleNamespace()) {
 		return false;
 	}
@@ -233,12 +190,9 @@ bool inited = false;\n\
 class Module_" << baseName_ << " : public style::internal::ModuleBase {\n\
 public:\n\
 	Module_" << baseName_ << "() { style::internal::registerModule(this); }\n\
-	~Module_" << baseName_ << "() { style::internal::unregisterModule(this); }\n\
 \n\
-	void start() override {\n\
-		style::internal::init_" << baseName_ << "();\n\
-	}\n\
-	void stop() override {\n\
+	void start(int scale) override {\n\
+		style::internal::init_" << baseName_ << "(scale);\n\
 	}\n\
 };\n\
 Module_" << baseName_ << " registrator;\n";
@@ -397,6 +351,50 @@ QString Generator::valueAssignmentCode(structure::Value value) const {
 	return QString();
 }
 
+bool Generator::writeHeaderRequiredIncludes() {
+	std::function<QString(const Module&, structure::FullName)> findInIncludes = [&](const Module &module, const structure::FullName &name) {
+		auto result = QString();
+		module.enumIncludes([&](const Module &included) {
+			if (Module::findStructInModule(name, included)) {
+				result = moduleBaseName(included);
+				return false;
+			}
+			result = findInIncludes(included, name);
+			return true;
+		});
+		return result;
+	};
+
+	auto includes = QStringList();
+	const auto written = module_.enumStructs([&](const Struct &value) -> bool {
+		for (const auto &field : value.fields) {
+			if (field.type.tag == structure::TypeTag::Struct) {
+				const auto name = field.type.name;
+				if (!module_.findStructInModule(name, module_)) {
+					const auto base = findInIncludes(module_, name);
+					if (base.isEmpty()) {
+						return false;
+					}
+					if (!includes.contains(base)) {
+						includes.push_back(base);
+					}
+				}
+			}
+		}
+		return true;
+	});
+	if (!written) {
+		return false;
+	} else if (includes.isEmpty()) {
+		return true;
+	}
+	for (const auto base : includes) {
+		header_->include(base + ".h");
+	}
+	header_->newline();
+	return true;
+}
+
 bool Generator::writeHeaderStyleNamespace() {
 	if (!module_.hasStructs() && !module_.hasVariables()) {
 		return true;
@@ -405,7 +403,7 @@ bool Generator::writeHeaderStyleNamespace() {
 
 	if (module_.hasVariables()) {
 		header_->pushNamespace("internal").newline();
-		header_->stream() << "void init_" << baseName_ << "();\n\n";
+		header_->stream() << "void init_" << baseName_ << "(int scale);\n\n";
 		header_->popNamespace();
 	}
 	bool wroteForwardDeclarations = writeStructsForwardDeclarations();
@@ -800,7 +798,7 @@ void palette::finalize() {\n\
 		return false;
 	}
 	auto count = indexInPalette;
-	auto checksum = hashCrc32(checksumString.constData(), checksumString.size());
+	auto checksum = base::crc32(checksumString.constData(), checksumString.size());
 
 	source_->stream() << "\n\n";
 	for (const auto &[over, under] : kMustBeContrast) {
@@ -1076,7 +1074,7 @@ bool Generator::writeVariableInit() {
 	}
 
 	source_->stream() << "\
-void init_" << baseName_ << "() {\n\
+void init_" << baseName_ << "(int scale) {\n\
 	if (inited) return;\n\
 	inited = true;\n\n";
 
@@ -1084,7 +1082,7 @@ void init_" << baseName_ << "() {\n\
 		bool writtenAtLeastOne = false;
 		bool result = module_.enumIncludes([&](const Module &module) -> bool {
 			if (module.hasVariables()) {
-				source_->stream() << "\tinit_" + moduleBaseName(module) + "();\n";
+				source_->stream() << "\tinit_" + moduleBaseName(module) + "(scale);\n";
 				writtenAtLeastOne = true;
 			}
 			return true;
@@ -1099,7 +1097,7 @@ void init_" << baseName_ << "() {\n\
 
 	if (!pxValues_.isEmpty() || !fontFamilies_.isEmpty()) {
 		if (!pxValues_.isEmpty()) {
-			source_->stream() << "\tinitPxValues();\n";
+			source_->stream() << "\tinitPxValues(scale);\n";
 		}
 		if (!fontFamilies_.isEmpty()) {
 			source_->stream() << "\tinitFontFamilies();\n";
@@ -1134,8 +1132,7 @@ bool Generator::writePxValuesInit() {
 		source_->stream() << "int " << pxValueName(i.key()) << " = " << i.key() << ";\n";
 	}
 	source_->stream() << "\
-void initPxValues() {\n\
-	const auto scale = cScale();\n";
+void initPxValues(int scale) {\n";
 	for (auto it = pxValues_.cbegin(), e = pxValues_.cend(); it != e; ++it) {
 		auto value = it.key();
 		source_->stream() << "\t" << pxValueName(value) << " = ConvertScale(" << value << ", scale);\n";

@@ -7,6 +7,17 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/style/style_core.h"
 
+#include "ui/effects/animation_value.h"
+#include "ui/painter.h"
+#include "styles/style_basic.h"
+#include "styles/palette.h"
+
+#include <QtGui/QPainter>
+#include <QtGui/QFontDatabase>
+
+#include <rpl/event_stream.h>
+#include <rpl/variable.h>
+
 namespace style {
 namespace internal {
 namespace {
@@ -15,54 +26,92 @@ constexpr auto kMinContrastAlpha = 64;
 constexpr auto kMinContrastDistance = 64 * 64 * 4;
 constexpr auto kContrastDeltaL = 64;
 
-using ModulesList = QList<internal::ModuleBase*>;
-NeverFreedPointer<ModulesList> styleModules;
+auto PaletteChanges = rpl::event_stream<>();
+auto ShortAnimationRunning = rpl::variable<bool>(false);
+auto RunningShortAnimations = 0;
+auto ResolvedMonospaceFont = style::font();
 
-void startModules() {
-	if (!styleModules) return;
+std::vector<internal::ModuleBase*> &StyleModules() {
+	static auto result = std::vector<internal::ModuleBase*>();
+	return result;
+}
 
-	for_const (auto module, *styleModules) {
-		module->start();
+void startModules(int scale) {
+	for (const auto module : StyleModules()) {
+		module->start(scale);
 	}
 }
 
-void stopModules() {
-	if (!styleModules) return;
-
-	for_const (auto module, *styleModules) {
-		module->stop();
+void ResolveMonospaceFont() {
+	auto family = QString();
+	const auto tryFont = [&](const QString &attempt) {
+		if (family.isEmpty()
+			&& !QFontInfo(QFont(attempt)).family().trimmed().compare(
+				attempt,
+				Qt::CaseInsensitive)) {
+			family = attempt;
+		}
+	};
+	if (!cMonospaceFont().isEmpty()) {
+		tryFont(cMonospaceFont());
 	}
+	tryFont("Consolas");
+	tryFont("Liberation Mono");
+	tryFont("Menlo");
+	tryFont("Courier");
+	if (family.isEmpty()) {
+		const auto type = QFontDatabase::FixedFont;
+		family = QFontDatabase::systemFont(type).family();
+	}
+	const auto size = st::normalFont->f.pixelSize();
+	ResolvedMonospaceFont = style::font(size, 0, family);
 }
 
 } // namespace
 
 void registerModule(ModuleBase *module) {
-	styleModules.createIfNull();
-	styleModules->push_back(module);
+	StyleModules().push_back(module);
 }
 
-void unregisterModule(ModuleBase *module) {
-	styleModules->removeOne(module);
-	if (styleModules->isEmpty()) {
-		styleModules.clear();
+void StartShortAnimation() {
+	if (++RunningShortAnimations == 1) {
+		ShortAnimationRunning = true;
+	}
+}
+
+void StopShortAnimation() {
+	if (--RunningShortAnimations == 0) {
+		ShortAnimationRunning = false;
 	}
 }
 
 } // namespace internal
 
-void startManager() {
-	if (cIntRetinaFactor() * cConfigScale() > kInterfaceScaleMax) {
-		cSetConfigScale(kInterfaceScaleDefault);
-	}
-
-	internal::registerFontFamily(qsl("Open Sans"));
-	internal::startModules();
+void startManager(int scale) {
+	internal::registerFontFamily("Open Sans");
+	internal::startModules(scale);
+	internal::ResolveMonospaceFont();
 }
 
 void stopManager() {
-	internal::stopModules();
 	internal::destroyFonts();
 	internal::destroyIcons();
+}
+
+rpl::producer<> PaletteChanged() {
+	return internal::PaletteChanges.events();
+}
+
+void NotifyPaletteChanged() {
+	internal::PaletteChanges.fire({});
+}
+
+rpl::producer<bool> ShortAnimationPlaying() {
+	return internal::ShortAnimationRunning.value();
+}
+
+const style::font &MonospaceFont() {
+	return internal::ResolvedMonospaceFont;
 }
 
 void colorizeImage(const QImage &src, QColor c, QImage *outResult, QRect srcRect, QPoint dstPoint) {
@@ -111,15 +160,15 @@ void colorizeImage(const QImage &src, QColor c, QImage *outResult, QRect srcRect
 }
 
 QBrush transparentPlaceholderBrush() {
-	auto size = st::transparentPlaceholderSize * cIntRetinaFactor();
+	auto size = st::transparentPlaceholderSize * DevicePixelRatio();
 	auto transparent = QImage(2 * size, 2 * size, QImage::Format_ARGB32_Premultiplied);
 	transparent.fill(st::mediaviewTransparentBg->c);
 	{
-		Painter p(&transparent);
-		p.fillRect(rtlrect(0, size, size, size, 2 * size), st::mediaviewTransparentFg);
-		p.fillRect(rtlrect(size, 0, size, size, 2 * size), st::mediaviewTransparentFg);
+		QPainter p(&transparent);
+		p.fillRect(0, size, size, size, st::mediaviewTransparentFg);
+		p.fillRect(size, 0, size, size, st::mediaviewTransparentFg);
 	}
-	transparent.setDevicePixelRatio(cRetinaFactor());
+	transparent.setDevicePixelRatio(DevicePixelRatio());
 	return QBrush(transparent);
 
 }
@@ -127,14 +176,14 @@ QBrush transparentPlaceholderBrush() {
 namespace internal {
 
 QImage createCircleMask(int size, QColor bg, QColor fg) {
-	int realSize = size * cIntRetinaFactor();
+	int realSize = size * DevicePixelRatio();
 #ifndef OS_MAC_OLD
 	auto result = QImage(realSize, realSize, QImage::Format::Format_Grayscale8);
 #else // OS_MAC_OLD
 	auto result = QImage(realSize, realSize, QImage::Format::Format_RGB32);
 #endif // OS_MAC_OLD
 	{
-		Painter p(&result);
+		QPainter p(&result);
 		PainterHighQualityEnabler hq(p);
 
 		p.fillRect(0, 0, realSize, realSize, bg);
@@ -142,7 +191,7 @@ QImage createCircleMask(int size, QColor bg, QColor fg) {
 		p.setBrush(fg);
 		p.drawEllipse(0, 0, realSize, realSize);
 	}
-	result.setDevicePixelRatio(cRetinaFactor());
+	result.setDevicePixelRatio(DevicePixelRatio());
 	return result;
 }
 

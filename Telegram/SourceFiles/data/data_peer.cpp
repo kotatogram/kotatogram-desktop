@@ -13,7 +13,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_photo.h"
 #include "data/data_folder.h"
 #include "data/data_session.h"
+#include "data/data_file_origin.h"
 #include "base/unixtime.h"
+#include "base/crc32hash.h"
 #include "lang/lang_keys.h"
 #include "observer_peer.h"
 #include "apiwrap.h"
@@ -28,6 +30,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/view/history_view_element.h"
 #include "history/history_item.h"
+#include "facades.h"
+#include "app.h"
 
 namespace {
 
@@ -67,7 +71,7 @@ style::color PeerUserpicColor(PeerId peerId) {
 PeerId FakePeerIdForJustName(const QString &name) {
 	return peerFromUser(name.isEmpty()
 		? 777
-		: hashCrc32(name.constData(), name.size() * sizeof(QChar)));
+		: base::crc32(name.constData(), name.size() * sizeof(QChar)));
 }
 
 } // namespace Data

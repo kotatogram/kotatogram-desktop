@@ -10,12 +10,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "ui/effects/round_checkbox.h"
 #include "ui/image/image.h"
+#include "ui/ui_utility.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
 #include "mtproto/sender.h"
 #include "data/data_session.h"
+#include "data/data_file_origin.h"
 #include "boxes/background_preview_box.h"
 #include "boxes/confirm_box.h"
+#include "app.h"
 #include "styles/style_overview.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
@@ -153,7 +156,7 @@ void BackgroundBox::prepare() {
 void BackgroundBox::removePaper(const Data::WallPaper &paper) {
 	const auto box = std::make_shared<QPointer<BoxContent>>();
 	const auto session = _session;
-	const auto remove = [=, weak = make_weak(this)]{
+	const auto remove = [=, weak = Ui::MakeWeak(this)]{
 		if (*box) {
 			(*box)->closeBox();
 		}

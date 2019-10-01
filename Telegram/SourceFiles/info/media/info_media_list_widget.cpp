@@ -21,6 +21,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_peer_menu.h"
 #include "storage/file_download.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/ui_utility.h"
+#include "ui/inactive_press.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "mainwidget.h"
@@ -32,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peer_list_controllers.h"
 #include "boxes/confirm_box.h"
 #include "core/file_utilities.h"
+#include "facades.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QClipboard>
@@ -1395,7 +1398,7 @@ void ListWidget::forwardItem(UniversalMsgId universalId) {
 }
 
 void ListWidget::forwardItems(MessageIdsList &&items) {
-	auto callback = [weak = make_weak(this)] {
+	auto callback = [weak = Ui::MakeWeak(this)] {
 		if (const auto strong = weak.data()) {
 			strong->clearSelected();
 		}
@@ -1408,7 +1411,7 @@ void ListWidget::forwardItems(MessageIdsList &&items) {
 
 void ListWidget::deleteSelected() {
 	if (const auto box = deleteItems(collectSelectedIds())) {
-		const auto weak = make_weak(this);
+		const auto weak = Ui::MakeWeak(this);
 		box->setDeleteConfirmedCallback([=]{
 			if (const auto strong = weak.data()) {
 				strong->clearSelected();
@@ -1438,7 +1441,7 @@ DeleteMessagesBox *ListWidget::deleteItems(MessageIdsList &&items) {
 void ListWidget::setActionBoxWeak(QPointer<Ui::RpWidget> box) {
 	if ((_actionBoxWeak = box)) {
 		_actionBoxWeakLifetime = _actionBoxWeak->alive(
-		) | rpl::start_with_done([weak = make_weak(this)]{
+		) | rpl::start_with_done([weak = Ui::MakeWeak(this)]{
 			if (weak) {
 				weak->_checkForHide.fire({});
 			}
@@ -1821,8 +1824,13 @@ void ListWidget::mouseActionStart(
 	auto pressLayout = _overLayout;
 
 	_mouseAction = MouseAction::None;
-	_pressWasInactive = _controller->parentController()->widget()->wasInactivePress();
-	if (_pressWasInactive) _controller->parentController()->widget()->setInactivePress(false);
+	_pressWasInactive = Ui::WasInactivePress(
+		_controller->parentController()->widget());
+	if (_pressWasInactive) {
+		Ui::MarkInactivePress(
+			_controller->parentController()->widget(),
+			false);
+	}
 
 	if (ClickHandler::getPressed() && !hasSelected()) {
 		_mouseAction = MouseAction::PrepareDrag;
@@ -2016,7 +2024,7 @@ void ListWidget::mouseActionFinish(
 	_wasSelectedText = false;
 	if (activated) {
 		mouseActionCancel();
-		App::activateClickHandler(activated, button);
+		ActivateClickHandler(window(), activated, button);
 		return;
 	}
 
@@ -2043,7 +2051,7 @@ void ListWidget::mouseActionFinish(
 
 #if defined Q_OS_LINUX32 || defined Q_OS_LINUX64
 	//if (hasSelectedText()) { // #TODO linux clipboard
-	//	SetClipboardText(_selected.cbegin()->first->selectedText(_selected.cbegin()->second), QClipboard::Selection);
+	//	TextUtilities::SetClipboardText(_selected.cbegin()->first->selectedText(_selected.cbegin()->second), QClipboard::Selection);
 	//}
 #endif // Q_OS_LINUX32 || Q_OS_LINUX64
 }

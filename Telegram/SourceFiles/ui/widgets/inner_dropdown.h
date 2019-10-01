@@ -9,14 +9,18 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "styles/style_widgets.h"
 #include "ui/rp_widget.h"
+#include "ui/round_rect.h"
 #include "ui/effects/animations.h"
 #include "ui/effects/panel_animation.h"
+#include "base/object_ptr.h"
+
+#include <QtCore/QTimer>
 
 namespace Ui {
 
 class ScrollArea;
 
-class InnerDropdown : public Ui::RpWidget {
+class InnerDropdown : public RpWidget {
 	Q_OBJECT
 
 public:
@@ -83,12 +87,9 @@ private slots:
 		hideAnimated();
 	}
 	void onScroll();
-	void onWidgetHeightUpdated() {
-		resizeToContent();
-	}
 
 private:
-	QPointer<TWidget> doSetOwnedWidget(object_ptr<TWidget> widget);
+	QPointer<RpWidget> doSetOwnedWidget(object_ptr<RpWidget> widget);
 	QImage grabForPanelAnimation();
 	void startShowAnimation();
 	void startOpacityAnimation(bool hiding);
@@ -105,14 +106,15 @@ private:
 
 	const style::InnerDropdown &_st;
 
+	RoundRect _roundRect;
 	PanelAnimation::Origin _origin = PanelAnimation::Origin::TopLeft;
 	std::unique_ptr<PanelAnimation> _showAnimation;
-	Ui::Animations::Simple _a_show;
+	Animations::Simple _a_show;
 
 	bool _autoHiding = true;
 	bool _hiding = false;
 	QPixmap _cache;
-	Ui::Animations::Simple _a_opacity;
+	Animations::Simple _a_opacity;
 
 	QTimer _hideTimer;
 	bool _ignoreShowEvents = false;
@@ -120,7 +122,7 @@ private:
 	Fn<void()> _hideStartCallback;
 	Fn<void()> _hiddenCallback;
 
-	object_ptr<Ui::ScrollArea> _scroll;
+	object_ptr<ScrollArea> _scroll;
 
 	int _maxHeight = 0;
 

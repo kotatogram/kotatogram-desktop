@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_web_page.h"
 #include "data/data_photo.h"
 #include "data/data_file_origin.h"
+#include "app.h"
 #include "styles/style_history.h"
 
 namespace HistoryView {
@@ -433,7 +434,7 @@ void WebPage::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 		bshift += bottomInfoPadding();
 	}
 
-	QRect bar(rtlrect(st::msgPadding.left(), tshift, st::webPageBar, height() - tshift - bshift, width()));
+	QRect bar(style::rtlrect(st::msgPadding.left(), tshift, st::webPageBar, height() - tshift - bshift, width()));
 	p.fillRect(bar, barfg);
 
 	auto lineHeight = unitedLineHeight();
@@ -445,8 +446,8 @@ void WebPage::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 		auto pw = qMax(_pixw, lineHeight);
 		auto ph = _pixh;
 		auto pixw = _pixw, pixh = articleThumbHeight(_data->photo, _pixw);
-		const auto maxw = ConvertScale(_data->photo->thumbnail()->width());
-		const auto maxh = ConvertScale(_data->photo->thumbnail()->height());
+		const auto maxw = style::ConvertScale(_data->photo->thumbnail()->width());
+		const auto maxh = style::ConvertScale(_data->photo->thumbnail()->height());
 		if (pixw * ph != pixh * pw) {
 			float64 coef = (pixw * ph > pixh * pw) ? qMin(ph / float64(pixh), maxh / float64(pixh)) : qMin(pw / float64(pixw), maxw / float64(pixw));
 			pixh = qRound(pixh * coef);
@@ -461,7 +462,7 @@ void WebPage::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 		}
 		p.drawPixmapLeft(padding.left() + paintw - pw, tshift, width(), pix);
 		if (selected) {
-			App::roundRect(p, rtlrect(padding.left() + paintw - pw, tshift, pw, _pixh, width()), p.textPalette().selectOverlay, SelectedOverlaySmallCorners);
+			App::roundRect(p, style::rtlrect(padding.left() + paintw - pw, tshift, pw, _pixh, width()), p.textPalette().selectOverlay, SelectedOverlaySmallCorners);
 		}
 		paintw -= pw + st::webPagePhotoDelta;
 	}
@@ -572,7 +573,7 @@ TextState WebPage::textState(QPoint point, StateRequest request) const {
 	auto inThumb = false;
 	if (asArticle()) {
 		auto pw = qMax(_pixw, lineHeight);
-		if (rtlrect(padding.left() + paintw - pw, 0, pw, _pixh, width()).contains(point)) {
+		if (style::rtlrect(padding.left() + paintw - pw, 0, pw, _pixh, width()).contains(point)) {
 			inThumb = true;
 		}
 		paintw -= pw + st::webPagePhotoDelta;

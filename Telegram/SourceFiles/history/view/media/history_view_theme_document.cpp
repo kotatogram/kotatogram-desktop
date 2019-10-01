@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_file_origin.h"
 #include "base/qthelp_url.h"
 #include "window/themes/window_theme.h"
+#include "app.h"
 #include "styles/style_history.h"
 
 namespace HistoryView {
@@ -55,8 +56,8 @@ QSize ThemeDocument::countOptimalSize() {
 	if (_data->isTheme()) {
 		return st::historyThemeSize;
 	}
-	auto tw = ConvertScale(_data->thumbnail()->width());
-	auto th = ConvertScale(_data->thumbnail()->height());
+	auto tw = style::ConvertScale(_data->thumbnail()->width());
+	auto th = style::ConvertScale(_data->thumbnail()->height());
 	if (!tw || !th) {
 		tw = th = 1;
 	}
@@ -77,8 +78,8 @@ QSize ThemeDocument::countCurrentSize(int newWidth) {
 		_pixh = st::historyThemeSize.height();
 		return st::historyThemeSize;
 	}
-	auto tw = ConvertScale(_data->thumbnail()->width());
-	auto th = ConvertScale(_data->thumbnail()->height());
+	auto tw = style::ConvertScale(_data->thumbnail()->width());
+	auto th = style::ConvertScale(_data->thumbnail()->height());
 	if (!tw || !th) {
 		tw = th = 1;
 	}
@@ -117,7 +118,7 @@ void ThemeDocument::draw(Painter &p, const QRect &r, TextSelection selection, cr
 	}
 	const auto radial = isRadialAnimation();
 
-	auto rthumb = rtlrect(paintx, painty, paintw, painth, width());
+	auto rthumb = style::rtlrect(paintx, painty, paintw, painth, width());
 	auto roundRadius = ImageRoundRadius::Small;
 	auto roundCorners = RectPart::AllCorners;
 	validateThumbnail();
@@ -130,7 +131,7 @@ void ThemeDocument::draw(Painter &p, const QRect &r, TextSelection selection, cr
 	auto statusY = painty + st::msgDateImgDelta + st::msgDateImgPadding.y();
 	auto statusW = st::normalFont->width(_statusText) + 2 * st::msgDateImgPadding.x();
 	auto statusH = st::normalFont->height + 2 * st::msgDateImgPadding.y();
-	App::roundRect(p, rtlrect(statusX - st::msgDateImgPadding.x(), statusY - st::msgDateImgPadding.y(), statusW, statusH, width()), selected ? st::msgDateImgBgSelected : st::msgDateImgBg, selected ? DateSelectedCorners : DateCorners);
+	App::roundRect(p, style::rtlrect(statusX - st::msgDateImgPadding.x(), statusY - st::msgDateImgPadding.y(), statusW, statusH, width()), selected ? st::msgDateImgBgSelected : st::msgDateImgBg, selected ? DateSelectedCorners : DateCorners);
 	p.setFont(st::normalFont);
 	p.setPen(st::msgDateImgFg);
 	p.drawTextLeft(statusX, statusY, width(), _statusText, statusW - 2 * st::msgDateImgPadding.x());
@@ -214,8 +215,8 @@ void ThemeDocument::prepareThumbnailFrom(
 			? Images::Option::TransparentBackground
 			: Images::Option(0));
 	auto original = image->original();
-	auto tw = isTheme ? _pixw : ConvertScale(_data->thumbnail()->width());
-	auto th = isTheme ? _pixh : ConvertScale(_data->thumbnail()->height());
+	auto tw = isTheme ? _pixw : style::ConvertScale(_data->thumbnail()->width());
+	auto th = isTheme ? _pixh : style::ConvertScale(_data->thumbnail()->height());
 	if (!tw || !th) {
 		tw = th = 1;
 	}

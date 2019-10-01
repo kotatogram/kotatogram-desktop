@@ -35,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/core_cloud_password.h"
 #include "base/unixtime.h"
 #include "apiwrap.h"
+#include "facades.h"
 #include "main/main_session.h"
 #include "styles/style_boxes.h"
 #include "styles/style_info.h"
@@ -56,7 +57,7 @@ void SetCloudPassword(not_null<GenericBox*> box, not_null<UserData*> user) {
 	user->session().api().passwordState(
 	) | rpl::start_with_next([=] {
 		using namespace Settings;
-		const auto weak = make_weak(box);
+		const auto weak = Ui::MakeWeak(box);
 		if (CheckEditCloudPassword(&user->session())) {
 			box->getDelegate()->show(
 				EditCloudPasswordBox(&user->session()));
@@ -160,7 +161,7 @@ EditParticipantBox::Inner::Inner(
 	_userPhoto->setPointerCursor(false);
 	_userName.setText(
 		st::rightsNameStyle,
-		App::peerName(_user),
+		_user->name,
 		Ui::NameTextOptions());
 }
 
@@ -579,7 +580,7 @@ void EditAdminBox::sendTransferRequestFrom(
 	if (_transferRequestId) {
 		return;
 	}
-	const auto weak = make_weak(this);
+	const auto weak = Ui::MakeWeak(this);
 	const auto user = this->user();
 	const auto api = &channel->session().api();
 	_transferRequestId = api->request(MTPchannels_EditCreator(
@@ -625,7 +626,7 @@ void EditAdminBox::sendTransferRequestFrom(
 				|| (type == qstr("PASSWORD_TOO_FRESH_XXX"))
 				|| (type == qstr("SESSION_TOO_FRESH_XXX"));
 		}();
-		const auto weak = make_weak(this);
+		const auto weak = Ui::MakeWeak(this);
 		getDelegate()->show(Box<InformBox>(problem));
 		if (box) {
 			box->closeBox();

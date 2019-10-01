@@ -17,7 +17,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/shadow.h"
+#include "ui/widgets/tooltip.h"
 #include "ui/emoji_config.h"
+#include "ui/ui_utility.h"
 #include "lang/lang_cloud_manager.h"
 #include "lang/lang_instance.h"
 #include "lang/lang_keys.h"
@@ -43,7 +45,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme_warning.h"
 #include "window/window_lock_widgets.h"
 #include "window/window_main_menu.h"
+#include "window/window_controller.h" // App::wnd.
 #include "window/window_session_controller.h"
+#include "window/window_media_preview.h"
+#include "facades.h"
+#include "app.h"
 
 #include <QtGui/QWindow>
 #include <QtCore/QCoreApplication>
@@ -149,6 +155,11 @@ void MainWindow::firstShow() {
 
 	psFirstShow();
 	updateTrayMenu();
+
+	windowDeactivateEvents(
+	) | rpl::start_with_next([=] {
+		Ui::Tooltip::Hide();
+	}, lifetime());
 }
 
 void MainWindow::clearWidgetsHook() {
@@ -951,3 +962,13 @@ MainWindow::~MainWindow() {
 	delete trayIcon;
 	delete trayIconMenu;
 }
+
+namespace App {
+
+MainWindow *wnd() {
+	return (Core::IsAppLaunched() && Core::App().activeWindow())
+		? Core::App().activeWindow()->widget().get()
+		: nullptr;
+}
+
+} // namespace App

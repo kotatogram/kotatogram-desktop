@@ -16,6 +16,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/sender.h"
 #include "inline_bots/inline_bot_layout_item.h"
 
+#include <QtCore/QTimer>
+
 namespace Ui {
 class ScrollArea;
 class IconButton;
@@ -84,6 +86,7 @@ public:
 	// Ui::AbstractTooltipShower interface.
 	QString tooltipText() const override;
 	QPoint tooltipPos() const override;
+	bool tooltipWindowActive() const override;
 
 	~Inner();
 

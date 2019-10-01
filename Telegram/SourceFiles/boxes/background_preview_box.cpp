@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/image/image.h"
 #include "ui/widgets/checkbox.h"
+#include "ui/ui_utility.h"
 #include "history/history.h"
 #include "history/history_message.h"
 #include "history/view/history_view_message.h"
@@ -24,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "boxes/confirm_box.h"
 #include "boxes/background_preview_box.h"
+#include "app.h"
 #include "styles/style_history.h"
 #include "styles/style_boxes.h"
 

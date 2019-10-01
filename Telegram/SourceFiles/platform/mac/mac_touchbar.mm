@@ -22,7 +22,7 @@
 #include "data/data_peer_values.h"
 #include "data/data_session.h"
 #include "dialogs/dialogs_layout.h"
-#include "emoji_config.h"
+#include "ui/emoji_config.h"
 #include "history/history.h"
 #include "lang/lang_keys.h"
 #include "mainwidget.h"
@@ -37,6 +37,8 @@
 #include "window/window_session_controller.h"
 #include "ui/empty_userpic.h"
 #include "ui/widgets/input_fields.h"
+#include "facades.h"
+#include "app.h"
 
 NSImage *qt_mac_create_nsimage(const QPixmap &pm);
 
@@ -374,13 +376,15 @@ void AppendFavedStickers(std::vector<PickerScrubberItem> &to) {
 
 void AppendEmojiPacks(std::vector<PickerScrubberItem> &to) {
 	for (auto i = 0; i != ChatHelpers::kEmojiSectionCount; ++i) {
-		const auto section = Ui::Emoji::GetSection(
-			static_cast<Ui::Emoji::Section>(i));
-		const auto title = i
-			? Ui::Emoji::CategoryTitle(i)(tr::now)
-			: TitleRecentlyUsed();
+		const auto section = static_cast<Ui::Emoji::Section>(i);
+		const auto list = (section == Ui::Emoji::Section::Recent)
+			? GetRecentEmojiSection()
+			: Ui::Emoji::GetSection(section);
+		const auto title = (section == Ui::Emoji::Section::Recent)
+			? TitleRecentlyUsed()
+			: ChatHelpers::EmojiCategoryTitle(i)(tr::now);
 		to.emplace_back(title);
-		for (const auto &emoji : section) {
+		for (const auto &emoji : list) {
 			to.emplace_back(PickerScrubberItem(emoji));
 		}
 	}
@@ -808,7 +812,7 @@ void AppendEmojiPacks(std::vector<PickerScrubberItem> &to) {
 			if (const auto inputField = qobject_cast<QTextEdit*>(
 					QApplication::focusWidget())) {
 				Ui::InsertEmojiAtCursor(inputField->textCursor(), emoji);
-				Ui::Emoji::AddRecent(emoji);
+				AddRecentEmoji(emoji);
 				return true;
 			}
 		}
@@ -1061,7 +1065,7 @@ void AppendEmojiPacks(std::vector<PickerScrubberItem> &to) {
 	}, _lifetime);
 
 	rpl::merge(
-		Ui::Emoji::UpdatedRecent(),
+		UpdatedRecentEmoji(),
 		Ui::Emoji::Updated()
 	) | rpl::start_with_next([=] {
 		[self updatePickerPopover:ScrubberItemType::Emoji];

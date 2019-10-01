@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_service.h"
 #include "history/history_message.h"
 #include "history/history.h"
+#include "api/api_text_entities.h"
 #include "data/data_channel.h"
 #include "data/data_user.h"
 #include "data/data_session.h"
@@ -23,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "mainwindow.h" // App::wnd()->sessionController
 #include "main/main_session.h"
+#include "facades.h"
 
 namespace AdminLog {
 namespace {
@@ -115,7 +117,7 @@ TextWithEntities ExtractEditedText(const MTPMessage &message) {
 	const auto &data = message.c_message();
 	return {
 		TextUtilities::Clean(qs(data.vmessage())),
-		TextUtilities::EntitiesFromMTP(data.ventities().value_or_empty())
+		Api::EntitiesFromMTP(data.ventities().value_or_empty())
 	};
 }
 
@@ -241,7 +243,7 @@ TextWithEntities GenerateBannedChangeText(
 auto GenerateUserString(MTPint userId) {
 	// User name in "User name (@username)" format with entities.
 	auto user = Auth().data().user(userId.v);
-	auto name = TextWithEntities { App::peerName(user) };
+	auto name = TextWithEntities { user->name };
 	auto entityData = QString::number(user->id)
 		+ '.'
 		+ QString::number(user->accessHash());
@@ -383,7 +385,7 @@ void GenerateItems(
 	};
 
 	using Flag = MTPDmessage::Flag;
-	auto fromName = App::peerName(from);
+	auto fromName = from->name;
 	auto fromLink = from->createOpenLink();
 	auto fromLinkText = textcmdLink(1, fromName);
 

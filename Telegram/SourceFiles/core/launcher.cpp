@@ -10,11 +10,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
 #include "platform/platform_info.h"
+#include "ui/main_queue_processor.h"
 #include "core/crash_reports.h"
-#include "core/main_queue_processor.h"
 #include "core/update_checker.h"
 #include "core/sandbox.h"
 #include "base/concurrent_timer.h"
+#include "facades.h"
 
 namespace Core {
 namespace {
@@ -323,7 +324,7 @@ QStringList Launcher::readArguments(int argc, char *argv[]) const {
 	auto result = QStringList();
 	result.reserve(argc);
 	for (auto i = 0; i != argc; ++i) {
-		result.push_back(fromUtf8Safe(argv[i]));
+		result.push_back(base::FromUtf8Safe(argv[i]));
 	}
 	return result;
 }
@@ -449,7 +450,7 @@ void Launcher::processArguments() {
 	if (scaleKey.size() > 0) {
 		const auto value = scaleKey[0].toInt();
 		gConfigScale = ((value < 75) || (value > 300))
-			? kInterfaceScaleAuto
+			? style::kScaleAuto
 			: value;
 	}
 
@@ -462,7 +463,7 @@ void Launcher::processArguments() {
 int Launcher::executeApplication() {
 	FilteredCommandLineArguments arguments(_argc, _argv);
 	Sandbox sandbox(this, arguments.count(), arguments.values());
-	MainQueueProcessor processor;
+	Ui::MainQueueProcessor processor;
 	base::ConcurrentTimerEnvironment environment;
 	return sandbox.start();
 }

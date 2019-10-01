@@ -27,6 +27,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "window/window_session_controller.h"
 #include "core/file_utilities.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_settings.h"
 
 #include <QtGui/QDesktopServices>
@@ -122,7 +124,7 @@ void SetupInterfaceScale(
 	const auto toggled = Ui::CreateChild<rpl::event_stream<bool>>(
 		container.get());
 
-	const auto switched = (cConfigScale() == kInterfaceScaleAuto);
+	const auto switched = (cConfigScale() == style::kScaleAuto);
 	const auto button = AddButton(
 		container,
 		tr::lng_settings_default_scale(),
@@ -138,7 +140,7 @@ void SetupInterfaceScale(
 		auto values = (cIntRetinaFactor() > 1)
 			? std::vector<int>{ 100, 110, 120, 130, 140, 150 }
 			: std::vector<int>{ 100, 125, 150, 200, 250, 300 };
-		if (cConfigScale() == kInterfaceScaleAuto) {
+		if (cConfigScale() == style::kScaleAuto) {
 			return values;
 		}
 		if (ranges::find(values, cConfigScale()) == end(values)) {
@@ -165,7 +167,7 @@ void SetupInterfaceScale(
 		*inSetScale = true;
 		const auto guard = gsl::finally([=] { *inSetScale = false; });
 
-		toggled->fire(scale == kInterfaceScaleAuto);
+		toggled->fire(scale == style::kScaleAuto);
 		slider->setActiveSection(sectionFromScale(scale));
 		if (cEvalScale(scale) != cEvalScale(cConfigScale())) {
 			const auto confirmed = crl::guard(button, [=] {
@@ -206,13 +208,13 @@ void SetupInterfaceScale(
 		return scaleByIndex(section);
 	}) | rpl::start_with_next([=](int scale) {
 		(*setScale)((scale == cScreenScale())
-			? kInterfaceScaleAuto
+			? style::kScaleAuto
 			: scale);
 	}, slider->lifetime());
 
 	button->toggledValue(
 	) | rpl::map([](bool checked) {
-		return checked ? kInterfaceScaleAuto : cEvalScale(cConfigScale());
+		return checked ? style::kScaleAuto : cEvalScale(cConfigScale());
 	}) | rpl::start_with_next([=](int scale) {
 		(*setScale)(scale);
 	}, button->lifetime());

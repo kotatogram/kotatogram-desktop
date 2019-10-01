@@ -9,22 +9,36 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ui/effects/ripple_animation.h"
 #include "ui/widgets/checkbox.h"
+#include "ui/text/text.h"
+
+#include <QtGui/QtEvents>
 
 namespace Ui {
 
-Menu::ActionData::~ActionData() = default;
+struct Menu::ActionData {
+	Text::String text;
+	QString shortcut;
+	const style::icon *icon = nullptr;
+	const style::icon *iconOver = nullptr;
+	std::unique_ptr<RippleAnimation> ripple;
+	std::unique_ptr<ToggleView> toggle;
+	int textWidth = 0;
+	bool hasSubmenu = false;
+};
 
-Menu::Menu(QWidget *parent, const style::Menu &st) : TWidget(parent)
+Menu::Menu(QWidget *parent, const style::Menu &st)
+: RpWidget(parent)
 , _st(st)
-, _itemHeight(_st.itemPadding.top() + _st.itemFont->height + _st.itemPadding.bottom())
+, _itemHeight(_st.itemPadding.top() + _st.itemStyle.font->height + _st.itemPadding.bottom())
 , _separatorHeight(_st.separatorPadding.top() + _st.separatorWidth + _st.separatorPadding.bottom()) {
 	init();
 }
 
-Menu::Menu(QWidget *parent, QMenu *menu, const style::Menu &st) : TWidget(parent)
+Menu::Menu(QWidget *parent, QMenu *menu, const style::Menu &st)
+: RpWidget(parent)
 , _st(st)
 , _wappedMenu(menu)
-, _itemHeight(_st.itemPadding.top() + _st.itemFont->height + _st.itemPadding.bottom())
+, _itemHeight(_st.itemPadding.top() + _st.itemStyle.font->height + _st.itemPadding.bottom())
 , _separatorHeight(_st.separatorPadding.top() + _st.separatorWidth + _st.separatorPadding.bottom()) {
 	init();
 
@@ -34,6 +48,8 @@ Menu::Menu(QWidget *parent, QMenu *menu, const style::Menu &st) : TWidget(parent
 	}
 	_wappedMenu->hide();
 }
+
+Menu::~Menu() = default;
 
 void Menu::init() {
 	resize(_forceWidth ? _forceWidth : _st.widthMin, _st.skip * 2);
@@ -56,7 +72,9 @@ not_null<QAction*> Menu::addAction(const QString &text, Fn<void()> callback, con
 }
 
 not_null<QAction*> Menu::addAction(not_null<QAction*> action, const style::icon *icon, const style::icon *iconOver) {
-	connect(action, SIGNAL(changed()), this, SLOT(actionChanged()));
+	connect(action, &QAction::changed, this, [=] {
+		actionChanged();
+	});
 	_actions.emplace_back(action);
 	_actionsData.push_back([&] {
 		auto data = ActionData();
@@ -114,17 +132,19 @@ void Menu::finishAnimating() {
 int Menu::processAction(not_null<QAction*> action, int index, int width) {
 	auto &data = _actionsData[index];
 	if (action->isSeparator() || action->text().isEmpty()) {
-		data.text = data.shortcut = QString();
+		data.shortcut = QString();
+		data.text.clear();
 	} else {
 		auto actionTextParts = action->text().split('\t');
 		auto actionText = actionTextParts.empty() ? QString() : actionTextParts[0];
 		auto actionShortcut = (actionTextParts.size() > 1) ? actionTextParts[1] : QString();
-		int textw = _st.itemFont->width(actionText);
+		data.text.setText(_st.itemStyle, actionText);
+		const auto textw = data.text.maxWidth();
 		int goodw = _st.itemPadding.left() + textw + _st.itemPadding.right();
 		if (data.hasSubmenu) {
 			goodw += _st.itemPadding.right() + _st.arrow.width();
 		} else if (!actionShortcut.isEmpty()) {
-			goodw += _st.itemPadding.right() + _st.itemFont->width(actionShortcut);
+			goodw += _st.itemPadding.right() + _st.itemStyle.font->width(actionShortcut);
 		}
 		if (action->isCheckable()) {
 			auto updateCallback = [this, index] { updateItem(index); };
@@ -138,8 +158,8 @@ int Menu::processAction(not_null<QAction*> action, int index, int width) {
 		} else {
 			data.toggle.reset();
 		}
-		width = snap(goodw, width, _st.widthMax);
-		data.text = (width < goodw) ? _st.itemFont->elided(actionText, width - (goodw - textw)) : actionText;
+		width = std::clamp(goodw, width, _st.widthMax);
+		data.textWidth = width - (goodw - textw);
 		data.shortcut = actionShortcut;
 	}
 	return width;
@@ -186,7 +206,7 @@ void Menu::paintEvent(QPaintEvent *e) {
 
 	int top = _st.skip;
 	p.translate(0, top);
-	p.setFont(_st.itemFont);
+	p.setFont(_st.itemStyle.font);
 	for (int i = 0, count = int(_actions.size()); i != count; ++i) {
 		if (clip.top() + clip.height() <= top) break;
 
@@ -212,7 +232,7 @@ void Menu::paintEvent(QPaintEvent *e) {
 					icon->paint(p, _st.itemIconPosition, width());
 				}
 				p.setPen(selected ? _st.itemFgOver : (enabled ? _st.itemFg : _st.itemFgDisabled));
-				p.drawTextLeft(_st.itemPadding.left(), _st.itemPadding.top(), width(), data.text);
+				data.text.drawLeftElided(p, _st.itemPadding.left(), _st.itemPadding.top(), data.textWidth, width());
 				if (data.hasSubmenu) {
 					const auto left = width() - _st.itemPadding.right() - _st.arrow.width();
 					const auto top = (_itemHeight - _st.arrow.height()) / 2;
@@ -295,7 +315,7 @@ void Menu::handleKeyPress(int key) {
 		itemPressed(TriggeredSource::Keyboard);
 		return;
 	}
-	if (key == (rtl() ? Qt::Key_Left : Qt::Key_Right)) {
+	if (key == (style::RightToLeft() ? Qt::Key_Left : Qt::Key_Right)) {
 		if (_selected >= 0 && _actionsData[_selected].hasSubmenu) {
 			itemPressed(TriggeredSource::Keyboard);
 			return;

@@ -7,8 +7,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/widgets/checkbox.h"
 
-#include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
+#include "ui/ui_utility.h"
+
+#include <QtGui/QtEvents>
 
 namespace Ui {
 namespace {
@@ -104,8 +106,8 @@ void ToggleView::paint(Painter &p, int left, int top, int outerWidth) {
 	auto innerDiameter = _st->diameter - 2 * _st->shift;
 	auto innerRadius = float64(innerDiameter) / 2.;
 	auto toggleLeft = left + anim::interpolate(0, fullWidth - _st->diameter, toggled);
-	auto bgRect = rtlrect(left + _st->shift, top + _st->shift, fullWidth - 2 * _st->shift, innerDiameter, outerWidth);
-	auto fgRect = rtlrect(toggleLeft, top, _st->diameter, _st->diameter, outerWidth);
+	auto bgRect = style::rtlrect(left + _st->shift, top + _st->shift, fullWidth - 2 * _st->shift, innerDiameter, outerWidth);
+	auto fgRect = style::rtlrect(toggleLeft, top, _st->diameter, _st->diameter, outerWidth);
 	auto fgBrush = anim::brush(_st->untoggledFg, _st->toggledFg, toggled);
 
 	p.setPen(Qt::NoPen);
@@ -156,7 +158,7 @@ void ToggleView::paintXV(Painter &p, int left, int top, int outerWidth, float64 
 			{ xLeft + (xSize / 2.) - stroke, xTop + (xSize / 2.) },
 		};
 		for (auto &point : pathX) {
-			point = rtlpoint(point, outerWidth);
+			point = style::rtlpoint(point, outerWidth);
 		}
 		if (toggled > 0) {
 			// X->V.
@@ -179,7 +181,7 @@ void ToggleView::paintXV(Painter &p, int left, int top, int outerWidth, float64 
 				{ vLeft + vSize - 2 * stroke, vTop + xSize - stroke },
 			};
 			for (auto &point : pathV) {
-				point = rtlpoint(point, outerWidth);
+				point = style::rtlpoint(point, outerWidth);
 			}
 			p.fillPath(anim::interpolate(pathX, pathV, toggled), brush);
 		} else {
@@ -261,7 +263,7 @@ void CheckView::paint(Painter &p, int left, int top, int outerWidth) {
 
 	{
 		PainterHighQualityEnabler hq(p);
-		p.drawRoundedRect(rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(_st->thickness / 2., _st->thickness / 2., _st->thickness / 2., _st->thickness / 2.)), outerWidth), st::buttonRadius - (_st->thickness / 2.), st::buttonRadius - (_st->thickness / 2.));
+		p.drawRoundedRect(style::rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(_st->thickness / 2., _st->thickness / 2., _st->thickness / 2., _st->thickness / 2.)), outerWidth), st::buttonRadius - (_st->thickness / 2.), st::buttonRadius - (_st->thickness / 2.));
 	}
 
 	if (toggled > 0) {
@@ -319,7 +321,7 @@ void RadioView::paint(Painter &p, int left, int top, int outerWidth) {
 	p.setBrush(_st->bg);
 	//int32 skip = qCeil(_st->thickness / 2.);
 	//p.drawEllipse(_checkRect.marginsRemoved(QMargins(skip, skip, skip, skip)));
-	p.drawEllipse(rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(_st->thickness / 2., _st->thickness / 2., _st->thickness / 2., _st->thickness / 2.)), outerWidth));
+	p.drawEllipse(style::rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(_st->thickness / 2., _st->thickness / 2., _st->thickness / 2., _st->thickness / 2.)), outerWidth));
 
 	if (toggled > 0) {
 		p.setPen(Qt::NoPen);
@@ -332,7 +334,7 @@ void RadioView::paint(Painter &p, int left, int top, int outerWidth) {
 				: anim::brush(_st->untoggledFg, _st->toggledFg, toggled)));
 
 		auto skip0 = _st->diameter / 2., skip1 = _st->skip / 10., checkSkip = skip0 * (1. - toggled) + skip1 * toggled;
-		p.drawEllipse(rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(checkSkip, checkSkip, checkSkip, checkSkip)), outerWidth));
+		p.drawEllipse(style::rtlrect(QRectF(left, top, _st->diameter, _st->diameter).marginsRemoved(QMarginsF(checkSkip, checkSkip, checkSkip, checkSkip)), outerWidth));
 		//int32 fskip = qFloor(checkSkip), cskip = qCeil(checkSkip);
 		//if (2 * fskip < _checkRect.width()) {
 		//	if (fskip != cskip) {
@@ -623,14 +625,16 @@ void Checkbox::paintEvent(QPaintEvent *e) {
 
 QPixmap Checkbox::grabCheckCache() const {
 	auto checkSize = _check->getSize();
-	auto image = QImage(checkSize * cIntRetinaFactor(), QImage::Format_ARGB32_Premultiplied);
+	auto image = QImage(
+		checkSize * style::DevicePixelRatio(),
+		QImage::Format_ARGB32_Premultiplied);
 	image.fill(Qt::transparent);
-	image.setDevicePixelRatio(cRetinaFactor());
+	image.setDevicePixelRatio(style::DevicePixelRatio());
 	{
 		Painter p(&image);
 		_check->paint(p, 0, 0, checkSize.width());
 	}
-	return App::pixmapFromImageInPlace(std::move(image));
+	return PixmapFromImage(std::move(image));
 }
 
 void Checkbox::onStateChanged(State was, StateChangeSource source) {

@@ -99,9 +99,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <range/v3/all.hpp>
 
-// Ensures/Expects.
-#include <gsl/gsl_assert>
-
 // Redefine Ensures/Expects by our own assertions.
 #include "base/assertion.h"
 
@@ -116,6 +113,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/flat_set.h"
 #include "base/flat_map.h"
 #include "base/weak_ptr.h"
+#include "base/observer.h"
 
 #include "base/basic_types.h"
 #include "logs.h"
@@ -128,13 +126,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/palette.h"
 #include "styles/style_basic.h"
 
-#include "ui/animation.h"
-#include "ui/twidget.h"
 #include "ui/image/image_location.h"
 #include "ui/text/text.h"
 
 #include "data/data_types.h"
-#include "app.h"
-#include "facades.h"
 
 #endif // __cplusplus

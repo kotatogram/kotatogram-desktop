@@ -27,6 +27,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image.h"
 #include "data/data_session.h"
 #include "data/data_document.h"
+#include "data/data_file_origin.h"
+#include "app.h"
 #include "styles/style_history.h"
 
 namespace HistoryView {
@@ -75,7 +77,7 @@ QSize Gif::countOptimalSize() {
 	const auto maxSize = _data->isVideoMessage()
 		? st::maxVideoMessageSize
 		: st::maxGifSize;
-	const auto size = ConvertScale(videoSize());
+	const auto size = style::ConvertScale(videoSize());
 	auto tw = size.width();
 	auto th = size.height();
 	if (tw > maxSize) {
@@ -124,7 +126,7 @@ QSize Gif::countCurrentSize(int newWidth) {
 	const auto maxSize = _data->isVideoMessage()
 		? st::maxVideoMessageSize
 		: st::maxGifSize;
-	const auto size = ConvertScale(videoSize());
+	const auto size = style::ConvertScale(videoSize());
 	auto tw = size.width();
 	auto th = size.height();
 	if (tw > maxSize) {
@@ -291,7 +293,7 @@ void Gif::draw(Painter &p, const QRect &r, TextSelection selection, crl::time ms
 	}
 	if (rtl()) usex = width() - usex - usew;
 
-	QRect rthumb(rtlrect(usex + paintx, painty, usew, painth, width()));
+	QRect rthumb(style::rtlrect(usex + paintx, painty, usew, painth, width()));
 
 	auto roundRadius = isRound ? ImageRoundRadius::Ellipse : inWebPage ? ImageRoundRadius::Small : ImageRoundRadius::Large;
 	auto roundCorners = (isRound || inWebPage) ? RectPart::AllCorners : ((isBubbleTop() ? (RectPart::TopLeft | RectPart::TopRight) : RectPart::None)
@@ -416,14 +418,14 @@ void Gif::draw(Painter &p, const QRect &r, TextSelection selection, crl::time ms
 			auto statusY = painty + st::msgDateImgDelta + st::msgDateImgPadding.y();
 			auto statusW = st::normalFont->width(_statusText) + 2 * st::msgDateImgPadding.x();
 			auto statusH = st::normalFont->height + 2 * st::msgDateImgPadding.y();
-			App::roundRect(p, rtlrect(statusX - st::msgDateImgPadding.x(), statusY - st::msgDateImgPadding.y(), statusW, statusH, width()), selected ? st::msgDateImgBgSelected : st::msgDateImgBg, selected ? DateSelectedCorners : DateCorners);
+			App::roundRect(p, style::rtlrect(statusX - st::msgDateImgPadding.x(), statusY - st::msgDateImgPadding.y(), statusW, statusH, width()), selected ? st::msgDateImgBgSelected : st::msgDateImgBg, selected ? DateSelectedCorners : DateCorners);
 			p.setFont(st::normalFont);
 			p.setPen(st::msgDateImgFg);
 			p.drawTextLeft(statusX, statusY, width(), _statusText, statusW - 2 * st::msgDateImgPadding.x());
 		}
 	}
 	if (displayMute) {
-		auto muteRect = rtlrect(rthumb.x() + (rthumb.width() - st::historyVideoMessageMuteSize) / 2, rthumb.y() + st::msgDateImgDelta, st::historyVideoMessageMuteSize, st::historyVideoMessageMuteSize, width());
+		auto muteRect = style::rtlrect(rthumb.x() + (rthumb.width() - st::historyVideoMessageMuteSize) / 2, rthumb.y() + st::msgDateImgDelta, st::historyVideoMessageMuteSize, st::historyVideoMessageMuteSize, width());
 		p.setPen(Qt::NoPen);
 		p.setBrush(selected ? st::msgDateImgBgSelected : st::msgDateImgBg);
 		PainterHighQualityEnabler hq(p);
@@ -440,7 +442,7 @@ void Gif::draw(Painter &p, const QRect &r, TextSelection selection, crl::time ms
 		if (mediaUnread) {
 			statusW += st::mediaUnreadSkip + st::mediaUnreadSize;
 		}
-		App::roundRect(p, rtlrect(statusX - st::msgDateImgPadding.x(), statusY - st::msgDateImgPadding.y(), statusW, statusH, width()), selected ? st::msgServiceBgSelected : st::msgServiceBg, selected ? StickerSelectedCorners : StickerCorners);
+		App::roundRect(p, style::rtlrect(statusX - st::msgDateImgPadding.x(), statusY - st::msgDateImgPadding.y(), statusW, statusH, width()), selected ? st::msgServiceBgSelected : st::msgServiceBg, selected ? StickerSelectedCorners : StickerCorners);
 		p.setFont(st::normalFont);
 		p.setPen(st::msgServiceFg);
 		p.drawTextLeft(statusX, statusY, width(), _statusText, statusW - 2 * st::msgDateImgPadding.x());
@@ -450,7 +452,7 @@ void Gif::draw(Painter &p, const QRect &r, TextSelection selection, crl::time ms
 
 			{
 				PainterHighQualityEnabler hq(p);
-				p.drawEllipse(rtlrect(statusX - st::msgDateImgPadding.x() + statusW - st::msgDateImgPadding.x() - st::mediaUnreadSize, statusY + st::mediaUnreadTop, st::mediaUnreadSize, st::mediaUnreadSize, width()));
+				p.drawEllipse(style::rtlrect(statusX - st::msgDateImgPadding.x() + statusW - st::msgDateImgPadding.x() - st::mediaUnreadSize, statusY + st::mediaUnreadTop, st::mediaUnreadSize, st::mediaUnreadSize, width()));
 			}
 		}
 		if (via || reply || forwarded) {

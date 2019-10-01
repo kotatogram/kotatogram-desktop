@@ -8,6 +8,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/flags.h"
+#include "ui/rect_part.h"
+#include "ui/style/style_core.h"
 
 namespace Storage {
 namespace Cache {
@@ -24,9 +26,13 @@ enum class ImageRoundRadius {
 
 namespace Images {
 
-QPixmap PixmapFast(QImage &&image);
-
-QImage BlurLargeImage(QImage image, int radius);
+[[nodiscard]] QPixmap PixmapFast(QImage &&image);
+[[nodiscard]] QImage BlurLargeImage(QImage image, int radius);
+[[nodiscard]] const std::array<QImage, 4> &CornersMask(
+	ImageRoundRadius radius);
+[[nodiscard]] std::array<QImage, 4> PrepareCorners(
+	ImageRoundRadius radius,
+	const style::color &color);
 
 QImage prepareBlur(QImage image);
 void prepareRound(

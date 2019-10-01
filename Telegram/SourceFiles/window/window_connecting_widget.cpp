@@ -9,9 +9,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ui/widgets/buttons.h"
 #include "ui/effects/radial_animation.h"
+#include "ui/ui_utility.h"
 #include "window/themes/window_theme.h"
 #include "boxes/connection_box.h"
 #include "lang/lang_keys.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_window.h"
 
 namespace Window {

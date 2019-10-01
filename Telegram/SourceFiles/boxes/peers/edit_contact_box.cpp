@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
+#include "app.h"
 #include "styles/style_boxes.h"
 #include "styles/style_info.h"
 
@@ -201,7 +202,7 @@ void Controller::initNameFields(
 			return;
 		}
 		SendRequest(
-			make_weak(_box),
+			Ui::MakeWeak(_box),
 			_user,
 			_sharePhone && _sharePhone->checked(),
 			firstValue,

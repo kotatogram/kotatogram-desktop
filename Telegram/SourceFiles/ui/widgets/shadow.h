@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "ui/rp_widget.h"
+#include "ui/rect_part.h"
 
 namespace style {
 struct Shadow;
@@ -21,9 +22,7 @@ public:
 	PlainShadow(QWidget *parent, style::color color);
 
 protected:
-	void paintEvent(QPaintEvent *e) override {
-		Painter(this).fillRect(e->rect(), _color);
-	}
+	void paintEvent(QPaintEvent *e) override;
 
 private:
 	style::color _color;
@@ -42,7 +41,7 @@ public:
 	}
 
 	static void paint(
-		Painter &p,
+		QPainter &p,
 		const QRect &box,
 		int outerWidth,
 		const style::Shadow &st,

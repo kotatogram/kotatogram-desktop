@@ -169,51 +169,9 @@ void showSettings() {
 	}
 }
 
-void activateClickHandler(ClickHandlerPtr handler, ClickContext context) {
-	crl::on_main(App::wnd(), [=] {
-		handler->onClick(context);
-	});
-}
-
-void activateClickHandler(ClickHandlerPtr handler, Qt::MouseButton button) {
-	activateClickHandler(handler, ClickContext{ button });
-}
-
 } // namespace App
 
 namespace Ui {
-namespace internal {
-
-void showBox(
-		object_ptr<BoxContent> content,
-		LayerOptions options,
-		anim::type animated) {
-	if (auto w = App::wnd()) {
-		w->ui_showBox(std::move(content), options, animated);
-	}
-}
-
-} // namespace internal
-
-void hideLayer(anim::type animated) {
-	if (auto w = App::wnd()) {
-		w->ui_showBox(
-			{ nullptr },
-			LayerOption::CloseOther,
-			animated);
-	}
-}
-
-void hideSettingsAndLayer(anim::type animated) {
-	if (auto w = App::wnd()) {
-		w->ui_hideSettingsAndLayer(animated);
-	}
-}
-
-bool isLayerShown() {
-	if (auto w = App::wnd()) return w->ui_isLayerShown();
-	return false;
-}
 
 void showPeerProfile(const PeerId &peer) {
 	if (const auto window = App::wnd()) {
@@ -336,7 +294,6 @@ namespace internal {
 struct Data {
 	SingleQueuedInvokation HandleUnreadCounterUpdate = { [] { Core::App().call_handleUnreadCounterUpdate(); } };
 	SingleQueuedInvokation HandleDelayedPeerUpdates = { [] { Core::App().call_handleDelayedPeerUpdates(); } };
-	SingleQueuedInvokation HandleObservables = { [] { Core::App().call_handleObservables(); } };
 
 	Adaptive::WindowLayout AdaptiveWindowLayout = Adaptive::WindowLayout::Normal;
 	Adaptive::ChatLayout AdaptiveChatLayout = Adaptive::ChatLayout::Normal;
@@ -467,7 +424,6 @@ void finish() {
 
 DefineRefVar(Global, SingleQueuedInvokation, HandleUnreadCounterUpdate);
 DefineRefVar(Global, SingleQueuedInvokation, HandleDelayedPeerUpdates);
-DefineRefVar(Global, SingleQueuedInvokation, HandleObservables);
 
 DefineVar(Global, Adaptive::WindowLayout, AdaptiveWindowLayout);
 DefineVar(Global, Adaptive::ChatLayout, AdaptiveChatLayout);

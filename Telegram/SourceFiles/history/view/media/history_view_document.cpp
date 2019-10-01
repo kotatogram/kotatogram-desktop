@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_document.h"
 #include "data/data_media_types.h"
+#include "app.h"
 #include "styles/style_history.h"
 
 namespace HistoryView {
@@ -123,8 +124,8 @@ QSize Document::countOptimalSize() {
 	auto thumbed = Get<HistoryDocumentThumbed>();
 	if (thumbed) {
 		_data->loadThumbnail(_realParent->fullId());
-		auto tw = ConvertScale(_data->thumbnail()->width());
-		auto th = ConvertScale(_data->thumbnail()->height());
+		auto tw = style::ConvertScale(_data->thumbnail()->width());
+		auto th = style::ConvertScale(_data->thumbnail()->height());
 		if (tw > th) {
 			thumbed->_thumbw = (tw * st::msgFileThumbSize) / th;
 		} else {
@@ -237,7 +238,7 @@ void Document::draw(Painter &p, const QRect &r, TextSelection selection, crl::ti
 
 		auto inWebPage = (_parent->media() != this);
 		auto roundRadius = inWebPage ? ImageRoundRadius::Small : ImageRoundRadius::Large;
-		QRect rthumb(rtlrect(st::msgFileThumbPadding.left(), st::msgFileThumbPadding.top() - topMinus, st::msgFileThumbSize, st::msgFileThumbSize, width()));
+		QRect rthumb(style::rtlrect(st::msgFileThumbPadding.left(), st::msgFileThumbPadding.top() - topMinus, st::msgFileThumbSize, st::msgFileThumbSize, width()));
 		QPixmap thumb;
 		if (const auto normal = _data->thumbnail()) {
 			if (normal->loaded()) {
@@ -306,7 +307,7 @@ void Document::draw(Painter &p, const QRect &r, TextSelection selection, crl::ti
 		statustop = st::msgFileStatusTop - topMinus;
 		bottom = st::msgFilePadding.top() + st::msgFileSize + st::msgFilePadding.bottom() - topMinus;
 
-		QRect inner(rtlrect(st::msgFilePadding.left(), st::msgFilePadding.top() - topMinus, st::msgFileSize, st::msgFileSize, width()));
+		QRect inner(style::rtlrect(st::msgFilePadding.left(), st::msgFilePadding.top() - topMinus, st::msgFileSize, st::msgFileSize, width()));
 		p.setPen(Qt::NoPen);
 		if (selected) {
 			p.setBrush(outbg ? st::msgFileOutBgSelected : st::msgFileInBgSelected);
@@ -446,7 +447,7 @@ void Document::draw(Painter &p, const QRect &r, TextSelection selection, crl::ti
 
 			{
 				PainterHighQualityEnabler hq(p);
-				p.drawEllipse(rtlrect(nameleft + w + st::mediaUnreadSkip, statustop + st::mediaUnreadTop, st::mediaUnreadSize, st::mediaUnreadSize, width()));
+				p.drawEllipse(style::rtlrect(nameleft + w + st::mediaUnreadSkip, statustop + st::mediaUnreadTop, st::mediaUnreadSize, st::mediaUnreadSize, width()));
 			}
 		}
 	}
@@ -472,7 +473,7 @@ void Document::drawCornerDownload(Painter &p, bool selected) const {
 	auto topMinus = isBubbleTop() ? 0 : st::msgFileTopMinus;
 	const auto shift = st::historyAudioDownloadShift;
 	const auto size = st::historyAudioDownloadSize;
-	const auto inner = rtlrect(st::msgFilePadding.left() + shift, st::msgFilePadding.top() - topMinus + shift, size, size, width());
+	const auto inner = style::rtlrect(st::msgFilePadding.left() + shift, st::msgFilePadding.top() - topMinus + shift, size, size, width());
 	auto pen = (selected
 		? (outbg ? st::msgOutBgSelected : st::msgInBgSelected)
 		: (outbg ? st::msgOutBg : st::msgInBg))->p;
@@ -511,7 +512,7 @@ TextState Document::cornerDownloadTextState(
 	auto topMinus = isBubbleTop() ? 0 : st::msgFileTopMinus;
 	const auto shift = st::historyAudioDownloadShift;
 	const auto size = st::historyAudioDownloadSize;
-	const auto inner = rtlrect(st::msgFilePadding.left() + shift, st::msgFilePadding.top() - topMinus + shift, size, size, width());
+	const auto inner = style::rtlrect(st::msgFilePadding.left() + shift, st::msgFilePadding.top() - topMinus + shift, size, size, width());
 	if (inner.contains(point)) {
 		result.link = _data->loading() ? _cancell : _savel;
 	}
@@ -539,14 +540,14 @@ TextState Document::textState(QPoint point, StateRequest request) const {
 		linktop = st::msgFileThumbLinkTop - topMinus;
 		bottom = st::msgFileThumbPadding.top() + st::msgFileThumbSize + st::msgFileThumbPadding.bottom() - topMinus;
 
-		QRect rthumb(rtlrect(st::msgFileThumbPadding.left(), st::msgFileThumbPadding.top() - topMinus, st::msgFileThumbSize, st::msgFileThumbSize, width()));
+		QRect rthumb(style::rtlrect(st::msgFileThumbPadding.left(), st::msgFileThumbPadding.top() - topMinus, st::msgFileThumbSize, st::msgFileThumbSize, width()));
 		if ((_data->loading() || _data->uploading()) && rthumb.contains(point)) {
 			result.link = _cancell;
 			return result;
 		}
 
 		if (_data->status != FileUploadFailed) {
-			if (rtlrect(nameleft, linktop, thumbed->_linkw, st::semiboldFont->height, width()).contains(point)) {
+			if (style::rtlrect(nameleft, linktop, thumbed->_linkw, st::semiboldFont->height, width()).contains(point)) {
 				result.link = (_data->loading() || _data->uploading())
 					? thumbed->_linkcancell
 					: _data->loaded()
@@ -564,7 +565,7 @@ TextState Document::textState(QPoint point, StateRequest request) const {
 		if (const auto state = cornerDownloadTextState(point, request); state.link) {
 			return state;
 		}
-		QRect inner(rtlrect(st::msgFilePadding.left(), st::msgFilePadding.top() - topMinus, st::msgFileSize, st::msgFileSize, width()));
+		QRect inner(style::rtlrect(st::msgFilePadding.left(), st::msgFilePadding.top() - topMinus, st::msgFileSize, st::msgFileSize, width()));
 		if ((_data->loading() || _data->uploading()) && inner.contains(point) && !downloadInCorner()) {
 			result.link = _cancell;
 			return result;

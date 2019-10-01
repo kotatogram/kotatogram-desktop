@@ -8,7 +8,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "history/view/history_view_object.h"
+#include "ui/rect_part.h"
 
+class History;
 struct HistoryMessageEdited;
 struct TextSelection;
 
@@ -29,6 +31,7 @@ enum class CursorState : char;
 enum class InfoDisplayType : char;
 struct TextState;
 struct StateRequest;
+class Element;
 
 enum class MediaInBubbleState {
 	None,

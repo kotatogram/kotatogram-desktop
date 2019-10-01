@@ -8,8 +8,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/timer.h"
+#include "base/object_ptr.h"
 #include "ui/effects/animations.h"
+#include "ui/text/text.h"
 #include "ui/rp_widget.h"
+#include "ui/rect_part.h"
 
 namespace style {
 struct Tooltip;
@@ -22,13 +25,13 @@ class AbstractTooltipShower {
 public:
 	virtual QString tooltipText() const = 0;
 	virtual QPoint tooltipPos() const = 0;
-	virtual bool tooltipWindowActive() const;
+	virtual bool tooltipWindowActive() const = 0;
 	virtual const style::Tooltip *tooltipSt() const;
 	virtual ~AbstractTooltipShower();
 
 };
 
-class Tooltip : public Ui::RpWidget {
+class Tooltip : public RpWidget {
 public:
 	static void Show(int32 delay, const AbstractTooltipShower *shower);
 	static void Hide();

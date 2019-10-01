@@ -293,8 +293,8 @@ void Generator::addDateBubble(QString date) {
 void Generator::addPhotoBubble(QString image, QString caption, QString date, Status status) {
 	Bubble bubble;
 	bubble.photo.load(image);
-	bubble.photoWidth = ConvertScale(bubble.photo.width() / 2);
-	bubble.photoHeight = ConvertScale(bubble.photo.height() / 2);
+	bubble.photoWidth = style::ConvertScale(bubble.photo.width() / 2);
+	bubble.photoHeight = style::ConvertScale(bubble.photo.height() / 2);
 	auto skipBlock = computeSkipBlock(status, date);
 	bubble.text.setRichText(st::messageTextStyle, caption + textcmdSkipBlock(skipBlock.width(), skipBlock.height()), Ui::ItemTextDefaultOptions());
 
@@ -746,7 +746,7 @@ void Generator::paintBubble(const Bubble &bubble) {
 		auto h = st::msgReplyPadding.top() + st::msgReplyBarSize.height() + st::msgReplyPadding.bottom();
 
 		auto bar = (bubble.outbg ? st::msgOutReplyBarColor[_palette] : st::msgInReplyBarColor[_palette]);
-		auto rbar = rtlrect(trect.x() + st::msgReplyBarPos.x(), trect.y() + st::msgReplyPadding.top() + st::msgReplyBarPos.y(), st::msgReplyBarSize.width(), st::msgReplyBarSize.height(), _rect.width());
+		auto rbar = style::rtlrect(trect.x() + st::msgReplyBarPos.x(), trect.y() + st::msgReplyPadding.top() + st::msgReplyBarPos.y(), st::msgReplyBarSize.width(), st::msgReplyBarSize.height(), _rect.width());
 		_p->fillRect(rbar, bar);
 
 		_p->setPen(bubble.outbg ? st::msgOutServiceFg[_palette] : st::msgInServiceFg[_palette]);
@@ -770,7 +770,7 @@ void Generator::paintBubble(const Bubble &bubble) {
 		auto statustop = y + st::msgFileStatusTop;
 		auto bottom = y + st::msgFilePadding.top() + st::msgFileSize + st::msgFilePadding.bottom();
 
-		auto inner = rtlrect(x + st::msgFilePadding.left(), y + st::msgFilePadding.top(), st::msgFileSize, st::msgFileSize, _rect.width());
+		auto inner = style::rtlrect(x + st::msgFilePadding.left(), y + st::msgFilePadding.top(), st::msgFileSize, st::msgFileSize, _rect.width());
 		_p->setPen(Qt::NoPen);
 		_p->setBrush(bubble.outbg ? st::msgFileOutBg[_palette] : st::msgFileInBg[_palette]);
 

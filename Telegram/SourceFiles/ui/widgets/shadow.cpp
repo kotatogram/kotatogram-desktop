@@ -7,7 +7,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/widgets/shadow.h"
 
+#include "ui/ui_utility.h"
 #include "styles/style_widgets.h"
+#include "styles/palette.h"
+
+#include <QtGui/QPainter>
+#include <QtGui/QtEvents>
 
 namespace Ui {
 
@@ -21,7 +26,11 @@ PlainShadow::PlainShadow(QWidget *parent, style::color color)
 	resize(st::lineWidth, st::lineWidth);
 }
 
-void Shadow::paint(Painter &p, const QRect &box, int outerWidth, const style::Shadow &st, RectParts sides) {
+void PlainShadow::paintEvent(QPaintEvent *e) {
+	QPainter(this).fillRect(e->rect(), _color);
+}
+
+void Shadow::paint(QPainter &p, const QRect &box, int outerWidth, const style::Shadow &st, RectParts sides) {
 	auto left = (sides & RectPart::Left);
 	auto top = (sides & RectPart::Top);
 	auto right = (sides & RectPart::Right);
@@ -38,7 +47,7 @@ void Shadow::paint(Painter &p, const QRect &box, int outerWidth, const style::Sh
 			to -= st.bottomLeft.height() - st.extend.bottom();
 		}
 		if (to > from && !st.left.empty()) {
-			st.left.fill(p, rtlrect(box.x() - st.extend.left(), from, st.left.width(), to - from, outerWidth));
+			st.left.fill(p, style::rtlrect(box.x() - st.extend.left(), from, st.left.width(), to - from, outerWidth));
 		}
 	}
 	if (right) {
@@ -53,7 +62,7 @@ void Shadow::paint(Painter &p, const QRect &box, int outerWidth, const style::Sh
 			to -= st.bottomRight.height() - st.extend.bottom();
 		}
 		if (to > from && !st.right.empty()) {
-			st.right.fill(p, rtlrect(box.x() + box.width() + st.extend.right() - st.right.width(), from, st.right.width(), to - from, outerWidth));
+			st.right.fill(p, style::rtlrect(box.x() + box.width() + st.extend.right() - st.right.width(), from, st.right.width(), to - from, outerWidth));
 		}
 	}
 	if (top && !st.top.empty()) {
@@ -62,7 +71,7 @@ void Shadow::paint(Painter &p, const QRect &box, int outerWidth, const style::Sh
 		if (left && !st.topLeft.empty()) from += st.topLeft.width() - st.extend.left();
 		if (right && !st.topRight.empty()) to -= st.topRight.width() - st.extend.right();
 		if (to > from) {
-			st.top.fill(p, rtlrect(from, box.y() - st.extend.top(), to - from, st.top.height(), outerWidth));
+			st.top.fill(p, style::rtlrect(from, box.y() - st.extend.top(), to - from, st.top.height(), outerWidth));
 		}
 	}
 	if (bottom && !st.bottom.empty()) {
@@ -71,7 +80,7 @@ void Shadow::paint(Painter &p, const QRect &box, int outerWidth, const style::Sh
 		if (left && !st.bottomLeft.empty()) from += st.bottomLeft.width() - st.extend.left();
 		if (right && !st.bottomRight.empty()) to -= st.bottomRight.width() - st.extend.right();
 		if (to > from) {
-			st.bottom.fill(p, rtlrect(from, box.y() + box.height() + st.extend.bottom() - st.bottom.height(), to - from, st.bottom.height(), outerWidth));
+			st.bottom.fill(p, style::rtlrect(from, box.y() + box.height() + st.extend.bottom() - st.bottom.height(), to - from, st.bottom.height(), outerWidth));
 		}
 	}
 }
@@ -89,19 +98,19 @@ QPixmap Shadow::grab(
 		(sides & RectPart::Bottom) ? shadow.extend.bottom() : 0
 	);
 	auto full = QRect(0, 0, extend.left() + rect.width() + extend.right(), extend.top() + rect.height() + extend.bottom());
-	auto result = QPixmap(full.size() * cIntRetinaFactor());
-	result.setDevicePixelRatio(cRetinaFactor());
+	auto result = QPixmap(full.size() * style::DevicePixelRatio());
+	result.setDevicePixelRatio(style::DevicePixelRatio());
 	result.fill(Qt::transparent);
 	{
-		Painter p(&result);
-		Ui::Shadow::paint(p, full.marginsRemoved(extend), full.width(), shadow);
+		QPainter p(&result);
+		Shadow::paint(p, full.marginsRemoved(extend), full.width(), shadow);
 		RenderWidget(p, target, QPoint(extend.left(), extend.top()));
 	}
 	return result;
 }
 
 void Shadow::paintEvent(QPaintEvent *e) {
-	Painter p(this);
+	QPainter p(this);
 	paint(p, rect().marginsRemoved(_st.extend), width(), _st, _sides);
 }
 

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "apiwrap.h"
 
+#include "api/api_text_entities.h"
 #include "data/data_drafts.h"
 #include "data/data_photo.h"
 #include "data/data_web_page.h"
@@ -58,6 +59,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_shared_media.h"
 #include "storage/storage_user_photos.h"
 #include "storage/storage_media_prepare.h"
+#include "facades.h"
+#include "app.h"
 //#include "storage/storage_feed_messages.h" // #feed
 
 namespace {
@@ -2560,9 +2563,9 @@ void ApiWrap::saveDraftsToCloud() {
 		if (!textWithTags.tags.isEmpty()) {
 			flags |= MTPmessages_SaveDraft::Flag::f_entities;
 		}
-		auto entities = TextUtilities::EntitiesToMTP(
-			ConvertTextTagsToEntities(textWithTags.tags),
-			TextUtilities::ConvertOption::SkipLocal);
+		auto entities = Api::EntitiesToMTP(
+			TextUtilities::ConvertTextTagsToEntities(textWithTags.tags),
+			Api::ConvertOption::SkipLocal);
 
 		const auto draftText = textWithTags.text;
 		history->setSentDraftText(draftText);
@@ -4514,7 +4517,7 @@ void ApiWrap::forwardMessages(
 					? UserId(0)
 					: peerToUser(self->id);
 				const auto messagePostAuthor = channelPost
-					? App::peerName(self)
+					? self->name
 					: QString();
 				history->addNewLocalMessage(
 					newId.msg,
@@ -4608,7 +4611,7 @@ void ApiWrap::sendSharedContact(
 	}
 	const auto messageFromId = channelPost ? 0 : _session->userId();
 	const auto messagePostAuthor = channelPost
-		? App::peerName(_session->user())
+		? _session->user()->name
 		: QString();
 	const auto vcard = QString();
 	const auto views = 1;
@@ -4828,9 +4831,9 @@ void ApiWrap::editUploadedFile(
 		return;
 	}
 
-	auto sentEntities = TextUtilities::EntitiesToMTP(
+	auto sentEntities = Api::EntitiesToMTP(
 		item->originalText().entities,
-		TextUtilities::ConvertOption::SkipLocal);
+		Api::ConvertOption::SkipLocal);
 
 	auto flagsEditMsg = MTPmessages_EditMessage::Flag::f_message | 0;
 	flagsEditMsg |= MTPmessages_EditMessage::Flag::f_no_webpage;
@@ -4932,7 +4935,7 @@ void ApiWrap::sendMessage(MessageToSend &&message) {
 	auto sending = TextWithEntities();
 	auto left = TextWithEntities {
 		textWithTags.text,
-		ConvertTextTagsToEntities(textWithTags.tags)
+		TextUtilities::ConvertTextTagsToEntities(textWithTags.tags)
 	};
 	auto prepareFlags = Ui::ItemTextOptions(
 		history,
@@ -4986,8 +4989,10 @@ void ApiWrap::sendMessage(MessageToSend &&message) {
 		if (silentPost) {
 			sendFlags |= MTPmessages_SendMessage::Flag::f_silent;
 		}
-		auto localEntities = TextUtilities::EntitiesToMTP(sending.entities);
-		auto sentEntities = TextUtilities::EntitiesToMTP(sending.entities, TextUtilities::ConvertOption::SkipLocal);
+		auto localEntities = Api::EntitiesToMTP(sending.entities);
+		auto sentEntities = Api::EntitiesToMTP(
+			sending.entities,
+			Api::ConvertOption::SkipLocal);
 		if (!sentEntities.v.isEmpty()) {
 			sendFlags |= MTPmessages_SendMessage::Flag::f_entities;
 		}
@@ -4998,7 +5003,7 @@ void ApiWrap::sendMessage(MessageToSend &&message) {
 		}
 		auto messageFromId = channelPost ? 0 : _session->userId();
 		auto messagePostAuthor = channelPost
-			? App::peerName(_session->user())
+			? _session->user()->name
 			: QString();
 		if (action.options.scheduled) {
 			flags |= MTPDmessage::Flag::f_from_scheduled;
@@ -5136,7 +5141,7 @@ void ApiWrap::sendInlineResult(
 
 	const auto messageFromId = channelPost ? 0 : _session->userId();
 	const auto messagePostAuthor = channelPost
-		? App::peerName(_session->user())
+		? _session->user()->name
 		: QString();
 
 	_session->data().registerMessageRandomId(randomId, newId);
@@ -5272,9 +5277,9 @@ void ApiWrap::sendMediaWithRandomId(
 
 	auto caption = item->originalText();
 	TextUtilities::Trim(caption);
-	auto sentEntities = TextUtilities::EntitiesToMTP(
+	auto sentEntities = Api::EntitiesToMTP(
 		caption.entities,
-		TextUtilities::ConvertOption::SkipLocal);
+		Api::ConvertOption::SkipLocal);
 
 	const auto flags = MTPmessages_SendMedia::Flags(0)
 		| (replyTo

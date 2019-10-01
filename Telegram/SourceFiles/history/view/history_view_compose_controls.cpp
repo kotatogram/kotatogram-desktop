@@ -9,9 +9,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ui/widgets/input_fields.h"
 #include "ui/special_buttons.h"
+#include "ui/ui_utility.h"
 #include "lang/lang_keys.h"
 #include "core/event_filter.h"
-#include "core/qt_signal_producer.h"
+#include "base/qt_signal_producer.h"
 #include "history/history.h"
 #include "chat_helpers/tabbed_panel.h"
 #include "chat_helpers/tabbed_section.h"
@@ -20,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "window/window_session_controller.h"
 #include "inline_bots/inline_results_widget.h"
+#include "facades.h"
 #include "styles/style_history.h"
 
 namespace HistoryView {
@@ -92,7 +94,7 @@ rpl::producer<> ComposeControls::cancelRequests() const {
 
 rpl::producer<> ComposeControls::sendRequests() const {
 	auto toEmpty = rpl::map([] { return rpl::empty_value(); });
-	auto submits = Core::QtSignalProducer(
+	auto submits = base::qt_signal_producer(
 		_field.get(),
 		&Ui::InputField::submitted);
 	return rpl::merge(

@@ -20,7 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localstorage.h"
 #include "support/support_templates.h"
 #include "settings/settings_common.h"
-#include "core/qt_signal_producer.h"
+#include "base/qt_signal_producer.h"
 #include "boxes/about_box.h"
 #include "boxes/peer_list_controllers.h"
 #include "calls/calls_box_controller.h"
@@ -32,6 +32,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "mainwidget.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_settings.h"
@@ -465,7 +467,7 @@ void MainMenu::initResetScaleButton() {
 	rpl::single(
 		handle->screen()
 	) | rpl::then(
-		Core::QtSignalProducer(handle, &QWindow::screenChanged)
+		base::qt_signal_producer(handle, &QWindow::screenChanged)
 	) | rpl::filter([](QScreen *screen) {
 		return screen != nullptr;
 	}) | rpl::map([](QScreen * screen) {
@@ -473,9 +475,9 @@ void MainMenu::initResetScaleButton() {
 			screen->availableGeometry()
 		) | rpl::then(
 #ifdef OS_MAC_OLD
-			Core::QtSignalProducer(screen, &QScreen::virtualGeometryChanged)
+			base::qt_signal_producer(screen, &QScreen::virtualGeometryChanged)
 #else // OS_MAC_OLD
-			Core::QtSignalProducer(screen, &QScreen::availableGeometryChanged)
+			base::qt_signal_producer(screen, &QScreen::availableGeometryChanged)
 #endif // OS_MAC_OLD
 		);
 	}) | rpl::flatten_latest(
@@ -489,7 +491,7 @@ void MainMenu::initResetScaleButton() {
 		} else {
 			_resetScaleButton.create(this);
 			_resetScaleButton->addClickHandler([] {
-				cSetConfigScale(kInterfaceScaleDefault);
+				cSetConfigScale(style::kScaleDefault);
 				Local::writeSettings();
 				App::restart();
 			});

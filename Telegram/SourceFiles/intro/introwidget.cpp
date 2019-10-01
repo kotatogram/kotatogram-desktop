@@ -8,8 +8,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "intro/introwidget.h"
 
 #include "lang/lang_keys.h"
-#include "storage/localstorage.h"
 #include "lang/lang_file_parser.h"
+#include "storage/localstorage.h"
 #include "intro/introstart.h"
 #include "intro/introphone.h"
 #include "intro/introcode.h"
@@ -36,6 +36,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 #include "lang/lang_cloud_manager.h"
 #include "main/main_session.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_boxes.h"
 #include "styles/style_intro.h"
 #include "styles/style_window.h"
@@ -252,7 +254,7 @@ void Widget::historyMove(Direction direction) {
 }
 
 void Widget::hideAndDestroy(object_ptr<Ui::FadeWrap<Ui::RpWidget>> widget) {
-	const auto weak = make_weak(widget.data());
+	const auto weak = Ui::MakeWeak(widget.data());
 	widget->hide(anim::type::normal);
 	widget->shownValue(
 	) | rpl::start_with_next([=](bool shown) {
@@ -445,7 +447,7 @@ void Widget::showTerms(Fn<void()> callback) {
 	if (getData()->termsLock.text.text.isEmpty()) {
 		return;
 	}
-	const auto weak = make_weak(this);
+	const auto weak = Ui::MakeWeak(this);
 	const auto box = Ui::show(callback
 		? Box<Window::TermsBox>(
 			getData()->termsLock,

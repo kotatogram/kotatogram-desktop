@@ -7,11 +7,18 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/effects/cross_animation.h"
 
+#include "ui/effects/animation_value.h"
+#include "ui/painter.h"
+
+#include <QtCore/QtMath>
+
 namespace Ui {
 namespace {
 
 constexpr auto kPointCount = 12;
 constexpr auto kStaticLoadingValue = float64(-666);
+constexpr auto kFullArcLength = 360 * 16;
+
 
 //
 //     1         3
@@ -116,7 +123,7 @@ void CrossAnimation::paint(
 	auto sqrt2 = sqrt(2.);
 	auto deleteScale = shown + st.minScale * (1. - shown);
 	auto deleteSkip = (deleteScale * st.skip) + (1. - deleteScale) * (st.size / 2);
-	auto deleteLeft = rtlpoint(x + deleteSkip, 0, outerWidth).x() + 0.;
+	auto deleteLeft = style::rtlpoint(x + deleteSkip, 0, outerWidth).x() + 0.;
 	auto deleteTop = y + deleteSkip + 0.;
 	auto deleteWidth = st.size - 2 * deleteSkip;
 	auto deleteHeight = st.size - 2 * deleteSkip;
@@ -138,12 +145,12 @@ void CrossAnimation::paint(
 	auto pathDeleteSize = kPointCount;
 
 	const auto staticLoading = (loading == kStaticLoadingValue);
-	auto loadingArcLength = staticLoading ? FullArcLength : 0;
+	auto loadingArcLength = staticLoading ? kFullArcLength : 0;
 	if (loading > 0.) {
 		transformLoadingCross(loading, pathDelete, pathDeleteSize);
 
 		auto loadingArc = (loading >= 0.5) ? (loading - 1.) : loading;
-		loadingArcLength = qRound(-loadingArc * 2 * FullArcLength);
+		loadingArcLength = qRound(-loadingArc * 2 * kFullArcLength);
 	}
 
 	if (!staticLoading) {
@@ -174,9 +181,9 @@ void CrossAnimation::paint(
 		if (staticLoading) {
 			anim::DrawStaticLoading(p, roundPart, st.stroke, color);
 		} else {
-			auto loadingArcStart = FullArcLength / 8;
+			auto loadingArcStart = kFullArcLength / 8;
 			if (shown < 1.) {
-				loadingArcStart -= qRound(-(shown - 1.) * FullArcLength / 4.);
+				loadingArcStart -= qRound(-(shown - 1.) * kFullArcLength / 4.);
 			}
 			if (loadingArcLength < 0) {
 				loadingArcStart += loadingArcLength;

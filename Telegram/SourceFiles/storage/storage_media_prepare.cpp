@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localimageloader.h"
 #include "core/mime_type.h"
 #include "ui/image/image_prepare.h"
+#include "app.h"
 
 #include <QtCore/QSemaphore>
 #include <QtCore/QMimeData>
@@ -89,7 +90,7 @@ bool PrepareAlbumMediaIsWaiting(
 			if (ValidPhotoForAlbum(*image, file.mime)) {
 				file.shownDimensions = PrepareShownDimensions(image->data);
 				file.preview = Images::prepareOpaque(image->data.scaledToWidth(
-					std::min(previewWidth, ConvertScale(image->data.width()))
+					std::min(previewWidth, style::ConvertScale(image->data.width()))
 						* cIntRetinaFactor(),
 					Qt::SmoothTransformation));
 				Assert(!file.preview.isNull());

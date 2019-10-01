@@ -6,15 +6,14 @@
 
 {
   'includes': [
-    'common.gypi',
+    'common/common.gypi',
   ],
   'targets': [{
     'target_name': 'lib_scheme',
-    'type': 'static_library',
     'hard_dependency': 1,
     'includes': [
-      'common.gypi',
-      'qt.gypi',
+      'common/library.gypi',
+      'modules/qt.gypi',
     ],
     'variables': {
       'src_loc': '../SourceFiles',
@@ -51,8 +50,8 @@
       'action': [
         'python', '<(src_loc)/codegen/scheme/codegen_scheme.py',
         '-o', '<(SHARED_INTERMEDIATE_DIR)',
-		'<(res_loc)/tl/mtproto.tl',
-		'<(res_loc)/tl/api.tl',
+        '<(res_loc)/tl/mtproto.tl',
+        '<(res_loc)/tl/api.tl',
       ],
       'message': 'codegen_scheme-ing *.tl..',
       'process_outputs_as_sources': 1,

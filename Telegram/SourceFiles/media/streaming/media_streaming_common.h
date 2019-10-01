@@ -7,6 +7,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "ui/rect_part.h"
+
+enum class ImageRoundRadius;
+
 namespace Media {
 
 inline constexpr auto kTimeUnknown = std::numeric_limits<crl::time>::min();

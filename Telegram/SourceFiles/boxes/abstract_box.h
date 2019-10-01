@@ -9,7 +9,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "window/layer_widget.h"
 #include "base/unique_qptr.h"
+#include "base/flags.h"
+#include "ui/effects/animation_value.h"
+#include "ui/text/text_entity.h"
 #include "ui/rp_widget.h"
+
+class Painter;
 
 namespace style {
 struct RoundButton;
@@ -75,7 +80,7 @@ public:
 
 };
 
-class BoxContent : public Ui::RpWidget, protected base::Subscriber {
+class BoxContent : public Ui::RpWidget {
 	Q_OBJECT
 
 public:
@@ -223,7 +228,8 @@ protected:
 
 	template <typename Widget>
 	object_ptr<Widget> takeInnerWidget() {
-		return static_object_cast<Widget>(doTakeInnerWidget());
+		return object_ptr<Widget>::fromRaw(
+			static_cast<Widget*>(doTakeInnerWidget().release()));
 	}
 
 	void setInnerVisible(bool scrollAreaVisible);
@@ -267,10 +273,7 @@ private:
 
 };
 
-class AbstractBox
-	: public Window::LayerWidget
-	, public BoxContentDelegate
-	, protected base::Subscriber {
+class AbstractBox : public Window::LayerWidget, public BoxContentDelegate {
 public:
 	AbstractBox(
 		not_null<Window::LayerStackWidget*> layer,
@@ -342,7 +345,6 @@ private:
 
 	void paintAdditionalTitle(Painter &p);
 	void updateTitlePosition();
-	void refreshLang();
 
 	[[nodiscard]] bool hasTitle() const;
 	[[nodiscard]] int titleHeight() const;
@@ -427,3 +429,30 @@ private:
 	QPointer<BoxContent> _value;
 
 };
+
+// Legacy global method.
+namespace Ui {
+namespace internal {
+
+void showBox(
+	object_ptr<BoxContent> content,
+	LayerOptions options,
+	anim::type animated);
+
+} // namespace internal
+
+template <typename BoxType>
+QPointer<BoxType> show(
+		object_ptr<BoxType> content,
+		LayerOptions options = LayerOption::CloseOther,
+		anim::type animated = anim::type::normal) {
+	auto result = QPointer<BoxType>(content.data());
+	internal::showBox(std::move(content), options, animated);
+	return result;
+}
+
+void hideLayer(anim::type animated = anim::type::normal);
+void hideSettingsAndLayer(anim::type animated = anim::type::normal);
+bool isLayerShown();
+
+} // namespace Ui

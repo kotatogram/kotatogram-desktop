@@ -9,11 +9,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ui/widgets/shadow.h"
 #include "ui/image/image_prepare.h"
+#include "ui/ui_utility.h"
 #include "chat_helpers/tabbed_selector.h"
 #include "window/window_session_controller.h"
 #include "mainwindow.h"
 #include "core/application.h"
-#include "core/qt_signal_producer.h"
+#include "app.h"
 #include "styles/style_chat_helpers.h"
 
 namespace ChatHelpers {
@@ -322,8 +323,7 @@ void TabbedPanel::startShowAnimation() {
 		_showAnimation = std::make_unique<Ui::PanelAnimation>(st::emojiPanAnimation, Ui::PanelAnimation::Origin::BottomRight);
 		auto inner = rect().marginsRemoved(st::emojiPanMargins);
 		_showAnimation->setFinalImage(std::move(image), QRect(inner.topLeft() * cIntRetinaFactor(), inner.size() * cIntRetinaFactor()));
-		auto corners = App::cornersMask(ImageRoundRadius::Small);
-		_showAnimation->setCornerMasks(corners[0], corners[1], corners[2], corners[3]);
+		_showAnimation->setCornerMasks(Images::CornersMask(ImageRoundRadius::Small));
 		_showAnimation->start();
 	}
 	hideChildren();

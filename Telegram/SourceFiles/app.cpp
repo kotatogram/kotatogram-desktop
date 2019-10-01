@@ -63,8 +63,6 @@ namespace {
 		*pressedLinkItem = nullptr,
 		*mousedItem = nullptr;
 
-	style::font monofont;
-
 	struct CornersPixmaps {
 		QPixmap p[4];
 	};
@@ -105,23 +103,6 @@ namespace App {
 		return result;
 	}
 
-	MainWindow *wnd() {
-		return (Core::IsAppLaunched() && Core::App().activeWindow())
-			? Core::App().activeWindow()->widget().get()
-			: nullptr;
-	}
-
-	MainWidget *main() {
-		if (auto window = wnd()) {
-			return window->mainWidget();
-		}
-		return nullptr;
-	}
-
-	QString peerName(const PeerData *peer, bool forDialogs) {
-		return peer ? ((forDialogs && peer->isUser() && !peer->asUser()->nameOrPhone.isEmpty()) ? peer->asUser()->nameOrPhone : peer->name) : tr::lng_deleted(tr::now);
-	}
-
 	void prepareCorners(RoundCorners index, int32 radius, const QBrush &brush, const style::color *shadow = nullptr, QImage *cors = nullptr) {
 		Expects(::corners.size() > index);
 
@@ -151,14 +132,6 @@ namespace App {
 			for (int i = 0; i < 4; ++i) {
 				::corners[index].p[i] = pixmapFromImageInPlace(std::move(cors[i]));
 				::corners[index].p[i].setDevicePixelRatio(cRetinaFactor());
-			}
-		}
-	}
-
-	void tryFontFamily(QString &family, const QString &tryFamily) {
-		if (family.isEmpty()) {
-			if (!QFontInfo(QFont(tryFamily)).family().trimmed().compare(tryFamily, Qt::CaseInsensitive)) {
-				family = tryFamily;
 			}
 		}
 	}
@@ -221,19 +194,6 @@ namespace App {
 	}
 
 	void initMedia() {
-		if (!::monofont) {
-			QString family;
-			if (!cMonospaceFont().isEmpty()) {
-				tryFontFamily(family, cMonospaceFont());
-			}
-			tryFontFamily(family, qsl("Consolas"));
-			tryFontFamily(family, qsl("Liberation Mono"));
-			tryFontFamily(family, qsl("Menlo"));
-			tryFontFamily(family, qsl("Courier"));
-			if (family.isEmpty()) family = QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
-			::monofont = style::font(st::normalFont->f.pixelSize(), 0, family);
-		}
-
 		createCorners();
 
 		using Update = Window::Theme::BackgroundUpdate;
@@ -311,10 +271,6 @@ namespace App {
 		hoveredLinkItem(nullptr);
 		pressedLinkItem(nullptr);
 		mousedItem(nullptr);
-	}
-
-	const style::font &monofont() {
-		return ::monofont;
 	}
 
 	void quit() {
@@ -469,15 +425,6 @@ namespace App {
 
 	void complexLocationRect(Painter &p, QRect rect, ImageRoundRadius radius, RectParts corners) {
 		rectWithCorners(p, rect, st::msgInBg, MessageInCorners, corners);
-	}
-
-	QImage *cornersMask(ImageRoundRadius radius) {
-		switch (radius) {
-		case ImageRoundRadius::Large: return ::cornersMaskLarge;
-		case ImageRoundRadius::Small:
-		default: break;
-		}
-		return ::cornersMaskSmall;
 	}
 
 	void roundRect(Painter &p, int32 x, int32 y, int32 w, int32 h, style::color bg, const CornersPixmaps &corner, const style::color *shadow, RectParts parts) {

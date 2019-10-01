@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/shadow.h"
 #include "ui/toast/toast.h"
 #include "ui/special_buttons.h"
+#include "ui/ui_utility.h"
 #include "api/api_common.h"
 #include "api/api_sending.h"
 #include "apiwrap.h"
@@ -35,6 +36,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localstorage.h"
 #include "inline_bots/inline_bot_result.h"
 #include "lang/lang_keys.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_history.h"
 #include "styles/style_window.h"
 #include "styles/style_info.h"
@@ -941,7 +944,7 @@ void ScheduledWidget::confirmDeleteSelected() {
 	if (items.empty()) {
 		return;
 	}
-	const auto weak = make_weak(this);
+	const auto weak = Ui::MakeWeak(this);
 	const auto box = Ui::show(Box<DeleteMessagesBox>(
 		&_history->session(),
 		std::move(items)));

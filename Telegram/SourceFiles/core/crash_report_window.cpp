@@ -14,11 +14,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/main_window.h"
 #include "platform/platform_specific.h"
 #include "base/zlib_help.h"
+#include "app.h"
 
 #include <QtWidgets/QFileDialog>
 #include <QtGui/QScreen>
 #include <QtGui/QDesktopServices>
 #include <QtCore/QStandardPaths>
+#include <QtCore/QTimer>
 
 namespace {
 
@@ -29,7 +31,7 @@ constexpr auto kDefaultProxyPort = 80;
 PreLaunchWindow *PreLaunchWindowInstance = nullptr;
 
 PreLaunchWindow::PreLaunchWindow(QString title) {
-	Fonts::Start();
+	style::internal::StartFonts();
 
 	setWindowIcon(Window::CreateIcon());
 	setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
@@ -72,7 +74,7 @@ PreLaunchWindow::~PreLaunchWindow() {
 
 PreLaunchLabel::PreLaunchLabel(QWidget *parent) : QLabel(parent) {
 	QFont labelFont(font());
-	labelFont.setFamily(Fonts::GetOverride(qsl("Open Sans Semibold")));
+	labelFont.setFamily(style::internal::GetFontOverride(qsl("Open Sans Semibold")));
 	labelFont.setPixelSize(static_cast<PreLaunchWindow*>(parent)->basicSize());
 	setFont(labelFont);
 
@@ -90,7 +92,7 @@ void PreLaunchLabel::setText(const QString &text) {
 
 PreLaunchInput::PreLaunchInput(QWidget *parent, bool password) : QLineEdit(parent) {
 	QFont logFont(font());
-	logFont.setFamily(Fonts::GetOverride(qsl("Open Sans")));
+	logFont.setFamily(style::internal::GetFontOverride(qsl("Open Sans")));
 	logFont.setPixelSize(static_cast<PreLaunchWindow*>(parent)->basicSize());
 	setFont(logFont);
 
@@ -108,7 +110,7 @@ PreLaunchInput::PreLaunchInput(QWidget *parent, bool password) : QLineEdit(paren
 
 PreLaunchLog::PreLaunchLog(QWidget *parent) : QTextEdit(parent) {
 	QFont logFont(font());
-	logFont.setFamily(Fonts::GetOverride(qsl("Open Sans")));
+	logFont.setFamily(style::internal::GetFontOverride(qsl("Open Sans")));
 	logFont.setPixelSize(static_cast<PreLaunchWindow*>(parent)->basicSize());
 	setFont(logFont);
 
@@ -130,7 +132,7 @@ PreLaunchButton::PreLaunchButton(QWidget *parent, bool confirm) : QPushButton(pa
 	setObjectName(confirm ? "confirm" : "cancel");
 
 	QFont closeFont(font());
-	closeFont.setFamily(Fonts::GetOverride(qsl("Open Sans Semibold")));
+	closeFont.setFamily(style::internal::GetFontOverride(qsl("Open Sans Semibold")));
 	closeFont.setPixelSize(static_cast<PreLaunchWindow*>(parent)->basicSize());
 	setFont(closeFont);
 
@@ -149,7 +151,7 @@ PreLaunchCheckbox::PreLaunchCheckbox(QWidget *parent) : QCheckBox(parent) {
 	setCheckState(Qt::Checked);
 
 	QFont closeFont(font());
-	closeFont.setFamily(Fonts::GetOverride(qsl("Open Sans Semibold")));
+	closeFont.setFamily(style::internal::GetFontOverride(qsl("Open Sans Semibold")));
 	closeFont.setPixelSize(static_cast<PreLaunchWindow*>(parent)->basicSize());
 	setFont(closeFont);
 

@@ -9,6 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "window/themes/window_theme.h"
 #include "ui/rp_widget.h"
+#include "ui/ui_utility.h"
+#include "app.h"
 
 #include <QtCore/QCoreApplication>
 
@@ -426,7 +428,7 @@ void RoundImageCheckbox::paint(Painter &p, int x, int y, int outerWidth) {
 		auto pen = _st.selectFg->p;
 		pen.setWidth(_st.selectWidth);
 		p.setPen(pen);
-		p.drawEllipse(rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth));
+		p.drawEllipse(style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth));
 		p.setOpacity(1.);
 	}
 

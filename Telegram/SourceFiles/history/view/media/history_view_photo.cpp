@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_photo.h"
 #include "data/data_file_origin.h"
+#include "app.h"
 #include "styles/style_history.h"
 
 namespace HistoryView {
@@ -69,8 +70,8 @@ QSize Photo::countOptimalSize() {
 	auto maxWidth = 0;
 	auto minHeight = 0;
 
-	auto tw = ConvertScale(_data->width());
-	auto th = ConvertScale(_data->height());
+	auto tw = style::ConvertScale(_data->width());
+	auto th = style::ConvertScale(_data->height());
 	if (!tw || !th) {
 		tw = th = 1;
 	}
@@ -101,7 +102,8 @@ QSize Photo::countOptimalSize() {
 }
 
 QSize Photo::countCurrentSize(int newWidth) {
-	int tw = ConvertScale(_data->width()), th = ConvertScale(_data->height());
+	auto tw = style::ConvertScale(_data->width());
+	auto th = style::ConvertScale(_data->height());
 	if (tw > st::maxMediaSize) {
 		th = (st::maxMediaSize * th) / tw;
 		tw = st::maxMediaSize;
@@ -162,7 +164,7 @@ void Photo::draw(Painter &p, const QRect &r, TextSelection selection, crl::time 
 	}
 	const auto radial = isRadialAnimation();
 
-	auto rthumb = rtlrect(paintx, painty, paintw, painth, width());
+	auto rthumb = style::rtlrect(paintx, painty, paintw, painth, width());
 	if (_serviceWidth > 0) {
 		const auto pix = [&] {
 			if (loaded) {
@@ -185,7 +187,7 @@ void Photo::draw(Painter &p, const QRect &r, TextSelection selection, crl::time 
 				if (isBubbleBottom()) {
 					painth -= st::msgPadding.bottom();
 				}
-				rthumb = rtlrect(paintx, painty, paintw, painth, width());
+				rthumb = style::rtlrect(paintx, painty, paintw, painth, width());
 			}
 		} else {
 			App::roundShadow(p, 0, 0, paintw, painth, selected ? st::msgInShadowSelected : st::msgInShadow, selected ? InSelectedShadowCorners : InShadowCorners);
@@ -510,8 +512,8 @@ void Photo::validateGroupedCache(
 		return;
 	}
 
-	const auto originalWidth = ConvertScale(_data->width());
-	const auto originalHeight = ConvertScale(_data->height());
+	const auto originalWidth = style::ConvertScale(_data->width());
+	const auto originalHeight = style::ConvertScale(_data->height());
 	const auto pixSize = Ui::GetImageScaleSizeForGeometry(
 		{ originalWidth, originalHeight },
 		{ width, height });

@@ -19,8 +19,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/image/image.h"
 #include "ui/text/text_utilities.h"
+#include "ui/platform/ui_platform_utility.h"
 #include "ui/toast/toast.h"
 #include "ui/text_options.h"
+#include "ui/ui_utility.h"
 #include "boxes/confirm_box.h"
 #include "media/audio/media_audio.h"
 #include "media/view/media_view_playback_controls.h"
@@ -46,6 +48,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "layout.h"
 #include "storage/file_download.h"
 #include "calls/calls_instance.h"
+#include "facades.h"
+#include "app.h"
 #include "styles/style_mediaview.h"
 #include "styles/style_history.h"
 
@@ -310,9 +314,9 @@ OverlayWidget::OverlayWidget()
 	_controlsHideTimer.setSingleShot(true);
 	connect(&_controlsHideTimer, SIGNAL(timeout()), this, SLOT(onHideControls()));
 
-	connect(_docDownload, SIGNAL(clicked()), this, SLOT(onDownload()));
-	connect(_docSaveAs, SIGNAL(clicked()), this, SLOT(onSaveAs()));
-	connect(_docCancel, SIGNAL(clicked()), this, SLOT(onSaveCancel()));
+	_docDownload->addClickHandler([=] { onDownload(); });
+	_docSaveAs->addClickHandler([=] { onSaveAs(); });
+	_docCancel->addClickHandler([=] { onSaveCancel(); });
 
 	_dropdown->setHiddenCallback([this] { dropdownHidden(); });
 	_dropdownShowTimer->setSingleShot(true);
@@ -349,11 +353,11 @@ void OverlayWidget::moveToScreen(bool force) {
 
 	auto navSkip = 2 * st::mediaviewControlMargin + st::mediaviewControlSize;
 	_closeNav = myrtlrect(width() - st::mediaviewControlMargin - st::mediaviewControlSize, st::mediaviewControlMargin, st::mediaviewControlSize, st::mediaviewControlSize);
-	_closeNavIcon = centerrect(_closeNav, st::mediaviewClose);
+	_closeNavIcon = style::centerrect(_closeNav, st::mediaviewClose);
 	_leftNav = myrtlrect(st::mediaviewControlMargin, navSkip, st::mediaviewControlSize, height() - 2 * navSkip);
-	_leftNavIcon = centerrect(_leftNav, st::mediaviewLeft);
+	_leftNavIcon = style::centerrect(_leftNav, st::mediaviewLeft);
 	_rightNav = myrtlrect(width() - st::mediaviewControlMargin - st::mediaviewControlSize, navSkip, st::mediaviewControlSize, height() - 2 * navSkip);
-	_rightNavIcon = centerrect(_rightNav, st::mediaviewRight);
+	_rightNavIcon = style::centerrect(_rightNav, st::mediaviewRight);
 
 	_saveMsg.moveTo((width() - _saveMsg.width()) / 2, (height() - _saveMsg.height()) / 2);
 	_photoRadialRect = QRect(QPoint((width() - st::radialSize.width()) / 2, (height() - st::radialSize.height()) / 2), st::radialSize);
@@ -556,9 +560,9 @@ void OverlayWidget::updateControls() {
 			&& _doc->filepath(DocumentData::FilePathResolve::Checked).isEmpty()
 			&& !_doc->loading());
 	_saveNav = myrtlrect(width() - st::mediaviewIconSize.width() * 2, height() - st::mediaviewIconSize.height(), st::mediaviewIconSize.width(), st::mediaviewIconSize.height());
-	_saveNavIcon = centerrect(_saveNav, st::mediaviewSave);
+	_saveNavIcon = style::centerrect(_saveNav, st::mediaviewSave);
 	_moreNav = myrtlrect(width() - st::mediaviewIconSize.width(), height() - st::mediaviewIconSize.height(), st::mediaviewIconSize.width(), st::mediaviewIconSize.height());
-	_moreNavIcon = centerrect(_moreNav, st::mediaviewMore);
+	_moreNavIcon = style::centerrect(_moreNav, st::mediaviewMore);
 
 	const auto dNow = QDateTime::currentDateTime();
 	const auto d = [&] {
@@ -1112,9 +1116,9 @@ void OverlayWidget::onSaveAs() {
 				filter = mimeType.filterString() + qsl(";;") + FileDialog::AllFilesFilter();
 			}
 
-			psBringToBack(this);
+			Ui::Platform::BringToBack(this);
 			file = FileNameForSave(tr::lng_save_file(tr::now), filter, qsl("doc"), name, true, alreadyDir);
-			psShowOverAll(this);
+			Ui::Platform::ShowOverAll(this);
 			if (!file.isEmpty() && file != location.name()) {
 				if (_doc->data().isEmpty()) {
 					QFile(file).remove();
@@ -1138,7 +1142,7 @@ void OverlayWidget::onSaveAs() {
 	} else {
 		if (!_photo || !_photo->loaded()) return;
 
-		psBringToBack(this);
+		Ui::Platform::BringToBack(this);
 		auto filter = qsl("JPEG Image (*.jpg);;") + FileDialog::AllFilesFilter();
 		FileDialog::GetWritePath(
 			this,
@@ -1150,13 +1154,13 @@ void OverlayWidget::onSaveAs() {
 				QString(),
 				false,
 				_photo->date),
-			crl::guard(this, [this, photo = _photo](const QString &result) {
+			crl::guard(this, [=, photo = _photo](const QString &result) {
 				if (!result.isEmpty() && _photo == photo && photo->loaded()) {
 					photo->large()->original().save(result, "JPG");
 				}
-				psShowOverAll(this);
-			}), crl::guard(this, [this] {
-				psShowOverAll(this);
+				Ui::Platform::ShowOverAll(this);
+			}), crl::guard(this, [=] {
+				Ui::Platform::ShowOverAll(this);
 			}));
 	}
 	activateWindow();
@@ -1596,12 +1600,12 @@ void OverlayWidget::refreshFromLabel(HistoryItem *item) {
 			_fromName = info->name;
 		} else {
 			Assert(_from != nullptr);
-			_fromName = App::peerName(
-				_from->migrateTo() ? _from->migrateTo() : _from);
+			const auto from = _from->migrateTo() ? _from->migrateTo() : _from;
+			_fromName = from->name;
 		}
 	} else {
 		_from = _user;
-		_fromName = _user ? App::peerName(_user) : QString();
+		_fromName = _user ? _user->name : QString();
 	}
 }
 
@@ -1798,8 +1802,8 @@ void OverlayWidget::displayPhoto(not_null<PhotoData*> photo, HistoryItem *item) 
 	_blurred = true;
 	_current = QPixmap();
 	_down = OverNone;
-	_w = ConvertScale(photo->width());
-	_h = ConvertScale(photo->height());
+	_w = style::ConvertScale(photo->width());
+	_h = style::ConvertScale(photo->height());
 	contentSizeChanged();
 	refreshFromLabel(item);
 	_photo->download(fileOrigin());
@@ -1935,10 +1939,10 @@ void OverlayWidget::displayDocument(
 		updateThemePreviewGeometry();
 	} else if (!_current.isNull()) {
 		_current.setDevicePixelRatio(cRetinaFactor());
-		_w = ConvertScale(_current.width());
-		_h = ConvertScale(_current.height());
+		_w = style::ConvertScale(_current.width());
+		_h = style::ConvertScale(_current.height());
 	} else if (videoShown()) {
-		const auto contentSize = ConvertScale(videoSize());
+		const auto contentSize = style::ConvertScale(videoSize());
 		_w = contentSize.width();
 		_h = contentSize.height();
 	}
@@ -1974,13 +1978,13 @@ void OverlayWidget::updateThemePreviewGeometry() {
 void OverlayWidget::displayFinished() {
 	updateControls();
 	if (isHidden()) {
-		psUpdateOverlayed(this);
+		Ui::Platform::UpdateOverlayed(this);
 #ifdef Q_OS_LINUX
 		showFullScreen();
 #else // Q_OS_LINUX
 		show();
 #endif // Q_OS_LINUX
-		psShowOverAll(this);
+		Ui::Platform::ShowOverAll(this);
 		activateWindow();
 		QApplication::setActiveWindow(this);
 		setFocus();
@@ -2057,7 +2061,7 @@ void OverlayWidget::streamingReady(Streaming::Information &&info) {
 	_streamed->info = std::move(info);
 	validateStreamedGoodThumbnail();
 	if (videoShown()) {
-		const auto contentSize = ConvertScale(videoSize());
+		const auto contentSize = style::ConvertScale(videoSize());
 		if (contentSize != QSize(_width, _height)) {
 			update(contentRect());
 			_w = contentSize.width();
@@ -2254,7 +2258,7 @@ void OverlayWidget::initThemePreview() {
 
 	const auto path = _doc->location().name();
 	const auto id = _themePreviewId = rand_value<uint64>();
-	const auto weak = make_weak(this);
+	const auto weak = Ui::MakeWeak(this);
 	crl::async([=, data = std::move(current)]() mutable {
 		auto preview = GeneratePreview(
 			bytes,
@@ -3086,7 +3090,7 @@ void OverlayWidget::setZoomLevel(int newZoom) {
 
 	float64 nx, ny, z = (_zoom == ZoomToScreenLevel) ? _zoomToScreen : _zoom;
 	const auto contentSize = videoShown()
-		? ConvertScale(videoSize())
+		? style::ConvertScale(videoSize())
 		: QSize(_width, _height);
 	_w = contentSize.width();
 	_h = contentSize.height();
@@ -3494,7 +3498,7 @@ void OverlayWidget::mouseReleaseEvent(QMouseEvent *e) {
 			showSaveMsgFile();
 			return;
 		}
-		App::activateClickHandler(activated, e->button());
+		ActivateClickHandler(this, activated, e->button());
 		return;
 	}
 
@@ -3586,7 +3590,7 @@ void OverlayWidget::touchEvent(QTouchEvent *e) {
 
 	case QEvent::TouchEnd: {
 		if (!_touchPress) return;
-		auto weak = make_weak(this);
+		auto weak = Ui::MakeWeak(this);
 		if (!_touchMove) {
 			Qt::MouseButton btn(_touchRightButton ? Qt::RightButton : Qt::LeftButton);
 			auto mapped = mapFromGlobal(_touchStart);

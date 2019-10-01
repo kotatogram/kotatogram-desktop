@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat.h"
 #include "data/data_user.h"
 #include "data/data_scheduled_messages.h"
+#include "api/api_text_entities.h"
 #include "ui/special_buttons.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/shadow.h"
@@ -96,6 +97,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_facade.h"
 #include "storage/storage_shared_media.h"
 #include "storage/storage_user_photos.h"
+#include "app.h"
+#include "facades.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_history.h"
 #include "styles/style_boxes.h"
@@ -3816,7 +3819,7 @@ void MainWidget::feedUpdates(const MTPUpdates &updates, uint64 randomId) {
 				}
 				item->updateSentContent({
 					sent.text,
-					TextUtilities::EntitiesFromMTP(list.value_or_empty())
+					Api::EntitiesFromMTP(list.value_or_empty())
 				}, d.vmedia());
 				item->contributeToSlowmode(d.vdate().v);
 				if (!wasAlready) {
@@ -4319,7 +4322,7 @@ void MainWidget::feedUpdate(const MTPUpdate &update) {
 		const auto &d = update.c_updateServiceNotification();
 		const auto text = TextWithEntities {
 			qs(d.vmessage()),
-			TextUtilities::EntitiesFromMTP(d.ventities().v)
+			Api::EntitiesFromMTP(d.ventities().v)
 		};
 		if (IsForceLogoutNotification(d)) {
 			Core::App().forceLogOut(text);
@@ -4622,3 +4625,14 @@ void MainWidget::feedUpdate(const MTPUpdate &update) {
 
 	}
 }
+
+namespace App {
+
+MainWidget *main() {
+	if (const auto window = wnd()) {
+		return window->mainWidget();
+	}
+	return nullptr;
+}
+
+} // namespace App

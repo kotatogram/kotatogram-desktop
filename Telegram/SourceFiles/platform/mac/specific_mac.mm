@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "history/history_location_manager.h"
 #include "platform/mac/mac_utilities.h"
+#include "facades.h"
 
 #include <QtGui/QDesktopServices>
 #include <QtWidgets/QApplication>
@@ -32,10 +33,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <SPMediaKeyTap.h>
 #include <mach-o/dyld.h>
 #include <AVFoundation/AVFoundation.h>
-
-extern "C" {
-void _dispatch_main_queue_callback_4CF(mach_msg_header_t *msg);
-} // extern "C"
 
 namespace {
 
@@ -57,14 +54,6 @@ QRect psDesktopRect() {
 		_monitorRect = QApplication::desktop()->availableGeometry(App::wnd());
 	}
 	return _monitorRect;
-}
-
-void psShowOverAll(QWidget *w, bool canFocus) {
-	objc_showOverAll(w->winId(), canFocus);
-}
-
-void psBringToBack(QWidget *w) {
-	objc_bringToBack(w->winId());
 }
 
 void psWriteDump() {
@@ -127,14 +116,6 @@ void finish() {
 	objc_finish();
 }
 
-void StartTranslucentPaint(QPainter &p, QPaintEvent *e) {
-#ifdef OS_MAC_OLD
-	p.setCompositionMode(QPainter::CompositionMode_Source);
-	p.fillRect(e->rect(), Qt::transparent);
-	p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-#endif // OS_MAC_OLD
-}
-
 QString CurrentExecutablePath(int argc, char *argv[]) {
 	return NS2QString([[NSBundle mainBundle] bundlePath]);
 }
@@ -145,10 +126,6 @@ void RemoveQuarantine(const QString &path) {
 	DEBUG_LOG(("Removing quarantine attribute: %1").arg(path));
 	const auto local = QFile::encodeName(path);
 	removexattr(local.data(), kQuarantineAttribute, 0);
-}
-
-void DrainMainQueue() {
-	_dispatch_main_queue_callback_4CF(nullptr);
 }
 
 void RegisterCustomScheme() {
@@ -273,6 +250,10 @@ std::optional<crl::time> LastUserInputTime() {
 	return (crl::now() - static_cast<crl::time>(idleTime));
 }
 
+void IgnoreApplicationActivationRightNow() {
+	objc_ignoreApplicationActivationRightNow();
+}
+
 } // namespace Platform
 
 void psNewVersion() {
@@ -283,9 +264,6 @@ void psAutoStart(bool start, bool silent) {
 }
 
 void psSendToMenu(bool send, bool silent) {
-}
-
-void psUpdateOverlayed(QWidget *widget) {
 }
 
 void psDownloadPathEnableAccess() {
