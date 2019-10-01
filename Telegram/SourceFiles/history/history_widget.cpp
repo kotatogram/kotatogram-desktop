@@ -6706,14 +6706,18 @@ void HistoryWidget::paintEditHeader(Painter &p, const QRect &rect, int left, int
 
 	if (!_replyEditMsg || _replyEditMsg->history()->peer->isSelf()) return;
 
+	if (const auto megagroup = _replyEditMsg->history()->peer->asMegagroup()) {
+		if (megagroup->amCreator() || megagroup->hasAdminRights()) {
+			return;
+		}
+	}
+
 	QString editTimeLeftText;
 	int updateIn = -1;
 	auto timeSinceMessage = ItemDateTime(_replyEditMsg).msecsTo(QDateTime::currentDateTime());
 	auto editTimeLeft = (Global::EditTimeLimit() * 1000LL) - timeSinceMessage;
 	if (editTimeLeft < 2) {
 		editTimeLeftText = qsl("0:00");
-	} else if (editTimeLeft > kDisplayEditTimeWarningMs) {
-		updateIn = static_cast<int>(qMin(editTimeLeft - kDisplayEditTimeWarningMs, qint64(kFullDayInMs)));
 	} else {
 		updateIn = static_cast<int>(editTimeLeft % 1000);
 		if (!updateIn) {
@@ -6722,7 +6726,9 @@ void HistoryWidget::paintEditHeader(Painter &p, const QRect &rect, int left, int
 		++updateIn;
 
 		editTimeLeft = (editTimeLeft - 1) / 1000; // seconds
-		editTimeLeftText = qsl("%1:%2").arg(editTimeLeft / 60).arg(editTimeLeft % 60, 2, 10, QChar('0'));
+		editTimeLeftText = (editTimeLeft >= 3600
+			? qsl("%1:%2:%3").arg(editTimeLeft / 3600).arg(editTimeLeft % 3600 / 60, 2, 10, QChar('0')).arg(editTimeLeft % 60, 2, 10, QChar('0'))
+			: qsl("%1:%2").arg(editTimeLeft / 60).arg(editTimeLeft % 60, 2, 10, QChar('0')));
 	}
 
 	// Restart timer only if we are sure that we've painted the whole timer.
