@@ -80,18 +80,18 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 		pushArgument(qsl("-workdir"));
 		pushArgument('"' + cWorkingDir() + '"');
 	}
-	if (cMainFont()) {
+	if (!cMainFont().isEmpty()) {
 		pushArgument(qsl("-mainfont"));
 		pushArgument('"' + cMainFont() + '"');
 	}
-	if (cSemiboldFont()) {
+	if (!cSemiboldFont().isEmpty()) {
 		pushArgument(qsl("-semiboldfont"));
 		pushArgument('"' + cSemiboldFont() + '"');
 	}
 	if (cSemiboldFontIsBold()) {
 		pushArgument(qsl("-semiboldisbold"));
 	}
-	if (cMonospaceFont()) {
+	if (!cMonospaceFont().isEmpty()) {
 		pushArgument(qsl("-monospacefont"));
 		pushArgument('"' + cMonospaceFont() + '"');
 	}
