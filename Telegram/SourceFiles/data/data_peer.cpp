@@ -754,7 +754,8 @@ std::optional<QString> RestrictionError(
 	using Flag = ChatRestriction;
 	if (const auto restricted = peer->amRestricted(restriction)) {
 		const auto all = restricted.isWithEveryone();
-		if (!all && const auto channel = peer->asChannel()) {
+		const auto channel = peer->asChannel();
+		if (!all && channel) {
 			auto restrictedUntil = channel->restrictedUntil();
 			if (restrictedUntil > 0) {
 				auto restrictedUntilDateTime = base::unixtime::parse(channel->restrictedUntil());
