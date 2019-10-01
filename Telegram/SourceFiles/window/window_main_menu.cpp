@@ -205,7 +205,7 @@ MainMenu::MainMenu(
 		qsl("Kotatogram Desktop"),
 		qsl("https://t.me/kotatogram")));
 	_telegram->setLinksTrusted();
-	_version->setRichText(textcmdLink(1, tr::lng_settings_current_version(tr::now, lt_version, currentVersionText())) + QChar(' ') + QChar(8211) + QChar(' ') + textcmdLink(2, tr::lng_menu_about(tr::now)));
+	_version->setRichText(textcmdLink(1, currentVersionText()) + QChar(' ') + QChar(8211) + QChar(' ') + textcmdLink(2, tr::lng_menu_about(tr::now)));
 	_version->setLink(1, std::make_shared<UrlClickHandler>(qsl("https://github.com/kotatogram/kotatogram-desktop")));
 	_version->setLink(2, std::make_shared<LambdaClickHandler>([] { Ui::show(Box<AboutBox>()); }));
 
