@@ -67,6 +67,21 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 #ifndef TDESKTOP_DISABLE_AUTOUPDATE
 		if (Core::UpdaterDisabled()) [args addObject:@"-externalupdater"];
 #endif // !TDESKTOP_DISABLE_AUTOUPDATE
+		if (cMainFont()) {
+			[args addObject:@"-mainfont"];
+			[args addObject:Q2NSString(cMainFont())];
+		}
+		if (cSemiboldFont()) {
+			[args addObject:@"-semiboldfont"];
+			[args addObject:Q2NSString(cSemiboldFont())];
+		}
+		if (cSemiboldFontIsBold()) {
+			argumentsList.push(qsl("-semiboldisbold"));
+		}
+		if (cMonospaceFont()) {
+			[args addObject:@"-monospacefont"];
+			[args addObject:Q2NSString(cMonospaceFont())];
+		}
 		if (cDataFile() != qsl("data")) {
 			[args addObject:@"-key"];
 			[args addObject:Q2NSString(cDataFile())];
