@@ -1,3 +1,8 @@
+1.0.3 (2.10.2019)
+- Always show edit timer.
+- Disabled big emoji outline.
+- Show restriction date to user.
+
 1.0.2 (1.10.2019)
 - Hide pinned message from chat menu.
 - Always show scheduled messages button.
