@@ -34,6 +34,10 @@ struct PercentCounterItem {
 	int percent = 0;
 	int remainder = 0;
 
+	inline bool operator==(const PercentCounterItem &o) const {
+		return remainder == o.remainder && percent == o.percent;
+	}
+
 	inline bool operator<(const PercentCounterItem &other) const {
 		if (remainder > other.remainder) {
 			return true;
@@ -87,7 +91,7 @@ void CountNicePercent(
 	auto &&zipped = ranges::view::zip(
 		votes,
 		items,
-		ranges::view::ints(0));
+		ranges::view::ints(0, int(items.size())));
 	for (auto &&[votes, item, index] : zipped) {
 		item.index = index;
 		item.percent = (votes * 100) / total;
