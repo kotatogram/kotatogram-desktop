@@ -757,7 +757,7 @@ std::optional<QString> RestrictionError(
 		const auto channel = peer->asChannel();
 		if (!all && channel) {
 			auto restrictedUntil = channel->restrictedUntil();
-			if (restrictedUntil > 0) {
+			if (restrictedUntil > 0 && !ChannelData::IsRestrictedForever(restrictedUntil)) {
 				auto restrictedUntilDateTime = base::unixtime::parse(channel->restrictedUntil());
 				auto date = restrictedUntilDateTime.toString(qsl("d.MM.yy"));
 				auto time = restrictedUntilDateTime.toString(cTimeFormat());
