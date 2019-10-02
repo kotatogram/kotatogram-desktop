@@ -76,19 +76,19 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 	}
 #endif // !TDESKTOP_DISABLE_AUTOUPDATE
 	if (!cMainFont().isEmpty()) {
-		argumentsList.push(qsl("-mainfont"));
-		pushArgument(QFile::encodeName(cMainFont()));
+		argumentsList.push("-mainfont");
+		argumentsList.push(QFile::encodeName(cMainFont()));
 	}
 	if (!cSemiboldFont().isEmpty()) {
-		argumentsList.push(qsl("-semiboldfont"));
-		pushArgument(QFile::encodeName(cSemiboldFont()));
+		argumentsList.push("-semiboldfont");
+		argumentsList.push(QFile::encodeName(cSemiboldFont()));
 	}
 	if (cSemiboldFontIsBold()) {
-		argumentsList.push(qsl("-semiboldisbold"));
+		argumentsList.push("-semiboldisbold");
 	}
 	if (!cMonospaceFont().isEmpty()) {
-		argumentsList.push(qsl("-monospacefont"));
-		pushArgument(QFile::encodeName(cMonospaceFont()));
+		argumentsList.push("-monospacefont");
+		argumentsList.push(QFile::encodeName(cMonospaceFont()));
 	}
 	if (cDataFile() != qsl("data")) {
 		argumentsList.push("-key");
