@@ -55,7 +55,7 @@ QSize LargeEmoji::size() {
 	Assert(count > 0);
 
 	const auto single = _images[0]->size() / cIntRetinaFactor();
-	const auto skip = st::largeEmojiSkip;
+	const auto skip = st::largeEmojiSkip - 2 * st::largeEmojiOutline;
 	const auto inner = count * single.width() + (count - 1) * skip;
 	const auto &padding = st::largeEmojiPadding;
 	_size = QSize(
@@ -70,7 +70,7 @@ void LargeEmoji::draw(Painter &p, const QRect &r, bool selected) {
 	auto x = r.x() + (r.width() - _size.width()) / 2 + padding.left();
 	const auto y = r.y() + (r.height() - _size.height()) / 2 + padding.top();
 	const auto o = Data::FileOrigin();
-	const auto skip = st::largeEmojiSkip;
+	const auto skip = st::largeEmojiSkip - 2 * st::largeEmojiOutline;
 	for (const auto &image : images) {
 		image->load(Data::FileOrigin());
 		const auto w = image->width() / cIntRetinaFactor();
