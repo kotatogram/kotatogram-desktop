@@ -9,7 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 bool _debug = false;
 
-wstring updaterName, updaterDir, updateTo, exeName, customWorkingDir, customKeyFile;
+wstring updaterName, updaterDir, updateTo, exeName, customWorkingDir, customKeyFile, mainFont, semiboldFont, monospacedFont;
 
 bool equal(const wstring &a, const wstring &b) {
 	return !_wcsicmp(a.c_str(), b.c_str());
@@ -339,7 +339,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdPara
 	LPWSTR *args;
 	int argsCount;
 
-	bool needupdate = false, autostart = false, debug = false, writeprotected = false, startintray = false, testmode = false, externalupdater = false;
+	bool needupdate = false, autostart = false, debug = false, writeprotected = false, startintray = false, testmode = false, externalupdater = false, semiboldisbold = false;
 	args = CommandLineToArgvW(GetCommandLine(), &argsCount);
 	if (args) {
 		for (int i = 1; i < argsCount; ++i) {
@@ -381,6 +381,14 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdPara
 						break;
 					}
 				}
+			} else if (equal(args[i], L"-mainfont") && ++i < argsCount) {
+				mainFont = args[i];
+			} else if (equal(args[i], L"-semiboldfont") && ++i < argsCount) {
+				semiboldFont = args[i];
+			} else if (equal(args[i], L"-semiboldisbold")) {
+				semiboldisbold = true;
+			} else if (equal(args[i], L"-monospacefont") && ++i < argsCount) {
+				monospacedFont = args[i];
 			}
 		}
 		if (exeName.empty()) {
@@ -433,6 +441,16 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdPara
 	}
 	if (!customKeyFile.empty()) {
 		targs += L" -key \"" + customKeyFile + L"\"";
+	}
+	if (!mainFont.empty()) {
+		targs += L" -mainfont \"" + mainFont + L"\"";
+	}
+	if (!semiboldFont.empty()) {
+		targs += L" -semiboldfont \"" + semiboldFont + L"\"";
+	}
+	if (semiboldisbold) targs += L" -semiboldisbold";
+	if (!monospacedFont.empty()) {
+		targs += L" -monospacefont \"" + monospacedFont + L"\"";
 	}
 	writeLog(L"Result arguments: " + targs);
 

@@ -11,6 +11,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 NSString *appName = @"Telegram.app";
 NSString *appDir = nil;
 NSString *workDir = nil;
+NSString *mainFont = nil;
+NSString *semiboldFont = nil;
+NSString *monospacedFont = nil;
 
 #ifdef _DEBUG
 BOOL _debug = YES;
@@ -90,7 +93,7 @@ int main(int argc, const char * argv[]) {
 
 	openLog();
 	pid_t procId = 0;
-	BOOL update = YES, toSettings = NO, autoStart = NO, startInTray = NO, testMode = NO, externalUpdater = NO;
+	BOOL update = YES, toSettings = NO, autoStart = NO, startInTray = NO, testMode = NO, externalUpdater = NO, semiboldIsBold = NO;
 	BOOL customWorkingDir = NO;
 	NSString *key = nil;
 	for (int i = 0; i < argc; ++i) {
@@ -122,6 +125,20 @@ int main(int argc, const char * argv[]) {
 			customWorkingDir = YES;
 		} else if ([@"-key" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
 			if (++i < argc) key = [NSString stringWithUTF8String:argv[i]];
+		} else if ([@"-mainfont" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
+			if (++i < argc) {
+				mainFont = [NSString stringWithUTF8String:argv[i]];
+			}
+		} else if ([@"-semiboldfont" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
+			if (++i < argc) {
+				semiboldFont = [NSString stringWithUTF8String:argv[i]];
+			}
+		} else if ([@"-semiboldisbold" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
+			semiboldIsBold = YES;
+		} else if ([@"-monospacefont" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
+			if (++i < argc) {
+				monospacedFont = [NSString stringWithUTF8String:argv[i]];
+			}
 		}
 	}
 	if (!workDir) {
@@ -264,6 +281,19 @@ int main(int argc, const char * argv[]) {
 	if (customWorkingDir) {
 		[args addObject:@"-workdir"];
 		[args addObject:workDir];
+	}
+	if (mainFont) {
+		[args addObject:@"-mainfont"];
+		[args addObject:mainFont];
+	}
+	if (semiboldFont) {
+		[args addObject:@"-semiboldfont"];
+		[args addObject:semiboldFont];
+	}
+	if (semiboldIsBold) [args addObject:@"-semiboldisbold"];
+	if (monospacedFont) {
+		[args addObject:@"-monospacefont"];
+		[args addObject:monospacedFont];
 	}
 	writeLog([[NSArray arrayWithObjects:@"Running application '", appPath, @"' with args '", [args componentsJoinedByString:@"' '"], @"'..", nil] componentsJoinedByString:@""]);
 
