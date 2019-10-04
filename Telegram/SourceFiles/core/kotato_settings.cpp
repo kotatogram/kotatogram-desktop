@@ -158,9 +158,14 @@ bool Manager::readCustomFile() {
 	const auto settingsStickerHeightIterator = settings.constFind(qsl("sticker_height"));
 	if (settingsStickerHeightIterator != settingsFonts.constEnd()) {
 		const auto settingsStickerHeight = (*settingsStickerHeightIterator).toInt();
-		if (settingsStickerHeight > 0) {
+		if (settingsStickerHeight >= 128 || settingsStickerHeight <= 256) {
 			cSetStickerHeight(settingsStickerHeight);
 		}
+	}
+
+	const auto settingsBigEmojiOutlineIterator = settings.constFind(qsl("big_emoji_outline"));
+	if (settingsBigEmojiOutlineIterator != settingsFonts.constEnd() && (*settingsBigEmojiOutlineIterator).isBool()) {
+		cSetBigEmojiOutline((*settingsBigEmojiOutlineIterator).toBool());
 	}
 	return true;
 }
@@ -190,6 +195,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("fonts"), settingsFonts);
 
 	settings.insert(qsl("sticker_height"), cStickerHeight());
+	settings.insert(qsl("big_emoji_outline"), cBigEmojiOutline());
 
 	auto document = QJsonDocument();
 	document.setObject(settings);

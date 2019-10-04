@@ -327,7 +327,7 @@ QImage EmojiImageLoader::prepare(EmojiPtr emoji) {
 	auto tinted = QImage(
 		QSize(st::largeEmojiSize, st::largeEmojiSize) * factor,
 		QImage::Format_ARGB32_Premultiplied);
-	tinted.fill(QColor(0, 0, 0, 0));
+	tinted.fill(cBigEmojiOutline() ? Qt::white : QColor(0, 0, 0, 0));
 	if (loaded) {
 		QPainter p(&tinted);
 		p.setCompositionMode(QPainter::CompositionMode_DestinationIn);

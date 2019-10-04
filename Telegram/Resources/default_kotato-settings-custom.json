@@ -8,5 +8,6 @@
     //     "semibold_is_bold": false,
     //     "monospaced": "Consolas"
     // },
-    // "sticker_height": 256
+    // "sticker_height": 256,
+    // "big_emoji_outline": true
 }
