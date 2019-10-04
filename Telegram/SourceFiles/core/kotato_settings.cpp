@@ -156,7 +156,7 @@ bool Manager::readCustomFile() {
 	}
 
 	const auto settingsStickerHeightIterator = settings.constFind(qsl("sticker_height"));
-	if (settingsStickerHeightIterator != settingsFonts.constEnd()) {
+	if (settingsStickerHeightIterator != settings.constEnd()) {
 		const auto settingsStickerHeight = (*settingsStickerHeightIterator).toInt();
 		if (settingsStickerHeight >= 128 || settingsStickerHeight <= 256) {
 			cSetStickerHeight(settingsStickerHeight);
@@ -164,17 +164,17 @@ bool Manager::readCustomFile() {
 	}
 
 	const auto settingsBigEmojiOutlineIterator = settings.constFind(qsl("big_emoji_outline"));
-	if (settingsBigEmojiOutlineIterator != settingsFonts.constEnd() && (*settingsBigEmojiOutlineIterator).isBool()) {
+	if (settingsBigEmojiOutlineIterator != settings.constEnd() && (*settingsBigEmojiOutlineIterator).isBool()) {
 		cSetBigEmojiOutline((*settingsBigEmojiOutlineIterator).toBool());
 	}
 
 	const auto settingsAlwaysShowScheduledIterator = settings.constFind(qsl("always_show_scheduled"));
-	if (settingsAlwaysShowScheduledIterator != settingsFonts.constEnd() && (*settingsAlwaysShowScheduledIterator).isBool()) {
+	if (settingsAlwaysShowScheduledIterator != settings.constEnd() && (*settingsAlwaysShowScheduledIterator).isBool()) {
 		cSetAlwaysShowScheduled((*settingsAlwaysShowScheduledIterator).toBool());
 	}
 
 	const auto settingsShowChatIdIterator = settings.constFind(qsl("show_chat_id"));
-	if (settingsShowChatIdIterator != settingsFonts.constEnd() && (*settingsShowChatIdIterator).isBool()) {
+	if (settingsShowChatIdIterator != settings.constEnd() && (*settingsShowChatIdIterator).isBool()) {
 		cSetShowChatId((*settingsShowChatIdIterator).toBool());
 	}
 	return true;
