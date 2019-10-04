@@ -20,7 +20,7 @@ jobs:
           echo ::add-path::%GITHUB_WORKSPACE%\Libraries\gyp
       - name: Install tools
         run: |
-          choco install --no-progress -y nasm yasm jom ninja activeperl cmake msys2
+          choco install -y nasm yasm jom ninja activeperl cmake msys2
           mkdir Libraries
       - name: Replace Python 3 with Python 2
         run: |
@@ -36,7 +36,6 @@ jobs:
           %VS%
           git clone https://github.com/telegramdesktop/lzma.git
           cd lzma
-          git checkout 8b6296ceeda9287239917a36524e44ef153b9f8e
           cd C\Util\LzmaLib
           msbuild LzmaLib.sln /property:Configuration=Debug
           msbuild LzmaLib.sln /property:Configuration=Release
@@ -58,7 +57,6 @@ jobs:
           git clone https://github.com/telegramdesktop/zlib.git
           cd zlib
           git checkout tdesktop
-          git checkout fc222598a177297a18ab272a71d6fa040de5c59e
           cd contrib\vstudio\vc14
           msbuild zlibstat.vcxproj /property:Configuration=Debug
           msbuild zlibstat.vcxproj /property:Configuration=ReleaseWithoutAsm
@@ -72,7 +70,7 @@ jobs:
           cmake -G "Visual Studio 16 2019" -A Win32 -D LIBTYPE:STRING=STATIC -D FORCE_STATIC_VCRT:STRING=ON ..
           msbuild OpenAL.vcxproj /property:Configuration=Debug
           msbuild OpenAL.vcxproj /property:Configuration=Release
-      - name: Breakpad
+      - name: GYP
         run: |
           %VS%
           %SWITCH_PY%
@@ -80,7 +78,11 @@ jobs:
           git clone https://github.com/telegramdesktop/gyp.git
           cd gyp
           git checkout tdesktop
-          cd ..
+      - name: Breakpad
+        run: |
+          %VS%
+          %SWITCH_PY%
+          cd Libraries
           git clone https://github.com/google/breakpad
           cd breakpad
           git checkout a1dbcdcb43
@@ -102,7 +104,6 @@ jobs:
           git clone https://github.com/telegramdesktop/opus.git
           cd opus
           git checkout tdesktop
-          git checkout 142ebc568191c170a76f88e2ed166f80c66bfc44
           cd win32\VS2015
           msbuild opus.sln /property:Configuration=Debug /property:Platform="Win32"
           msbuild opus.sln /property:Configuration=Release /property:Platform="Win32"
@@ -411,7 +412,7 @@ jobs:
           cd ../../out/Default
           cmake .
           make -j8 dump_syms
-      - name: Build TDesktop
+      - name: Build Kotatogram
         env:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
