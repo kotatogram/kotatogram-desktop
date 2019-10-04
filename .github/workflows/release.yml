@@ -1,8 +1,8 @@
 name: Release build
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: dev
 
 jobs:
   build_linux:
@@ -241,5 +241,16 @@ jobs:
           gyp/refresh.sh --api-id $API_ID --api-hash $API_HASH
           cd ../out/Release
           make
-          strip --strip-all Telegram
+          strip --strip-all Telegram Updater
           mv Telegram Kotatogram
+      - name: Move artifact
+        run: |
+          cd tdesktop/out/Release
+          mkdir artifact
+          mv Kotatogram artifact/
+          mv Updater artifact/
+      - uses: actions/upload-artifact@master
+        name: Upload artifact
+        with:
+          name: Kotatogram
+          path: tdesktop/out/Release/artifact/
