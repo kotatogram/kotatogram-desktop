@@ -9,5 +9,6 @@
     //     "monospaced": "Consolas"
     // },
     // "sticker_height": 256,
-    // "big_emoji_outline": true
+    // "big_emoji_outline": true,
+    // "always_show_scheduled": false
 }

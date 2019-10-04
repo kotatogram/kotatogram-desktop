@@ -167,6 +167,11 @@ bool Manager::readCustomFile() {
 	if (settingsBigEmojiOutlineIterator != settingsFonts.constEnd() && (*settingsBigEmojiOutlineIterator).isBool()) {
 		cSetBigEmojiOutline((*settingsBigEmojiOutlineIterator).toBool());
 	}
+
+	const auto settingsAlwaysShowScheduledIterator = settings.constFind(qsl("always_show_scheduled"));
+	if (settingsAlwaysShowScheduledIterator != settingsFonts.constEnd() && (*settingsAlwaysShowScheduledIterator).isBool()) {
+		cSetAlwaysShowScheduled((*settingsAlwaysShowScheduledIterator).toBool());
+	}
 	return true;
 }
 
@@ -196,6 +201,7 @@ void Manager::writeDefaultFile() {
 
 	settings.insert(qsl("sticker_height"), cStickerHeight());
 	settings.insert(qsl("big_emoji_outline"), cBigEmojiOutline());
+	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
 
 	auto document = QJsonDocument();
 	document.setObject(settings);

@@ -1971,12 +1971,14 @@ void HistoryWidget::refreshScheduledToggle() {
 		if (_scheduled) {
 			_scheduled.destroy();
 		}
-		_scheduled.create(this, (has ? st::historyScheduledToggle : st::historyScheduledToggleEmpty));
-		_scheduled->show();
-		_scheduled->addClickHandler([=] {
-			controller()->showSection(
-				HistoryView::ScheduledMemento(_history));
-		});
+		if (cAlwaysShowScheduled() || has){
+			_scheduled.create(this, (has ? st::historyScheduledToggle : st::historyScheduledToggleEmpty));
+			_scheduled->show();
+			_scheduled->addClickHandler([=] {
+				controller()->showSection(
+					HistoryView::ScheduledMemento(_history));
+			});
+		}
 	}
 }
 

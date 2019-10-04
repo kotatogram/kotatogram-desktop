@@ -186,3 +186,4 @@ DeclareSetting(QString, MonospaceFont);
 
 DeclareSetting(int, StickerHeight);
 DeclareSetting(bool, BigEmojiOutline);
+DeclareSetting(bool, AlwaysShowScheduled);
