@@ -10,5 +10,6 @@
     // },
     // "sticker_height": 256,
     // "big_emoji_outline": true,
-    // "always_show_scheduled": false
+    // "always_show_scheduled": false,
+    // "show_chat_id": false
 }

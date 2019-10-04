@@ -213,3 +213,4 @@ bool gSemiboldFontIsBold = false;
 int gStickerHeight = 256;
 bool gBigEmojiOutline = true;
 bool gAlwaysShowScheduled = false;
+bool gShowChatId = false;

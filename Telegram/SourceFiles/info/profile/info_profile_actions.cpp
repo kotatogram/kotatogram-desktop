@@ -255,16 +255,18 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		return result;
 	};
 	if (const auto user = _peer->asUser()) {
-		if (user->isBot()) {
-			addInfoOneLine(
-				tr::ktg_profile_bot_id(),
-				IDValue(user),
-				tr::ktg_profile_copy_id(tr::now));
-		} else {
-			addInfoOneLine(
-				tr::ktg_profile_user_id(),
-				IDValue(user),
-				tr::ktg_profile_copy_id(tr::now));
+		if (cShowChatId()) {
+			if (user->isBot()) {
+				addInfoOneLine(
+					tr::ktg_profile_bot_id(),
+					IDValue(user),
+					tr::ktg_profile_copy_id(tr::now));
+			} else {
+				addInfoOneLine(
+					tr::ktg_profile_user_id(),
+					IDValue(user),
+					tr::ktg_profile_copy_id(tr::now));
+			}
 		}
 		
 		if (user->session().supportMode()) {
@@ -295,21 +297,23 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			[=] { window->show(Box(EditContactBox, window, user)); },
 			tracker);
 	} else {
-		if (_peer->isChat()) {
-			addInfoOneLine(
-				tr::ktg_profile_group_id(),
-				IDValue(_peer),
-				tr::ktg_profile_copy_id(tr::now));
-		} else if (_peer->isMegagroup()) {
-			addInfoOneLine(
-				tr::ktg_profile_supergroup_id(),
-				IDValue(_peer),
-				tr::ktg_profile_copy_id(tr::now));
-		} else {
-			addInfoOneLine(
-				tr::ktg_profile_channel_id(),
-				IDValue(_peer),
-				tr::ktg_profile_copy_id(tr::now));
+		if (cShowChatId()) {
+			if (_peer->isChat()) {
+				addInfoOneLine(
+					tr::ktg_profile_group_id(),
+					IDValue(_peer),
+					tr::ktg_profile_copy_id(tr::now));
+			} else if (_peer->isMegagroup()) {
+				addInfoOneLine(
+					tr::ktg_profile_supergroup_id(),
+					IDValue(_peer),
+					tr::ktg_profile_copy_id(tr::now));
+			} else {
+				addInfoOneLine(
+					tr::ktg_profile_channel_id(),
+					IDValue(_peer),
+					tr::ktg_profile_copy_id(tr::now));
+			}
 		}
 
 		auto linkText = LinkValue(

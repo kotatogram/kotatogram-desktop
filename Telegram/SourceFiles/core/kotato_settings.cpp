@@ -172,6 +172,11 @@ bool Manager::readCustomFile() {
 	if (settingsAlwaysShowScheduledIterator != settingsFonts.constEnd() && (*settingsAlwaysShowScheduledIterator).isBool()) {
 		cSetAlwaysShowScheduled((*settingsAlwaysShowScheduledIterator).toBool());
 	}
+
+	const auto settingsShowChatIdIterator = settings.constFind(qsl("show_chat_id"));
+	if (settingsShowChatIdIterator != settingsFonts.constEnd() && (*settingsShowChatIdIterator).isBool()) {
+		cSetShowChatId((*settingsShowChatIdIterator).toBool());
+	}
 	return true;
 }
 
@@ -202,6 +207,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("sticker_height"), cStickerHeight());
 	settings.insert(qsl("big_emoji_outline"), cBigEmojiOutline());
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
+	settings.insert(qsl("show_chat_id"), cShowChatId());
 
 	auto document = QJsonDocument();
 	document.setObject(settings);
