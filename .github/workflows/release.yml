@@ -5,7 +5,163 @@ on:
     branches: dev
 
 jobs:
+  build_windows:
+    name: Windows
+    runs-on: windows-2019
+
+    steps:
+      - name: Clone repo
+        run: git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git tdesktop
+      - name: Set up environment variables
+        run: |
+          echo ::set-env name=VS::call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+          echo ::set-env name=SWITCH_PY::call venv-2\Scripts\activate
+          echo ::add-path::C:\Perl64\bin
+          echo ::add-path::%GITHUB_WORKSPACE%\Libraries\gyp
+      - name: Install tools
+        run: |
+          choco install --no-progress -y nasm yasm jom ninja activeperl cmake msys2
+          mkdir Libraries
+      - name: Replace Python 3 with Python 2
+        run: |
+          py -2 -m pip install virtualenv
+          py -2 -m virtualenv venv-2
+      - name: Range-v3
+        run: |
+          cd Libraries
+          git clone --branch 0.9.1 https://github.com/ericniebler/range-v3 range-v3
+      - name: LZMA
+        run: |
+          cd Libraries
+          %VS%
+          git clone https://github.com/telegramdesktop/lzma.git
+          cd lzma
+          git checkout 8b6296ceeda9287239917a36524e44ef153b9f8e
+          cd C\Util\LzmaLib
+          msbuild LzmaLib.sln /property:Configuration=Debug
+          msbuild LzmaLib.sln /property:Configuration=Release
+      - name: OpenSSL
+        run: |
+          %VS% && cd Libraries
+          git clone https://github.com/openssl/openssl.git
+          cd openssl
+          git checkout OpenSSL_1_0_1-stable
+          call perl Configure no-shared --prefix="C:\Program Files (x86)\OpenSSL" --openssldir="C:\Program Files (x86)\Common Files\SSL" VC-WIN32
+          call ms\do_ms < nul
+          call nmake -f ms\nt.mak < nul
+          call perl Configure no-shared --prefix="C:\Program Files (x86)\OpenSSL" --openssldir="C:\Program Files (x86)\Common Files\SSL" debug-VC-WIN32
+          call ms\do_ms < nul
+          call nmake -f ms\nt.mak < nul
+      - name: Zlib
+        run: |
+          %VS% && cd Libraries
+          git clone https://github.com/telegramdesktop/zlib.git
+          cd zlib
+          git checkout tdesktop
+          git checkout fc222598a177297a18ab272a71d6fa040de5c59e
+          cd contrib\vstudio\vc14
+          msbuild zlibstat.vcxproj /property:Configuration=Debug
+          msbuild zlibstat.vcxproj /property:Configuration=ReleaseWithoutAsm
+      - name: OpenAL Soft
+        run: |
+          %VS% && cd Libraries
+          git clone https://github.com/telegramdesktop/openal-soft.git
+          cd openal-soft
+          git checkout fix_capture
+          cd build
+          cmake -G "Visual Studio 16 2019" -A Win32 -D LIBTYPE:STRING=STATIC -D FORCE_STATIC_VCRT:STRING=ON ..
+          msbuild OpenAL.vcxproj /property:Configuration=Debug
+          msbuild OpenAL.vcxproj /property:Configuration=Release
+      - name: Breakpad
+        run: |
+          %VS%
+          %SWITCH_PY%
+          cd Libraries
+          git clone https://github.com/telegramdesktop/gyp.git
+          cd gyp
+          git checkout tdesktop
+          cd ..
+          git clone https://github.com/google/breakpad
+          cd breakpad
+          git checkout a1dbcdcb43
+          dir ..\..\tdesktop\Telegram\Patches\
+          git apply ..\..\tdesktop\Telegram\Patches\breakpad.diff
+          cd src
+          git clone https://github.com/google/googletest testing
+          cd client\windows
+          call gyp --no-circular-check breakpad_client.gyp --format=ninja
+          cd ..\..
+          ninja -C out/Debug common crash_generation_client exception_handler
+          ninja -C out/Release common crash_generation_client exception_handler
+          cd tools\windows\dump_syms
+          call gyp dump_syms.gyp
+          msbuild dump_syms.vcxproj /property:Configuration=Release
+      - name: Opus
+        run: |
+          %VS% && cd Libraries
+          git clone https://github.com/telegramdesktop/opus.git
+          cd opus
+          git checkout tdesktop
+          git checkout 142ebc568191c170a76f88e2ed166f80c66bfc44
+          cd win32\VS2015
+          msbuild opus.sln /property:Configuration=Debug /property:Platform="Win32"
+          msbuild opus.sln /property:Configuration=Release /property:Platform="Win32"
+      - name: FFmpeg
+        run: |
+          %VS% && cd Libraries
+          git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
+          cd ffmpeg
+          git checkout release/3.4
+          set CHERE_INVOKING=enabled_from_arguments
+          set MSYS2_PATH_TYPE=inherit
+          call c:\tools\msys64\usr\bin\bash --login ../../tdesktop/Telegram/Patches/build_ffmpeg_win.sh
+      - name: Configure Qt 5.6.2
+        run: |
+          %VS% && cd Libraries
+          git clone git://code.qt.io/qt/qt5.git qt5_6_2
+          cd qt5_6_2
+          perl init-repository --module-subset=qtbase,qtimageformats
+          git checkout v5.6.2
+          cd qtimageformats
+          git checkout v5.6.2
+          cd ..\qtbase
+          git checkout v5.6.2
+          git apply ../../../tdesktop/Telegram/Patches/qtbase_5_6_2.diff
+          cd ..
+          configure -debug-and-release -force-debug-info -opensource -confirm-license -static -I "%cd%\..\openssl\inc32" -no-opengl -openssl-linked OPENSSL_LIBS_DEBUG="%cd%\..\openssl\out32.dbg\ssleay32.lib %cd%\..\openssl\out32.dbg\libeay32.lib" OPENSSL_LIBS_RELEASE="%cd%\..\openssl\out32\ssleay32.lib %cd%\..\openssl\out32\libeay32.lib" -mp -nomake examples -nomake tests -platform win32-msvc2015
+      - name: Build Qt 5.6.2
+        run: |
+          %VS% && cd Libraries
+          cd qt5_6_2
+          jom -j4
+          jom -j4 install
+      - name: Build Kotatogram
+        env:
+          GYP_MSVS_OVERRIDE_PATH: 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\'
+          GYP_MSVS_VERSION: 2019
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          TDESKTOP_BUILD_DEFINES: TDESKTOP_DISABLE_CRASH_REPORTS
+        run: |
+          %VS%
+          %SWITCH_PY%
+          cd tdesktop\Telegram
+          call gyp\refresh.bat --api-id %API_ID% --api-hash %API_HASH%
+          msbuild Telegram.sln /nologo /p:Configuration=Release,Platform=Win32
+      - name: Move artifact
+        run: |
+          cd tdesktop\out\Release
+          mkdir artifact
+          ren Telegram.exe Kotatogram.exe
+          move Kotatogram.exe artifact/
+          move Updater.exe artifact/
+      - uses: actions/upload-artifact@master
+        name: Upload artifact
+        with:
+          name: Forkgram
+          path: tdesktop\out\Release\artifact\
   build_linux:
+    name: Linux
     runs-on: ubuntu-16.04
     
     steps:
@@ -23,40 +179,51 @@ jobs:
              sudo add-apt-repository --remove ppa:ubuntu-toolchain-r/test -y && \
              sudo add-apt-repository --remove ppa:george-edison55/cmake-3.x -y
       - name: Clone repo
-        run : git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git tdesktop
-      - name: Make dependencies
-        env:
-          MAKE_THREADS_CNT: -j8
+        run : |
+          git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git tdesktop
+          mkdir Libraries
+      - name: Range-v3
         run: |
-          mkdir Libraries && cd Libraries
+          cd Libraries
           git clone --branch 0.9.1 https://github.com/ericniebler/range-v3
+      - name: Zlib
+        run: |
+          cd Libraries
           git clone https://github.com/telegramdesktop/zlib.git
           cd zlib
           ./configure
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ..
+      - name: Opus
+        run: |
+          cd Libraries
           git clone https://github.com/xiph/opus
           cd opus
           git checkout v1.3
           ./autogen.sh
           ./configure
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ..
+      - name: libva
+        run: |
+          cd Libraries
           git clone https://github.com/01org/libva.git
           cd libva
           ./autogen.sh --enable-static
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ..
+      - name: libvdpau
+        run: |
+          cd Libraries
           git clone git://anongit.freedesktop.org/vdpau/libvdpau
           cd libvdpau
           git checkout libvdpau-1.2
           ./autogen.sh --enable-static
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ..
+      - name: FFmpeg
+        run: |
+          cd Libraries
           git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
           cd ffmpeg
           git checkout release/3.4
@@ -158,16 +325,20 @@ jobs:
           --enable-demuxer=wav \
           --enable-muxer=ogg \
           --enable-muxer=opus
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ..
+      - name: PortAudio
+        run: |
+          cd Libraries
           git clone https://git.assembla.com/portaudio.git
           cd portaudio
           git checkout 396fe4b669
           ./configure
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ..
+      - name: OpenAL-Soft
+        run: |
+          cd Libraries
           git clone git://repo.or.cz/openal-soft.git
           cd openal-soft
           git checkout openal-soft-1.19.1
@@ -177,23 +348,29 @@ jobs:
           else
           cmake -D LIBTYPE:STRING=STATIC ..
           fi
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ../..
+      - name: OpenSSL
+        run: |
+          cd Libraries
           git clone https://github.com/openssl/openssl
           cd openssl
           git checkout OpenSSL_1_0_2-stable
           ./config
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ..
+      - name: libxkbcommon
+        run: |
+          cd Libraries
           git clone https://github.com/xkbcommon/libxkbcommon.git
           cd libxkbcommon
           git checkout xkbcommon-0.8.4
           ./autogen.sh --disable-x11
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
-          cd ..
+      - name: Qt 5.6.2
+        run: |
+          cd Libraries
           git clone git://code.qt.io/qt/qt5.git qt5_6_2
           cd qt5_6_2
           perl init-repository --module-subset=qtbase,qtimageformats
@@ -207,14 +384,18 @@ jobs:
           git clone https://github.com/telegramdesktop/nimf.git
           cd ../../../..
           ./configure -prefix "/usr/local/tdesktop/Qt-5.6.2" -release -force-debug-info -opensource -confirm-license -qt-zlib -qt-libpng -qt-libjpeg -qt-freetype -qt-harfbuzz -qt-pcre -qt-xcb -qt-xkbcommon-x11 -no-opengl -no-gtkstyle -static -openssl-linked -nomake examples -nomake tests
-          make $MAKE_THREADS_CNT
+          make
           sudo make install
-          cd ..
+      - name: GYP
+        run: |
+          cd Libraries
           git clone https://chromium.googlesource.com/external/gyp
           cd gyp
           git checkout 702ac58e47
           git apply ../../tdesktop/Telegram/Patches/gyp.diff
-          cd ..
+      - name: Breakpad
+        run: |
+          cd Libraries
           git clone https://chromium.googlesource.com/breakpad/breakpad
           cd breakpad
           git checkout bc8fb886
@@ -223,14 +404,13 @@ jobs:
           git checkout a91633d1
           cd ../../..
           ./configure
-          make $MAKE_THREADS_CNT
+          make -j8
           sudo make install
           cd src/tools
           ../../../gyp/gyp  --depth=. --generator-output=.. -Goutput_dir=../out tools.gyp --format=cmake
           cd ../../out/Default
           cmake .
-          make $MAKE_THREADS_CNT dump_syms
-          cd ../../..
+          make -j8 dump_syms
       - name: Build TDesktop
         env:
           API_ID: ${{ secrets.API_ID }}
