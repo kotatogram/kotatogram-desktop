@@ -169,7 +169,9 @@ jobs:
       - name: Install packages
         run: |
              sudo apt-get install software-properties-common -y && \
-             sudo apt-get install git libexif-dev liblzma-dev libz-dev libssl-dev libappindicator-dev libicu-dev libdee-dev libdrm-dev dh-autoreconf autoconf automake build-essential libass-dev libfreetype6-dev libgpac-dev libsdl1.2-dev libtheora-dev libtool libva-dev libvdpau-dev libvorbis-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev libxrender-dev libasound-dev libpulse-dev libxcb-sync0-dev libxcb-randr0-dev libx11-xcb-dev libffi-dev libncurses5-dev pkg-config texi2html zlib1g-dev yasm cmake xutils-dev bison python-xcbgen chrpath -y && \
+             sudo apt-get uninstall libssl-dev && \
+             sudo apt-get install -t xenial/security libssl-dev && \
+             sudo apt-get install git libexif-dev liblzma-dev libz-dev libappindicator-dev libicu-dev libdee-dev libdrm-dev dh-autoreconf autoconf automake build-essential libass-dev libfreetype6-dev libgpac-dev libsdl1.2-dev libtheora-dev libtool libva-dev libvdpau-dev libvorbis-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev libxrender-dev libasound-dev libpulse-dev libxcb-sync0-dev libxcb-randr0-dev libx11-xcb-dev libffi-dev libncurses5-dev pkg-config texi2html zlib1g-dev yasm cmake xutils-dev bison python-xcbgen chrpath -y && \
              sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
              sudo add-apt-repository ppa:george-edison55/cmake-3.x -y && \
              sudo apt-get update && \
@@ -349,6 +351,15 @@ jobs:
           else
           cmake -D LIBTYPE:STRING=STATIC ..
           fi
+          make -j8
+          sudo make install
+      - name: OpenSSL
+        run: |
+          cd Libraries
+          git clone https://github.com/openssl/openssl
+          cd openssl
+          git checkout OpenSSL_1_0_2-stable
+          ./config
           make -j8
           sudo make install
       - name: libxkbcommon
