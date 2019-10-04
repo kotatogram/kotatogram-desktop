@@ -356,7 +356,7 @@ jobs:
           cd Libraries
           git clone https://github.com/openssl/openssl
           cd openssl
-          git checkout OpenSSL_1_0_2-stable
+          git checkout OpenSSL_1_0_1-stable
           ./config
           make -j8
           sudo make install
