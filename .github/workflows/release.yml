@@ -14,7 +14,8 @@ jobs:
         run: git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git tdesktop
       - name: Set up environment variables
         run: |
-          echo ::set-env name=VS::call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+          echo ::set-env name=VS::call ^
+          "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
           echo ::set-env name=SWITCH_PY::call venv-2\Scripts\activate
           echo ::add-path::C:\Perl64\bin
           echo ::add-path::%GITHUB_WORKSPACE%\Libraries\gyp
@@ -45,10 +46,12 @@ jobs:
           git clone https://github.com/openssl/openssl.git
           cd openssl
           git checkout OpenSSL_1_0_1-stable
-          call perl Configure no-shared --prefix="C:\Program Files (x86)\OpenSSL" --openssldir="C:\Program Files (x86)\Common Files\SSL" VC-WIN32
+          call perl Configure no-shared --prefix="C:\Program Files (x86)\OpenSSL" ^
+          --openssldir="C:\Program Files (x86)\Common Files\SSL" VC-WIN32
           call ms\do_ms < nul
           call nmake -f ms\nt.mak < nul
-          call perl Configure no-shared --prefix="C:\Program Files (x86)\OpenSSL" --openssldir="C:\Program Files (x86)\Common Files\SSL" debug-VC-WIN32
+          call perl Configure no-shared --prefix="C:\Program Files (x86)\OpenSSL" ^
+          --openssldir="C:\Program Files (x86)\Common Files\SSL" debug-VC-WIN32
           call ms\do_ms < nul
           call nmake -f ms\nt.mak < nul
       - name: Zlib
@@ -78,26 +81,6 @@ jobs:
           git clone https://github.com/telegramdesktop/gyp.git
           cd gyp
           git checkout tdesktop
-      - name: Breakpad
-        run: |
-          %VS%
-          %SWITCH_PY%
-          cd Libraries
-          git clone https://github.com/google/breakpad
-          cd breakpad
-          git checkout a1dbcdcb43
-          dir ..\..\tdesktop\Telegram\Patches\
-          git apply ..\..\tdesktop\Telegram\Patches\breakpad.diff
-          cd src
-          git clone https://github.com/google/googletest testing
-          cd client\windows
-          call gyp --no-circular-check breakpad_client.gyp --format=ninja
-          cd ..\..
-          ninja -C out/Debug common crash_generation_client exception_handler
-          ninja -C out/Release common crash_generation_client exception_handler
-          cd tools\windows\dump_syms
-          call gyp dump_syms.gyp
-          msbuild dump_syms.vcxproj /property:Configuration=Release
       - name: Opus
         run: |
           %VS% && cd Libraries
@@ -129,7 +112,12 @@ jobs:
           git checkout v5.6.2
           git apply ../../../tdesktop/Telegram/Patches/qtbase_5_6_2.diff
           cd ..
-          configure -debug-and-release -force-debug-info -opensource -confirm-license -static -I "%cd%\..\openssl\inc32" -no-opengl -openssl-linked OPENSSL_LIBS_DEBUG="%cd%\..\openssl\out32.dbg\ssleay32.lib %cd%\..\openssl\out32.dbg\libeay32.lib" OPENSSL_LIBS_RELEASE="%cd%\..\openssl\out32\ssleay32.lib %cd%\..\openssl\out32\libeay32.lib" -mp -nomake examples -nomake tests -platform win32-msvc2015
+          configure -debug-and-release -force-debug-info -opensource -confirm-license ^
+          -static -I "%cd%\..\openssl\inc32" -no-opengl -openssl-linked ^
+          OPENSSL_LIBS_DEBUG="%cd%\..\openssl\out32.dbg\ssleay32.lib ^
+          %cd%\..\openssl\out32.dbg\libeay32.lib" ^
+          OPENSSL_LIBS_RELEASE="%cd%\..\openssl\out32\ssleay32.lib ^
+          %cd%\..\openssl\out32\libeay32.lib" -mp -nomake examples -nomake tests -platform win32-msvc2015
       - name: Build Qt 5.6.2
         run: |
           %VS% && cd Libraries
@@ -378,6 +366,13 @@ jobs:
           ./autogen.sh --disable-x11
           make -j8
           sudo make install
+      - name: GYP
+        run: |
+          cd Libraries
+          git clone https://chromium.googlesource.com/external/gyp
+          cd gyp
+          git checkout 702ac58e47
+          git apply ../../tdesktop/Telegram/Patches/gyp.diff
       - name: Qt 5.6.2
         run: |
           cd Libraries
@@ -393,34 +388,11 @@ jobs:
           git clone https://github.com/telegramdesktop/hime.git
           git clone https://github.com/telegramdesktop/nimf.git
           cd ../../../..
-          ./configure -prefix "/usr/local/tdesktop/Qt-5.6.2" -release -force-debug-info -opensource -confirm-license -qt-zlib -qt-libpng -qt-libjpeg -qt-freetype -qt-harfbuzz -qt-pcre -qt-xcb -qt-xkbcommon-x11 -no-opengl -no-gtkstyle -static -openssl-linked -nomake examples -nomake tests
+          ./configure -prefix "/usr/local/tdesktop/Qt-5.6.2" -release -force-debug-info -opensource \
+          -confirm-license -qt-zlib -qt-libpng -qt-libjpeg -qt-freetype -qt-harfbuzz -qt-pcre -qt-xcb \
+          -qt-xkbcommon-x11 -no-opengl -no-gtkstyle -static -openssl-linked -nomake examples -nomake tests
           make
           sudo make install
-      - name: GYP
-        run: |
-          cd Libraries
-          git clone https://chromium.googlesource.com/external/gyp
-          cd gyp
-          git checkout 702ac58e47
-          git apply ../../tdesktop/Telegram/Patches/gyp.diff
-      - name: Breakpad
-        run: |
-          cd Libraries
-          git clone --recursive https://chromium.googlesource.com/breakpad/breakpad
-          cd breakpad
-          git checkout bc8fb886
-          git clone --recursive https://chromium.googlesource.com/linux-syscall-support src/third_party/lss
-          cd src/third_party/lss
-          git checkout a91633d1
-          cd ../../..
-          ./configure
-          make -j8
-          sudo make install
-          cd src/tools
-          ../../../gyp/gyp  --depth=. --generator-output=.. -Goutput_dir=../out tools.gyp --format=cmake
-          cd ../../out/Default
-          cmake .
-          make -j8 dump_syms
       - name: Build Kotatogram
         env:
           API_ID: ${{ secrets.API_ID }}
