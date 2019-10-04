@@ -20,8 +20,6 @@ maxWallPaperWidth: 160px;
 maxWallPaperHeight: 240px;
 historyThemeSize: size(272px, 176px);
 
-historyStickerHeight: 128px;
-
 historyMinimalWidth: 380px;
 
 historyScroll: ScrollArea(defaultScrollArea) {

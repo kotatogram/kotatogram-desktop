@@ -209,3 +209,5 @@ rpl::producer<> UpdatedRecentEmoji() {
 
 QString gMainFont, gSemiboldFont, gMonospaceFont;
 bool gSemiboldFontIsBold = false;
+
+int gStickerHeight = 256;

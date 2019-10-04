@@ -154,6 +154,14 @@ bool Manager::readCustomFile() {
 			cSetMonospaceFont((*settingsFontsMonospace).toString());
 		}
 	}
+
+	const auto settingsStickerHeightIterator = settings.constFind(qsl("sticker_height"));
+	if (settingsStickerHeightIterator != settingsFonts.constEnd()) {
+		const auto settingsStickerHeight = (*settingsStickerHeightIterator).toInt();
+		if (settingsStickerHeight > 0) {
+			cSetStickerHeight(settingsStickerHeight);
+		}
+	}
 	return true;
 }
 
@@ -180,6 +188,8 @@ void Manager::writeDefaultFile() {
 	settingsFonts.insert(qsl("monospaced"), qsl("Consolas"));
 
 	settings.insert(qsl("fonts"), settingsFonts);
+
+	settings.insert(qsl("sticker_height"), cStickerHeight());
 
 	auto document = QJsonDocument();
 	document.setObject(settings);

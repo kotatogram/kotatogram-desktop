@@ -183,3 +183,12 @@ DeclareSetting(QString, MainFont);
 DeclareSetting(QString, SemiboldFont);
 DeclareSetting(bool, SemiboldFontIsBold);
 DeclareSetting(QString, MonospaceFont);
+
+inline int cSetStickerHeight(int height) {
+	gStickerHeight = (height > 256) ? 256 : (height < 128) ? 128 : height;
+}
+
+inline int cStickerHeight() {
+	return gStickerHeight;
+}
+

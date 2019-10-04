@@ -2,10 +2,11 @@
 // You can see full list of settings in the 'kotato-settings-default.json' file
 
 {
-	// "fonts": {
-	//	   "main": "Open Sans",
-	//	   "semibold": "Open Sans Semibold",
-	//	   "semibold_is_bold": false,
-	//	   "monospaced": "Consolas"
-	// }
+    // "fonts": {
+    //     "main": "Open Sans",
+    //     "semibold": "Open Sans Semibold",
+    //     "semibold_is_bold": false,
+    //     "monospaced": "Consolas"
+    // },
+    // "sticker_height": 256
 }
