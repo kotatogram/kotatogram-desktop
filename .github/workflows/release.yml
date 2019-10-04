@@ -28,7 +28,7 @@ jobs:
         env:
           MAKE_THREADS_CNT: -j8
         run: |
-          mkdir Libraries & &cd Libraries
+          mkdir Libraries && cd Libraries
           git clone --branch 0.9.1 https://github.com/ericniebler/range-v3
           git clone https://github.com/telegramdesktop/zlib.git
           cd zlib
