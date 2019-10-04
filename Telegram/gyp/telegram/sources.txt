@@ -157,6 +157,8 @@
 <(src_loc)/core/event_filter.h
 <(src_loc)/core/file_utilities.cpp
 <(src_loc)/core/file_utilities.h
+<(src_loc)/core/kotato_settings.cpp
+<(src_loc)/core/kotato_settings.h
 <(src_loc)/core/launcher.cpp
 <(src_loc)/core/launcher.h
 <(src_loc)/core/local_url_handlers.cpp

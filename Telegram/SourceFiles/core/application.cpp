@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/sandbox.h"
 #include "core/local_url_handlers.h"
 #include "core/launcher.h"
+#include "core/kotato_settings.h"
 #include "core/core_ui_integration.h"
 #include "chat_helpers/emoji_keywords.h"
 #include "storage/localstorage.h"
@@ -157,10 +158,12 @@ Application::~Application() {
 	Global::finish();
 	ThirdParty::finish();
 
+	KotatoSettings::Finish();
 	Instance = nullptr;
 }
 
 void Application::run() {
+	KotatoSettings::Start();
 	if (!cMainFont().isEmpty()) {
 		style::internal::SetMainFont(cMainFont());
 	}

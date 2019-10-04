@@ -1,0 +1,11 @@
+// This is a list of your own settings for Kotatogram Desktop
+// You can see full list of settings in the 'kotato-settings-default.json' file
+
+{
+	// "fonts": {
+	//	   "main": "Open Sans",
+	//	   "semibold": "Open Sans Semibold",
+	//	   "semibold_is_bold": false,
+	//	   "monospaced": "Consolas"
+	// }
+}
