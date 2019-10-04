@@ -380,7 +380,7 @@ int main(int argc, char *argv[]) {
 		} else if (equal(argv[i], "-semiboldisbold")) {
 			semiboldIsBold = true;
 		} else if (equal(argv[i], "-monospacefont") && ++i < argc) {
-			mainFont = argv[i];
+			monospacedFont = argv[i];
 		}
 	}
 	if (exeName.empty() || exeName.find('/') != string::npos) {
