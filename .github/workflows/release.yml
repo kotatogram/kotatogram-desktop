@@ -351,15 +351,6 @@ jobs:
           fi
           make -j8
           sudo make install
-      - name: OpenSSL
-        run: |
-          cd Libraries
-          git clone https://github.com/openssl/openssl
-          cd openssl
-          git checkout OpenSSL_1_0_1-stable
-          ./config
-          make -j8
-          sudo make install
       - name: libxkbcommon
         run: |
           cd Libraries
