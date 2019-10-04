@@ -210,7 +210,7 @@ rpl::producer<> UpdatedRecentEmoji() {
 QString gMainFont, gSemiboldFont, gMonospaceFont;
 bool gSemiboldFontIsBold = false;
 
-int gStickerHeight = 256;
-bool gBigEmojiOutline = true;
-bool gAlwaysShowScheduled = false;
-bool gShowChatId = false;
+int gStickerHeight = 128;
+bool gBigEmojiOutline = false;
+bool gAlwaysShowScheduled = true;
+bool gShowChatId = true;
