@@ -11,7 +11,10 @@ jobs:
 
     steps:
       - name: Clone repo
-        run: git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git tdesktop
+        run: |
+          git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git tdesktop
+          cd tdesktop
+          git checkout master
       - name: Set up environment variables
         run: |
           echo ::set-env name=VS::call ^
@@ -198,6 +201,9 @@ jobs:
       - name: Clone repo
         run : |
           git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git tdesktop
+          cd tdesktop
+          git checkout master
+          cd ..
           mkdir Libraries
       - name: Range-v3
         run: |
