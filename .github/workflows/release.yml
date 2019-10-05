@@ -81,6 +81,26 @@ jobs:
           git clone https://github.com/telegramdesktop/gyp.git
           cd gyp
           git checkout tdesktop
+      - name: Breakpad
+        run: |
+          %VS%
+          %SWITCH_PY%
+          cd Libraries
+          git clone https://github.com/google/breakpad
+          cd breakpad
+          git checkout a1dbcdcb43
+          dir ..\..\tdesktop\Telegram\Patches\
+          git apply ..\..\tdesktop\Telegram\Patches\breakpad.diff
+          cd src
+          git clone https://github.com/google/googletest testing
+          cd client\windows
+          call gyp --no-circular-check breakpad_client.gyp --format=ninja
+          cd ..\..
+          ninja -C out/Debug common crash_generation_client exception_handler
+          ninja -C out/Release common crash_generation_client exception_handler
+          cd tools\windows\dump_syms
+          call gyp dump_syms.gyp
+          msbuild dump_syms.vcxproj /property:Configuration=Release
       - name: Opus
         run: |
           %VS% && cd Libraries
@@ -372,6 +392,24 @@ jobs:
           cd gyp
           git checkout 702ac58e47
           git apply ../../tdesktop/Telegram/Patches/gyp.diff
+      - name: Breakpad
+        run: |
+          cd Libraries
+          git clone https://chromium.googlesource.com/breakpad/breakpad
+          cd breakpad
+          git checkout bc8fb886
+          git clone https://chromium.googlesource.com/linux-syscall-support src/third_party/lss
+          cd src/third_party/lss
+          git checkout a91633d1
+          cd ../../..
+          ./configure
+          make -j8
+          sudo make install
+          cd src/tools
+          ../../../gyp/gyp  --depth=. --generator-output=.. -Goutput_dir=../out tools.gyp --format=cmake
+          cd ../../out/Default
+          cmake .
+          make -j8 dump_syms
       - name: Qt 5.6.2
         run: |
           cd Libraries

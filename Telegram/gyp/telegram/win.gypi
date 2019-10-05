@@ -41,6 +41,7 @@
           '<(libs_loc)/opus/win32/VS2015/Win32/Debug',
           '<(libs_loc)/openal-soft/build/Debug',
           '<(libs_loc)/zlib/contrib/vstudio/vc14/x86/ZlibStatDebug',
+          '<(libs_loc)/breakpad/src/out/Debug/obj/client',
         ],
       },
       'Release': {
@@ -49,6 +50,7 @@
           '<(libs_loc)/opus/win32/VS2015/Win32/Release',
           '<(libs_loc)/openal-soft/build/Release',
           '<(libs_loc)/zlib/contrib/vstudio/vc14/x86/ZlibStatReleaseWithoutAsm',
+          '<(libs_loc)/breakpad/src/out/Release/obj/client',
         ],
       },
     },
