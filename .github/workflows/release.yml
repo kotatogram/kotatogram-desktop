@@ -2,7 +2,7 @@ name: Release build
 
 on:
   push:
-    branches: dev
+    branches: master
 
 jobs:
   build_windows:
