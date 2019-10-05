@@ -114,10 +114,9 @@ jobs:
           cd ..
           configure -debug-and-release -force-debug-info -opensource -confirm-license ^
           -static -I "%cd%\..\openssl\inc32" -no-opengl -openssl-linked ^
-          OPENSSL_LIBS_DEBUG="%cd%\..\openssl\out32.dbg\ssleay32.lib ^
-          %cd%\..\openssl\out32.dbg\libeay32.lib" ^
-          OPENSSL_LIBS_RELEASE="%cd%\..\openssl\out32\ssleay32.lib ^
-          %cd%\..\openssl\out32\libeay32.lib" -mp -nomake examples -nomake tests -platform win32-msvc2015
+          OPENSSL_LIBS_DEBUG="%cd%\..\openssl\out32.dbg\ssleay32.lib %cd%\..\openssl\out32.dbg\libeay32.lib" ^
+          OPENSSL_LIBS_RELEASE="%cd%\..\openssl\out32\ssleay32.lib %cd%\..\openssl\out32\libeay32.lib" ^
+          -mp -nomake examples -nomake tests -platform win32-msvc2015
       - name: Build Qt 5.6.2
         run: |
           %VS% && cd Libraries
