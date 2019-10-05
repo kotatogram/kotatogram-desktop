@@ -97,7 +97,6 @@
     'include_dirs': [
       '<(src_loc)',
       '<(SHARED_INTERMEDIATE_DIR)',
-      '<(libs_loc)/breakpad/src',
       '<(libs_loc)/lzma/C',
       '<(libs_loc)/zlib',
       '<(libs_loc)/ffmpeg',

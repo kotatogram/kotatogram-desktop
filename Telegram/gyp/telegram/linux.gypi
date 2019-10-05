@@ -20,7 +20,6 @@
       ],
     },
     'libraries': [
-      '-lbreakpad_client',
       '-lcomposeplatforminputcontextplugin',
       '-libusplatforminputcontextplugin',
       '-lfcitxplatforminputcontextplugin',
