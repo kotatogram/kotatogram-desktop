@@ -2245,4 +2245,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_restricted_send_inline_until" = "The admins of this group restricted you from posting inline content here until {date}, {time}.";
 "ktg_restricted_send_polls_until" = "The admins of this group restricted you from posting polls here until {date}, {time}.";
 
+"ktg_settings_show_json_settings" = "Show custom settings";
+"ktg_settings_restart" = "Restart Kotatogram";
+
 // Keys finished

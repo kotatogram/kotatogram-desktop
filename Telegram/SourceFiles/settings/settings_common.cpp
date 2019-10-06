@@ -23,7 +23,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "lang/lang_keys.h"
+#include "core/file_utilities.h"
 #include "mainwindow.h"
+#include "app.h"
 #include "main/main_session.h"
 #include "styles/style_boxes.h"
 #include "styles/style_settings.h"
@@ -183,11 +185,18 @@ void FillMenu(
 			tr::lng_settings_bg_theme_create(tr::now),
 			[=] { window->show(Box(Window::Theme::CreateBox, window)); });
 	} else {
+		const auto customSettingsFile = cWorkingDir() + "tdata/kotato-settings-custom.json";
 		if (!controller->session().supportMode()) {
 			addAction(
 				tr::lng_settings_information(tr::now),
 				[=] { showOther(Type::Information); });
 		}
+		addAction(
+			tr::ktg_settings_show_json_settings(tr::now),
+			[=] { File::ShowInFolder(customSettingsFile); });
+		addAction(
+			tr::ktg_settings_restart(tr::now),
+			[=] { App::restart(); });
 		addAction(
 			tr::lng_settings_logout(tr::now),
 			[=] { window->widget()->onLogout(); });
