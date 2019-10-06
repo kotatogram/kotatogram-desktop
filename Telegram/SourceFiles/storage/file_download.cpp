@@ -55,7 +55,7 @@ void Downloader::clearPriorities() {
 }
 
 void Downloader::requestedAmountIncrement(MTP::DcId dcId, int index, int amount) {
-	Expects(index >= 0 && index < MTP::kDownloadSessionsCount);
+	Expects(index >= 0 && index < cNetDownloadSessionsCount());
 
 	using namespace rpl::mappers;
 
@@ -95,7 +95,7 @@ void Downloader::killDownloadSessions() {
 	auto ms = crl::now(), left = MTP::kAckSendWaiting + kKillSessionTimeout;
 	for (auto i = _killDownloadSessionTimes.begin(); i != _killDownloadSessionTimes.end(); ) {
 		if (i->second <= ms) {
-			for (int j = 0; j < MTP::kDownloadSessionsCount; ++j) {
+			for (int j = 0; j < cNetDownloadSessionsCount(); ++j) {
 				MTP::stopSession(MTP::downloadDcId(i->first, j));
 			}
 			i = _killDownloadSessionTimes.erase(i);
@@ -115,7 +115,7 @@ int Downloader::chooseDcIndexForRequest(MTP::DcId dcId) const {
 	auto result = 0;
 	auto it = _requestedBytesAmount.find(dcId);
 	if (it != _requestedBytesAmount.cend()) {
-		for (auto i = 1; i != MTP::kDownloadSessionsCount; ++i) {
+		for (auto i = 1; i != cNetDownloadSessionsCount(); ++i) {
 			if (it->second[i] < it->second[result]) {
 				result = i;
 			}
@@ -128,7 +128,7 @@ not_null<Downloader::Queue*> Downloader::queueForDc(MTP::DcId dcId) {
 	const auto i = _queuesForDc.find(dcId);
 	const auto result = (i != end(_queuesForDc))
 		? i
-		: _queuesForDc.emplace(dcId, Queue(kMaxFileQueries)).first;
+		: _queuesForDc.emplace(dcId, Queue(cNetMaxFileQueries())).first;
 	return &result->second;
 }
 

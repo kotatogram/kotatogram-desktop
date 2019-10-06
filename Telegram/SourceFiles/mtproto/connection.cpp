@@ -1273,9 +1273,9 @@ void ConnectionPrivate::onSentSome(uint64 size) {
 			}
 		}
 		if (isUploadDcId(_shiftedDcId)) {
-			remain *= kUploadSessionsCount;
+			remain *= cNetUploadSessionsCount();
 		} else if (isDownloadDcId(_shiftedDcId)) {
-			remain *= kDownloadSessionsCount;
+			remain *= cNetDownloadSessionsCount();
 		}
 		_waitForReceivedTimer.callOnce(remain);
 	}

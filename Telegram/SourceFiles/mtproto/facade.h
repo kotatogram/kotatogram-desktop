@@ -37,10 +37,13 @@ constexpr ShiftedDcId updaterDcId(DcId dcId) {
 constexpr auto kDownloadSessionsCount = 2;
 constexpr auto kUploadSessionsCount = 2;
 
+constexpr auto kDownloadSessionsCountMax = 8;
+constexpr auto kUploadSessionsCountMax = 8;
+
 namespace internal {
 
 constexpr ShiftedDcId downloadDcId(DcId dcId, int index) {
-	static_assert(kDownloadSessionsCount < kMaxMediaDcCount, "Too large MTPDownloadSessionsCount!");
+	static_assert(kDownloadSessionsCountMax < kMaxMediaDcCount, "Too large MTPDownloadSessionsCount!");
 	return ShiftDcId(dcId, kBaseDownloadDcShift + index);
 };
 
@@ -48,12 +51,12 @@ constexpr ShiftedDcId downloadDcId(DcId dcId, int index) {
 
 // send(req, callbacks, MTP::downloadDcId(dc, index)) - for download shifted dc id
 inline ShiftedDcId downloadDcId(DcId dcId, int index) {
-	Expects(index >= 0 && index < kDownloadSessionsCount);
+	Expects(index >= 0 && index < cNetDownloadSessionsCount());
 	return internal::downloadDcId(dcId, index);
 }
 
 inline constexpr bool isDownloadDcId(ShiftedDcId shiftedDcId) {
-	return (shiftedDcId >= internal::downloadDcId(0, 0)) && (shiftedDcId < internal::downloadDcId(0, kDownloadSessionsCount - 1) + kDcShift);
+	return (shiftedDcId >= internal::downloadDcId(0, 0)) && (shiftedDcId < internal::downloadDcId(0, kDownloadSessionsCountMax - 1) + kDcShift);
 }
 
 inline bool isCdnDc(MTPDdcOption::Flags flags) {
@@ -78,7 +81,7 @@ inline DcId getTemporaryIdFromRealDcId(ShiftedDcId shiftedDcId) {
 namespace internal {
 
 constexpr ShiftedDcId uploadDcId(DcId dcId, int index) {
-	static_assert(kUploadSessionsCount < kMaxMediaDcCount, "Too large MTPUploadSessionsCount!");
+	static_assert(kUploadSessionsCountMax < kMaxMediaDcCount, "Too large MTPUploadSessionsCount!");
 	return ShiftDcId(dcId, kBaseUploadDcShift + index);
 };
 
@@ -87,13 +90,13 @@ constexpr ShiftedDcId uploadDcId(DcId dcId, int index) {
 // send(req, callbacks, MTP::uploadDcId(index)) - for upload shifted dc id
 // uploading always to the main dc so BareDcId(result) == 0
 inline ShiftedDcId uploadDcId(int index) {
-	Expects(index >= 0 && index < kUploadSessionsCount);
+	Expects(index >= 0 && index < cNetUploadSessionsCount());
 
 	return internal::uploadDcId(0, index);
 };
 
 constexpr bool isUploadDcId(ShiftedDcId shiftedDcId) {
-	return (shiftedDcId >= internal::uploadDcId(0, 0)) && (shiftedDcId < internal::uploadDcId(0, kUploadSessionsCount - 1) + kDcShift);
+	return (shiftedDcId >= internal::uploadDcId(0, 0)) && (shiftedDcId < internal::uploadDcId(0, kUploadSessionsCountMax - 1) + kDcShift);
 }
 
 inline ShiftedDcId destroyKeyNextDcId(ShiftedDcId shiftedDcId) {

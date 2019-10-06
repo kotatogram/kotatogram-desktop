@@ -188,3 +188,9 @@ DeclareSetting(int, StickerHeight);
 DeclareSetting(bool, BigEmojiOutline);
 DeclareSetting(bool, AlwaysShowScheduled);
 DeclareSetting(bool, ShowChatId);
+
+DeclareSetting(int, NetRequestsCount);
+DeclareSetting(int, NetDownloadSessionsCount);
+DeclareSetting(int, NetUploadSessionsCount);
+DeclareSetting(int, NetMaxFileQueries);
+DeclareSetting(int, NetUploadRequestInterval);

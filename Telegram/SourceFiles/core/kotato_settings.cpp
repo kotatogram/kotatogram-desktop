@@ -17,6 +17,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
+#include <QtCore/QJsonValue>
 
 namespace KotatoSettings {
 namespace {
@@ -177,6 +178,46 @@ bool Manager::readCustomFile() {
 	if (settingsShowChatIdIterator != settings.constEnd() && (*settingsShowChatIdIterator).isBool()) {
 		cSetShowChatId((*settingsShowChatIdIterator).toBool());
 	}
+
+	const auto settingsNetSpeedIterator = settings.constFind(qsl("net_speed_boost"));
+	if (settingsNetSpeedIterator != settings.constEnd()) { 
+		if ((*settingsNetSpeedIterator).isString()) {
+			
+			const auto option = (*settingsNetSpeedIterator).toString();
+			if (option == "high") {
+				cSetNetRequestsCount(8);
+				cSetNetDownloadSessionsCount(8);
+				cSetNetUploadSessionsCount(8);
+				cSetNetMaxFileQueries(64);
+				cSetNetUploadRequestInterval(200);
+			} else if (option == "medium") {
+				cSetNetRequestsCount(6);
+				cSetNetDownloadSessionsCount(6);
+				cSetNetUploadSessionsCount(6);
+				cSetNetMaxFileQueries(48);
+				cSetNetUploadRequestInterval(300);
+			} else if (option == "low") {
+				cSetNetRequestsCount(4);
+				cSetNetDownloadSessionsCount(4);
+				cSetNetUploadSessionsCount(4);
+				cSetNetMaxFileQueries(32);
+				cSetNetUploadRequestInterval(400);
+			} else {
+				cSetNetRequestsCount(2);
+				cSetNetDownloadSessionsCount(2);
+				cSetNetUploadSessionsCount(2);
+				cSetNetMaxFileQueries(16);
+				cSetNetUploadRequestInterval(500);
+			}
+
+		} else if ((*settingsNetSpeedIterator).isNull()) {
+			cSetNetRequestsCount(2);
+			cSetNetDownloadSessionsCount(2);
+			cSetNetUploadSessionsCount(2);
+			cSetNetMaxFileQueries(16);
+			cSetNetUploadRequestInterval(500);
+		}
+	}
 	return true;
 }
 
@@ -208,6 +249,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("big_emoji_outline"), cBigEmojiOutline());
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
 	settings.insert(qsl("show_chat_id"), cShowChatId());
+	settings.insert(qsl("net_speed_boost"), QJsonValue(QJsonValue::Null));
 
 	auto document = QJsonDocument();
 	document.setObject(settings);

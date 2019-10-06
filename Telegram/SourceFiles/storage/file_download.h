@@ -77,7 +77,7 @@ private:
 	base::Observable<void> _taskFinishedObservable;
 	int _priority = 1;
 
-	using RequestedInDc = std::array<int64, MTP::kDownloadSessionsCount>;
+	using RequestedInDc = std::array<int64, MTP::kDownloadSessionsCountMax>;
 	std::map<MTP::DcId, RequestedInDc> _requestedBytesAmount;
 
 	base::flat_map<MTP::DcId, crl::time> _killDownloadSessionTimes;

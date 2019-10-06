@@ -214,3 +214,9 @@ int gStickerHeight = 128;
 bool gBigEmojiOutline = false;
 bool gAlwaysShowScheduled = true;
 bool gShowChatId = true;
+
+int gNetRequestsCount = 2;
+int gNetDownloadSessionsCount = 2;
+int gNetUploadSessionsCount = 2;
+int gNetMaxFileQueries = 16;
+int gNetUploadRequestInterval = 500;
