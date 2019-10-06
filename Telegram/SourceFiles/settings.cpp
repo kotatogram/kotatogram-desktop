@@ -220,3 +220,5 @@ int gNetDownloadSessionsCount = 2;
 int gNetUploadSessionsCount = 2;
 int gNetMaxFileQueries = 16;
 int gNetUploadRequestInterval = 500;
+
+bool gShowPhoneInDrawer = true;

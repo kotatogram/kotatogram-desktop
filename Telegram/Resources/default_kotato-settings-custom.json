@@ -11,5 +11,7 @@
     // "sticker_height": 128,
     // "big_emoji_outline": false,
     // "always_show_scheduled": true,
-    // "show_chat_id": true
+    // "show_chat_id": true,
+    // "net_speed_boost": null,
+    // "show_phone_in_drawer": true
 }

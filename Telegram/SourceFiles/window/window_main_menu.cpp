@@ -419,14 +419,25 @@ void MainMenu::paintEvent(QPaintEvent *e) {
 		}
 		p.setPen(st::mainMenuCoverFg);
 		p.setFont(st::semiboldFont);
-		_controller->session().user()->nameText().drawLeftElided(
-			p,
-			st::mainMenuCoverTextLeft,
-			st::mainMenuCoverNameTop,
-			widthText,
-			width());
-		p.setFont(st::normalFont);
-		p.drawTextLeft(st::mainMenuCoverTextLeft, st::mainMenuCoverStatusTop, width(), _phoneText);
+		if (cShowPhoneInDrawer()) {
+			_controller->session().user()->nameText().drawLeftElided(
+				p,
+				st::mainMenuCoverTextLeft,
+				st::mainMenuCoverNameTop,
+				widthText,
+				width());
+			p.setFont(st::normalFont);
+			p.drawTextLeft(st::mainMenuCoverTextLeft, st::mainMenuCoverStatusTop, width(), _phoneText);
+		} else {
+			const auto diff = st::mainMenuCoverStatusTop - st::mainMenuCoverNameTop;
+			_controller->session().user()->nameText().drawLeftElided(
+				p,
+				st::mainMenuCoverTextLeft,
+				st::mainMenuCoverNameTop + (diff / 2),
+				widthText,
+				width());
+			
+		}
 		if (_cloudButton) {
 			Ui::EmptyUserpic::PaintSavedMessages(
 				p,

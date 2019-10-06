@@ -194,3 +194,5 @@ DeclareSetting(int, NetDownloadSessionsCount);
 DeclareSetting(int, NetUploadSessionsCount);
 DeclareSetting(int, NetMaxFileQueries);
 DeclareSetting(int, NetUploadRequestInterval);
+
+DeclareSetting(bool, ShowPhoneInDrawer);

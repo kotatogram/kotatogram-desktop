@@ -218,6 +218,11 @@ bool Manager::readCustomFile() {
 			cSetNetUploadRequestInterval(500);
 		}
 	}
+
+	const auto settingsShowDrawerPhoneIt = settings.constFind(qsl("show_phone_in_drawer"));
+	if (settingsShowDrawerPhoneIt != settings.constEnd() && (*settingsShowDrawerPhoneIt).isBool()) {
+		cSetShowPhoneInDrawer((*settingsShowDrawerPhoneIt).toBool());
+	}
 	return true;
 }
 
@@ -250,6 +255,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
 	settings.insert(qsl("show_chat_id"), cShowChatId());
 	settings.insert(qsl("net_speed_boost"), QJsonValue(QJsonValue::Null));
+	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
 
 	auto document = QJsonDocument();
 	document.setObject(settings);
