@@ -1,3 +1,11 @@
+1.0.7 beta (7.10.2019)
+- JSON locale rewrites.
+- Russian language support for fork strings.
+- Show custom settings and restart app from settings' three-dots menu.
+- Show custom admin titles in member list.
+- Option to enable network speed boost. Warning: can work bad with low connection speeds.
+- Fixed "Channel is unaccessible" when clicking on linked channel from message.
+
 1.0.6 (5.10.2019)
 - JSON configuration.
 
