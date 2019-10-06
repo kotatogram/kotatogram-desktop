@@ -130,10 +130,10 @@ bool Manager::readCustomFile() {
 		return true;
 	}
 
-	const auto settingsFontsIterator = settings.constFind(qsl("fonts"));
+	const auto settingsFontsIt = settings.constFind(qsl("fonts"));
 
-	if (settingsFontsIterator != settings.constEnd() && (*settingsFontsIterator).isObject()) {
-		const auto settingsFonts = (*settingsFontsIterator).toObject();
+	if (settingsFontsIt != settings.constEnd() && (*settingsFontsIt).isObject()) {
+		const auto settingsFonts = (*settingsFontsIt).toObject();
 
 		const auto settingsFontsMain = settingsFonts.constFind(qsl("main"));
 		if (settingsFontsMain != settingsFonts.constEnd() && (*settingsFontsMain).isString()) {
@@ -156,34 +156,34 @@ bool Manager::readCustomFile() {
 		}
 	}
 
-	const auto settingsStickerHeightIterator = settings.constFind(qsl("sticker_height"));
-	if (settingsStickerHeightIterator != settings.constEnd()) {
-		const auto settingsStickerHeight = (*settingsStickerHeightIterator).toInt();
+	const auto settingsStickerHeightIt = settings.constFind(qsl("sticker_height"));
+	if (settingsStickerHeightIt != settings.constEnd()) {
+		const auto settingsStickerHeight = (*settingsStickerHeightIt).toInt();
 		if (settingsStickerHeight >= 128 || settingsStickerHeight <= 256) {
 			cSetStickerHeight(settingsStickerHeight);
 		}
 	}
 
-	const auto settingsBigEmojiOutlineIterator = settings.constFind(qsl("big_emoji_outline"));
-	if (settingsBigEmojiOutlineIterator != settings.constEnd() && (*settingsBigEmojiOutlineIterator).isBool()) {
-		cSetBigEmojiOutline((*settingsBigEmojiOutlineIterator).toBool());
+	const auto settingsBigEmojiOutlineIt = settings.constFind(qsl("big_emoji_outline"));
+	if (settingsBigEmojiOutlineIt != settings.constEnd() && (*settingsBigEmojiOutlineIt).isBool()) {
+		cSetBigEmojiOutline((*settingsBigEmojiOutlineIt).toBool());
 	}
 
-	const auto settingsAlwaysShowScheduledIterator = settings.constFind(qsl("always_show_scheduled"));
-	if (settingsAlwaysShowScheduledIterator != settings.constEnd() && (*settingsAlwaysShowScheduledIterator).isBool()) {
-		cSetAlwaysShowScheduled((*settingsAlwaysShowScheduledIterator).toBool());
+	const auto settingsAlwaysShowScheduledIt = settings.constFind(qsl("always_show_scheduled"));
+	if (settingsAlwaysShowScheduledIt != settings.constEnd() && (*settingsAlwaysShowScheduledIt).isBool()) {
+		cSetAlwaysShowScheduled((*settingsAlwaysShowScheduledIt).toBool());
 	}
 
-	const auto settingsShowChatIdIterator = settings.constFind(qsl("show_chat_id"));
-	if (settingsShowChatIdIterator != settings.constEnd() && (*settingsShowChatIdIterator).isBool()) {
-		cSetShowChatId((*settingsShowChatIdIterator).toBool());
+	const auto settingsShowChatIdIt = settings.constFind(qsl("show_chat_id"));
+	if (settingsShowChatIdIt != settings.constEnd() && (*settingsShowChatIdIt).isBool()) {
+		cSetShowChatId((*settingsShowChatIdIt).toBool());
 	}
 
-	const auto settingsNetSpeedIterator = settings.constFind(qsl("net_speed_boost"));
-	if (settingsNetSpeedIterator != settings.constEnd()) { 
-		if ((*settingsNetSpeedIterator).isString()) {
+	const auto settingsNetSpeedIt = settings.constFind(qsl("net_speed_boost"));
+	if (settingsNetSpeedIt != settings.constEnd()) { 
+		if ((*settingsNetSpeedIt).isString()) {
 			
-			const auto option = (*settingsNetSpeedIterator).toString();
+			const auto option = (*settingsNetSpeedIt).toString();
 			if (option == "high") {
 				cSetNetRequestsCount(8);
 				cSetNetDownloadSessionsCount(8);
@@ -210,7 +210,7 @@ bool Manager::readCustomFile() {
 				cSetNetUploadRequestInterval(500);
 			}
 
-		} else if ((*settingsNetSpeedIterator).isNull()) {
+		} else if ((*settingsNetSpeedIt).isNull()) {
 			cSetNetRequestsCount(2);
 			cSetNetDownloadSessionsCount(2);
 			cSetNetUploadSessionsCount(2);
