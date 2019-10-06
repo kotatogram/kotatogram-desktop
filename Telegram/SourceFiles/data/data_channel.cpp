@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_folder.h"
 #include "data/data_location.h"
+#include "lang/lang_keys.h"
 #include "base/unixtime.h"
 #include "history/history.h"
 #include "observer_peer.h"

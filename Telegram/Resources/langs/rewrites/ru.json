@@ -1,0 +1,92 @@
+// This file is used to override translation in Kotatogram.
+// Please note that changes here won't be saved, because
+// this file is bundled into application.
+// Suggest any new translations or edits for existing here:
+// https://github.com/kotatogram/kotatogram-desktop/issues
+
+[
+	{
+		"key": "ktg_intro_about",
+		"value": "Добро пожаловать в неофициальный мессенджер\nна основе Telegram Desktop."
+	},
+	{
+		"key": "ktg_about_text1",
+		"value": "Экспериментальный неофициальный форк {tdesktop_link}."
+	},
+	{
+		"key": "ktg_about_text3",
+		"value": "Посетите {channel_link} или {faq_link} (англ.), чтобы узнать больше."
+	},
+	{
+		"key": "ktg_about_text3_channel",
+		"value": "канал Kotatogram"
+	},
+	{
+		"key": "ktg_copy_btn_callback",
+		"value": "Копировать callback-данные"
+	},
+	{
+		"key": "ktg_profile_copy_id",
+		"value": "Копировать ID"
+	},
+	{
+		"key": "ktg_profile_bot_id",
+		"value": "ID бота"
+	},
+	{
+		"key": "ktg_profile_user_id",
+		"value": "ID пользователя"
+	},
+	{
+		"key": "ktg_profile_group_id",
+		"value": "ID группы"
+	},
+	{
+		"key": "ktg_profile_supergroup_id",
+		"value": "ID супергруппы"
+	},
+	{
+		"key": "ktg_profile_channel_id",
+		"value": "ID канала"
+	},
+	{
+		"key": "ktg_pinned_message_show",
+		"value": "Показать закреплённое сообщение"
+	},
+	{
+		"key": "ktg_pinned_message_hide",
+		"value": "Скрыть закреплённое сообщение"
+	},
+	{
+		"key": "ktg_restricted_send_message_until",
+		"value": "Администраторы группы запретили вам писать в ней до {date}, {time}."
+	},
+	{
+		"key": "ktg_restricted_send_media_until",
+		"value": "Администраторы группы запретили вам публиковать здесь фото и видео до {date}, {time}."
+	},
+	{
+		"key": "ktg_restricted_send_stickers_until",
+		"value": "Администраторы группы запретили вам публиковать здесь стикеры до {date}, {time}."
+	},
+	{
+		"key": "ktg_restricted_send_gifs_until",
+		"value": "Администраторы группы запретили вам отправлять в нее файлы GIF до {date}, {time}."
+	},
+	{
+		"key": "ktg_restricted_send_inline_until",
+		"value": "Администраторы группы запретили вам отправлять сообщения с помощью ботов до {date}, {time}."
+	},
+	{
+		"key": "ktg_restricted_send_polls_until",
+		"value": "Администраторы группы запретили Вам публиковать в ней опросы до {date}, {time}."
+	},
+	{
+		"key": "ktg_settings_show_json_settings",
+		"value": "Показать файл настроек"
+	},
+	{
+		"key": "ktg_settings_restart",
+		"value": "Перезапустить Kotatogram"
+	}
+]

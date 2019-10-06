@@ -183,6 +183,8 @@ void Application::run() {
 	refreshGlobalProxy(); // Depends on Global::started().
 
 	startLocalStorage();
+	Lang::Current().fillDefaultJson();
+	Lang::Current().fillFromJson();
 	ValidateScale();
 
 	if (Local::oldSettingsVersion() < AppVersion) {

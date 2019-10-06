@@ -58,4 +58,7 @@
     <file alias="default_shortcuts-custom.json">../../default_shortcuts-custom.json</file>
     <file alias="default_kotato-settings-custom.json">../../default_kotato-settings-custom.json</file>
   </qresource>
+  <qresource prefix="/ktg_lang">
+    <file alias="ru.json">../../langs/rewrites/ru.json</file>
+  </qresource>
 </RCC>

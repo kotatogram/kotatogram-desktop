@@ -73,6 +73,9 @@ public:
 
 	QByteArray serialize() const;
 	void fillFromSerialized(const QByteArray &data, int dataAppVersion);
+	QString jsonLangDir();
+	void fillDefaultJson();
+	void fillFromJson();
 
 	void applyDifference(
 		Pack pack,
@@ -112,6 +115,7 @@ private:
 		const QString &absolutePath,
 		const QString &relativePath,
 		const QByteArray &content);
+	void loadFromJson(const QString &filename);
 	bool loadFromCustomFile(const QString &filePath);
 	void loadFromContent(const QByteArray &content);
 	void loadFromCustomContent(
