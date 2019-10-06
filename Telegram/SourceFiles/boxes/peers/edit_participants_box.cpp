@@ -1798,6 +1798,9 @@ auto ParticipantsBoxController::computeType(
 		? Rights::Admin
 		: Rights::Normal;
 	result.canRemove = _additional.canRestrictUser(user);
+	if (const auto channel = _peer->asChannel()) {
+		result.adminRank = channel->adminRank(user);
+	}
 	return result;
 }
 

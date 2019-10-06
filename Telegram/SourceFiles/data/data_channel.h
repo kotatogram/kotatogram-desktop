@@ -219,6 +219,7 @@ public:
 	void markForbidden();
 
 	[[nodiscard]] bool isGroupAdmin(not_null<UserData*> user) const;
+	[[nodiscard]] QString adminRank(not_null<UserData*> user) const;
 
 	[[nodiscard]] bool lastParticipantsCountOutdated() const {
 		if (!mgInfo

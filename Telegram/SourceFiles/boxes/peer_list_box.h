@@ -84,6 +84,14 @@ public:
 		int y,
 		int outerWidth,
 		bool selected);
+	virtual int adminRankWidth() const;
+	virtual void paintAdminRank(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		bool selected);
+
 	virtual QSize actionSize() const {
 		return QSize();
 	}

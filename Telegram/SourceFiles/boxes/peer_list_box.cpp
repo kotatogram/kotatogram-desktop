@@ -463,6 +463,18 @@ void PeerListRow::addRipple(const style::PeerListItem &st, QSize size, QPoint po
 	_ripple->add(point);
 }
 
+int PeerListRow::adminRankWidth() const {
+	return 0;
+}
+
+void PeerListRow::paintAdminRank(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		bool selected) {
+}
+
 void PeerListRow::stopLastRipple() {
 	if (_ripple) {
 		_ripple->lastStop();
@@ -1159,6 +1171,22 @@ crl::time PeerListContent::paintRow(Painter &p, crl::time ms, RowIndex index) {
 		row->paintNameIcon(
 			p,
 			namex + qMin(name.maxWidth(), namew),
+			_st.item.namePosition.y(),
+			width(),
+			selected);
+	}
+	if (auto adminRankWidth = row->adminRankWidth()) {
+		namew -= adminRankWidth;
+		auto rankx = width() - adminRankWidth - skipRight;
+		if (!actionSize.isEmpty() && selected) {
+			namew -= skipRight;
+			rankx -= skipRight;
+		}
+		p.setFont(st::normalFont);
+		p.setPen(selected ? _st.item.statusFgOver : _st.item.statusFg);
+		row->paintAdminRank(
+			p,
+			rankx,
 			_st.item.namePosition.y(),
 			width(),
 			selected);

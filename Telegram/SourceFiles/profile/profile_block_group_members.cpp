@@ -297,6 +297,10 @@ void GroupMembersWidget::setItemFlags(
 		? AdminState::Admin
 		: AdminState::None;
 	item->adminState = adminState;
+	if (isCreator) {
+		item->adminRank = tr::lng_owner_badge(tr::now);
+		item->adminRankWidth = st::normalFont->width(item->adminRank);
+	}
 	if (item->peer->id == chat->session().userPeerId()) {
 		item->hasRemoveLink = false;
 	} else if (chat->amCreator()
@@ -399,6 +403,8 @@ void GroupMembersWidget::setItemFlags(
 			updateItemStatusText(item);
 		}
 	}
+	item->adminRank = megagroup->adminRank(item->peer->asUser());
+	item->adminRankWidth = st::normalFont->width(item->adminRank);
 	if (item->peer->isSelf()) {
 		item->hasRemoveLink = false;
 	} else if (megagroup->amCreator() || (megagroup->canBanMembers() && ((adminState == AdminState::None) || adminCanEdit))) {

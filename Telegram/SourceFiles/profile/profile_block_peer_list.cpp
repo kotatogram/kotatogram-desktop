@@ -100,14 +100,11 @@ void PeerListWidget::paintItem(Painter &p, int x, int y, Item *item, bool select
 		p.setPen(st::windowActiveTextFg);
 		p.drawTextLeft(nameLeft + nameWidth - _removeWidth, nameTop, width(), _removeText, _removeWidth);
 		nameWidth -= _removeWidth + skip;
-	}
-	if (item->adminState != Item::AdminState::None) {
-		nameWidth -= st::profileMemberAdminIcon.width();
-		auto iconLeft = nameLeft + qMin(nameWidth, item->name.maxWidth());
-		auto &icon = (item->adminState == Item::AdminState::Creator)
-			? (selected ? st::profileMemberCreatorIconOver : st::profileMemberCreatorIcon)
-			: (selected ? st::profileMemberAdminIconOver : st::profileMemberAdminIcon);
-		icon.paint(p, QPoint(iconLeft, nameTop), width());
+	} else if (item->adminState != Item::AdminState::None) {
+		p.setFont(st::normalFont);
+		p.setPen(selected ? _st.statusFgOver : _st.statusFg);
+		p.drawTextLeft(nameLeft + nameWidth - item->adminRankWidth, nameTop, width(), item->adminRank, item->adminRankWidth);
+		nameWidth -= item->adminRankWidth + skip;
 	}
 	p.setPen(st::profileMemberNameFg);
 	item->name.drawLeftElided(p, nameLeft, nameTop, nameWidth, width());

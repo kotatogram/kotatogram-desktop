@@ -63,34 +63,21 @@ void MemberListRow::paintAction(
 	}
 }
 
-int MemberListRow::nameIconWidth() const {
-	return (_type.rights == Rights::Admin)
-		? st::infoMembersAdminIcon.width()
-		: (_type.rights == Rights::Creator)
-		? st::infoMembersCreatorIcon.width()
-		: 0;
+int MemberListRow::adminRankWidth() const {
+	return st::normalFont->width(_type.adminRank);
 }
 
 not_null<UserData*> MemberListRow::user() const {
 	return peer()->asUser();
 }
 
-void MemberListRow::paintNameIcon(
+void MemberListRow::paintAdminRank(
 		Painter &p,
 		int x,
 		int y,
 		int outerWidth,
 		bool selected) {
-	auto icon = [&] {
-		return (_type.rights == Rights::Admin)
-			? (selected
-				? &st::infoMembersAdminIconOver
-				: &st::infoMembersAdminIcon)
-			: (selected
-				? &st::infoMembersCreatorIconOver
-				: &st::infoMembersCreatorIcon);
-	}();
-	icon->paint(p, x, y, outerWidth);
+	p.drawTextLeft(x, y, outerWidth, _type.adminRank, adminRankWidth());
 }
 
 std::unique_ptr<PeerListController> CreateMembersController(
