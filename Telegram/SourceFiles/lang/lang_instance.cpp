@@ -643,7 +643,7 @@ void Instance::loadFromJson(const QString &filename) {
 
 		} else if ((*value).isObject()) {
 			
-			const auto keyPlurals = (*value).isObject()
+			const auto keyPlurals = (*value).toObject();
 			const auto pluralList = keyPlurals.keys();
 
 			for (auto pli = keyList.constBegin(), ple = keyList.constEnd(); pli != ple; ++pli) {
@@ -656,8 +656,8 @@ void Instance::loadFromJson(const QString &filename) {
 					continue;
 				}
 
-				const auto name = QByteArray(key + "#" + plural);
-				const auto translation = QByteArray((*pluralValue).toString());
+				const auto name = QByteArray().append(key + "#" + plural);
+				const auto translation = QByteArray().append((*pluralValue).toString());
 
 				applyValue(name, translation);
 				if (--limit <= 0) {

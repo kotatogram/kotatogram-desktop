@@ -211,7 +211,7 @@ inline void SetNetworkBoost(int boost) {
 
 DeclareSetting(bool, ShowPhoneInDrawer);
 
-using ScaleVector = std::std::vector<int>;
+using ScaleVector = std::vector<int>;
 DeclareRefSetting(ScaleVector, InterfaceScales);
 bool HasCustomScales();
 bool AddCustomScale(int scale);
