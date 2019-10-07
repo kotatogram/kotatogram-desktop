@@ -646,7 +646,7 @@ void Instance::loadFromJson(const QString &filename) {
 			const auto keyPlurals = (*value).toObject();
 			const auto pluralList = keyPlurals.keys();
 
-			for (auto pli = keyList.constBegin(), ple = keyList.constEnd(); pli != ple; ++pli) {
+			for (auto pli = pluralList.constBegin(), ple = pluralList.constEnd(); pli != ple; ++pli) {
 				const auto plural = *pli;
 				const auto pluralValue = keyPlurals.constFind(plural);
 
