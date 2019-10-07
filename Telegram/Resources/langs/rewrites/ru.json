@@ -19,5 +19,12 @@
 	"ktg_pinned_message_show": "Показать закреплённое сообщение",
 	"ktg_pinned_message_hide": "Скрыть закреплённое сообщение",
 	"ktg_settings_show_json_settings": "Показать файл настроек",
-	"ktg_settings_restart": "Перезапустить Kotatogram"
+	"ktg_settings_restart": "Перезапустить Kotatogram",
+	"ktg_chat_status_subscribers": {
+		"one": "{count} подписчик",
+		"few": "{count} подписчика",
+		"many": "{count} подписчиков",
+		"other": "{count} подписчиков"
+	},
+	"ktg_profile_subscribers_section": "Подписчики"
 }
