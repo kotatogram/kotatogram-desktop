@@ -48,9 +48,23 @@ rpl::producer<TextWithEntities> Text2() {
 }
 
 rpl::producer<TextWithEntities> Text3() {
+	auto baseLang = Lang::Current().baseId();
+	QString channelLink;
+
+	for (const auto language : { "ru", "uk", "be" }) {
+		if (baseLang.startsWith(QLatin1String(language))) {
+			channelLink = "https://t.me/kotatogram_ru";
+			break;
+		}
+	}
+
+	if (channelLink.isEmpty()) {
+		channelLink = "https://t.me/kotatogram";
+	}
+
 	return tr::ktg_about_text3(
 		lt_channel_link,
-		tr::ktg_about_text3_channel() | Ui::Text::ToLink("https://t.me/kotatogram"),
+		tr::ktg_about_text3_channel() | Ui::Text::ToLink(channelLink),
 		lt_faq_link,
 		tr::lng_about_text3_faq() | Ui::Text::ToLink(telegramFaqLink()),
 		Ui::Text::WithEntities);
