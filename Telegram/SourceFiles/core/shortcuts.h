@@ -40,6 +40,8 @@ enum class Command {
 	SupportScrollToCurrent,
 	SupportHistoryBack,
 	SupportHistoryForward,
+
+	SaveDraft,
 };
 
 [[nodiscard]] FnMut<bool()> RequestHandler(Command command);
