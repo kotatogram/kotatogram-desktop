@@ -757,37 +757,6 @@ std::optional<QString> RestrictionError(
 	using Flag = ChatRestriction;
 	if (const auto restricted = peer->amRestricted(restriction)) {
 		const auto all = restricted.isWithEveryone();
-		const auto channel = peer->asChannel();
-		if (!all && channel) {
-			auto restrictedUntil = channel->restrictedUntil();
-			if (restrictedUntil > 0 && !ChannelData::IsRestrictedForever(restrictedUntil)) {
-				auto restrictedUntilDateTime = base::unixtime::parse(channel->restrictedUntil());
-				auto date = restrictedUntilDateTime.toString(qsl("d.MM.yy"));
-				auto time = restrictedUntilDateTime.toString(cTimeFormat());
-
-				switch (restriction) {
-				case Flag::f_send_polls:
-					return tr::ktg_restricted_send_polls_until(
-						tr::now, lt_date, date, lt_time, time);
-				case Flag::f_send_messages:
-					return tr::ktg_restricted_send_message_until(
-						tr::now, lt_date, date, lt_time, time);
-				case Flag::f_send_media:
-					return tr::ktg_restricted_send_media_until(
-						tr::now, lt_date, date, lt_time, time);
-				case Flag::f_send_stickers:
-					return tr::ktg_restricted_send_stickers_until(
-						tr::now, lt_date, date, lt_time, time);
-				case Flag::f_send_gifs:
-					return tr::ktg_restricted_send_gifs_until(
-						tr::now, lt_date, date, lt_time, time);
-				case Flag::f_send_inline:
-				case Flag::f_send_games:
-					return tr::ktg_restricted_send_inline_until(
-						tr::now, lt_date, date, lt_time, time);
-				}
-			}
-		}
 		switch (restriction) {
 		case Flag::f_send_polls:
 			return all
