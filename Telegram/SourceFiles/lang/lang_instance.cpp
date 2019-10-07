@@ -565,8 +565,8 @@ QString Instance::jsonLangDir() {
 void Instance::fillDefaultJson() {
 	if (!QDir().exists(jsonLangDir())) QDir().mkpath(jsonLangDir());
 
-	const auto path = jsonLangDir() + "ru.json";
-	const auto pathRaw = jsonLangDir() + "ru-raw.json";
+	const auto path = jsonLangDir() + "ru.default.json";
+	const auto pathRaw = jsonLangDir() + "ru-raw.default.json";
 	auto input = QFile(":/ktg_lang/ru.json");
 	auto output = QFile(path);
 	auto outputRaw = QFile(pathRaw);
@@ -587,10 +587,14 @@ void Instance::fillDefaultJson() {
 
 void Instance::fillFromJson() {
 	if (id() != baseId()) {
+		const auto langDefBaseDir = jsonLangDir() + (qsl("%1.default.json").arg(baseId()));
+		loadFromJson(langDefBaseDir);
 		const auto langBaseDir = jsonLangDir() + (qsl("%1.json").arg(baseId()));
 		loadFromJson(langBaseDir);
 	}
 	
+	const auto langDefCustomDir = jsonLangDir() + (qsl("%1.default.json").arg(id()));
+	loadFromJson(langDefCustomDir);
 	const auto langCustomDir = jsonLangDir() + (qsl("%1.json").arg(id()));
 	loadFromJson(langCustomDir);
 
@@ -617,36 +621,54 @@ void Instance::loadFromJson(const QString &filename) {
 			).arg(filename
 			).arg(error.errorString()));
 		return;
-	} else if (!document.isArray()) {
-		LOG(("Lang Info: file %1 has failed to parse. Error: array expected"
+	} else if (!document.isObject()) {
+		LOG(("Lang Info: file %1 has failed to parse. Error: object expected"
 			).arg(filename));
 		return;
 	}
-	const auto langKeys = document.array();
+	const auto langKeys = document.object();
 	auto limit = kLangValuesLimit;
-	for (auto i = langKeys.constBegin(), e = langKeys.constEnd(); i != e; ++i) {
-		if (!(*i).isObject()) {
-			LOG(("Lang Info: Bad entry in file %1, object expected"
-				).arg(filename));
-			continue;
-		}
-		const auto entry = (*i).toObject();
-		const auto key = entry.constFind(qsl("key"));
-		const auto value = entry.constFind(qsl("value"));
-		if (key == entry.constEnd()
-			|| value == entry.constEnd()
-			|| !(*key).isString()
-			|| !(*value).isString()) {
-			LOG(("Lang Info: Bad entry in file %1, %2 expected"
-				).arg(filename).arg("{\"key\": \"...\", \"value\": \"...\" }"
-				));
-		} else {
-			const auto name = QByteArray().append((*key).toString());
+	const auto keyList = langKeys.keys();
+
+	for (auto i = keyList.constBegin(), e = keyList.constEnd(); i != e; ++i) {
+		const auto key = *i;
+		const auto value = langKeys.constFind(key);
+
+		if ((*value).isString()) {
+			
+			const auto name = QByteArray().append(key);
 			const auto translation = QByteArray().append((*value).toString());
 
 			applyValue(name, translation);
+
+		} else if ((*value).isObject()) {
+			
+			const auto keyPlurals = (*value).isObject()
+			const auto pluralList = keyPlurals.keys();
+
+			for (auto pli = keyList.constBegin(), ple = keyList.constEnd(); pli != ple; ++pli) {
+				const auto plural = *pli;
+				const auto pluralValue = keyPlurals.constFind(plural);
+
+				if (!(*pluralValue).isString()) {
+					LOG(("Lang Info: wrong value for key %1 in %2 in file %3, string expected"
+					).arg(plural).arg(key).arg(filename));
+					continue;
+				}
+
+				const auto name = QByteArray(key + "#" + plural);
+				const auto translation = QByteArray((*pluralValue).toString());
+
+				applyValue(name, translation);
+				if (--limit <= 0) {
+					break;
+				}
+			}
+		} else {
+			LOG(("Lang Info: wrong value for key %1 in file %2, string or object expected"
+			).arg(key).arg(filename));
 		}
-		if (!--limit) {
+		if (--limit <= 0) {
 			break;
 		}
 	}

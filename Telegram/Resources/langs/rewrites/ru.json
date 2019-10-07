@@ -4,65 +4,20 @@
 // Suggest any new translations or edits for existing here:
 // https://github.com/kotatogram/kotatogram-desktop/issues
 
-[
-	{
-		"key": "ktg_intro_about",
-		"value": "Добро пожаловать в неофициальный мессенджер\nна основе Telegram Desktop."
-	},
-	{
-		"key": "ktg_about_text1",
-		"value": "Экспериментальный неофициальный форк {tdesktop_link}."
-	},
-	{
-		"key": "ktg_about_text3",
-		"value": "Посетите {channel_link} или {faq_link} (англ.), чтобы узнать больше."
-	},
-	{
-		"key": "ktg_about_text3_channel",
-		"value": "канал Kotatogram"
-	},
-	{
-		"key": "ktg_copy_btn_callback",
-		"value": "Копировать callback-данные"
-	},
-	{
-		"key": "ktg_profile_copy_id",
-		"value": "Копировать ID"
-	},
-	{
-		"key": "ktg_profile_bot_id",
-		"value": "ID бота"
-	},
-	{
-		"key": "ktg_profile_user_id",
-		"value": "ID пользователя"
-	},
-	{
-		"key": "ktg_profile_group_id",
-		"value": "ID группы"
-	},
-	{
-		"key": "ktg_profile_supergroup_id",
-		"value": "ID супергруппы"
-	},
-	{
-		"key": "ktg_profile_channel_id",
-		"value": "ID канала"
-	},
-	{
-		"key": "ktg_pinned_message_show",
-		"value": "Показать закреплённое сообщение"
-	},
-	{
-		"key": "ktg_pinned_message_hide",
-		"value": "Скрыть закреплённое сообщение"
-	},
-	{
-		"key": "ktg_settings_show_json_settings",
-		"value": "Показать файл настроек"
-	},
-	{
-		"key": "ktg_settings_restart",
-		"value": "Перезапустить Kotatogram"
-	}
-]
+{
+	"ktg_intro_about": "Добро пожаловать в неофициальный мессенджер\nна основе Telegram Desktop.",
+	"ktg_about_text1": "Экспериментальный неофициальный форк {tdesktop_link}.",
+	"ktg_about_text3": "Посетите {channel_link} или {faq_link} (англ.), чтобы узнать больше.",
+	"ktg_about_text3_channel": "канал Kotatogram",
+	"ktg_copy_btn_callback": "Копировать callback-данные",
+	"ktg_profile_copy_id": "Копировать ID",
+	"ktg_profile_bot_id": "ID бота",
+	"ktg_profile_user_id": "ID пользователя",
+	"ktg_profile_group_id": "ID группы",
+	"ktg_profile_supergroup_id": "ID супергруппы",
+	"ktg_profile_channel_id": "ID канала",
+	"ktg_pinned_message_show": "Показать закреплённое сообщение",
+	"ktg_pinned_message_hide": "Скрыть закреплённое сообщение",
+	"ktg_settings_show_json_settings": "Показать файл настроек",
+	"ktg_settings_restart": "Перезапустить Kotatogram"
+}
