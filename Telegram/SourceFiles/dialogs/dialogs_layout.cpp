@@ -907,7 +907,7 @@ void PaintCollapsedRow(
 	const auto narrow = (fullWidth <= smallWidth);
 
 	const auto unreadTop = (st::dialogsImportantBarHeight - st::dialogsUnreadHeight) / 2;
-	if (!narrow || !folder) {
+	if (!folder) {
 		p.setFont(st::semiboldFont);
 		p.setPen(st::dialogsNameFg);
 
@@ -918,6 +918,25 @@ void PaintCollapsedRow(
 			? ((fullWidth - st::semiboldFont->width(text)) / 2)
 			: st::dialogsPadding.x();
 		p.drawText(left, textBaseline, text);
+	} else if (!narrow) {
+		
+		const auto textBaseline = unreadTop
+			+ (st::dialogsUnreadHeight - st::dialogsUnreadFont->height) / 2
+			+ st::dialogsUnreadFont->ascent;
+		const auto left = st::dialogsPadding.x();
+		const auto textLeft = left * 2 + st::dialogsUnreadHeight;
+
+		folder->paintUserpicLeft(
+			p,
+			left,
+			unreadTop,
+			fullWidth,
+			st::dialogsUnreadHeight);
+
+		p.setFont(st::semiboldFont);
+		p.setPen(st::dialogsNameFg);
+		p.drawText(textLeft, textBaseline, text);
+
 	} else {
 		folder->paintUserpicLeft(
 			p,
