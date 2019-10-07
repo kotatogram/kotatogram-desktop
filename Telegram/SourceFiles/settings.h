@@ -195,6 +195,20 @@ DeclareSetting(int, NetUploadSessionsCount);
 DeclareSetting(int, NetMaxFileQueries);
 DeclareSetting(int, NetUploadRequestInterval);
 
+inline void SetNetworkBoost(int boost) {
+	if (boost < 0) {
+		boost = 0;
+	} else if (boost > 3) {
+		boost = 3;
+	}
+
+	cSetNetRequestsCount(2 + (2 * boost));
+	cSetNetDownloadSessionsCount(2 + (2 * boost));
+	cSetNetUploadSessionsCount(2 + (2 * boost));
+	cSetNetMaxFileQueries(16 + (16 * boost));
+	cSetNetUploadRequestInterval(500 - (100 * boost));
+}
+
 DeclareSetting(bool, ShowPhoneInDrawer);
 
 using ScaleVector = std::std::vector<int>;

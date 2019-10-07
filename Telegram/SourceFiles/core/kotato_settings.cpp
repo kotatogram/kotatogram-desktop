@@ -185,37 +185,19 @@ bool Manager::readCustomFile() {
 			
 			const auto option = (*settingsNetSpeedIt).toString();
 			if (option == "high") {
-				cSetNetRequestsCount(8);
-				cSetNetDownloadSessionsCount(8);
-				cSetNetUploadSessionsCount(8);
-				cSetNetMaxFileQueries(64);
-				cSetNetUploadRequestInterval(200);
+				SetNetworkBoost(3);
 			} else if (option == "medium") {
-				cSetNetRequestsCount(6);
-				cSetNetDownloadSessionsCount(6);
-				cSetNetUploadSessionsCount(6);
-				cSetNetMaxFileQueries(48);
-				cSetNetUploadRequestInterval(300);
+				SetNetworkBoost(2);
 			} else if (option == "low") {
-				cSetNetRequestsCount(4);
-				cSetNetDownloadSessionsCount(4);
-				cSetNetUploadSessionsCount(4);
-				cSetNetMaxFileQueries(32);
-				cSetNetUploadRequestInterval(400);
+				SetNetworkBoost(1);
 			} else {
-				cSetNetRequestsCount(2);
-				cSetNetDownloadSessionsCount(2);
-				cSetNetUploadSessionsCount(2);
-				cSetNetMaxFileQueries(16);
-				cSetNetUploadRequestInterval(500);
+				SetNetworkBoost(0);
 			}
 
 		} else if ((*settingsNetSpeedIt).isNull()) {
-			cSetNetRequestsCount(2);
-			cSetNetDownloadSessionsCount(2);
-			cSetNetUploadSessionsCount(2);
-			cSetNetMaxFileQueries(16);
-			cSetNetUploadRequestInterval(500);
+			SetNetworkBoost(0);
+		} else if ((*settingsNetSpeedIt).isDouble()) {
+			SetNetworkBoost((*settingsNetSpeedIt).toInt());
 		}
 	}
 
