@@ -230,7 +230,7 @@ bool HasCustomScales() {
 }
 
 bool AddCustomScale(int scale) {
-	if (gInterfaceScales.size() > 6) {
+	if (gInterfaceScales.size() >= 6) {
 		return false;
 	}
 	gInterfaceScales.push_back(style::CheckScale(scale));
