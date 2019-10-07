@@ -49,10 +49,11 @@ rpl::producer<TextWithEntities> Text2() {
 
 rpl::producer<TextWithEntities> Text3() {
 	auto baseLang = Lang::Current().baseId();
+	auto currentLang = Lang::Current().id();
 	QString channelLink;
 
 	for (const auto language : { "ru", "uk", "be" }) {
-		if (baseLang.startsWith(QLatin1String(language))) {
+		if (baseLang.startsWith(QLatin1String(language)) || currentLang == QString(language)) {
 			channelLink = "https://t.me/kotatogram_ru";
 			break;
 		}
