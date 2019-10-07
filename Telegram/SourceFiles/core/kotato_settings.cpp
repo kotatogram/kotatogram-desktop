@@ -223,6 +223,20 @@ bool Manager::readCustomFile() {
 	if (settingsShowDrawerPhoneIt != settings.constEnd() && (*settingsShowDrawerPhoneIt).isBool()) {
 		cSetShowPhoneInDrawer((*settingsShowDrawerPhoneIt).toBool());
 	}
+
+	const auto settingsScalesIt = settings.constFind(qsl("scales"));
+	if (settingsScalesIt != settings.constEnd() && (*settingsScalesIt).isArray()) {
+		const auto settingsScalesArray = (*settingsScalesIt).toArray();
+		ClearCustomScales();
+		for (auto i = settingsScalesArray.constBegin(), e = settingsScalesArray.constEnd(); i != e; ++i) {
+			if (!(*i).isDouble()) {
+				continue;
+			}
+
+			AddCustomScale((*i).toInt());
+		}
+
+	}
 	return true;
 }
 
@@ -256,6 +270,9 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("show_chat_id"), cShowChatId());
 	settings.insert(qsl("net_speed_boost"), QJsonValue(QJsonValue::Null));
 	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
+
+	auto settingsScales = QJsonArray();
+	settings.insert(qsl("scales"), settingsScales);
 
 	auto document = QJsonDocument();
 	document.setObject(settings);

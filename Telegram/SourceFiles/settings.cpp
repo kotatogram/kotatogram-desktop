@@ -222,3 +222,21 @@ int gNetMaxFileQueries = 16;
 int gNetUploadRequestInterval = 500;
 
 bool gShowPhoneInDrawer = true;
+
+ScaleVector gInterfaceScales;
+
+bool HasCustomScales() {
+	return (!gInterfaceScales.empty());
+}
+
+bool AddCustomScale(int scale) {
+	if (gInterfaceScales.size() > 6) {
+		return false;
+	}
+	gInterfaceScales.push_back(style::CheckScale(scale));
+	return true;
+}
+
+void ClearCustomScales() {
+	gInterfaceScales.clear();
+}

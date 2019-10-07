@@ -13,5 +13,6 @@
     // "always_show_scheduled": true,
     // "show_chat_id": true,
     // "net_speed_boost": null,
-    // "show_phone_in_drawer": true
+    // "show_phone_in_drawer": true,
+    // "scales": []
 }

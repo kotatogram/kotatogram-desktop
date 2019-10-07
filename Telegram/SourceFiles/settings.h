@@ -196,3 +196,9 @@ DeclareSetting(int, NetMaxFileQueries);
 DeclareSetting(int, NetUploadRequestInterval);
 
 DeclareSetting(bool, ShowPhoneInDrawer);
+
+using ScaleVector = std::std::vector<int>;
+DeclareRefSetting(ScaleVector, InterfaceScales);
+bool HasCustomScales();
+bool AddCustomScale(int scale);
+void ClearCustomScales();
