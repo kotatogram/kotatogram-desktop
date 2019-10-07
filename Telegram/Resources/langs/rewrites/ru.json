@@ -58,30 +58,6 @@
 		"value": "Скрыть закреплённое сообщение"
 	},
 	{
-		"key": "ktg_restricted_send_message_until",
-		"value": "Администраторы группы запретили вам писать в ней до {date}, {time}."
-	},
-	{
-		"key": "ktg_restricted_send_media_until",
-		"value": "Администраторы группы запретили вам публиковать здесь фото и видео до {date}, {time}."
-	},
-	{
-		"key": "ktg_restricted_send_stickers_until",
-		"value": "Администраторы группы запретили вам публиковать здесь стикеры до {date}, {time}."
-	},
-	{
-		"key": "ktg_restricted_send_gifs_until",
-		"value": "Администраторы группы запретили вам отправлять в нее файлы GIF до {date}, {time}."
-	},
-	{
-		"key": "ktg_restricted_send_inline_until",
-		"value": "Администраторы группы запретили вам отправлять сообщения с помощью ботов до {date}, {time}."
-	},
-	{
-		"key": "ktg_restricted_send_polls_until",
-		"value": "Администраторы группы запретили Вам публиковать в ней опросы до {date}, {time}."
-	},
-	{
 		"key": "ktg_settings_show_json_settings",
 		"value": "Показать файл настроек"
 	},
