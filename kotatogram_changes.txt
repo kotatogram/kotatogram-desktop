@@ -1,3 +1,8 @@
+1.0.8 (8.10.2019)
+- Option to hide phone number in drawer.
+- Option to set custom interface scales.
+- Keyboard shortcut to save draft to cloud (Ctrl+S by default).
+
 1.0.7 beta (7.10.2019)
 - JSON locale rewrites.
 - Russian language support for fork strings.
