@@ -11,14 +11,6 @@ steps:
   displayName: 'Clone repo'
 
 - script: |
-    echo ::set-env name=VS::call ^
-    "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
-    echo ::set-env name=SWITCH_PY::call venv-2\Scripts\activate
-    echo ::add-path::C:\Perl64\bin
-    echo ::add-path::%CD%\Libraries\gyp
-  displayName: 'Setting up the environment'
-
-- script: |
     choco install -y nasm yasm jom ninja activeperl cmake msys2
     mkdir Libraries
   displayName: Install tools
