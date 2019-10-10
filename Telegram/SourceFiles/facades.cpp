@@ -229,6 +229,10 @@ bool skipPaintEvent(QWidget *widget, QPaintEvent *event) {
 
 namespace Notify {
 
+void showScheduledButtonChanged() {
+	if (MainWidget *m = App::main()) m->notify_showScheduledButtonChanged();
+}
+
 void userIsBotChanged(UserData *user) {
 	if (MainWidget *m = App::main()) m->notify_userIsBotChanged(user);
 }

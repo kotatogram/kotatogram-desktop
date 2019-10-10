@@ -1465,6 +1465,12 @@ void HistoryWidget::notify_userIsBotChanged(UserData *user) {
 	}
 }
 
+void HistoryWidget::notify_showScheduledButtonChanged() {
+	refreshScheduledToggle();
+	updateControlsVisibility();
+	updateControlsGeometry();
+}
+
 void HistoryWidget::setupShortcuts() {
 	Shortcuts::Requests(
 	) | rpl::filter([=] {

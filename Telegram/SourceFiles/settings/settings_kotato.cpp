@@ -90,6 +90,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != cAlwaysShowScheduled());
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetAlwaysShowScheduled(enabled);
+		Notify::showScheduledButtonChanged();
 	}, container->lifetime());	
 
 	AddSkip(container);
