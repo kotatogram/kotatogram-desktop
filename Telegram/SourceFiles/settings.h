@@ -188,7 +188,10 @@ void SetBigEmojiOutline(bool enabled);
 [[nodiscard]] bool BigEmojiOutline();
 [[nodiscard]] rpl::producer<bool> BigEmojiOutlineChanges();
 
-DeclareSetting(int, StickerHeight);
+void SetStickerHeight(int height);
+[[nodiscard]] int StickerHeight();
+[[nodiscard]] rpl::producer<int> StickerHeightChanges();
+
 DeclareSetting(bool, AlwaysShowScheduled);
 DeclareSetting(bool, ShowChatId);
 

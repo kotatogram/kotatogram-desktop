@@ -56,15 +56,15 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	};
 	const auto updateStickerHeight = [=](int value) {
 		updateStickerHeightLabel(value);
-		cSetStickerHeight(value);
+		SetStickerHeight(value);
 	};
 	stickerHeightSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 	stickerHeightSlider->setPseudoDiscrete(
 		129,
 		[](int val) { return val + 128; },
-		cStickerHeight(),
+		StickerHeight(),
 		updateStickerHeight);
-	updateStickerHeightLabel(cStickerHeight());
+	updateStickerHeightLabel(StickerHeight());
 
 	AddButton(
 		container,

@@ -160,7 +160,7 @@ bool Manager::readCustomFile() {
 	if (settingsStickerHeightIt != settings.constEnd()) {
 		const auto settingsStickerHeight = (*settingsStickerHeightIt).toInt();
 		if (settingsStickerHeight >= 128 || settingsStickerHeight <= 256) {
-			cSetStickerHeight(settingsStickerHeight);
+			SetStickerHeight(settingsStickerHeight);
 		}
 	}
 
@@ -246,7 +246,7 @@ void Manager::writeDefaultFile() {
 
 	settings.insert(qsl("fonts"), settingsFonts);
 
-	settings.insert(qsl("sticker_height"), cStickerHeight());
+	settings.insert(qsl("sticker_height"), StickerHeight());
 	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
 	settings.insert(qsl("show_chat_id"), cShowChatId());
