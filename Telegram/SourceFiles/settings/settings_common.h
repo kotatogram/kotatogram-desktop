@@ -43,6 +43,7 @@ enum class Type {
 	Advanced,
 	Chat,
 	Calls,
+	Kotato,
 };
 
 using Button = Info::Profile::Button;
