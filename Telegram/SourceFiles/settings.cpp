@@ -211,7 +211,18 @@ QString gMainFont, gSemiboldFont, gMonospaceFont;
 bool gSemiboldFontIsBold = false;
 
 int gStickerHeight = 128;
-bool gBigEmojiOutline = false;
+
+rpl::variable<bool> gBigEmojiOutline = false;
+void SetBigEmojiOutline(bool enabled) {
+	gBigEmojiOutline = enabled;
+}
+bool BigEmojiOutline() {
+	return gBigEmojiOutline.current();
+}
+rpl::producer<bool> BigEmojiOutlineChanges() {
+	return gBigEmojiOutline.changes();
+}
+
 bool gAlwaysShowScheduled = true;
 bool gShowChatId = true;
 

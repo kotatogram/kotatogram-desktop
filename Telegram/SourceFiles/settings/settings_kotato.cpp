@@ -71,12 +71,12 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		tr::ktg_settings_emoji_outline(),
 		st::settingsButton
 	)->toggleOn(
-		rpl::single(cBigEmojiOutline())
+		rpl::single(BigEmojiOutline())
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != cBigEmojiOutline());
+		return (enabled != BigEmojiOutline());
 	}) | rpl::start_with_next([](bool enabled) {
-		cSetBigEmojiOutline(enabled);
+		SetBigEmojiOutline(enabled);
 	}, container->lifetime());
 
 	AddButton(

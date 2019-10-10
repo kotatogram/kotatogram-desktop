@@ -327,7 +327,7 @@ QImage EmojiImageLoader::prepare(EmojiPtr emoji) {
 	auto tinted = QImage(
 		QSize(st::largeEmojiSize, st::largeEmojiSize) * factor,
 		QImage::Format_ARGB32_Premultiplied);
-	tinted.fill(cBigEmojiOutline() ? Qt::white : QColor(0, 0, 0, 0));
+	tinted.fill(BigEmojiOutline() ? Qt::white : QColor(0, 0, 0, 0));
 	if (loaded) {
 		QPainter p(&tinted);
 		p.setCompositionMode(QPainter::CompositionMode_DestinationIn);
@@ -410,6 +410,17 @@ EmojiPack::EmojiPack(not_null<Main::Session*> session)
 		} else {
 			_clearTimer.callOnce(details::kClearSourceTimeout);
 		}
+		refreshAll();
+	}, _lifetime);
+
+	BigEmojiOutlineChanges(
+	) | rpl::start_with_next([=] {
+		_images.clear();
+		_imageLoader.with([
+			source = prepareSourceImages()
+		](details::EmojiImageLoader &loader) mutable {
+			loader.switchTo(std::move(source));
+		});
 		refreshAll();
 	}, _lifetime);
 

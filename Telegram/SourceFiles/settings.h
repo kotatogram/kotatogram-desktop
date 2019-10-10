@@ -184,8 +184,11 @@ DeclareSetting(QString, SemiboldFont);
 DeclareSetting(bool, SemiboldFontIsBold);
 DeclareSetting(QString, MonospaceFont);
 
+void SetBigEmojiOutline(bool enabled);
+[[nodiscard]] bool BigEmojiOutline();
+[[nodiscard]] rpl::producer<bool> BigEmojiOutlineChanges();
+
 DeclareSetting(int, StickerHeight);
-DeclareSetting(bool, BigEmojiOutline);
 DeclareSetting(bool, AlwaysShowScheduled);
 DeclareSetting(bool, ShowChatId);
 

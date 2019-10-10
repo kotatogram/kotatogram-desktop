@@ -166,7 +166,7 @@ bool Manager::readCustomFile() {
 
 	const auto settingsBigEmojiOutlineIt = settings.constFind(qsl("big_emoji_outline"));
 	if (settingsBigEmojiOutlineIt != settings.constEnd() && (*settingsBigEmojiOutlineIt).isBool()) {
-		cSetBigEmojiOutline((*settingsBigEmojiOutlineIt).toBool());
+		SetBigEmojiOutline((*settingsBigEmojiOutlineIt).toBool());
 	}
 
 	const auto settingsAlwaysShowScheduledIt = settings.constFind(qsl("always_show_scheduled"));
@@ -247,7 +247,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("fonts"), settingsFonts);
 
 	settings.insert(qsl("sticker_height"), cStickerHeight());
-	settings.insert(qsl("big_emoji_outline"), cBigEmojiOutline());
+	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
 	settings.insert(qsl("show_chat_id"), cShowChatId());
 	settings.insert(qsl("net_speed_boost"), QJsonValue(QJsonValue::Null));
