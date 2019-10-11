@@ -195,6 +195,7 @@ void SetStickerHeight(int height);
 DeclareSetting(bool, AlwaysShowScheduled);
 DeclareSetting(bool, ShowChatId);
 
+DeclareSetting(int, NetSpeedBoost);
 DeclareSetting(int, NetRequestsCount);
 DeclareSetting(int, NetDownloadSessionsCount);
 DeclareSetting(int, NetUploadSessionsCount);
@@ -203,16 +204,18 @@ DeclareSetting(int, NetUploadRequestInterval);
 
 inline void SetNetworkBoost(int boost) {
 	if (boost < 0) {
-		boost = 0;
+		cSetNetSpeedBoost(0);
 	} else if (boost > 3) {
-		boost = 3;
+		cSetNetSpeedBoost(3);
+	} else {
+		cSetNetSpeedBoost(boost);
 	}
 
-	cSetNetRequestsCount(2 + (2 * boost));
-	cSetNetDownloadSessionsCount(2 + (2 * boost));
-	cSetNetUploadSessionsCount(2 + (2 * boost));
-	cSetNetMaxFileQueries(16 + (16 * boost));
-	cSetNetUploadRequestInterval(500 - (100 * boost));
+	cSetNetRequestsCount(2 + (2 * cNetSpeedBoost()));
+	cSetNetDownloadSessionsCount(2 + (2 * cNetSpeedBoost()));
+	cSetNetUploadSessionsCount(2 + (2 * cNetSpeedBoost()));
+	cSetNetMaxFileQueries(16 + (16 * cNetSpeedBoost()));
+	cSetNetUploadRequestInterval(500 - (100 * cNetSpeedBoost()));
 }
 
 DeclareSetting(bool, ShowPhoneInDrawer);

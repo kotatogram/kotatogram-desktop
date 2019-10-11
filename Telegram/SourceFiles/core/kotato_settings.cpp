@@ -18,24 +18,12 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonValue>
+#include <QtCore/QTimer>
 
 namespace KotatoSettings {
 namespace {
 
-class Manager {
-public:
-	void fill();
-	void clear();
-
-	const QStringList &errors() const;
-
-private:
-	void writeDefaultFile();
-	bool readCustomFile();
-
-	QStringList _errors;
-
-};
+constexpr auto kWriteJsonTimeout = crl::time(5000);
 
 QString DefaultFilePath() {
 	return cWorkingDir() + qsl("tdata/kotato-settings-default.json");
@@ -78,12 +66,29 @@ void WriteDefaultCustomFile() {
 	}
 }
 
+Manager Data;
+
+} // namespace
+
+Manager::Manager() {
+	_jsonWriteTimer.setSingleShot(true);
+	connect(&_jsonWriteTimer, SIGNAL(timeout()), this, SLOT(writeTimeout()));
+}
+
 void Manager::fill() {
 	if (!DefaultFileIsValid()) {
 		writeDefaultFile();
 	}
 	if (!readCustomFile()) {
 		WriteDefaultCustomFile();
+	}
+}
+
+void Manager::write(bool force) {
+	if (!_jsonWriteTimer.isActive()) {
+		_jsonWriteTimer.start(kWriteJsonTimeout);
+	} else if (_jsonWriteTimer.remainingTime() <= 0 || (force && _jsonWriteTimer.isActive())) {
+		writeTimeout();
 	}
 }
 
@@ -261,12 +266,75 @@ void Manager::writeDefaultFile() {
 	file.write(document.toJson(QJsonDocument::Indented));
 }
 
-Manager Data;
+void Manager::writeCurrentSettings() {
+	auto file = QFile(CustomFilePath());
+	if (!file.open(QIODevice::WriteOnly)) {
+		return;
+	}
+	writing();
+	const char *customHeader = R"HEADER(
+// This file was automatically generated from current settings
+// It's better to edit it with app closed, so there will be no rewrites
+// You should restart app to see changes
 
-} // namespace
+)HEADER";
+	file.write(customHeader);
+
+	auto settings = QJsonObject();
+
+	auto settingsFonts = QJsonObject();
+	
+	if (!cMainFont().isEmpty()) {
+		settingsFonts.insert(qsl("main"), cMainFont());
+	}
+
+	if (!cSemiboldFont().isEmpty()) {
+		settingsFonts.insert(qsl("semibold"), cSemiboldFont());
+	}
+
+	if (!cMonospaceFont().isEmpty()) {
+		settingsFonts.insert(qsl("monospaced"), cMonospaceFont());
+	}
+
+	settingsFonts.insert(qsl("semibold_is_bold"), cSemiboldFontIsBold());
+
+	settings.insert(qsl("fonts"), settingsFonts);
+
+	settings.insert(qsl("sticker_height"), StickerHeight());
+	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
+	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
+	settings.insert(qsl("show_chat_id"), cShowChatId());
+	settings.insert(qsl("net_speed_boost"), cNetSpeedBoost());
+	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
+
+	auto settingsScales = QJsonArray();
+	auto currentScales = cInterfaceScales();
+
+	for (int i = 0; i < currentScales.size(); i++) {
+		settingsScales << currentScales[i];
+	}
+
+	settings.insert(qsl("scales"), settingsScales);
+
+	auto document = QJsonDocument();
+	document.setObject(settings);
+	file.write(document.toJson(QJsonDocument::Indented));
+}
+
+void Manager::writeTimeout() {
+	writeCurrentSettings();
+}
+
+void Manager::writing() {
+	_jsonWriteTimer.stop();
+}
 
 void Start() {
 	Data.fill();
+}
+
+void Write() {
+	Data.write();
 }
 
 const QStringList &Errors() {
@@ -274,6 +342,7 @@ const QStringList &Errors() {
 }
 
 void Finish() {
+	Data.write(true);
 	Data.clear();
 }
 

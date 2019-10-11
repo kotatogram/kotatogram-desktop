@@ -24,6 +24,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
 #include "core/update_checker.h"
+#include "core/kotato_settings.h"
 #include "core/application.h"
 #include "storage/localstorage.h"
 #include "data/data_session.h"
@@ -57,6 +58,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	const auto updateStickerHeight = [=](int value) {
 		updateStickerHeightLabel(value);
 		SetStickerHeight(value);
+		KotatoSettings::Write();
 	};
 	stickerHeightSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 	stickerHeightSlider->setPseudoDiscrete(
@@ -77,6 +79,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != BigEmojiOutline());
 	}) | rpl::start_with_next([](bool enabled) {
 		SetBigEmojiOutline(enabled);
+		KotatoSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
@@ -91,6 +94,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetAlwaysShowScheduled(enabled);
 		Notify::showScheduledButtonChanged();
+		KotatoSettings::Write();
 	}, container->lifetime());	
 
 	AddSkip(container);
