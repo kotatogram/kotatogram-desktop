@@ -16,6 +16,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/continuous_sliders.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "boxes/connection_box.h"
+#include "boxes/fonts_box.h"
 #include "boxes/about_box.h"
 #include "boxes/confirm_box.h"
 #include "info/profile/info_profile_button.h"
@@ -95,7 +96,15 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		cSetAlwaysShowScheduled(enabled);
 		Notify::showScheduledButtonChanged();
 		KotatoSettings::Write();
-	}, container->lifetime());	
+	}, container->lifetime());
+
+	AddButton(
+		container,
+		tr::ktg_settings_fonts(),
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<FontsBox>());
+	});	
 
 	AddSkip(container);
 }
@@ -119,3 +128,4 @@ void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 }
 
 } // namespace Settings
+

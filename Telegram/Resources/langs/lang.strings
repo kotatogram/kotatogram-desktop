@@ -2258,5 +2258,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_sticker_height" = "Sticker height: {pixels}px";
 "ktg_settings_emoji_outline" = "Big emoji outline";
 "ktg_settings_always_show_scheduled" = "Always show scheduled";
+"ktg_settings_fonts" = "Change application fonts";
+
+"ktg_fonts_title" = "Fonts";
+"ktg_fonts_reset" = "Reset";
+"ktg_fonts_about" = "If you want to use \"Bold\" font for your semibold, do not put \"Bold\" in font name, use \"Make semibold bold\" option.\n\nYou will need to restart app to apply and see changes.";
+
+"ktg_fonts_main" = "Main font";
+"ktg_fonts_semibold" = "Semibold font";
+"ktg_fonts_semibold_is_bold" = "Make semibold bold";
+"ktg_fonts_monospaced" = "Monospaced font";
 
 // Keys finished

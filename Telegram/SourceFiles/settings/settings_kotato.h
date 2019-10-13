@@ -9,6 +9,8 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 #include "settings/settings_common.h"
 
+class BoxContent;
+
 namespace Settings {
 
 void SetupKotatoChats(not_null<Ui::VerticalLayout*> container);

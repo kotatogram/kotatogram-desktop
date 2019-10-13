@@ -31,5 +31,13 @@
 	"ktg_settings_chats": "Чаты",
 	"ktg_settings_sticker_height": "Высота стикеров: {pixels} пикс.",
 	"ktg_settings_emoji_outline": "Обводка у больших эмодзи",
-	"ktg_settings_always_show_scheduled": "Всегда показывать отложенные"
+	"ktg_settings_always_show_scheduled": "Всегда показывать отложенные",
+	"ktg_settings_fonts": "Изменить шрифты приложения",
+	"ktg_fonts_title": "Шрифты",
+	"ktg_fonts_reset": "Сброс",
+	"ktg_fonts_about": "Если вы хотите использовать жирное начертание для полужирного шрифта, не пишите «Bold» в названии, используйте настройку «Сделать полужирный жирным».\n\nДля применения и просмотра изменений требуется перезапуск.",
+	"ktg_fonts_main": "Основной шрифт",
+	"ktg_fonts_semibold": "Полужирный шрифт",
+	"ktg_fonts_semibold_is_bold": "Сделать полужирный жирным",
+	"ktg_fonts_monospaced": "Моноширинный шрифт"
 }
