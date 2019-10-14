@@ -1,3 +1,6 @@
+1.0.10 (15.10.2019)
+- Change fonts in Kotatogram Settings.
+
 1.0.9 (11.10.2019)
 - Options menu: sticker height, emoji outline, scheduled messages button visibility.
 
