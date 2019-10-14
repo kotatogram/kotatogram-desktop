@@ -39,5 +39,8 @@
 	"ktg_fonts_main": "Основной шрифт",
 	"ktg_fonts_semibold": "Полужирный шрифт",
 	"ktg_fonts_semibold_is_bold": "Сделать полужирный жирным",
-	"ktg_fonts_monospaced": "Моноширинный шрифт"
+	"ktg_fonts_monospaced": "Моноширинный шрифт",
+	"ktg_fonts_restart_new_fonts": "Для применения новых шрифтов требуется перезапуск.\n\nПерезапустить сейчас?",
+	"ktg_fonts_restart_reset": "Для сброса шрифтов к стандартным требуется перезапуск.\n\nПерезапустить сейчас?",
+	"ktg_fonts_restart": "Перезапустить"
 }

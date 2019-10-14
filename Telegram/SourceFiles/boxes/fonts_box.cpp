@@ -11,7 +11,10 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
 #include "styles/style_boxes.h"
+#include "boxes/confirm_box.h"
+#include "core/kotato_settings.h"
 #include "lang/lang_keys.h"
+#include "app.h"
 
 FontsBox::FontsBox(QWidget* parent)
 : _mainFontName(this, st::defaultInputField, tr::ktg_fonts_main())
@@ -79,7 +82,42 @@ void FontsBox::setInnerFocus() {
 }
 
 void FontsBox::save() {
+	const auto mainFont = _mainFontName->getLastText().trimmed();
+	const auto semiboldFont = _semiboldFontName->getLastText().trimmed();
+	const auto semiboldIsBold = _semiboldIsBold->checked();
+	const auto monospacedFont = _monospacedFontName->getLastText().trimmed();
+
+	const auto changeFonts = [=] {
+		cSetMainFont(mainFont);
+		cSetSemiboldFont(semiboldFont);
+		cSetSemiboldFontIsBold(semiboldIsBold);
+		cSetMonospaceFont(monospacedFont);
+		KotatoSettings::Write();
+		App::restart();
+	};
+
+	Ui::show(
+		Box<ConfirmBox>(
+			tr::ktg_fonts_restart_new_fonts(tr::now),
+			tr::ktg_fonts_restart(tr::now),
+			tr::lng_cancel(tr::now),
+			changeFonts));
 }
 
 void FontsBox::resetToDefault() {
+	const auto resetFonts = [=] {
+		cSetMainFont(QString());
+		cSetSemiboldFont(QString());
+		cSetSemiboldFontIsBold(false);
+		cSetMonospaceFont(QString());
+		KotatoSettings::Write();
+		App::restart();
+	};
+
+	Ui::show(
+		Box<ConfirmBox>(
+			tr::ktg_fonts_restart_reset(tr::now),
+			tr::ktg_fonts_restart(tr::now),
+			tr::lng_cancel(tr::now),
+			resetFonts));
 }

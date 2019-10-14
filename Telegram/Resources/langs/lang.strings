@@ -2269,4 +2269,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_fonts_semibold_is_bold" = "Make semibold bold";
 "ktg_fonts_monospaced" = "Monospaced font";
 
+"ktg_fonts_restart_new_fonts" = "You will need to restart app to apply new fonts.\n\nRestart now?";
+"ktg_fonts_restart_reset" = "You will need to restart app to reset fonts to default.\n\nRestart now?";
+
+"ktg_fonts_restart" = "Restart";
+
 // Keys finished
