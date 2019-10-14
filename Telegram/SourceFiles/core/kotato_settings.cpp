@@ -85,19 +85,12 @@ void Manager::fill() {
 }
 
 void Manager::write(bool force) {
-	if (!_jsonWriteTimer.isActive()) {
-		_jsonWriteTimer.start(kWriteJsonTimeout);
-	} else if (_jsonWriteTimer.remainingTime() <= 0 || (force && _jsonWriteTimer.isActive())) {
+	if (force) {
+		_jsonWriteTimer.stop();
 		writeTimeout();
+	} else if (!_jsonWriteTimer.isActive()) {
+		_jsonWriteTimer.start(kWriteJsonTimeout);
 	}
-}
-
-void Manager::clear() {
-	_errors.clear();
-}
-
-const QStringList &Manager::errors() const {
-	return _errors;
 }
 
 bool Manager::readCustomFile() {
@@ -105,14 +98,7 @@ bool Manager::readCustomFile() {
 	if (!file.exists()) {
 		return false;
 	}
-	const auto guard = gsl::finally([&] {
-		if (!_errors.isEmpty()) {
-			_errors.push_front(qsl("While reading file '%1'..."
-			).arg(file.fileName()));
-		}
-	});
 	if (!file.open(QIODevice::ReadOnly)) {
-		_errors.push_back(qsl("Could not read the file!"));
 		return true;
 	}
 	auto error = QJsonParseError{ 0, QJsonParseError::NoError };
@@ -122,11 +108,8 @@ bool Manager::readCustomFile() {
 	file.close();
 
 	if (error.error != QJsonParseError::NoError) {
-		_errors.push_back(qsl("Failed to parse! Error: %2"
-		).arg(error.errorString()));
 		return true;
 	} else if (!document.isObject()) {
-		_errors.push_back(qsl("Failed to parse! Error: object expected"));
 		return true;
 	}
 	const auto settings = document.object();
@@ -271,7 +254,9 @@ void Manager::writeCurrentSettings() {
 	if (!file.open(QIODevice::WriteOnly)) {
 		return;
 	}
-	writing();
+	if (_jsonWriteTimer.isActive()) {
+		writing();
+	}
 	const char *customHeader = R"HEADER(
 // This file was automatically generated from current settings
 // It's better to edit it with app closed, so there will be no rewrites
@@ -337,13 +322,8 @@ void Write() {
 	Data.write();
 }
 
-const QStringList &Errors() {
-	return Data.errors();
-}
-
 void Finish() {
 	Data.write(true);
-	Data.clear();
 }
 
 } // namespace KotatoSettings

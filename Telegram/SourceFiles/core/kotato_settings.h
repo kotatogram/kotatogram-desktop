@@ -17,10 +17,7 @@ class Manager : public QObject {
 public:
 	Manager();
 	void fill();
-	void clear();
 	void write(bool force = false);
-
-	const QStringList &errors() const;
 
 public slots:
 	void writeTimeout();
@@ -31,7 +28,6 @@ private:
 	bool readCustomFile();
 	void writing();
 
-	QStringList _errors;
 	QTimer _jsonWriteTimer;
 
 };
@@ -39,7 +35,5 @@ private:
 void Start();
 void Write();
 void Finish();
-
-const QStringList &Errors();
 
 } // namespace KotatoSettings
