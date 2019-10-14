@@ -85,10 +85,10 @@ void Manager::fill() {
 }
 
 void Manager::write(bool force) {
-	if (force) {
+	if (force && _jsonWriteTimer.isActive()) {
 		_jsonWriteTimer.stop();
 		writeTimeout();
-	} else if (!_jsonWriteTimer.isActive()) {
+	} else if (!force && !_jsonWriteTimer.isActive()) {
 		_jsonWriteTimer.start(kWriteJsonTimeout);
 	}
 }
