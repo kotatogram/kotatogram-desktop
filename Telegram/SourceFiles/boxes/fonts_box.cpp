@@ -96,7 +96,9 @@ void FontsBox::save() {
 		App::restart();
 	};
 
-	Ui::show(
+	const auto box = std::make_shared<QPointer<BoxContent>>();
+
+	*box = getDelegate()->show(
 		Box<ConfirmBox>(
 			tr::ktg_fonts_restart_new_fonts(tr::now),
 			tr::ktg_fonts_restart(tr::now),
@@ -114,7 +116,9 @@ void FontsBox::resetToDefault() {
 		App::restart();
 	};
 
-	Ui::show(
+	const auto box = std::make_shared<QPointer<BoxContent>>();
+
+	*box = getDelegate()->show(
 		Box<ConfirmBox>(
 			tr::ktg_fonts_restart_reset(tr::now),
 			tr::ktg_fonts_restart(tr::now),
