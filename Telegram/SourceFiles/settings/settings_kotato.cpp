@@ -17,6 +17,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "boxes/connection_box.h"
 #include "boxes/fonts_box.h"
+#include "boxes/net_boost_box.h"
 #include "boxes/about_box.h"
 #include "boxes/confirm_box.h"
 #include "info/profile/info_profile_button.h"
@@ -104,6 +105,24 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<FontsBox>());
+	});
+
+
+	AddSkip(container);
+}
+
+void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
+	AddDivider(container);
+	AddSkip(container);
+	AddSubsectionTitle(container, tr::ktg_settings_network());
+
+	AddButtonWithLabel(
+		container,
+		tr::ktg_settings_net_speed_boost(),
+		rpl::single(NetBoostBox::BoostLabel(cNetSpeedBoost())),
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<NetBoostBox>());
 	});	
 
 	AddSkip(container);
@@ -121,7 +140,7 @@ void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 
 	SetupKotatoChats(content);
 	//SetupKotatoFonts(content);
-	//SetupKotatoNetwork(content);
+	SetupKotatoNetwork(content);
 	//SetupKotatoOther(content);
 
 	Ui::ResizeFitChild(this, content);

@@ -15,7 +15,7 @@ namespace Settings {
 
 void SetupKotatoChats(not_null<Ui::VerticalLayout*> container);
 //void SetupKotatoFonts(not_null<Ui::VerticalLayout*> container);
-//void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container);
+void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container);
 //void SetupKotatoOther(not_null<Ui::VerticalLayout*> container);
 
 class Kotato : public Section {
