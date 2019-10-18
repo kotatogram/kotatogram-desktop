@@ -2261,6 +2261,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_fonts" = "Change application fonts";
 "ktg_settings_network" = "Network";
 "ktg_settings_net_speed_boost" = "Speed boost";
+"ktg_settings_other" = "Other";
+"ktg_settings_show_phone_number" = "Show phone in drawer";
+"ktg_settings_show_chat_id" = "Show chat ID";
 
 "ktg_fonts_title" = "Fonts";
 "ktg_fonts_reset" = "Reset";
