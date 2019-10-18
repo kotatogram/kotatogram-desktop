@@ -75,21 +75,6 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 		argumentsList.push("-externalupdater");
 	}
 #endif // !TDESKTOP_DISABLE_AUTOUPDATE
-	if (!cMainFont().isEmpty()) {
-		argumentsList.push("-mainfont");
-		argumentsList.push(QFile::encodeName(cMainFont()));
-	}
-	if (!cSemiboldFont().isEmpty()) {
-		argumentsList.push("-semiboldfont");
-		argumentsList.push(QFile::encodeName(cSemiboldFont()));
-	}
-	if (cSemiboldFontIsBold()) {
-		argumentsList.push("-semiboldisbold");
-	}
-	if (!cMonospaceFont().isEmpty()) {
-		argumentsList.push("-monospacefont");
-		argumentsList.push(QFile::encodeName(cMonospaceFont()));
-	}
 	if (cDataFile() != qsl("data")) {
 		argumentsList.push("-key");
 		argumentsList.push(QFile::encodeName(cDataFile()));

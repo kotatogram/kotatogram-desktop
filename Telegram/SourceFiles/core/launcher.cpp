@@ -392,10 +392,6 @@ void Launcher::processArguments() {
 		{ "-workdir"        , KeyFormat::OneValue },
 		{ "--"              , KeyFormat::OneValue },
 		{ "-scale"          , KeyFormat::OneValue },
-		{ "-mainfont"       , KeyFormat::OneValue },
-		{ "-semiboldfont"   , KeyFormat::OneValue },
-		{ "-semiboldisbold" , KeyFormat::NoValues },
-		{ "-monospacefont"  , KeyFormat::OneValue },
 	};
 	auto parseResult = QMap<QByteArray, QStringList>();
 	auto parsingKey = QByteArray();
@@ -453,11 +449,6 @@ void Launcher::processArguments() {
 			? style::kScaleAuto
 			: value;
 	}
-
-	gMainFont = parseResult.value("-mainfont", {}).join(QString());
-	gSemiboldFont = parseResult.value("-semiboldfont", {}).join(QString());
-	gSemiboldFontIsBold = parseResult.contains("-semiboldisbold");
-	gMonospaceFont = parseResult.value("-monospacefont", {}).join(QString());
 }
 
 int Launcher::executeApplication() {

@@ -46,9 +46,6 @@ string updaterName;
 string workDir;
 string exeName;
 string exePath;
-string mainFont;
-string semiboldFont;
-string monospacedFont;
 
 FILE *_logFile = 0;
 void openLog() {
@@ -344,7 +341,6 @@ int main(int argc, char *argv[]) {
 	bool testmode = false;
 	bool externalupdater = false;
 	bool customWorkingDir = false;
-	bool semiboldIsBold = false;
 
 	char *key = 0;
 	char *workdir = 0;
@@ -373,14 +369,6 @@ int main(int argc, char *argv[]) {
 			exeName = argv[i];
 		} else if (equal(argv[i], "-exepath") && ++i < argc) {
 			exePath = argv[i];
-		} else if (equal(argv[i], "-mainfont") && ++i < argc) {
-			mainFont = argv[i];
-		} else if (equal(argv[i], "-semiboldfont") && ++i < argc) {
-			semiboldFont = argv[i];
-		} else if (equal(argv[i], "-semiboldisbold")) {
-			semiboldIsBold = true;
-		} else if (equal(argv[i], "-monospacefont") && ++i < argc) {
-			monospacedFont = argv[i];
 		}
 	}
 	if (exeName.empty() || exeName.find('/') != string::npos) {
@@ -476,19 +464,6 @@ int main(int argc, char *argv[]) {
 	if (customWorkingDir && workdir) {
 		push("-workdir");
 		push(workdir);
-	}
-	if (!mainFont.empty()) {
-		push("-mainfont");
-		push(mainFont);
-	}
-	if (!semiboldFont.empty()) {
-		push("-semiboldfont");
-		push(semiboldFont);
-	}
-	if (semiboldIsBold) push("-semiboldisbold");
-	if (!monospacedFont.empty()) {
-		push("-monospacefont");
-		push(monospacedFont);
 	}
 
 	auto args = vector<char*>();
