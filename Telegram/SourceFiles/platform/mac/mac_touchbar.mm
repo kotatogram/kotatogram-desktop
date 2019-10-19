@@ -95,8 +95,8 @@ NSString *const kTypePicker = @"picker";
 NSString *const kTypeFormatter = @"formatter";
 NSString *const kTypeFormatterSegment = @"formatterSegment";
 
-const NSString *kCustomizationIdPlayer = @"telegram.touchbar";
-const NSString *kCustomizationIdMain = @"telegram.touchbarMain";
+const NSString *kCustomizationIdPlayer = @"kotatogram.touchbar";
+const NSString *kCustomizationIdMain = @"kotatogram.touchbarMain";
 const NSTouchBarItemIdentifier kSavedMessagesItemIdentifier = [NSString stringWithFormat:@"%@.savedMessages", kCustomizationIdMain];
 const NSTouchBarItemIdentifier kArchiveFolderItemIdentifier = [NSString stringWithFormat:@"%@.archiveFolder", kCustomizationIdMain];
 const NSTouchBarItemIdentifier kPinnedPanelItemIdentifier = [NSString stringWithFormat:@"%@.pinnedPanel", kCustomizationIdMain];

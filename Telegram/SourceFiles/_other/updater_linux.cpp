@@ -372,7 +372,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	if (exeName.empty() || exeName.find('/') != string::npos) {
-		exeName = "Telegram";
+		exeName = "Kotatogram";
 	}
 	openLog();
 
@@ -403,19 +403,19 @@ int main(int argc, char *argv[]) {
 					customWorkingDir = false;
 
 					writeLog("No workdir, trying to figure it out");
-					struct passwd *pw = getpwuid(getuid());
-					if (pw && pw->pw_dir && strlen(pw->pw_dir)) {
-						string tryDir = pw->pw_dir + string("/.TelegramDesktop/");
-						struct stat statbuf;
-						writeLog("Trying to use '%s' as workDir, getting stat() for tupdates/ready", tryDir.c_str());
-						if (!stat((tryDir + "tupdates/ready").c_str(), &statbuf)) {
-							writeLog("Stat got");
-							if (S_ISDIR(statbuf.st_mode)) {
-								writeLog("It is directory, using home work dir");
-								workDir = tryDir;
-							}
-						}
-					}
+					// struct passwd *pw = getpwuid(getuid());
+					// if (pw && pw->pw_dir && strlen(pw->pw_dir)) {
+					// 	string tryDir = pw->pw_dir + string("/.TelegramDesktop/");
+					// 	struct stat statbuf;
+					// 	writeLog("Trying to use '%s' as workDir, getting stat() for tupdates/ready", tryDir.c_str());
+					// 	if (!stat((tryDir + "tupdates/ready").c_str(), &statbuf)) {
+					// 		writeLog("Stat got");
+					// 		if (S_ISDIR(statbuf.st_mode)) {
+					// 			writeLog("It is directory, using home work dir");
+					// 			workDir = tryDir;
+					// 		}
+					// 	}
+					// }
 					if (workDir.empty()) {
 						workDir = exePath;
 

@@ -187,16 +187,16 @@ QString getHomeDir() {
 } // namespace
 
 QString psAppDataPath() {
-	// Previously we used ~/.TelegramDesktop, so look there first.
-	// If we find data there, we should still use it.
-	auto home = getHomeDir();
-	if (!home.isEmpty()) {
-		auto oldPath = home + qsl(".TelegramDesktop/");
-		auto oldSettingsBase = oldPath + qsl("tdata/settings");
-		if (QFile(oldSettingsBase + '0').exists() || QFile(oldSettingsBase + '1').exists()) {
-			return oldPath;
-		}
-	}
+	// We should not use ~/.TelegramDesktop, since it's a fork.
+	
+	// auto home = getHomeDir();
+	// if (!home.isEmpty()) {
+	// 	auto oldPath = home + qsl(".TelegramDesktop/");
+	// 	auto oldSettingsBase = oldPath + qsl("tdata/settings");
+	// 	if (QFile(oldSettingsBase + '0').exists() || QFile(oldSettingsBase + '1').exists()) {
+	// 		return oldPath;
+	// 	}
+	// }
 
 	return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + '/';
 }
