@@ -1013,7 +1013,10 @@ void HistoryWidget::start() {
 
 void HistoryWidget::onMentionInsert(UserData *user, FieldAutocomplete::ChooseMethod method) {
 	QString replacement, entityTag;
-	if (method == FieldAutocomplete::ChooseMethod::ByRightClick || user->username.isEmpty()) {
+	if (user->username.isEmpty()
+		|| method == FieldAutocomplete::ChooseMethod::ByRightClick 
+		|| method == FieldAutocomplete::ChooseMethod::ByCtrlEnter
+		|| method == FieldAutocomplete::ChooseMethod::ByCtrlClick) {
 		replacement = user->firstName;
 		if (replacement.isEmpty()) {
 			replacement = user->name;

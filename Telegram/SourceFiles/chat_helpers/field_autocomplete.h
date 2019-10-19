@@ -72,6 +72,8 @@ public:
 		ByTab,
 		ByClick,
 		ByRightClick,
+		ByCtrlEnter,
+		ByCtrlClick,
 	};
 	bool chooseSelected(ChooseMethod method) const;
 

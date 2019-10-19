@@ -576,6 +576,10 @@ bool FieldAutocomplete::eventFilter(QObject *obj, QEvent *e) {
 				emit moderateKeyActivate(ev->key(), &handled);
 				return handled;
 			}
+		} else if (ev->modifiers() & Qt::ControlModifier) {
+			if (ev->key() == Qt::Key_Enter || ev->key() == Qt::Key_Return) {
+				return _inner->chooseSelected(ChooseMethod::ByCtrlEnter);
+			}
 		}
 	}
 	return QWidget::eventFilter(obj, e);
@@ -913,7 +917,11 @@ void FieldAutocompleteInner::mousePressEvent(QMouseEvent *e) {
 			selectByMouse(e->globalPos());
 		} else if (_srows->empty()) {
 			if (e->button() == Qt::LeftButton) {
-				chooseSelected(FieldAutocomplete::ChooseMethod::ByClick);
+				if (e->modifiers() & Qt::ControlModifier) {
+					chooseSelected(FieldAutocomplete::ChooseMethod::ByCtrlClick);
+				} else {
+					chooseSelected(FieldAutocomplete::ChooseMethod::ByClick);
+				}
 			} else if (e->button() == Qt::RightButton) {
 				chooseSelected(FieldAutocomplete::ChooseMethod::ByRightClick);
 			}
@@ -940,7 +948,11 @@ void FieldAutocompleteInner::mouseReleaseEvent(QMouseEvent *e) {
 	if (_sel < 0 || _sel != pressed || _srows->empty()) return;
 
 	if (e->button() == Qt::LeftButton) {
-		chooseSelected(FieldAutocomplete::ChooseMethod::ByClick);
+		if (e->modifiers() & Qt::ControlModifier) {
+			chooseSelected(FieldAutocomplete::ChooseMethod::ByCtrlClick);
+		} else {
+			chooseSelected(FieldAutocomplete::ChooseMethod::ByClick);
+		}
 	} else if (e->button() == Qt::RightButton) {
 		chooseSelected(FieldAutocomplete::ChooseMethod::ByRightClick);
 	}
