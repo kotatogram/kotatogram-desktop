@@ -152,6 +152,13 @@ void activateBotCommand(
 }
 
 void searchByHashtag(const QString &tag, PeerData *inPeer) {
+	if (const auto window = App::wnd()) {
+		if (const auto controller = window->sessionController()) {
+			if (controller->openedFolder().current()) {
+				controller->closeFolder();
+			}
+		}
+	}
 	if (const auto m = App::main()) {
 		Ui::hideSettingsAndLayer();
 		Core::App().hideMediaView();
