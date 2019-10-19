@@ -165,6 +165,9 @@ dialogsChannelIconActive: icon {{ "dialogs_channel", dialogsChatIconFgActive, po
 dialogsBotIcon: icon {{ "dialogs_bot", dialogsChatIconFg, point(1px, 3px) }};
 dialogsBotIconOver: icon {{ "dialogs_bot", dialogsChatIconFgOver, point(1px, 3px) }};
 dialogsBotIconActive: icon {{ "dialogs_bot", dialogsChatIconFgActive, point(1px, 3px) }};
+dialogsDeletedIcon: icon {{ "dialogs_deleted", dialogsChatIconFg, point(1px, 4px) }};
+dialogsDeletedIconOver: icon {{ "dialogs_deleted", dialogsChatIconFgOver, point(1px, 4px) }};
+dialogsDeletedIconActive: icon {{ "dialogs_deleted", dialogsChatIconFgActive, point(1px, 4px) }};
 //dialogsFeedIcon: icon {{ "dialogs_feed", dialogsChatIconFg, point(4px, 4px) }}; // #feed
 //dialogsFeedIconOver: icon {{ "dialogs_feed", dialogsChatIconFgOver, point(4px, 4px) }};
 //dialogsFeedIconActive: icon {{ "dialogs_feed", dialogsChatIconFgActive, point(4px, 4px) }};

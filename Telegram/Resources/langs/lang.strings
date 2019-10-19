@@ -2315,4 +2315,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_manage_peer_subscribers" = "Subscribers";
 
+"ktg_user_status_unaccessible" = "account inaccessible";
+
 // Keys finished

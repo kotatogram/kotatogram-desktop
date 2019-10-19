@@ -44,7 +44,9 @@ int OnlinePhraseChangeInSeconds(TimeId online, TimeId now) {
 }
 
 std::optional<QString> OnlineTextSpecial(not_null<UserData*> user) {
-	if (user->isNotificationsUser()) {
+	if (user->isInaccessible()) {
+		return tr::ktg_user_status_unaccessible(tr::now);
+	} else if (user->isNotificationsUser()) {
 		return tr::lng_status_service_notifications(tr::now);
 	} else if (user->isSupport()) {
 		return tr::lng_status_support(tr::now);

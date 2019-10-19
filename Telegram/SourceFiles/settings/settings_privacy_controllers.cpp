@@ -324,7 +324,9 @@ std::unique_ptr<PeerListRow> BlockedBoxController::createRow(
 	auto row = std::make_unique<PeerListRowWithLink>(user);
 	row->setActionLink(tr::lng_blocked_list_unblock(tr::now));
 	const auto status = [&] {
-		if (!user->phone().isEmpty()) {
+		if (user->isInaccessible()) {
+			return tr::ktg_user_status_unaccessible(tr::now);
+		} else if (!user->phone().isEmpty()) {
 			return App::formatPhone(user->phone());
 		} else if (!user->username.isEmpty()) {
 			return '@' + user->username;
