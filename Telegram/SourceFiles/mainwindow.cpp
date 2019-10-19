@@ -142,14 +142,14 @@ void MainWindow::firstShow() {
 		: tr::lng_enable_notifications_from_tray(tr::now);
 
 	if (Platform::IsLinux()) {
-		trayIconMenu->addAction(tr::lng_open_from_tray(tr::now), this, SLOT(showFromTray()));
+		trayIconMenu->addAction(tr::ktg_open_from_tray(tr::now), this, SLOT(showFromTray()));
 		trayIconMenu->addAction(tr::lng_minimize_to_tray(tr::now), this, SLOT(minimizeToTray()));
 		trayIconMenu->addAction(notificationActionText, this, SLOT(toggleDisplayNotifyFromTray()));
-		trayIconMenu->addAction(tr::lng_quit_from_tray(tr::now), this, SLOT(quitFromTray()));
+		trayIconMenu->addAction(tr::ktg_quit_from_tray(tr::now), this, SLOT(quitFromTray()));
 	} else {
 		trayIconMenu->addAction(tr::lng_minimize_to_tray(tr::now), this, SLOT(minimizeToTray()));
 		trayIconMenu->addAction(notificationActionText, this, SLOT(toggleDisplayNotifyFromTray()));
-		trayIconMenu->addAction(tr::lng_quit_from_tray(tr::now), this, SLOT(quitFromTray()));
+		trayIconMenu->addAction(tr::ktg_quit_from_tray(tr::now), this, SLOT(quitFromTray()));
 	}
 	Global::RefWorkMode().setForced(Global::WorkMode().value(), true);
 
@@ -571,7 +571,7 @@ void MainWindow::updateTrayMenu(bool force) {
 		connect(toggleAction, SIGNAL(triggered(bool)), this, active ? SLOT(minimizeToTray()) : SLOT(showFromTray()));
 		toggleAction->setText(active
 			? tr::lng_minimize_to_tray(tr::now)
-			: tr::lng_open_from_tray(tr::now));
+			: tr::ktg_open_from_tray(tr::now));
 
 		// On macOS just remove trayIcon menu if the window is not active.
 		// So we will activate the window on click instead of showing the menu.

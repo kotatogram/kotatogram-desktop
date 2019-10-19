@@ -339,7 +339,7 @@ void Calls::requestPermissionAndStartTestingMicrophone() {
 			Ui::hideLayer();
 		};
 		Ui::show(Box<ConfirmBox>(
-			tr::lng_no_mic_permission(tr::now),
+			tr::ktg_no_mic_permission(tr::now),
 			tr::lng_menu_settings(tr::now),
 			showSystemSettings));
 	}

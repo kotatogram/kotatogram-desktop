@@ -339,7 +339,7 @@ void CodeWidget::gotPassword(const MTPaccount_Password &result) {
 			if (*box) (*box)->closeBox();
 		};
 		*box = Ui::show(Box<ConfirmBox>(
-			tr::lng_passport_app_out_of_date(tr::now),
+			tr::ktg_passport_app_out_of_date(tr::now),
 			tr::lng_menu_update(tr::now),
 			callback));
 		return;

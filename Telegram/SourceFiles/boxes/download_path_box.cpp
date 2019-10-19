@@ -20,7 +20,7 @@ DownloadPathBox::DownloadPathBox(QWidget *parent)
 : _path(Global::DownloadPath())
 , _pathBookmark(Global::DownloadPathBookmark())
 , _group(std::make_shared<Ui::RadioenumGroup<Directory>>(typeFromPath(_path)))
-, _default(this, _group, Directory::Downloads, tr::lng_download_path_default_radio(tr::now), st::defaultBoxCheckbox)
+, _default(this, _group, Directory::Downloads, tr::ktg_download_path_default_radio(tr::now), st::defaultBoxCheckbox)
 , _temp(this, _group, Directory::Temp, tr::lng_download_path_temp_radio(tr::now), st::defaultBoxCheckbox)
 , _dir(this, _group, Directory::Custom, tr::lng_download_path_dir_radio(tr::now), st::defaultBoxCheckbox)
 , _pathLink(this, QString(), st::boxLinkButton) {

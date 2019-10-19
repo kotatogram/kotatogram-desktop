@@ -136,7 +136,7 @@ void Changelogs::addLocalLogs() {
 		addBetaLogs();
 	}
 	if (!_addedSomeLocal) {
-		const auto text = tr::lng_new_version_wrap(
+		const auto text = tr::ktg_new_version_wrap(
 			tr::now,
 			lt_version,
 			QString::fromLatin1(AppVersionStr),

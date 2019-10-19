@@ -561,7 +561,7 @@ object_ptr<BoxContent> CloudPasswordAppOutdatedBox() {
 		if (*box) (*box)->closeBox();
 	};
 	auto result = Box<ConfirmBox>(
-		tr::lng_passport_app_out_of_date(tr::now),
+		tr::ktg_passport_app_out_of_date(tr::now),
 		tr::lng_menu_update(tr::now),
 		callback);
 	*box = result.data();

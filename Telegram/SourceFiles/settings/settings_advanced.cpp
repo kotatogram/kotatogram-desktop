@@ -115,7 +115,7 @@ void SetupUpdate(not_null<Ui::VerticalLayout*> container) {
 		st::settingsButton);
 	const auto update = Ui::CreateChild<Button>(
 		check.get(),
-		tr::lng_update_telegram() | Ui::Text::ToUpper(),
+		tr::ktg_update_telegram() | Ui::Text::ToUpper(),
 		st::settingsUpdate);
 	update->hide();
 	check->widthValue() | rpl::start_with_next([=](int width) {
@@ -333,13 +333,13 @@ void SetupTrayContent(not_null<Ui::VerticalLayout*> container) {
 		};
 
 		const auto autostart = addCheckbox(
-			tr::lng_settings_auto_start(tr::now),
+			tr::ktg_settings_auto_start(tr::now),
 			cAutoStart());
 		const auto minimized = addSlidingCheckbox(
 			tr::lng_settings_start_min(tr::now),
 			minimizedToggled());
 		const auto sendto = addCheckbox(
-			tr::lng_settings_add_sendto(tr::now),
+			tr::ktg_settings_add_sendto(tr::now),
 			cSendToMenu());
 
 		autostart->checkedChanges(
@@ -365,7 +365,7 @@ void SetupTrayContent(not_null<Ui::VerticalLayout*> container) {
 			if (Global::LocalPasscode()) {
 				minimized->entity()->setChecked(false);
 				Ui::show(Box<InformBox>(
-					tr::lng_error_start_minimized_passcoded(tr::now)));
+					tr::ktg_error_start_minimized_passcoded(tr::now)));
 			} else {
 				cSetStartMinimized(checked);
 				Local::writeSettings();

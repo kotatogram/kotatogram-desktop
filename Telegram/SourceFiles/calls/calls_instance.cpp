@@ -291,7 +291,7 @@ void Instance::requestMicrophonePermissionOrFail(Fn<void()> onSuccess) {
 		if (alreadyInCall()) {
 			_currentCall->hangup();
 		}
-		Ui::show(Box<ConfirmBox>(tr::lng_no_mic_permission(tr::now), tr::lng_menu_settings(tr::now), crl::guard(this, [] {
+		Ui::show(Box<ConfirmBox>(tr::ktg_no_mic_permission(tr::now), tr::lng_menu_settings(tr::now), crl::guard(this, [] {
 			Platform::OpenSystemSettingsForPermission(Platform::PermissionType::Microphone);
 			Ui::hideLayer();
 		})));

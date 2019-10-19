@@ -67,7 +67,7 @@ not_null<HistoryItem*> CreateUnsupportedMessage(
 		UserId from) {
 	const auto siteLink = qsl("https://kotatogram.github.io");
 	auto text = TextWithEntities{
-		tr::lng_message_unsupported(tr::now, lt_link, siteLink)
+		tr::ktg_message_unsupported(tr::now, lt_link, siteLink)
 	};
 	TextUtilities::ParseEntities(text, Ui::ItemTextNoMonoOptions().flags);
 	text.entities.push_front(

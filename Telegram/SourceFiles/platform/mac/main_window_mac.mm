@@ -718,7 +718,7 @@ void MainWindow::createGlobalMenu() {
 	psNewGroup = window->addAction(tr::lng_mac_menu_new_group(tr::now), App::wnd(), SLOT(onShowNewGroup()));
 	psNewChannel = window->addAction(tr::lng_mac_menu_new_channel(tr::now), App::wnd(), SLOT(onShowNewChannel()));
 	window->addSeparator();
-	psShowTelegram = window->addAction(tr::lng_mac_menu_show(tr::now), App::wnd(), SLOT(showFromTray()));
+	psShowTelegram = window->addAction(tr::ktg_mac_menu_show(tr::now), App::wnd(), SLOT(showFromTray()));
 
 	updateGlobalMenu();
 }

@@ -486,7 +486,7 @@ void Widget::checkUpdateStatus() {
 		if (_updateTelegram) return;
 		_updateTelegram.create(
 			this,
-			tr::lng_update_telegram(tr::now),
+			tr::ktg_update_telegram(tr::now),
 			st::dialogsUpdateButton,
 			st::dialogsInstallUpdate,
 			st::dialogsInstallUpdateOver);

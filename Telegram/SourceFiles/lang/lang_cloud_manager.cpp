@@ -118,7 +118,7 @@ NotReadyBox::NotReadyBox(
 void NotReadyBox::prepare() {
 	setTitle(tr::lng_language_not_ready_title());
 
-	auto text = tr::lng_language_not_ready_about(
+	auto text = tr::ktg_language_not_ready_about(
 		lt_lang_name,
 		rpl::single(_name) | Ui::Text::ToWithEntities(),
 		lt_link,

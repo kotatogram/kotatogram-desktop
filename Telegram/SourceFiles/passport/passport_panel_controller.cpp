@@ -982,7 +982,7 @@ void PanelController::showUpdateAppBox() {
 	};
 	show(
 		Box<ConfirmBox>(
-			tr::lng_passport_app_out_of_date(tr::now),
+			tr::ktg_passport_app_out_of_date(tr::now),
 			tr::lng_menu_update(tr::now),
 			callback,
 			[=] { _form->cancelSure(); }),

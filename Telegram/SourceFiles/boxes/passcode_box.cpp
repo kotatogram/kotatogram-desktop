@@ -116,7 +116,7 @@ void PasscodeBox::prepare() {
 			? *_cloudFields.customDescription
 			: _cloudPwd
 			? tr::lng_cloud_password_about(tr::now)
-			: tr::lng_passcode_about(tr::now)));
+			: tr::ktg_passcode_about(tr::now)));
 	_aboutHeight = _about.countHeight(st::boxWidth - st::boxPadding.left() * 1.5);
 	const auto onlyCheck = onlyCheckCurrent();
 	if (onlyCheck) {
