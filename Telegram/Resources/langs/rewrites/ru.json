@@ -77,5 +77,6 @@
 	"ktg_language_not_ready_about": "К сожалению, в этом неофициальном переводе ({lang_name}) нет текстов приложения Kotatogram Desktop. Вы можете использовать {link}, чтобы помочь с переводом приложения.",
 	"ktg_outdated_soon": "Иначе приложение перестанет обновляться с {date}.",
 	"ktg_outdated_now": "Чтобы приложение Kotatogram могло получать обновления.",
-	"ktg_mac_menu_show": "Показать Kotatogram"
+	"ktg_mac_menu_show": "Показать Kotatogram",
+	"ktg_manage_peer_subscribers": "Подписчики"
 }

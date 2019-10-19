@@ -2313,5 +2313,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_outdated_now" = "So that Kotatogram Desktop can update to newer versions.";
 "ktg_mac_menu_show" = "Show Kotatogram";
 
+"ktg_manage_peer_subscribers" = "Subscribers";
 
 // Keys finished

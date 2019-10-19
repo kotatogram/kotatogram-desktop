@@ -45,6 +45,7 @@ void SubscribeToMigration(
 enum class ParticipantsRole {
 	Profile,
 	Members,
+	Subscribers,
 	Admins,
 	Restricted,
 	Kicked,

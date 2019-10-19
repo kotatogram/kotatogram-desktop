@@ -965,7 +965,7 @@ void Controller::fillManageSection() {
 	if (canViewMembers) {
 		AddButtonWithCount(
 			_controls.buttonsLayout,
-			tr::lng_manage_peer_members(),
+			(_isGroup ? tr::lng_manage_peer_members() : tr::ktg_manage_peer_subscribers()),
 			Info::Profile::MigratedOrMeValue(
 				_peer
 			) | rpl::map(
@@ -976,7 +976,7 @@ void Controller::fillManageSection() {
 				ParticipantsBoxController::Start(
 					navigation,
 					_peer,
-					ParticipantsBoxController::Role::Members);
+					(_isGroup ? ParticipantsBoxController::Role::Members : ParticipantsBoxController::Role::Subscribers));
 			},
 			st::infoIconMembers);
 	}
