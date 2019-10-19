@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/menu.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/text/text_utilities.h"
+#include "ui/text_options.h"
 #include "ui/special_buttons.h"
 #include "ui/empty_userpic.h"
 #include "mainwindow.h"
@@ -418,8 +419,8 @@ void MainMenu::paintEvent(QPaintEvent *e) {
 			p.fillRect(cover, st::mainMenuCoverBg);
 		}
 		p.setPen(st::mainMenuCoverFg);
-		p.setFont(st::semiboldFont);
 		if (cShowPhoneInDrawer()) {
+			p.setFont(st::semiboldFont);
 			_controller->session().user()->nameText().drawLeftElided(
 				p,
 				st::mainMenuCoverTextLeft,
@@ -429,11 +430,14 @@ void MainMenu::paintEvent(QPaintEvent *e) {
 			p.setFont(st::normalFont);
 			p.drawTextLeft(st::mainMenuCoverTextLeft, st::mainMenuCoverStatusTop, width(), _phoneText);
 		} else {
-			const auto diff = st::mainMenuCoverStatusTop - st::mainMenuCoverNameTop;
-			_controller->session().user()->nameText().drawLeftElided(
+			p.setFont(st::mainMenuCoverNameOnlyFont);
+			auto name = _controller->session().user()->nameText().toString();
+			auto nameStr = Ui::Text::String();
+			nameStr.setText(st::mainMenuCoverNameOnlyStyle, name, Ui::NameTextOptions());
+			nameStr.drawLeftElided(
 				p,
 				st::mainMenuCoverTextLeft,
-				st::mainMenuCoverNameTop + (diff / 2),
+				st::mainMenuCoverNameOnlyTop,
 				widthText,
 				width());
 			

@@ -113,6 +113,11 @@ mainMenuResetScaleIconLeft: 5px;
 mainMenuCoverTextLeft: 30px;
 mainMenuCoverNameTop: 84px;
 mainMenuCoverStatusTop: 102px;
+mainMenuCoverNameOnlyTop: 94px;
+mainMenuCoverNameOnlyFont: font(14px semibold);
+mainMenuCoverNameOnlyStyle: TextStyle(semiboldTextStyle) {
+	font: mainMenuCoverNameOnlyFont;
+}
 mainMenuSkip: 13px;
 mainMenu: Menu(defaultMenu) {
 	itemFg: windowBoldFg;
