@@ -5738,7 +5738,11 @@ bool HistoryWidget::pinnedMsgVisibilityUpdated() {
 				_pinnedBar->shadow->show();
 			}
 			_pinnedBar->cancel->addClickHandler([=] {
-				hidePinnedMessage();
+				if (_pinnedBar->cancel->clickModifiers() & Qt::ControlModifier) {
+					hidePinnedMessage(true);
+				} else {
+					hidePinnedMessage();
+				}
 			});
 			orderWidgets();
 
@@ -6004,7 +6008,7 @@ void HistoryWidget::unpinDone(const MTPUpdates &updates) {
 	session().api().applyUpdates(updates);
 }
 
-void HistoryWidget::hidePinnedMessage() {
+void HistoryWidget::hidePinnedMessage(bool force) {
 	const auto pinnedId = _peer ? _peer->pinnedMessageId() : MsgId(0);
 	if (!pinnedId) {
 		if (pinnedMsgVisibilityUpdated()) {
@@ -6014,7 +6018,7 @@ void HistoryWidget::hidePinnedMessage() {
 		return;
 	}
 
-	if (_peer->canPinMessages()) {
+	if (_peer->canPinMessages() && !force) {
 		unpinMessage(FullMsgId(
 			_peer->isChannel() ? peerToChannel(_peer->id) : NoChannel,
 			pinnedId));
