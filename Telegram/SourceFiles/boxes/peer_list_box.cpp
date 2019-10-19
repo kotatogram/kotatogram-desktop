@@ -1159,13 +1159,13 @@ crl::time PeerListContent::paintRow(Painter &p, crl::time ms, RowIndex index) {
 	auto &name = row->name();
 	auto namex = _st.item.namePosition.x();
 	auto namew = width() - namex - skipRight;
+	auto statusw = namew;
 	if (!actionSize.isEmpty()) {
-		namew -= actionMargins.left()
+		statusw -= actionMargins.left()
 			+ actionSize.width()
 			+ actionMargins.right()
 			- skipRight;
 	}
-	auto statusw = namew;
 	if (auto iconWidth = row->nameIconWidth()) {
 		namew -= iconWidth;
 		row->paintNameIcon(
@@ -1176,14 +1176,9 @@ crl::time PeerListContent::paintRow(Painter &p, crl::time ms, RowIndex index) {
 			selected);
 	}
 	if (auto adminRankWidth = row->adminRankWidth()) {
-		namew -= adminRankWidth;
+		namew -= adminRankWidth + skipRight;
 		auto rankx = width() - adminRankWidth - skipRight;
-		if (!actionSize.isEmpty() && selected) {
-			namew -= skipRight;
-			rankx -= skipRight;
-		}
 		p.setFont(st::normalFont);
-		p.setPen(selected ? _st.item.statusFgOver : _st.item.statusFg);
 		row->paintAdminRank(
 			p,
 			rankx,

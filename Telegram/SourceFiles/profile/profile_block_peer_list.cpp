@@ -102,7 +102,11 @@ void PeerListWidget::paintItem(Painter &p, int x, int y, Item *item, bool select
 		nameWidth -= _removeWidth + skip;
 	} else if (item->adminState != Item::AdminState::None) {
 		p.setFont(st::normalFont);
-		p.setPen(selected ? _st.statusFgOver : _st.statusFg);
+		p.setPen(item->adminState == Item::AdminState::Creator
+			? _st.statusFgActive
+			: selected 
+			? _st.statusFgOver 
+			: _st.statusFg);
 		p.drawTextLeft(nameLeft + nameWidth - item->adminRankWidth, nameTop, width(), item->adminRank, item->adminRankWidth);
 		nameWidth -= item->adminRankWidth + skip;
 	}

@@ -77,6 +77,11 @@ void MemberListRow::paintAdminRank(
 		int y,
 		int outerWidth,
 		bool selected) {
+	p.setPen(_type.rights == Rights::Creator
+		? st::defaultPeerListItem.statusFgActive
+		: selected 
+		? st::defaultPeerListItem.statusFgOver 
+		: st::defaultPeerListItem.statusFg);
 	p.drawTextLeft(x, y, outerWidth, _type.adminRank, adminRankWidth());
 }
 
