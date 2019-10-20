@@ -292,6 +292,8 @@ public:
 	void notify_showScheduledButtonChanged();
 	void notify_historyMuteUpdated(History *history);
 
+	MsgId highlightedOriginalId() const;
+
 	void closeBothPlayers();
 
 	bool isQuitPrevent();

@@ -895,31 +895,34 @@ void HistoryWidget::scrollToAnimationCallback(
 
 void HistoryWidget::enqueueMessageHighlight(
 		not_null<HistoryView::Element*> view) {
+	const auto originalItem = view->data();
 	if (const auto group = session().data().groups().find(view->data())) {
 		if (const auto leader = group->items.back()->mainView()) {
 			view = leader;
 		}
 	}
-	auto enqueueMessageId = [this](MsgId universalId) {
+	auto enqueueMessageId = [this](MsgId universalId, MsgId originalId) {
 		if (_highlightQueue.empty() && !_highlightTimer.isActive()) {
-			highlightMessage(universalId);
+			highlightMessage(universalId, originalId);
 		} else if (_highlightedMessageId != universalId
 			&& !base::contains(_highlightQueue, universalId)) {
 			_highlightQueue.push_back(universalId);
+			_highlightOriginalQueue.push_back(originalId);
 			checkNextHighlight();
 		}
 	};
 	const auto item = view->data();
 	if (item->history() == _history) {
-		enqueueMessageId(item->id);
+		enqueueMessageId(item->id, originalItem->id);
 	} else if (item->history() == _migrated) {
-		enqueueMessageId(-item->id);
+		enqueueMessageId(-item->id, -originalItem->id);
 	}
 }
 
-void HistoryWidget::highlightMessage(MsgId universalMessageId) {
+void HistoryWidget::highlightMessage(MsgId universalMessageId, MsgId originalMessageId) {
 	_highlightStart = crl::now();
 	_highlightedMessageId = universalMessageId;
+	_highlightedOriginalMessageId = originalMessageId;
 	_highlightTimer.callEach(AnimationTimerDelta);
 }
 
@@ -938,10 +941,21 @@ void HistoryWidget::checkNextHighlight() {
 		}
 		return 0;
 	}();
-	if (!nextHighlight) {
+	auto nextOriginalHighlight = [this] {
+		while (!_highlightOriginalQueue.empty()) {
+			auto msgId = _highlightOriginalQueue.front();
+			_highlightOriginalQueue.pop_front();
+			auto item = getItemFromHistoryOrMigrated(msgId);
+			if (item && item->mainView()) {
+				return msgId;
+			}
+		}
+		return 0;
+	}();
+	if (!nextHighlight || !nextOriginalHighlight) {
 		return;
 	}
-	highlightMessage(nextHighlight);
+	highlightMessage(nextHighlight, nextOriginalHighlight);
 }
 
 void HistoryWidget::updateHighlightedMessage() {
@@ -975,11 +989,13 @@ crl::time HistoryWidget::highlightStartTime(not_null<const HistoryItem*> item) c
 void HistoryWidget::stopMessageHighlight() {
 	_highlightTimer.cancel();
 	_highlightedMessageId = 0;
+	_highlightedOriginalMessageId = 0;
 	checkNextHighlight();
 }
 
 void HistoryWidget::clearHighlightMessages() {
 	_highlightQueue.clear();
+	_highlightOriginalQueue.clear();
 	stopMessageHighlight();
 }
 
@@ -3144,6 +3160,11 @@ void HistoryWidget::setMsgId(MsgId showAtMsgId) {
 MsgId HistoryWidget::msgId() const {
 	return _showAtMsgId;
 }
+
+MsgId HistoryWidget::highlightOrigId() const {
+	return _highlightedOriginalMessageId;
+}
+
 
 void HistoryWidget::showAnimated(
 		Window::SlideDirection direction,

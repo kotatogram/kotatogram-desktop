@@ -778,6 +778,10 @@ void MainWidget::notify_historyMuteUpdated(History *history) {
 	_dialogs->notify_historyMuteUpdated(history);
 }
 
+MsgId MainWidget::highlightedOriginalId() const {
+	return _history->highlightOrigId();
+}
+
 void MainWidget::clearHider(not_null<Window::HistoryHider*> instance) {
 	if (_hider != instance) {
 		return;

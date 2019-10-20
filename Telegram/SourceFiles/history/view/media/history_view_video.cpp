@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_document.h"
 #include "data/data_file_origin.h"
+#include "mainwidget.h"
 #include "app.h"
 #include "styles/style_history.h"
 
@@ -410,7 +411,24 @@ void Video::drawGrouped(
 	if (!bubble) {
 //		App::roundShadow(p, 0, 0, paintw, painth, selected ? st::msgInShadowSelected : st::msgInShadow, selected ? InSelectedShadowCorners : InShadowCorners);
 	}
-	p.drawPixmap(geometry.topLeft(), *cache);
+	const auto animms = _parent->delegate()->elementHighlightTime(_parent);
+	const auto realId = _realParent->id;
+	const auto mainWidget = App::main();
+	const auto highlightedRealId = mainWidget->highlightedOriginalId();
+	if (realId != highlightedRealId
+		&& animms 
+		&& animms < st::activeFadeInDuration + st::activeFadeOutDuration) {
+		const auto dt = (animms <= st::activeFadeInDuration)
+			? ((animms / float64(st::activeFadeInDuration)))
+			: (1. - (animms - st::activeFadeInDuration)
+				/ float64(st::activeFadeOutDuration));
+		const auto o = p.opacity();
+		p.setOpacity(o - dt * 0.8);
+		p.drawPixmap(geometry.topLeft(), *cache);
+		p.setOpacity(o);
+	} else {
+		p.drawPixmap(geometry.topLeft(), *cache);
+	}
 	if (selected) {
 		const auto roundRadius = ImageRoundRadius::Large;
 		App::complexOverlayRect(p, geometry, roundRadius, corners);
