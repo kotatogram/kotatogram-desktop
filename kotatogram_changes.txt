@@ -1,3 +1,8 @@
+1.1 (21.10.2019)
+- Options menu with almost all JSON options (except for scales).
+- Font start options are now removed in favor of JSON and settings menu.
+- Highlight for specific media in album.
+
 1.0.10 (15.10.2019)
 - Change fonts in Kotatogram Settings.
 
