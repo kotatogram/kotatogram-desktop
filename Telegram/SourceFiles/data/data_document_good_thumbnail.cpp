@@ -42,7 +42,8 @@ QImage Prepare(
 	} else if (type == FileType::AnimatedSticker) {
 		return Lottie::ReadThumbnail(Lottie::ReadContent(data, path));
 	} else if (type == FileType::Theme) {
-		return Window::Theme::GeneratePreview(data, path);
+		auto langStrings = Window::Theme::CollectStrings();
+		return Window::Theme::GeneratePreview(data, path, langStrings);
 	}
 	const auto validateSize = [](QSize size) {
 		return (size.width() + size.height()) < 10'000;

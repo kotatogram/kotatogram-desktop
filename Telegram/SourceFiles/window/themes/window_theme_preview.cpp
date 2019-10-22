@@ -86,7 +86,8 @@ public:
 	Generator(
 		const Instance &theme,
 		CurrentData &&current,
-		PreviewType type);
+		PreviewType type,
+		QMap<QString, QString> lang);
 
 	[[nodiscard]] QImage generate();
 
@@ -190,6 +191,8 @@ private:
 	std::vector<Bubble> _bubbles;
 
 	style::TextPalette _textPalette;
+
+	QMap<QString, QString> _lang;
 
 };
 
@@ -336,7 +339,7 @@ void Generator::generateData() {
 	addRow("Davy Jones", 5, "4:00", textcmdLink(1, "Keynote.pdf"));
 
 	_topBarName.setText(st::msgNameStyle, "Eva Summer", Ui::NameTextOptions());
-	_topBarStatus = "online";
+	_topBarStatus = _lang.value(qsl("lng_status_online"));
 	_topBarStatusActive = true;
 
 	addPhotoBubble(":/gui/art/sunrise.jpg", "Nearly missed this sunrise", "7:00", Status::None);
@@ -362,11 +365,13 @@ void Generator::generateData() {
 Generator::Generator(
 	const Instance &theme,
 	CurrentData &&current,
-	PreviewType type)
+	PreviewType type,
+	QMap<QString, QString> lang)
 : _theme(theme)
 , _palette(_theme.palette)
 , _current(std::move(current))
-, _type(type) {
+, _type(type)
+, _lang(lang) {
 }
 
 QImage Generator::generate() {
@@ -542,7 +547,7 @@ void Generator::paintComposeArea() {
 		field.y() + st::historyComposeField.textMargins.top() + st::historyComposeField.placeholderMargins.top(),
 		field.width() - st::historyComposeField.textMargins.left() - st::historyComposeField.textMargins.right(),
 		field.height() - st::historyComposeField.textMargins.top() - st::historyComposeField.textMargins.bottom());
-	_p->drawText(placeholderRect, tr::lng_message_ph(tr::now), QTextOption(st::historyComposeField.placeholderAlign));
+	_p->drawText(placeholderRect, _lang.value(qsl("lng_message_ph")), QTextOption(st::historyComposeField.placeholderAlign));
 
 	_p->restore();
 	_p->setClipping(false);
@@ -578,7 +583,7 @@ void Generator::paintDialogs() {
 	auto phRect = QRect(filter.x() + st::dialogsFilter.textMrg.left() + st::dialogsFilter.phPos.x(), filter.y() + st::dialogsFilter.textMrg.top() + st::dialogsFilter.phPos.y(), filter.width() - st::dialogsFilter.textMrg.left() - st::dialogsFilter.textMrg.right(), filter.height() - st::dialogsFilter.textMrg.top() - st::dialogsFilter.textMrg.bottom());;
 	_p->setFont(st::dialogsFilter.font);
 	_p->setPen(st::dialogsFilter.phColor[_palette]);
-	_p->drawText(phRect, tr::lng_dlg_filter(tr::now), QTextOption(st::dialogsFilter.phAlign));
+	_p->drawText(phRect, _lang.value(qsl("lng_dlg_filter")), QTextOption(st::dialogsFilter.phAlign));
 	_p->restore();
 	_p->setClipping(false);
 
@@ -972,7 +977,8 @@ std::unique_ptr<Preview> GeneratePreview(
 		const QString &filepath,
 		const Data::CloudTheme &cloud,
 		CurrentData &&data,
-		PreviewType type) {
+		PreviewType type,
+		QMap<QString, QString> lang) {
 	auto result = PreviewFromFile(bytes, filepath, cloud);
 	if (!result) {
 		return nullptr;
@@ -980,21 +986,34 @@ std::unique_ptr<Preview> GeneratePreview(
 	result->preview = Generator(
 		result->instance,
 		std::move(data),
-		type
+		type,
+		lang
 	).generate();
 	return result;
 }
 
 QImage GeneratePreview(
 		const QByteArray &bytes,
-		const QString &filepath) {
+		const QString &filepath,
+		QMap<QString, QString> lang) {
 	const auto preview = GeneratePreview(
 		bytes,
 		filepath,
 		Data::CloudTheme(),
 		CurrentData{ Data::ThemeWallPaper().id() },
-		PreviewType::Normal);
+		PreviewType::Normal,
+		lang);
 	return preview ? preview->preview : QImage();
+}
+
+QMap<QString, QString> CollectStrings() {
+	QMap<QString, QString> result;
+
+	result.insert(qsl("lng_message_ph"), tr::lng_message_ph(tr::now));
+	result.insert(qsl("lng_dlg_filter"), tr::lng_dlg_filter(tr::now));
+	result.insert(qsl("lng_status_online"), tr::lng_status_online(tr::now));
+
+	return result;
 }
 
 int DefaultPreviewTitleHeight() {
