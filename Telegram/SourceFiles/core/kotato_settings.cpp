@@ -212,6 +212,14 @@ bool Manager::readCustomFile() {
 		}
 
 	}
+
+	const auto settingsChatListLinesIt = settings.constFind(qsl("chat_list_lines"));
+	if (settingsChatListLinesIt != settings.constEnd()) {
+		const auto settingsChatListLines = (*settingsChatListLinesIt).toInt();
+		if (settingsChatListLines >= 1 || settingsChatListLines <= 2) {
+			cSetDialogListLines(settingsChatListLines);
+		}
+	}
 	return true;
 }
 
@@ -246,6 +254,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("show_chat_id"), cShowChatId());
 	settings.insert(qsl("net_speed_boost"), QJsonValue(QJsonValue::Null));
 	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
+	settings.insert(qsl("chat_list_lines"), cDialogListLines());
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -298,6 +307,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("show_chat_id"), cShowChatId());
 	settings.insert(qsl("net_speed_boost"), cNetSpeedBoost());
 	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
+	settings.insert(qsl("chat_list_lines"), cDialogListLines());
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();

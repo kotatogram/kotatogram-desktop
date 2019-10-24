@@ -146,7 +146,7 @@ void BasicRow::PaintOnlineFrame(
 		q,
 		0,
 		0,
-		st::dialogsPhotoSize);
+		(cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize));
 
 	PainterHighQualityEnabler hq(q);
 	q.setCompositionMode(QPainter::CompositionMode_Source);
@@ -154,7 +154,7 @@ void BasicRow::PaintOnlineFrame(
 	const auto size = st::dialogsOnlineBadgeSize;
 	const auto stroke = st::dialogsOnlineBadgeStroke;
 	const auto skip = st::dialogsOnlineBadgeSkip;
-	const auto edge = st::dialogsPadding.x() + st::dialogsPhotoSize;
+	const auto edge = st::dialogsPadding.x() + (cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
 	const auto shrink = (size / 2) * (1. - data->online);
 
 	auto pen = QPen(Qt::transparent);
@@ -182,13 +182,13 @@ void BasicRow::paintUserpic(
 	const auto online = _onlineUserpic
 		? _onlineUserpic->animation.value(_online ? 1. : 0.)
 		: (_online ? 1. : 0.);
-	if (!allowOnline || online == 0.) {
+	if (!allowOnline || cDialogListLines() == 1 || online == 0.) {
 		peer->paintUserpicLeft(
 			p,
 			st::dialogsPadding.x(),
 			st::dialogsPadding.y(),
 			fullWidth,
-			st::dialogsPhotoSize);
+			(cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize));
 		if (!allowOnline || !_online) {
 			_onlineUserpic = nullptr;
 		}
@@ -197,8 +197,8 @@ void BasicRow::paintUserpic(
 	ensureOnlineUserpic();
 	if (_onlineUserpic->frame.isNull()) {
 		_onlineUserpic->frame = QImage(
-			st::dialogsPhotoSize * cRetinaFactor(),
-			st::dialogsPhotoSize * cRetinaFactor(),
+			(cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) * cRetinaFactor(),
+			(cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) * cRetinaFactor(),
 			QImage::Format_ARGB32_Premultiplied);
 		_onlineUserpic->frame.setDevicePixelRatio(cRetinaFactor());
 	}

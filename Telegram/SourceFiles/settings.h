@@ -226,3 +226,4 @@ DeclareRefSetting(ScaleVector, InterfaceScales);
 bool HasCustomScales();
 bool AddCustomScale(int scale);
 void ClearCustomScales();
+DeclareSetting(int, DialogListLines);

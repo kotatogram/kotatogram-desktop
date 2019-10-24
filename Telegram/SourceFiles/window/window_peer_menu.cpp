@@ -620,14 +620,16 @@ void FolderFiller::addTogglesForArchive() {
 		return;
 	}
 	const auto controller = _controller;
-	const auto hidden = controller->session().settings().archiveCollapsed();
-	const auto text = hidden
-		? tr::lng_context_archive_expand(tr::now)
-		: tr::lng_context_archive_collapse(tr::now);
-	_addAction(text, [=] {
-		controller->session().settings().setArchiveCollapsed(!hidden);
-		controller->session().saveSettingsDelayed();
-	});
+	if (cDialogListLines() != 1) {
+		const auto hidden = (controller->session().settings().archiveCollapsed());
+		const auto text = hidden
+			? tr::lng_context_archive_expand(tr::now)
+			: tr::lng_context_archive_collapse(tr::now);
+		_addAction(text, [=] {
+			controller->session().settings().setArchiveCollapsed(!hidden);
+			controller->session().saveSettingsDelayed();
+		});
+	}
 
 	_addAction(tr::lng_context_archive_to_menu(tr::now), [=] {
 		auto toast = Ui::Toast::Config();

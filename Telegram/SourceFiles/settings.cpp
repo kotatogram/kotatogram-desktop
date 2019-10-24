@@ -262,3 +262,5 @@ bool AddCustomScale(int scale) {
 void ClearCustomScales() {
 	gInterfaceScales.clear();
 }
+
+int gDialogListLines = 2;
