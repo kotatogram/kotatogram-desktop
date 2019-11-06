@@ -14,7 +14,7 @@ class Checkbox;
 class InputField;
 } // namespace Ui
 
-class FontsBox : public BoxContent {
+class FontsBox : public Ui::BoxContent {
 public:
 	FontsBox(QWidget* parent);
 

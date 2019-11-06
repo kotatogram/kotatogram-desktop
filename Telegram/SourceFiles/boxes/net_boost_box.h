@@ -15,7 +15,7 @@ class Radiobutton;
 class FlatLabel;
 } // namespace Ui
 
-class NetBoostBox : public BoxContent {
+class NetBoostBox : public Ui::BoxContent {
 public:
 	NetBoostBox(QWidget* parent);
 

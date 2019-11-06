@@ -74,7 +74,7 @@
     'configurations': {
       'Debug': {
         'xcode_settings': {
-          'PRODUCT_BUNDLE_IDENTIFIER': 'io.github.KotatogramDebugOld',
+          'PRODUCT_BUNDLE_IDENTIFIER': 'io.github.KotatogramDebugOsx',
         },
         'library_dirs': [
           '<(libs_loc)/crashpad/out/Debug',

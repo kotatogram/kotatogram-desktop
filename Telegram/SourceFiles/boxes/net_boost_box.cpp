@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "boxes/confirm_box.h"
 #include "core/kotato_settings.h"

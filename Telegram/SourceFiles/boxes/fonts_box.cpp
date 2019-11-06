@@ -10,6 +10,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "boxes/confirm_box.h"
 #include "core/kotato_settings.h"
