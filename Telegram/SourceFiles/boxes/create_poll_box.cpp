@@ -17,13 +17,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/widgets/buttons.h"
 #include "main/main_session.h"
-#include "core/event_filter.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "chat_helpers/message_field.h"
 #include "history/view/history_view_schedule_box.h"
 #include "settings/settings_common.h"
 #include "base/unique_qptr.h"
-#include "facades.h"
+#include "base/event_filter.h"
+#include "base/call_delayed.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_settings.h"
 
@@ -399,7 +400,7 @@ void Options::Option::destroy(FnMut<void()> done) {
 		return;
 	}
 	_field->hide(anim::type::normal);
-	App::CallDelayed(
+	base::call_delayed(
 		st::slideWrapDuration * 2,
 		_field.get(),
 		std::move(done));
@@ -521,14 +522,14 @@ void Options::addEmptyOption() {
 	QObject::connect(field, &Ui::InputField::focused, [=] {
 		_scrollToWidget.fire_copy(field);
 	});
-	Core::InstallEventFilter(field, [=](not_null<QEvent*> event) {
+	base::install_event_filter(field, [=](not_null<QEvent*> event) {
 		if (event->type() != QEvent::KeyPress
 			|| !field->getLastText().isEmpty()) {
-			return Core::EventFilter::Result::Continue;
+			return base::EventFilterResult::Continue;
 		}
 		const auto key = static_cast<QKeyEvent*>(event.get())->key();
 		if (key != Qt::Key_Backspace) {
-			return Core::EventFilter::Result::Continue;
+			return base::EventFilterResult::Continue;
 		}
 
 		const auto index = findField(field);
@@ -537,7 +538,7 @@ void Options::addEmptyOption() {
 		} else {
 			_backspaceInFront.fire({});
 		}
-		return Core::EventFilter::Result::Cancel;
+		return base::EventFilterResult::Cancel;
 	});
 
 	_list.back().removeClicks(
@@ -724,7 +725,7 @@ object_ptr<Ui::RpWidget> CreatePollBox::setupContent() {
 				this,
 				SendMenuType::Scheduled,
 				send),
-			LayerOption::KeepOther);
+			Ui::LayerOption::KeepOther);
 	};
 	const auto updateValid = [=] {
 		valid->fire(isValidQuestion() && options->isValid());

@@ -410,6 +410,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_enable_animations" = "Enable animations";
 "lng_settings_autoplay_gifs" = "Autoplay GIFs";
 
+"lng_settings_spellchecker" = "Spell checker";
+"lng_settings_system_spellchecker" = "Use system spell checker";
+
 "lng_backgrounds_header" = "Choose your new chat background";
 "lng_theme_sure_keep" = "Keep this theme?";
 "lng_theme_reverting#one" = "Reverting to the old theme in {count} second.";
@@ -1590,6 +1593,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_formatting_link_text" = "Text";
 "lng_formatting_link_url" = "URL";
 "lng_formatting_link_create" = "Create";
+
+"lng_spellchecker_add" = "Add to Dictionary";
+"lng_spellchecker_remove" = "Remove from Dictionary";
+"lng_spellchecker_ignore" = "Ignore word";
 
 "lng_full_name" = "{first_name} {last_name}";
 

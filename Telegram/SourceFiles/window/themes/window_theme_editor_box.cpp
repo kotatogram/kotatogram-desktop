@@ -16,18 +16,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/widgets/checkbox.h"
+#include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
 #include "ui/image/image_prepare.h"
 #include "ui/toast/toast.h"
 #include "ui/special_fields.h"
-#include "info/profile/info_profile_button.h"
 #include "main/main_account.h"
 #include "main/main_session.h"
 #include "storage/localstorage.h"
 #include "core/file_utilities.h"
 #include "core/application.h"
-#include "core/event_filter.h"
 #include "lang/lang_keys.h"
+#include "base/event_filter.h"
+#include "base/base_file_utilities.h"
 #include "base/zlib_help.h"
 #include "base/unixtime.h"
 #include "data/data_session.h"
@@ -41,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
 #include "styles/style_settings.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 
 #include <QtCore/QBuffer>
@@ -434,7 +436,7 @@ SendMediaReady PrepareThemeMedia(
 	};
 	push("s", std::move(thumbnail));
 
-	const auto filename = File::NameFromUserString(name)
+	const auto filename = base::FileNameFromUserString(name)
 		+ qsl(".tdesktop-theme");
 	auto attributes = QVector<MTPDocumentAttribute>(
 		1,
@@ -673,13 +675,13 @@ void StartEditor(
 }
 
 void CreateBox(
-		not_null<GenericBox*> box,
+		not_null<Ui::GenericBox*> box,
 		not_null<Window::Controller*> window) {
 	CreateForExistingBox(box, window, Data::CloudTheme());
 }
 
 void CreateForExistingBox(
-		not_null<GenericBox*> box,
+		not_null<Ui::GenericBox*> box,
 		not_null<Window::Controller*> window,
 		const Data::CloudTheme &cloud) {
 	const auto userId = window->account().sessionExists()
@@ -699,7 +701,7 @@ void CreateForExistingBox(
 		st::boxDividerLabel));
 
 	box->addRow(
-		object_ptr<Info::Profile::Button>(
+		object_ptr<Ui::SettingsButton>(
 			box,
 			tr::lng_theme_editor_import_existing() | Ui::Text::ToUpper(),
 			st::createThemeImportButton),
@@ -716,15 +718,15 @@ void CreateForExistingBox(
 		box->closeBox();
 		StartEditor(window, cloud);
 	};
-	Core::InstallEventFilter(box, box, [=](not_null<QEvent*> event) {
+	base::install_event_filter(box, box, [=](not_null<QEvent*> event) {
 		if (event->type() == QEvent::KeyPress) {
 			const auto key = static_cast<QKeyEvent*>(event.get())->key();
 			if (key == Qt::Key_Enter || key == Qt::Key_Return) {
 				done();
-				return Core::EventFilter::Result::Cancel;
+				return base::EventFilterResult::Cancel;
 			}
 		}
-		return Core::EventFilter::Result::Continue;
+		return base::EventFilterResult::Continue;
 	});
 	box->addButton(tr::lng_theme_editor_create(), done);
 	box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
@@ -807,7 +809,7 @@ QByteArray CollectForExport(const QByteArray &palette) {
 }
 
 void SaveThemeBox(
-		not_null<GenericBox*> box,
+		not_null<Ui::GenericBox*> box,
 		not_null<Window::Controller*> window,
 		const Data::CloudTheme &cloud,
 		const QByteArray &palette) {

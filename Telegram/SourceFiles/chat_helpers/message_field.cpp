@@ -12,18 +12,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h" // HistoryItem::originalText
 #include "base/qthelp_regex.h"
 #include "base/qthelp_url.h"
+#include "base/event_filter.h"
 #include "boxes/abstract_box.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/ui_utility.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
-#include "core/event_filter.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
 #include "main/main_session.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_history.h"
 
@@ -57,7 +58,7 @@ public:
 
 };
 
-class EditLinkBox : public BoxContent {
+class EditLinkBox : public Ui::BoxContent {
 public:
 	EditLinkBox(
 		QWidget*,
@@ -126,6 +127,7 @@ void EditLinkBox::prepare() {
 		getDelegate()->outerContainer(),
 		text,
 		_session);
+	InitSpellchecker(_session, text);
 
 	const auto url = content->add(
 		object_ptr<Ui::InputField>(
@@ -247,7 +249,7 @@ Fn<bool(
 			if (const auto strong = weak.data()) {
 				strong->commitMarkdownLinkEdit(selection, text, link);
 			}
-		}), LayerOption::KeepOther);
+		}), Ui::LayerOption::KeepOther);
 		return true;
 	};
 }
@@ -270,6 +272,23 @@ void InitMessageField(
 	field->setMarkdownReplacesEnabled(rpl::single(true));
 	field->setEditLinkCallback(
 		DefaultEditLinkCallback(&controller->session(), field));
+}
+
+void InitSpellchecker(
+		not_null<Main::Session*> session,
+		not_null<Ui::InputField*> field) {
+#ifndef TDESKTOP_DISABLE_SPELLCHECK
+	const auto s = Ui::CreateChild<Spellchecker::SpellingHighlighter>(
+		field->rawTextEdit().get(),
+		session->settings().spellcheckerEnabledValue(),
+		field->documentContentsChanges());
+	Spellchecker::SetPhrases({ {
+		{ &ph::lng_spellchecker_add, tr::lng_spellchecker_add() },
+		{ &ph::lng_spellchecker_remove, tr::lng_spellchecker_remove() },
+		{ &ph::lng_spellchecker_ignore, tr::lng_spellchecker_ignore() },
+	} });
+	field->setExtendedContextMenu(s->contextMenuCreated());
+#endif // TDESKTOP_DISABLE_SPELLCHECK
 }
 
 bool HasSendText(not_null<const Ui::InputField*> field) {
@@ -675,10 +694,10 @@ void SetupSendMenu(
 		(*menu)->popup(QCursor::pos());
 		return true;
 	};
-	Core::InstallEventFilter(button, [=](not_null<QEvent*> e) {
+	base::install_event_filter(button, [=](not_null<QEvent*> e) {
 		if (e->type() == QEvent::ContextMenu && showMenu()) {
-			return Core::EventFilter::Result::Cancel;
+			return base::EventFilterResult::Cancel;
 		}
-		return Core::EventFilter::Result::Continue;
+		return base::EventFilterResult::Continue;
 	});
 }

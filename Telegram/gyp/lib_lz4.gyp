@@ -6,23 +6,26 @@
 
 {
   'includes': [
-    'common/common.gypi',
+    'helpers/common/common.gypi',
   ],
   'targets': [{
     'target_name': 'lib_lz4',
     'includes': [
-      'common/library.gypi',
+      'helpers/common/library.gypi',
     ],
     'variables': {
-      'official_build_target%': '',
-      'submodules_loc': '../ThirdParty',
-      'lz4_loc': '<(submodules_loc)/lz4/lib',
+      'lz4_loc': '<(third_party_loc)/lz4/lib',
     },
     'defines': [
     ],
     'include_dirs': [
       '<(lz4_loc)',
     ],
+    'direct_dependent_settings': {
+      'include_dirs': [
+        '<(lz4_loc)',
+      ],
+    },
     'sources': [
       '<(lz4_loc)/lz4.c',
       '<(lz4_loc)/lz4.h',
@@ -34,13 +37,5 @@
       '<(lz4_loc)/xxhash.c',
       '<(lz4_loc)/xxhash.h',
     ],
-    'conditions': [[ 'build_macold', {
-      'xcode_settings': {
-        'OTHER_CPLUSPLUSFLAGS': [ '-nostdinc++' ],
-      },
-      'include_dirs': [
-        '/usr/local/macold/include/c++/v1',
-      ],
-    }]],
   }],
 }

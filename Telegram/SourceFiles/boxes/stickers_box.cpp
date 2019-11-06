@@ -34,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "facades.h"
 #include "app.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
 
@@ -768,7 +769,7 @@ void StickersBox::Inner::resizeEvent(QResizeEvent *e) {
 void StickersBox::Inner::updateControlsGeometry() {
 	if (_megagroupSet) {
 		auto top = st::groupStickersFieldPadding.top();
-		auto fieldLeft = st::boxLayerTitlePosition.x();
+		auto fieldLeft = st::boxTitlePosition.x();
 		_megagroupSetField->setGeometryToLeft(fieldLeft, top, width() - fieldLeft - st::groupStickersFieldPadding.right(), _megagroupSetField->height());
 		top += _megagroupSetField->height() + st::groupStickersFieldPadding.bottom();
 		if (_megagroupSelectedRemove) {
@@ -779,8 +780,8 @@ void StickersBox::Inner::updateControlsGeometry() {
 		}
 		_megagroupDivider->setGeometryToLeft(0, top, width(), _megagroupDivider->height());
 		top += _megagroupDivider->height();
-		_megagroupSubTitle->resizeToNaturalWidth(width() - 2 * st::boxLayerTitlePosition.x());
-		_megagroupSubTitle->moveToLeft(st::boxLayerTitlePosition.x(), top + st::boxLayerTitlePosition.y());
+		_megagroupSubTitle->resizeToNaturalWidth(width() - 2 * st::boxTitlePosition.x());
+		_megagroupSubTitle->moveToLeft(st::boxTitlePosition.x(), top + st::boxTitlePosition.y());
 	}
 }
 
@@ -1302,7 +1303,7 @@ void StickersBox::Inner::mouseReleaseEvent(QMouseEvent *e) {
 					Box<StickerSetBox>(
 						App::wnd()->sessionController(),
 						Stickers::inputSetId(*set)),
-					LayerOption::KeepOther);
+					Ui::LayerOption::KeepOther);
 			}
 		};
 		if (selectedIndex >= 0 && !_inDragArea) {
@@ -1912,7 +1913,7 @@ void StickersBox::Inner::readVisibleSets() {
 }
 
 void StickersBox::Inner::updateScrollbarWidth() {
-	auto width = (_visibleBottom - _visibleTop < height()) ? (st::boxLayerScroll.width - st::boxLayerScroll.deltax) : 0;
+	auto width = (_visibleBottom - _visibleTop < height()) ? (st::boxScroll.width - st::boxScroll.deltax) : 0;
 	if (_scrollbar != width) {
 		_scrollbar = width;
 		update();

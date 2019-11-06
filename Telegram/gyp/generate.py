@@ -42,9 +42,9 @@ if os.path.isfile(officialTargetFile):
             officialTarget = line.strip()
 
 if officialTarget != '':
-    officialApiIdFile = scriptPath + '/../../../TelegramPrivate/custom_api_id.h'
+    officialApiIdFile = scriptPath + '/../../../DesktopPrivate/custom_api_id.h'
     if not os.path.isfile(officialApiIdFile):
-        print("[ERROR] TelegramPrivate/custom_api_id.h not found.")
+        print("[ERROR] DesktopPrivate/custom_api_id.h not found.")
         finish(1)
     with open(officialApiIdFile, 'r') as f:
         for line in f:
@@ -84,7 +84,8 @@ gypArguments.append('--generator-output=..')
 gypArguments.append('-Goutput_dir=../out')
 gypArguments.append('-Dapi_id=' + apiId)
 gypArguments.append('-Dapi_hash=' + apiHash)
-gypArguments.append('-Dofficial_build_target=' + officialTarget)
+gypArguments.append('-Dlottie_use_cache=1')
+gypArguments.append('-Dspecial_build_target=' + officialTarget)
 if 'TDESKTOP_BUILD_DEFINES' in os.environ:
     buildDefines = os.environ['TDESKTOP_BUILD_DEFINES']
     gypArguments.append('-Dbuild_defines=' + buildDefines)

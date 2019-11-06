@@ -760,7 +760,7 @@ private:
 };
 
 class PeerListBox
-	: public BoxContent
+	: public Ui::BoxContent
 	, public PeerListContentDelegate {
 public:
 	PeerListBox(

@@ -21,10 +21,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/fade_wrap.h"
 #include "ui/widgets/shadow.h"
 #include "ui/widgets/labels.h"
+#include "ui/widgets/buttons.h"
 #include "calls/calls_instance.h"
 #include "core/core_cloud_password.h"
 #include "core/update_checker.h"
-#include "info/profile/info_profile_button.h"
 #include "platform/platform_specific.h"
 #include "lang/lang_keys.h"
 #include "data/data_session.h"
@@ -504,7 +504,7 @@ bool CheckEditCloudPassword(not_null<::Main::Session*> session) {
 	return false;
 }
 
-object_ptr<BoxContent> EditCloudPasswordBox(not_null<Main::Session*> session) {
+object_ptr<Ui::BoxContent> EditCloudPasswordBox(not_null<Main::Session*> session) {
 	const auto current = session->api().passwordStateCurrent();
 	Assert(current.has_value());
 
@@ -554,8 +554,8 @@ void RemoveCloudPassword(not_null<::Main::Session*> session) {
 	}, box->lifetime());
 }
 
-object_ptr<BoxContent> CloudPasswordAppOutdatedBox() {
-	auto box = std::make_shared<QPointer<BoxContent>>();
+object_ptr<Ui::BoxContent> CloudPasswordAppOutdatedBox() {
+	auto box = std::make_shared<QPointer<Ui::BoxContent>>();
 	const auto callback = [=] {
 		Core::UpdateApplication();
 		if (*box) (*box)->closeBox();
@@ -589,7 +589,7 @@ void AddPrivacyButton(
 		) | rpl::start_with_next([=](const Privacy &value) {
 			Ui::show(
 				Box<EditPrivacyBox>(controller, controllerFactory(), value),
-				LayerOption::KeepOther);
+				Ui::LayerOption::KeepOther);
 		});
 	});
 }

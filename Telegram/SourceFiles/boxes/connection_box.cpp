@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "storage/localstorage.h"
 #include "base/qthelp_url.h"
+#include "base/call_delayed.h"
 #include "core/application.h"
 #include "main/main_account.h"
 #include "ui/widgets/checkbox.h"
@@ -25,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/radial_animation.h"
 #include "ui/text_options.h"
 #include "facades.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_info.h"
@@ -134,7 +136,7 @@ private:
 
 };
 
-class ProxiesBox : public BoxContent {
+class ProxiesBox : public Ui::BoxContent {
 public:
 	using View = ProxiesBoxController::ItemView;
 
@@ -166,7 +168,7 @@ private:
 
 };
 
-class ProxyBox : public BoxContent {
+class ProxyBox : public Ui::BoxContent {
 public:
 	ProxyBox(
 		QWidget*,
@@ -1029,7 +1031,7 @@ void ProxiesBoxController::ShowApplyConfirmation(
 			if (const auto strong = box->data()) {
 				strong->closeBox();
 			}
-		}), LayerOption::KeepOther);
+		}), Ui::LayerOption::KeepOther);
 	} else {
 		Ui::show(Box<InformBox>(
 			(proxy.status() == ProxyData::Status::Unsupported
@@ -1134,14 +1136,14 @@ void ProxiesBoxController::setupChecker(int id, const Checker &checker) {
 	pointer->connect(pointer, &Connection::error, failed);
 }
 
-object_ptr<BoxContent> ProxiesBoxController::CreateOwningBox() {
+object_ptr<Ui::BoxContent> ProxiesBoxController::CreateOwningBox() {
 	auto controller = std::make_unique<ProxiesBoxController>();
 	auto box = controller->create();
 	Ui::AttachAsChild(box, std::move(controller));
 	return box;
 }
 
-object_ptr<BoxContent> ProxiesBoxController::create() {
+object_ptr<Ui::BoxContent> ProxiesBoxController::create() {
 	auto result = Box<ProxiesBox>(this);
 	for (const auto &item : _list) {
 		updateView(item);
@@ -1249,7 +1251,7 @@ void ProxiesBoxController::setDeleted(int id, bool deleted) {
 	updateView(*item);
 }
 
-object_ptr<BoxContent> ProxiesBoxController::editItemBox(int id) {
+object_ptr<Ui::BoxContent> ProxiesBoxController::editItemBox(int id) {
 	return Box<ProxyBox>(findById(id)->data, [=](const ProxyData &result) {
 		auto i = findById(id);
 		auto j = ranges::find(
@@ -1300,7 +1302,7 @@ void ProxiesBoxController::replaceItemValue(
 	saveDelayed();
 }
 
-object_ptr<BoxContent> ProxiesBoxController::addNewItemBox() {
+object_ptr<Ui::BoxContent> ProxiesBoxController::addNewItemBox() {
 	return Box<ProxyBox>(ProxyData(), [=](const ProxyData &result) {
 		auto j = ranges::find(
 			_list,
@@ -1436,7 +1438,7 @@ void ProxiesBoxController::share(const ProxyData &proxy) {
 
 ProxiesBoxController::~ProxiesBoxController() {
 	if (_saveTimer.isActive()) {
-		App::CallDelayed(
+		base::call_delayed(
 			kSaveSettingsDelayedTimeout,
 			QCoreApplication::instance(),
 			[] { Local::writeSettings(); });

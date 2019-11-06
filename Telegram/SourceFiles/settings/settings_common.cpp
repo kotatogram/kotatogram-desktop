@@ -18,7 +18,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/padding_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/widgets/labels.h"
-#include "info/profile/info_profile_button.h"
+#include "ui/widgets/box_content_divider.h"
+#include "ui/widgets/buttons.h"
 #include "boxes/abstract_box.h"
 #include "window/themes/window_theme_editor_box.h"
 #include "window/window_session_controller.h"
@@ -28,7 +29,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "app.h"
 #include "main/main_session.h"
-#include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 #include "styles/style_settings.h"
 
 namespace Settings {
@@ -69,7 +70,7 @@ void AddSkip(not_null<Ui::VerticalLayout*> container, int skip) {
 }
 
 void AddDivider(not_null<Ui::VerticalLayout*> container) {
-	container->add(object_ptr<BoxContentDivider>(container));
+	container->add(object_ptr<Ui::BoxContentDivider>(container));
 }
 
 void AddDividerText(
@@ -87,7 +88,7 @@ void AddDividerText(
 not_null<Button*> AddButton(
 		not_null<Ui::VerticalLayout*> container,
 		rpl::producer<QString> text,
-		const style::InfoProfileButton &st,
+		const style::SettingsButton &st,
 		const style::icon *leftIcon,
 		int iconLeft) {
 	const auto result = container->add(object_ptr<Button>(
@@ -124,7 +125,7 @@ not_null<Button*> AddButton(
 void CreateRightLabel(
 		not_null<Button*> button,
 		rpl::producer<QString> label,
-		const style::InfoProfileButton &st,
+		const style::SettingsButton &st,
 		rpl::producer<QString> buttonText) {
 	const auto name = Ui::CreateChild<Ui::FlatLabel>(
 		button.get(),
@@ -153,7 +154,7 @@ not_null<Button*> AddButtonWithLabel(
 		not_null<Ui::VerticalLayout*> container,
 		rpl::producer<QString> text,
 		rpl::producer<QString> label,
-		const style::InfoProfileButton &st,
+		const style::SettingsButton &st,
 		const style::icon *leftIcon,
 		int iconLeft) {
 	const auto button = AddButton(

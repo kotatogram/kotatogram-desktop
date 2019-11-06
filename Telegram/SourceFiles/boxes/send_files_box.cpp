@@ -18,7 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_schedule_box.h"
 #include "core/file_utilities.h"
 #include "core/mime_type.h"
-#include "core/event_filter.h"
+#include "base/event_filter.h"
 #include "ui/effects/animations.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
@@ -37,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "app.h"
 #include "styles/style_history.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
 
@@ -1435,7 +1436,7 @@ void SendFilesBox::prepareAlbumPreview() {
 
 	const auto wrap = Ui::CreateChild<Ui::ScrollArea>(
 		this,
-		st::boxLayerScroll);
+		st::boxScroll);
 	_albumPreview = wrap->setOwnedWidget(object_ptr<AlbumPreview>(
 		this,
 		_list,
@@ -1678,6 +1679,8 @@ void SendFilesBox::setupCaption() {
 		_caption,
 		&_controller->session());
 
+	InitSpellchecker(&_controller->session(), _caption);
+
 	updateCaptionPlaceholder();
 	setupEmojiPanel();
 }
@@ -1705,9 +1708,9 @@ void SendFilesBox::setupEmojiPanel() {
 
 	const auto filterCallback = [=](not_null<QEvent*> event) {
 		emojiFilterForGeometry(event);
-		return Core::EventFilter::Result::Continue;
+		return base::EventFilterResult::Continue;
 	};
-	_emojiFilter.reset(Core::InstallEventFilter(container, filterCallback));
+	_emojiFilter.reset(base::install_event_filter(container, filterCallback));
 
 	_emojiToggle.create(this, st::boxAttachEmoji);
 	_emojiToggle->setVisible(!_caption->isHidden());
@@ -1981,7 +1984,7 @@ void SendFilesBox::sendScheduled() {
 	const auto callback = [=](Api::SendOptions options) { send(options); };
 	Ui::show(
 		HistoryView::PrepareScheduleBox(this, _sendMenuType, callback),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 }
 
 SendFilesBox::~SendFilesBox() = default;

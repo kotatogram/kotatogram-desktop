@@ -26,11 +26,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 #include "platform/mac/mac_touchbar.h"
 #include "platform/platform_notifications_manager.h"
-#include "platform/platform_info.h"
+#include "base/platform/base_platform_info.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/about_box.h"
 #include "lang/lang_keys.h"
-#include "platform/mac/mac_utilities.h"
+#include "base/platform/mac/base_utilities_mac.h"
 #include "ui/widgets/input_fields.h"
 #include "facades.h"
 #include "app.h"
@@ -54,6 +54,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 - (void) screenIsUnlocked:(NSNotification *)aNotification;
 - (void) windowWillEnterFullScreen:(NSNotification *)aNotification;
 - (void) windowWillExitFullScreen:(NSNotification *)aNotification;
+- (void) windowDidExitFullScreen:(NSNotification *)aNotification;
 
 @end // @interface MainWindowObserver
 
@@ -138,6 +139,7 @@ public:
 
 	void willEnterFullScreen();
 	void willExitFullScreen();
+	void didExitFullScreen();
 
 	bool clipboardHasText();
 
@@ -148,6 +150,7 @@ public:
 private:
 	void initCustomTitle();
 	void refreshWeakTitleReferences();
+	void enforceCorrectStyleMask();
 
 	not_null<MainWindow*> _public;
 	friend class MainWindow;
@@ -209,6 +212,10 @@ private:
 
 - (void) windowWillExitFullScreen:(NSNotification *)aNotification {
 	_private->willExitFullScreen();
+}
+
+- (void) windowDidExitFullScreen:(NSNotification *)aNotification {
+	_private->didExitFullScreen();
 }
 
 @end // @implementation MainWindowObserver
@@ -284,6 +291,7 @@ void MainWindow::Private::initCustomTitle() {
 
 	[[NSNotificationCenter defaultCenter] addObserver:_observer selector:@selector(windowWillEnterFullScreen:) name:NSWindowWillEnterFullScreenNotification object:_nativeWindow];
 	[[NSNotificationCenter defaultCenter] addObserver:_observer selector:@selector(windowWillExitFullScreen:) name:NSWindowWillExitFullScreenNotification object:_nativeWindow];
+	[[NSNotificationCenter defaultCenter] addObserver:_observer selector:@selector(windowDidExitFullScreen:) name:NSWindowDidExitFullScreenNotification object:_nativeWindow];
 
 	// Qt has bug with layer-backed widgets containing QOpenGLWidgets.
 	// See https://bugreports.qt.io/browse/QTBUG-64494
@@ -403,6 +411,17 @@ void MainWindow::Private::willEnterFullScreen() {
 void MainWindow::Private::willExitFullScreen() {
 	_inFullScreen = false;
 	_public->setTitleVisible(true);
+	enforceCorrectStyleMask();
+}
+
+void MainWindow::Private::didExitFullScreen() {
+	enforceCorrectStyleMask();
+}
+
+void MainWindow::Private::enforceCorrectStyleMask() {
+	if (_nativeWindow && _public->_customTitleHeight > 0) {
+		[_nativeWindow setStyleMask:[_nativeWindow styleMask] | NSFullSizeContentViewWindowMask];
+	}
 }
 
 void MainWindow::Private::enableShadow(WId winId) {
@@ -635,8 +654,6 @@ void MainWindow::updateIconCounters() {
 }
 
 void MainWindow::psFirstShow() {
-	psUpdateMargins();
-
 	bool showShadows = true;
 
 	show();
@@ -773,12 +790,6 @@ void MainWindow::psMacMonospace() {
 
 void MainWindow::psMacClearFormat() {
 	SendKeySequence(Qt::Key_N, Qt::ControlModifier | Qt::ShiftModifier);
-}
-
-void MainWindow::psInitSysMenu() {
-}
-
-void MainWindow::psUpdateMargins() {
 }
 
 void MainWindow::updateGlobalMenuHook() {

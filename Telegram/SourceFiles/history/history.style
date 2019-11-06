@@ -5,7 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
-using "basic.style";
+using "ui/basic.style";
 using "dialogs/dialogs.style";
 using "ui/widgets/widgets.style";
 
@@ -47,6 +47,14 @@ historyToDownPosition: point(12px, 10px);
 historyToDownAbove: icon {{ "history_down_arrow", historyToDownFg, point(17px, 23px) }};
 historyToDownAboveOver: icon {{ "history_down_arrow", historyToDownFgOver, point(17px, 23px) }};
 historyToDownPaddingTop: 10px;
+historyToDownBelow: icon {
+	{ "history_down_shadow", historyToDownShadow },
+	{ "history_down_circle", historyToDownBg, point(4px, 4px) },
+};
+historyToDownBelowOver: icon {
+	{ "history_down_shadow", historyToDownShadow },
+	{ "history_down_circle", historyToDownBgOver, point(4px, 4px) },
+};
 historyToDown: TwoIconButton {
 	width: 52px;
 	height: 62px;
@@ -636,3 +644,12 @@ scheduleTimeSeparator: FlatLabel(defaultFlatLabel) {
 	}
 }
 scheduleTimeSeparatorPadding: margins(2px, 0px, 2px, 0px);
+
+youtubeIcon: icon {
+	{ "media_youtube_play_bg", youtubePlayIconBg },
+	{ "media_youtube_play", youtubePlayIconFg, point(24px, 12px) },
+};
+videoIcon: icon {
+	{ "media_video_play_bg", videoPlayIconBg },
+	{ "media_video_play", videoPlayIconFg, point(12px, 12px) },
+};

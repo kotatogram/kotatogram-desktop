@@ -13,7 +13,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/stickers_box.h"
 #include "boxes/confirm_box.h"
 #include "boxes/background_box.h"
-#include "boxes/generic_box.h"
 #include "boxes/background_preview_box.h"
 #include "boxes/download_path_box.h"
 #include "boxes/local_storage_box.h"
@@ -22,7 +21,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/widgets/checkbox.h"
+#include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
+#include "ui/layers/generic_box.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/toast/toast.h"
 #include "ui/image/image.h"
@@ -34,14 +35,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_themes_cloud_list.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
-#include "info/profile/info_profile_button.h"
 #include "storage/localstorage.h"
 #include "core/file_utilities.h"
 #include "core/application.h"
 #include "data/data_session.h"
 #include "data/data_cloud_themes.h"
 #include "chat_helpers/emoji_sets_manager.h"
-#include "platform/platform_info.h"
+#include "base/platform/base_platform_info.h"
+#include "base/call_delayed.h"
 #include "support/support_common.h"
 #include "support/support_templates.h"
 #include "main/main_session.h"
@@ -50,7 +51,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "app.h"
 #include "styles/style_settings.h"
-#include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 
 namespace Settings {
 namespace {
@@ -809,7 +810,7 @@ void SetupExport(
 	)->addClickHandler([=] {
 		const auto session = &controller->session();
 		Ui::hideSettingsAndLayer();
-		App::CallDelayed(
+		base::call_delayed(
 			st::boxDuration,
 			session,
 			[=] { session->data().startExport(); });

@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/message_field.h" // SendMenuType.
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/shadow.h"
+#include "ui/layers/generic_box.h"
 #include "ui/toast/toast.h"
 #include "ui/special_buttons.h"
 #include "ui/ui_utility.h"
@@ -24,10 +25,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "boxes/confirm_box.h"
 #include "boxes/send_files_box.h"
-#include "boxes/generic_box.h"
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
-#include "core/event_filter.h"
+#include "base/event_filter.h"
+#include "base/call_delayed.h"
 #include "core/file_utilities.h"
 #include "main/main_session.h"
 #include "data/data_session.h"
@@ -143,7 +144,7 @@ void ScheduledWidget::setupComposeControls() {
 		return !_choosingAttach;
 	}) | rpl::start_with_next([=] {
 		_choosingAttach = true;
-		App::CallDelayed(
+		base::call_delayed(
 			st::historyAttach.ripple.hideDuration,
 			this,
 			[=] { _choosingAttach = false; chooseAttach(); });
@@ -344,7 +345,7 @@ void ScheduledWidget::uploadFile(
 	};
 	Ui::show(
 		PrepareScheduleBox(this, sendMenuType(), callback),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 }
 
 bool ScheduledWidget::showSendingFilesError(
@@ -387,7 +388,7 @@ void ScheduledWidget::send() {
 	const auto callback = [=](Api::SendOptions options) { send(options); };
 	Ui::show(
 		PrepareScheduleBox(this, sendMenuType(), callback),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 }
 
 void ScheduledWidget::send(Api::SendOptions options) {
@@ -432,7 +433,7 @@ void ScheduledWidget::sendExistingDocument(
 	};
 	Ui::show(
 		PrepareScheduleBox(this, sendMenuType(), callback),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 }
 
 bool ScheduledWidget::sendExistingDocument(
@@ -442,7 +443,7 @@ bool ScheduledWidget::sendExistingDocument(
 		_history->peer,
 		ChatRestriction::f_send_stickers);
 	if (error) {
-		Ui::show(Box<InformBox>(*error), LayerOption::KeepOther);
+		Ui::show(Box<InformBox>(*error), Ui::LayerOption::KeepOther);
 		return false;
 	}
 
@@ -470,7 +471,7 @@ void ScheduledWidget::sendExistingPhoto(not_null<PhotoData*> photo) {
 	};
 	Ui::show(
 		PrepareScheduleBox(this, sendMenuType(), callback),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 }
 
 bool ScheduledWidget::sendExistingPhoto(
@@ -480,7 +481,7 @@ bool ScheduledWidget::sendExistingPhoto(
 		_history->peer,
 		ChatRestriction::f_send_media);
 	if (error) {
-		Ui::show(Box<InformBox>(*error), LayerOption::KeepOther);
+		Ui::show(Box<InformBox>(*error), Ui::LayerOption::KeepOther);
 		return false;
 	}
 
@@ -507,7 +508,7 @@ void ScheduledWidget::sendInlineResult(
 	};
 	Ui::show(
 		PrepareScheduleBox(this, sendMenuType(), callback),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 }
 
 void ScheduledWidget::sendInlineResult(
@@ -551,13 +552,13 @@ void ScheduledWidget::setupScrollDownButton() {
 	_scrollDown->setClickedCallback([=] {
 		scrollDownClicked();
 	});
-	Core::InstallEventFilter(_scrollDown, [=](not_null<QEvent*> event) {
+	base::install_event_filter(_scrollDown, [=](not_null<QEvent*> event) {
 		if (event->type() != QEvent::Wheel) {
-			return Core::EventFilter::Result::Continue;
+			return base::EventFilterResult::Continue;
 		}
 		return _scroll->viewportEvent(event)
-			? Core::EventFilter::Result::Cancel
-			: Core::EventFilter::Result::Continue;
+			? base::EventFilterResult::Cancel
+			: base::EventFilterResult::Continue;
 	});
 	updateScrollDownVisibility();
 }

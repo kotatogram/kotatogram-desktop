@@ -25,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "base/parse_helper.h"
 #include "base/zlib_help.h"
+#include "base/call_delayed.h"
 #include "core/file_utilities.h"
 #include "core/application.h"
 #include "boxes/edit_color_box.h"
@@ -33,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "app.h"
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h"
+#include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 
 namespace Window {
@@ -418,7 +420,7 @@ Editor::Inner::Inner(QWidget *parent, const QString &path) : TWidget(parent)
 
 		if (update.type == BackgroundUpdate::Type::TestingTheme) {
 			Revert();
-			App::CallDelayed(st::slideDuration, this, [] {
+			base::call_delayed(st::slideDuration, this, [] {
 				Ui::show(Box<InformBox>(
 					tr::lng_theme_editor_cant_change_theme(tr::now)));
 			});
@@ -525,7 +527,7 @@ void Editor::Inner::paintEvent(QPaintEvent *e) {
 	p.setFont(st::boxTitleFont);
 	p.setPen(st::windowFg);
 	if (!_newRows->isHidden()) {
-		p.drawTextLeft(st::themeEditorMargin.left(), _existingRows->y() + _existingRows->height() + st::boxLayerTitlePosition.y(), width(), tr::lng_theme_editor_new_keys(tr::now));
+		p.drawTextLeft(st::themeEditorMargin.left(), _existingRows->y() + _existingRows->height() + st::boxTitlePosition.y(), width(), tr::lng_theme_editor_new_keys(tr::now));
 	}
 }
 
@@ -535,7 +537,7 @@ int Editor::Inner::resizeGetHeight(int newWidth) {
 	_newRows->resizeToWidth(rowsWidth);
 
 	_existingRows->moveToLeft(0, 0);
-	_newRows->moveToLeft(0, _existingRows->height() + st::boxLayerTitleHeight);
+	_newRows->moveToLeft(0, _existingRows->height() + st::boxTitleHeight);
 
 	auto lowest = (_newRows->isHidden() ? _existingRows : _newRows).data();
 
@@ -673,7 +675,9 @@ Editor::Editor(
 		});
 	});
 	_inner->setFocusCallback([this] {
-		App::CallDelayed(2 * st::boxDuration, this, [this] { _select->setInnerFocus(); });
+		base::call_delayed(2 * st::boxDuration, this, [this] {
+			_select->setInnerFocus();
+		});
 	});
 	_inner->setScrollCallback([this](int top, int bottom) {
 		_scroll->scrollToY(top, bottom);
@@ -719,12 +723,12 @@ void Editor::showMenu() {
 
 	_menuToggle->installEventFilter(_menu);
 	_menu->addAction(tr::lng_theme_editor_menu_export(tr::now), [=] {
-		App::CallDelayed(st::defaultRippleAnimation.hideDuration, this, [=] {
+		base::call_delayed(st::defaultRippleAnimation.hideDuration, this, [=] {
 			exportTheme();
 		});
 	});
 	_menu->addAction(tr::lng_theme_editor_menu_import(tr::now), [=] {
-		App::CallDelayed(st::defaultRippleAnimation.hideDuration, this, [=] {
+		base::call_delayed(st::defaultRippleAnimation.hideDuration, this, [=] {
 			importTheme();
 		});
 	});
@@ -888,7 +892,7 @@ void Editor::closeWithConfirmation() {
 		closeEditor();
 		return;
 	}
-	const auto box = std::make_shared<QPointer<BoxContent>>();
+	const auto box = std::make_shared<QPointer<Ui::BoxContent>>();
 	const auto close = crl::guard(this, [=] {
 		Background()->clearEditingTheme(ClearEditing::RevertChanges);
 		closeEditor();

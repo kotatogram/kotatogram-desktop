@@ -7,7 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/update_checker.h"
 
-#include "platform/platform_info.h"
+#include "base/platform/base_platform_info.h"
 #include "base/timer.h"
 #include "base/bytes.h"
 #include "base/unixtime.h"
@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/settings/info_settings_widget.h"
 #include "window/window_session_controller.h"
 #include "settings/settings_intro.h"
+#include "ui/layers/box_content.h"
 #include "app.h"
 
 #include <QtCore/QJsonDocument>
@@ -221,7 +222,7 @@ QString FindUpdateFile() {
 			"^("
 			"tupdate|"
 			"tmacupd|"
-			"tmac32upd|"
+			"tosxupd|"
 			"tlinuxupd|"
 			"tlinux32upd"
 			")\\d+(_[a-z\\d]+)?$",

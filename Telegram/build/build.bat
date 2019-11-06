@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 set "FullScriptPath=%~dp0"
 set "FullExecPath=%cd%"
 
-if not exist "%FullScriptPath%..\..\..\TelegramPrivate" (
+if not exist "%FullScriptPath%..\..\..\DesktopPrivate" (
   echo.
   echo This script is for building the production version of Telegram Desktop.
   echo.
@@ -54,7 +54,7 @@ set "SetupFile=tsetup.%AppVersionStrFull%.exe"
 set "PortableFile=tportable.%AppVersionStrFull%.zip"
 set "ReleasePath=%HomePath%\..\out\Release"
 set "DeployPath=%ReleasePath%\deploy\%AppVersionStrMajor%\%AppVersionStrFull%"
-set "SignPath=%HomePath%\..\..\TelegramPrivate\Sign.bat"
+set "SignPath=%HomePath%\..\..\DesktopPrivate\Sign.bat"
 set "BinaryName=Telegram"
 set "DropboxSymbolsPath=Y:\Telegram\symbols"
 set "FinalReleasePath=Z:\Telegram\backup"
@@ -149,9 +149,9 @@ if %BuildUWP% equ 0 (
   if %AlphaVersion% equ 0 (
     iscc /dMyAppVersion=%AppVersionStrSmall% /dMyAppVersionZero=%AppVersionStr% /dMyAppVersionFull=%AppVersionStrFull% "/dReleasePath=%ReleasePath%" "%FullScriptPath%setup.iss"
     if %errorlevel% neq 0 goto error
-    if not exist "tsetup.%AppVersionStrFull%.exe" goto error
+    if not exist "%SetupFile%" goto error
 :sign3
-    call "%SignPath%" "tsetup.%AppVersionStrFull%.exe"
+    call "%SignPath%" "%SetupFile%"
     if %errorlevel% neq 0 (
       timeout /t 3
       goto sign3

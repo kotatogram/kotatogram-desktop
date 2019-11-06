@@ -16,7 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/discrete_sliders.h"
-#include "info/profile/info_profile_button.h"
+#include "ui/widgets/buttons.h"
 #include "info/profile/info_profile_cover.h"
 #include "data/data_user.h"
 #include "data/data_session.h"
@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "window/window_session_controller.h"
 #include "core/file_utilities.h"
+#include "base/call_delayed.h"
 #include "facades.h"
 #include "app.h"
 #include "styles/style_settings.h"
@@ -182,7 +183,7 @@ void SetupInterfaceScale(
 				App::restart();
 			});
 			const auto cancelled = crl::guard(button, [=] {
-				App::CallDelayed(
+				base::call_delayed(
 					st::defaultSettingsSlider.duration,
 					button,
 					[=] { (*setScale)(cConfigScale()); });

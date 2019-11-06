@@ -13,13 +13,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/checkbox.h"
+#include "ui/widgets/buttons.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "boxes/connection_box.h"
 #include "boxes/about_box.h"
 #include "boxes/confirm_box.h"
-#include "info/profile/info_profile_button.h"
 #include "platform/platform_specific.h"
-#include "platform/platform_info.h"
+#include "base/platform/base_platform_info.h"
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
 #include "core/update_checker.h"
@@ -241,6 +241,30 @@ void SetupUpdate(not_null<Ui::VerticalLayout*> container) {
 		}
 		App::restart();
 	});
+}
+
+bool HasSystemSpellchecker() {
+	return (Platform::IsWindows() && Platform::IsWindows8OrGreater())
+		|| Platform::IsMac();
+}
+
+void SetupSpellchecker(
+		not_null<Window::SessionController*> controller,
+		not_null<Ui::VerticalLayout*> container) {
+	const auto session = &controller->session();
+	AddButton(
+		container,
+		tr::lng_settings_system_spellchecker(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(session->settings().spellcheckerEnabled())
+	)->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != session->settings().spellcheckerEnabled());
+	}) | rpl::start_with_next([=](bool enabled) {
+		session->settings().setSpellcheckerEnabled(enabled);
+		session->saveSettingsDelayed();
+	}, container->lifetime());
 }
 
 bool HasTray() {
@@ -514,6 +538,14 @@ void Advanced::setupContent(not_null<Window::SessionController*> controller) {
 	AddSubsectionTitle(content, tr::lng_settings_performance());
 	SetupPerformance(controller, content);
 	AddSkip(content);
+
+	if (HasSystemSpellchecker()) {
+		AddDivider(content);
+		AddSkip(content);
+		AddSubsectionTitle(content, tr::lng_settings_spellchecker());
+		SetupSpellchecker(controller, content);
+		AddSkip(content);
+	}
 
 	if (cAutoUpdate()) {
 		addUpdate();

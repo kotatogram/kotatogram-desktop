@@ -9,7 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "storage/localstorage.h"
 #include "platform/platform_window_title.h"
-#include "platform/platform_info.h"
+#include "base/platform/base_platform_info.h"
 #include "history/history.h"
 #include "window/themes/window_theme.h"
 #include "window/window_session_controller.h"
@@ -25,13 +25,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "main/main_session.h"
 #include "base/crc32hash.h"
+#include "base/call_delayed.h"
+#include "ui/toast/toast.h"
 #include "ui/ui_utility.h"
 #include "apiwrap.h"
 #include "mainwindow.h"
 #include "facades.h"
 #include "app.h"
 #include "styles/style_window.h"
-#include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 
 #include <QtWidgets/QDesktopWidget>
 #include <QtCore/QMimeData>
@@ -145,6 +147,8 @@ MainWindow::MainWindow(not_null<Controller*> controller)
 		checkLockByTerms();
 	}, lifetime());
 
+	Ui::Toast::SetDefaultParent(_body.data());
+
 	if (_outdated) {
 		_outdated->heightValue(
 		) | rpl::filter([=] {
@@ -217,7 +221,7 @@ void MainWindow::showTermsDecline() {
 			tr::lng_terms_decline_and_delete(),
 			tr::lng_terms_back(),
 			true),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 
 	box->agreeClicks(
 	) | rpl::start_with_next([=] {
@@ -236,7 +240,7 @@ void MainWindow::showTermsDecline() {
 }
 
 void MainWindow::showTermsDelete() {
-	const auto box = std::make_shared<QPointer<BoxContent>>();
+	const auto box = std::make_shared<QPointer<Ui::BoxContent>>();
 	const auto deleteByTerms = [=] {
 		if (account().sessionExists()) {
 			account().session().termsDeleteNow();
@@ -251,7 +255,7 @@ void MainWindow::showTermsDelete() {
 			st::attentionBoxButton,
 			deleteByTerms,
 			[=] { if (*box) (*box)->closeBox(); }),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 }
 
 bool MainWindow::hideNoQuit() {
@@ -345,7 +349,7 @@ void MainWindow::handleActiveChanged() {
 	if (isActiveWindow()) {
 		Core::App().checkMediaViewActivation();
 	}
-	App::CallDelayed(1, this, [this] {
+	base::call_delayed(1, this, [this] {
 		updateTrayMenu();
 		handleActiveChangedHook();
 	});
@@ -587,7 +591,7 @@ void MainWindow::reActivateWindow() {
 		}
 	};
 	crl::on_main(this, reActivate);
-	App::CallDelayed(200, this, reActivate);
+	base::call_delayed(200, this, reActivate);
 #endif // Q_OS_LINUX32 || Q_OS_LINUX64
 }
 

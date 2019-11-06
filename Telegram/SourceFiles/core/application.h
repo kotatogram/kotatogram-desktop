@@ -16,7 +16,6 @@ class MainWindow;
 class MainWidget;
 class FileUploader;
 class Translator;
-class BoxContent;
 
 namespace Storage {
 class Databases;
@@ -43,6 +42,7 @@ namespace Ui {
 namespace Animations {
 class Manager;
 } // namespace Animations
+class BoxContent;
 } // namespace Ui
 
 namespace MTP {
@@ -220,10 +220,6 @@ public:
 	void call_handleDelayedPeerUpdates();
 	void call_handleObservables();
 
-	void callDelayed(int duration, FnMut<void()> &&lambda) {
-		_callDelayedTimer.call(duration, std::move(lambda));
-	}
-
 protected:
 	bool eventFilter(QObject *object, QEvent *event) override;
 
@@ -273,7 +269,7 @@ private:
 	const std::unique_ptr<ChatHelpers::EmojiKeywords> _emojiKeywords;
 	std::unique_ptr<Lang::Translator> _translator;
 	base::Observable<void> _passcodedChanged;
-	QPointer<BoxContent> _badProxyDisableBox;
+	QPointer<Ui::BoxContent> _badProxyDisableBox;
 
 	const std::unique_ptr<Media::Audio::Instance> _audio;
 	const QImage _logo;
@@ -283,7 +279,6 @@ private:
 	rpl::event_stream<bool> _termsLockChanges;
 	std::unique_ptr<Window::TermsLock> _termsLock;
 
-	base::DelayedCallTimer _callDelayedTimer;
 	base::Timer _saveSettingsTimer;
 
 	struct LeaveSubscription {

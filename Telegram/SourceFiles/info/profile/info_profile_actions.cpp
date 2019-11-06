@@ -17,6 +17,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/widgets/shadow.h"
 #include "ui/widgets/labels.h"
+#include "ui/widgets/buttons.h"
+#include "ui/widgets/box_content_divider.h"
+#include "ui/layers/generic_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "history/history_location_manager.h" // LocationClickHandler.
@@ -26,14 +29,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peer_list_controllers.h"
 #include "boxes/add_contact_box.h"
 #include "boxes/report_box.h"
-#include "boxes/generic_box.h" // window->show(Box(InitMethod()))
 #include "boxes/peers/edit_contact_box.h"
 #include "lang/lang_keys.h"
 #include "info/info_controller.h"
 #include "info/info_memento.h"
 #include "info/profile/info_profile_icon.h"
 #include "info/profile/info_profile_values.h"
-#include "info/profile/info_profile_button.h"
 #include "info/profile/info_profile_text.h"
 #include "support/support_helper.h"
 #include "window/window_session_controller.h"
@@ -75,11 +76,11 @@ auto AddActionButton(
 		Text &&text,
 		ToggleOn &&toggleOn,
 		Callback &&callback,
-		const style::InfoProfileButton &st
+		const style::SettingsButton &st
 			= st::infoSharedMediaButton) {
-	auto result = parent->add(object_ptr<Ui::SlideWrap<Button>>(
+	auto result = parent->add(object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
 		parent,
-		object_ptr<Button>(
+		object_ptr<Ui::SettingsButton>(
 			parent,
 			std::move(text),
 			st))
@@ -396,7 +397,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 
 object_ptr<Ui::RpWidget> DetailsFiller::setupMuteToggle() {
 	const auto peer = _peer;
-	auto result = object_ptr<Button>(
+	auto result = object_ptr<Ui::SettingsButton>(
 		_wrap,
 		tr::lng_profile_enable_notifications(),
 		st::infoNotificationsButton);
@@ -513,7 +514,7 @@ Ui::MultiSlideTracker DetailsFiller::fillChannelButtons(
 }
 
 object_ptr<Ui::RpWidget> DetailsFiller::fill() {
-	add(object_ptr<BoxContentDivider>(_wrap));
+	add(object_ptr<Ui::BoxContentDivider>(_wrap));
 	add(CreateSkipWidget(_wrap));
 	add(setupInfo());
 	if (!_peer->isSelf()) {
@@ -794,7 +795,7 @@ object_ptr<Ui::RpWidget> ActionsFiller::fill() {
 //}
 //
 //object_ptr<Ui::RpWidget> FeedDetailsFiller::fill() {
-//	add(object_ptr<BoxContentDivider>(_wrap));
+//	add(object_ptr<Ui::BoxContentDivider>(_wrap));
 //	add(CreateSkipWidget(_wrap));
 //	add(setupDefaultToggle());
 //	add(CreateSkipWidget(_wrap));
@@ -805,7 +806,7 @@ object_ptr<Ui::RpWidget> ActionsFiller::fill() {
 //	using namespace rpl::mappers;
 //	const auto feed = _feed;
 //	const auto feedId = feed->id();
-//	auto result = object_ptr<Button>(
+//	auto result = object_ptr<Ui::SettingsButton>(
 //		_wrap,
 //		tr::lng_info_feed_is_default(),
 //		st::infoNotificationsButton);
@@ -901,7 +902,7 @@ object_ptr<Ui::RpWidget> SetupChannelMembers(
 	);
 
 	auto members = result->entity();
-	members->add(object_ptr<BoxContentDivider>(members));
+	members->add(object_ptr<Ui::BoxContentDivider>(members));
 	members->add(CreateSkipWidget(members));
 	auto button = AddActionButton(
 		members,

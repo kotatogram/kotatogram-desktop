@@ -10,8 +10,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/rp_widget.h"
 #include "base/object_ptr.h"
 
-class BoxContent;
-
 namespace Ui {
 class InputField;
 class ScrollArea;
@@ -20,15 +18,11 @@ class PlainShadow;
 class FlatLabel;
 class RoundButton;
 class VerticalLayout;
+class SettingsButton;
+class BoxContent;
 template <typename Widget>
 class SlideWrap;
 } // namespace Ui
-
-namespace Info {
-namespace Profile {
-class Button;
-} // namespace Profile
-} // namespace Info
 
 namespace Passport {
 
@@ -161,20 +155,20 @@ private:
 	bool _fieldsChanged = false;
 	bool _additionalShown = false;
 
-	QPointer<Info::Profile::Button> _delete;
+	QPointer<Ui::SettingsButton> _delete;
 
 	object_ptr<Ui::RoundButton> _done;
 
 };
 
-object_ptr<BoxContent> RequestIdentityType(
+object_ptr<Ui::BoxContent> RequestIdentityType(
 	Fn<void(int index)> submit,
 	std::vector<QString> labels);
-object_ptr<BoxContent> RequestAddressType(
+object_ptr<Ui::BoxContent> RequestAddressType(
 	Fn<void(int index)> submit,
 	std::vector<QString> labels);
 
-object_ptr<BoxContent> ConfirmDeleteDocument(
+object_ptr<Ui::BoxContent> ConfirmDeleteDocument(
 	Fn<void(bool withDetails)> submit,
 	const QString &text,
 	const QString &detailsCheckbox = QString());

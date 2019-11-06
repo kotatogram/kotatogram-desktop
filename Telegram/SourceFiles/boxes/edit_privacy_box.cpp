@@ -14,7 +14,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "history/history.h"
 #include "boxes/peer_list_controllers.h"
-#include "info/profile/info_profile_button.h"
 #include "settings/settings_common.h"
 #include "settings/settings_privacy_security.h"
 #include "calls/calls_instance.h"
@@ -27,7 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_channel.h"
 #include "window/window_session_controller.h"
 #include "styles/style_settings.h"
-#include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 
 namespace {
 
@@ -170,7 +169,7 @@ void EditPrivacyBox::editExceptions(
 	};
 	Ui::show(
 		Box<PeerListBox>(std::move(controller), std::move(initBox)),
-		LayerOption::KeepOther);
+		Ui::LayerOption::KeepOther);
 }
 
 QVector<MTPInputPrivacyRule> EditPrivacyBox::collectResult() {
