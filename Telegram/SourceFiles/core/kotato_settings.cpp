@@ -66,7 +66,7 @@ void WriteDefaultCustomFile() {
 	}
 }
 
-Manager Data;
+std::unique_ptr<Manager> Data;
 
 } // namespace
 
@@ -315,15 +315,22 @@ void Manager::writing() {
 }
 
 void Start() {
-	Data.fill();
+	if (Data) return;
+
+	Data = std::make_unique<Manager>();
+	Data->fill();
 }
 
 void Write() {
-	Data.write();
+	if (!Data) return;
+
+	Data->write();
 }
 
 void Finish() {
-	Data.write(true);
+	if (!Data) return;
+
+	Data->write(true);
 }
 
 } // namespace KotatoSettings
