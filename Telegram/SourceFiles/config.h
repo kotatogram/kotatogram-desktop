@@ -13,7 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 constexpr str_const AppNameOld = "Telegram Win (Unofficial)";
 constexpr str_const AppName = "Kotatogram Desktop";
 
-constexpr str_const AppId = "{53F49750-6209-4FBF-9CA8-7A333C87D1ED}"; // used in updater.cpp and Setup.iss for Windows
+constexpr str_const AppId = "{C4A4AE8F-B9F7-4CC7-8A6C-BF7EEE87ACA5}"; // used in updater.cpp and Setup.iss for Windows
 constexpr str_const AppFile = "Kotatogram";
 
 enum {
