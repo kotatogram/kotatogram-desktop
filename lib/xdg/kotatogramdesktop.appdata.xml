@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component type="desktop">
-    <id>org.telegram.desktop</id>
+    <id>io.github.kotatogram</id>
     <metadata_license>CC0-1.0</metadata_license>
     <project_license>GPL-3.0</project_license>
-    <name>Telegram Desktop</name>
-    <summary>Telegram Desktop messenger</summary>
+    <name>Kotatogram Desktop</name>
+    <summary>Kotatogram Desktop messenger</summary>
     <description>
+        <p>Kotatogram Desktop is unofficial messaging based on Telegram Desktop.</p>
         <p>Telegram is a popular messaging protocol with encryption and security as its key focus.</p>
-        <p>Fast and secure desktop app, perfectly synced with your mobile phone.</p>
     </description>
     <categories>
         <category>Network</category>
         <category>InstantMessaging</category>
     </categories>
-    <update_contact>johnprestonmail_at_gmail.com</update_contact>
-    <developer_name>John Preston</developer_name>
-    <url type="homepage">https://desktop.telegram.org/</url>
-    <url type="bugtracker">https://github.com/telegramdesktop/tdesktop/issues</url>
-    <url type="help">https://github.com/telegramdesktop/tdesktop/issues</url>
+    <update_contact></update_contact>
+    <developer_name>RadRussianRus</developer_name>
+    <url type="homepage">https://kotatogram.github.io/</url>
+    <url type="bugtracker">https://github.com/kotatogram/kotatogram-desktop/issues</url>
+    <url type="help">https://github.com/kotatogram/kotatogram-desktop/issues</url>
     <screenshots>
       <screenshot type="default">
         <image>https://raw.githubusercontent.com/telegramdesktop/tdesktop/dev/docs/assets/preview.png</image>
@@ -26,6 +26,7 @@
     <keywords>
         <keyword>tg</keyword>
         <keyword>telegram</keyword>
+        <keyword>kotatogram</keyword>
         <keyword>tdesktop</keyword>
         <keyword>messaging</keyword>
         <keyword>messenger</keyword>
@@ -63,6 +64,6 @@
         <content_attribute id="money-gambling">none</content_attribute>
     </content_rating>
     <provides>
-        <binary>telegram-desktop</binary>
+        <binary>kotatogram-desktop</binary>
     </provides>
 </component>
