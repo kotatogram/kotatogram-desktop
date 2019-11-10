@@ -87,7 +87,7 @@ gypArguments.append('--generator-output=..')
 gypArguments.append('-Goutput_dir=../out')
 gypArguments.append('-Dapi_id=' + apiId)
 gypArguments.append('-Dapi_hash=' + apiHash)
-gypArguments.append('-Dlottie_use_cache=1')
+gypArguments.append('-Dlottie_use_cache=0')
 gypArguments.append('-Dspecial_build_target=' + officialTarget)
 if ciBuild:
     gypArguments.append('-Dci_build=1')
