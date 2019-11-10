@@ -1,3 +1,6 @@
+1.1.1 beta (11.10.2019)
+- Updated TDesktop sources to 1.9.1 beta.
+
 1.1 (21.10.2019)
 - Options menu with almost all JSON options (except for scales).
 - Font start options are now removed in favor of JSON and settings menu.
