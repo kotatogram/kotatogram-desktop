@@ -71,6 +71,7 @@ struct HiddenSenderInfo {
 };
 
 struct HistoryMessageForwarded : public RuntimeComponent<HistoryMessageForwarded, HistoryItem> {
+	void create() const;
 	void create(const HistoryMessageVia *via) const;
 
 	TimeId originalDate = 0;

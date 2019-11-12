@@ -108,6 +108,56 @@ HiddenSenderInfo::HiddenSenderInfo(const QString &name)
 	}
 }
 
+void HistoryMessageForwarded::create() const {
+	auto phrase = QString();
+	const auto fromChannel = originalSender
+		&& originalSender->isChannel()
+		&& !originalSender->isMegagroup();
+	const auto name = originalSender
+		? originalSender->name
+		: hiddenSenderInfo->name;
+	if (!originalAuthor.isEmpty()) {
+		phrase = tr::lng_forwarded_signed(
+			tr::now,
+			lt_channel,
+			name,
+			lt_user,
+			originalAuthor);
+	} else {
+		phrase = name;
+	}
+
+	if (fromChannel) {
+		phrase = tr::lng_forwarded_channel(
+			tr::now,
+			lt_channel,
+			textcmdLink(1, phrase));
+	} else {
+		phrase = tr::lng_forwarded(
+			tr::now,
+			lt_user,
+			textcmdLink(1, phrase));
+	}
+	
+	TextParseOptions opts = {
+		TextParseRichText,
+		0,
+		0,
+		Qt::LayoutDirectionAuto
+	};
+	text.setText(st::fwdTextStyle, phrase, opts);
+	static const auto hidden = std::make_shared<LambdaClickHandler>([] {
+		Ui::Toast::Show(tr::lng_forwarded_hidden(tr::now));
+	});
+
+	text.setLink(1, fromChannel
+		? goToMessageClickHandler(originalSender, originalId)
+		: originalSender
+		? originalSender->openLink()
+		: hidden);
+}
+
+
 void HistoryMessageForwarded::create(const HistoryMessageVia *via) const {
 	auto phrase = QString();
 	const auto fromChannel = originalSender

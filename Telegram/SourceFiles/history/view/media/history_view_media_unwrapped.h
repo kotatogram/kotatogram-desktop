@@ -86,13 +86,16 @@ public:
 private:
 	int surroundingHeight(
 		const HistoryMessageVia *via,
-		const HistoryMessageReply *reply) const;
+		const HistoryMessageReply *reply,
+		const HistoryMessageForwarded *forwarded,
+		const int innerw = 0) const;
 	void drawSurrounding(
 		Painter &p,
 		const QRect &inner,
 		bool selected,
 		const HistoryMessageVia *via,
-		const HistoryMessageReply *reply) const;
+		const HistoryMessageReply *reply,
+		const HistoryMessageForwarded *forwarded) const;
 
 	QSize countOptimalSize() override;
 	QSize countCurrentSize(int newWidth) override;
@@ -100,7 +103,8 @@ private:
 	bool needInfoDisplay() const;
 	int additionalWidth(
 		const HistoryMessageVia *via,
-		const HistoryMessageReply *reply) const;
+		const HistoryMessageReply *reply,
+		const HistoryMessageForwarded *forwarded) const;
 
 	inline int calculateFullRight(const QRect &inner) const;
 	inline QPoint calculateFastActionPosition(
