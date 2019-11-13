@@ -54,11 +54,11 @@ constexpr auto kHashtagResultsLimit = 5;
 constexpr auto kStartReorderThreshold = 30;
 
 inline int DialogsRowHeight() {
-	return (cDialogListLines() == 1 ? st::dialogsImportantBarHeight : st::dialogsRowHeight);
+	return (DialogListLines() == 1 ? st::dialogsImportantBarHeight : st::dialogsRowHeight);
 }
 
 inline int DialogsPhotoSize() {
-	return (cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
+	return (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
 }
 
 int FixedOnTopDialogsCount(not_null<Dialogs::IndexedList*> list) {
@@ -209,6 +209,11 @@ InnerWidget::InnerWidget(
 		refresh();
 	}, lifetime());
 
+	DialogListLinesChanges(
+	) | rpl::start_with_next([=] {
+		refresh();
+	}, lifetime());
+
 	subscribe(Window::Theme::Background(), [=](const Window::Theme::BackgroundUpdate &data) {
 		if (data.paletteChanged()) {
 			Layout::clearUnreadBadgesCache();
@@ -295,7 +300,7 @@ void InnerWidget::refreshWithCollapsedRows(bool toTop) {
 		? (*list->begin())->folder()
 		: nullptr;
 	const auto inMainMenu = session().settings().archiveInMainMenu();
-	if (archive && (session().settings().archiveCollapsed() || inMainMenu || cDialogListLines() == 1)) {
+	if (archive && (session().settings().archiveCollapsed() || inMainMenu || DialogListLines() == 1)) {
 		if (_selected && _selected->folder() == archive) {
 			_selected = nullptr;
 		}
@@ -2162,7 +2167,7 @@ bool InnerWidget::needCollapsedRowsRefresh() const {
 	const auto collapsedHasArchive = !_collapsedRows.empty()
 		&& (_collapsedRows.back()->folder != nullptr);
 	const auto archiveIsCollapsed = (archive != nullptr)
-		&& (session().settings().archiveCollapsed() || cDialogListLines() == 1);
+		&& (session().settings().archiveCollapsed() || DialogListLines() == 1);
 	const auto archiveIsInMainMenu = (archive != nullptr)
 		&& session().settings().archiveInMainMenu();
 	return archiveIsInMainMenu

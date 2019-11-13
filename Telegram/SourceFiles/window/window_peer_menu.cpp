@@ -620,7 +620,7 @@ void FolderFiller::addTogglesForArchive() {
 		return;
 	}
 	const auto controller = _controller;
-	if (cDialogListLines() != 1) {
+	if (DialogListLines() != 1) {
 		const auto hidden = (controller->session().settings().archiveCollapsed());
 		const auto text = hidden
 			? tr::lng_context_archive_expand(tr::now)

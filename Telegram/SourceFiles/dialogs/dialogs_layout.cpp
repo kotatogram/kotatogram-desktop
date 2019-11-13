@@ -85,7 +85,7 @@ void PaintNarrowCounter(
 			? QString::number(unreadCount)
 			: QString();
 		const auto allowDigits = displayMentionBadge ? 1 : 3;
-		auto unreadRight = st::dialogsPadding.x() + (cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
+		auto unreadRight = st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
 		auto unreadTop = (lines == 1
 							? st::dialogsPadding.y()
 							: st::dialogsPadding.y() + st::dialogsPhotoSize - st::dialogsUnreadHeight);
@@ -99,7 +99,7 @@ void PaintNarrowCounter(
 	}
 	if (displayMentionBadge) {
 		auto counter = qsl("@");
-		auto unreadRight = st::dialogsPadding.x() + (cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) - skipBeforeMention;
+		auto unreadRight = st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) - skipBeforeMention;
 		auto unreadTop = (lines == 1
 							? st::dialogsPadding.y()
 							: st::dialogsPadding.y() + st::dialogsPhotoSize - st::dialogsUnreadHeight);
@@ -831,7 +831,7 @@ void RowPainter::paint(
 		? history->hasUnreadMentions()
 		: false;
 	const auto displayUnreadCounter = [&] {
-		if (fullWidth < st::columnMinimalWidthLeft && cDialogListLines() == 1) {
+		if (fullWidth < st::columnMinimalWidthLeft && DialogListLines() == 1) {
 			return false;
 		}
 
@@ -865,7 +865,7 @@ void RowPainter::paint(
 		| (allowUserOnline ? Flag::AllowUserOnline : Flag(0))
 		| (peer && peer->isSelf() ? Flag::SavedMessages : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
-		const auto texttop = (cDialogListLines() == 1
+		const auto texttop = (DialogListLines() == 1
 								? st::dialogsPadding.y()
 								: st::dialogsPadding.y()
 									+ st::msgNameFont->height
@@ -885,7 +885,7 @@ void RowPainter::paint(
 			selected,
 			unreadMuted,
 			mentionMuted);
-		if (cDialogListLines() > 1 || flags & Flag::SearchResult) {
+		if (DialogListLines() > 1 || flags & Flag::SearchResult) {
 			const auto &color = active
 				? st::dialogsTextFgServiceActive
 				: (selected
@@ -930,9 +930,9 @@ void RowPainter::paint(
 			active,
 			unreadMuted,
 			mentionMuted,
-			cDialogListLines());
+			DialogListLines());
 	};
-	if (cDialogListLines() == 1) {
+	if (DialogListLines() == 1) {
 		paintOneLineRow(
 			p,
 			row,
@@ -1029,7 +1029,7 @@ void RowPainter::paint(
 		| (showSavedMessages ? Flag::SavedMessages : Flag(0))/* // #feed
 		| (row->searchInChat().feed() ? Flag::FeedSearchResult : Flag(0))*/;
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
-		const auto texttop = (cDialogListLines() == 1
+		const auto texttop = (DialogListLines() == 1
 								? st::dialogsPadding.y()
 								: st::dialogsPadding.y()
 									+ st::msgNameFont->height
@@ -1049,7 +1049,7 @@ void RowPainter::paint(
 			unreadMuted,
 			mentionMuted);
 
-		if (cDialogListLines() > 1 || flags & Flag::SearchResult) {
+		if (DialogListLines() > 1 || flags & Flag::SearchResult) {
 			const auto itemRect = QRect(
 				nameleft,
 				texttop,
@@ -1077,9 +1077,9 @@ void RowPainter::paint(
 			active,
 			unreadMuted,
 			mentionMuted,
-			cDialogListLines());
+			DialogListLines());
 	};
-	if (cDialogListLines() == 1) {
+	if (DialogListLines() == 1) {
 		paintOneLineRow(
 			p,
 			row,
@@ -1115,7 +1115,7 @@ void RowPainter::paint(
 }
 
 QRect RowPainter::sendActionAnimationRect(int animationWidth, int animationHeight, int fullWidth, bool textUpdated) {
-	auto nameleft = st::dialogsPadding.x() + (cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) + st::dialogsPhotoPadding;
+	auto nameleft = st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) + st::dialogsPhotoPadding;
 	auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
 	auto texttop = st::dialogsPadding.y() + st::msgNameFont->height + st::dialogsSkip;
 	return QRect(nameleft, texttop, textUpdated ? namewidth : animationWidth, animationHeight);

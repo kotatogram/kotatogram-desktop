@@ -1446,7 +1446,7 @@ void Widget::updateControlsGeometry() {
 		_forwardCancel->moveToLeft(0, filterAreaTop);
 		filterAreaTop += st::dialogsForwardHeight;
 	}
-	auto smallLayoutWidth = (st::dialogsPadding.x() + (cDialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) + st::dialogsPadding.x());
+	auto smallLayoutWidth = (st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) + st::dialogsPadding.x());
 	auto smallLayoutRatio = (width() < st::columnMinimalWidthLeft) ? (st::columnMinimalWidthLeft - width()) / float64(st::columnMinimalWidthLeft - smallLayoutWidth) : 0.;
 	auto filterLeft = st::dialogsFilterPadding.x() + _mainMenuToggle->width() + st::dialogsFilterPadding.x();
 	auto filterRight = (Global::LocalPasscode() ? (st::dialogsFilterPadding.x() + _lockUnlock->width()) : st::dialogsFilterSkip) + st::dialogsFilterPadding.x();
@@ -1668,7 +1668,7 @@ void Widget::onCancelSearchInChat() {
 void Widget::onDialogMoved(int movedFrom, int movedTo) {
 	int32 st = _scroll->scrollTop();
 	if (st > movedTo && st < movedFrom) {
-		_scroll->scrollToY(st + (cDialogListLines() == 1 ? st::dialogsImportantBarHeight : st::dialogsRowHeight));
+		_scroll->scrollToY(st + (DialogListLines() == 1 ? st::dialogsImportantBarHeight : st::dialogsRowHeight));
 	}
 }
 

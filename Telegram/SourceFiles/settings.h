@@ -226,4 +226,7 @@ DeclareRefSetting(ScaleVector, InterfaceScales);
 bool HasCustomScales();
 bool AddCustomScale(int scale);
 void ClearCustomScales();
-DeclareSetting(int, DialogListLines);
+
+void SetDialogListLines(int lines);
+[[nodiscard]] int DialogListLines();
+[[nodiscard]] rpl::producer<int> DialogListLinesChanges();

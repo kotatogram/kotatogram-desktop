@@ -80,5 +80,6 @@
 	"ktg_outdated_now": "Чтобы приложение Kotatogram могло получать обновления.",
 	"ktg_mac_menu_show": "Показать Kotatogram",
 	"ktg_manage_peer_subscribers": "Подписчики",
-	"ktg_user_status_unaccessible": "аккаунт недоступен"
+	"ktg_user_status_unaccessible": "аккаунт недоступен",
+	"ktg_settings_chat_list_compact": "Компактный список чатов"
 }

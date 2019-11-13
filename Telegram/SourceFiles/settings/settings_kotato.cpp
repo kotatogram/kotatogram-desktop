@@ -112,6 +112,20 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 
 	AddButton(
 		container,
+		tr::ktg_settings_chat_list_compact(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(DialogListLines() == 1)
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != (DialogListLines() == 1));
+	}) | rpl::start_with_next([](bool enabled) {
+		SetDialogListLines(enabled ? 1 : 2);
+		KotatoSettings::Write();
+	}, container->lifetime());
+
+	AddButton(
+		container,
 		tr::ktg_settings_always_show_scheduled(),
 		st::settingsButton
 	)->toggleOn(

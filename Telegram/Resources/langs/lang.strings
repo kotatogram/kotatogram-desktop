@@ -2325,4 +2325,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_user_status_unaccessible" = "account inaccessible";
 
+"ktg_settings_chat_list_compact" = "Compact chat list";
+
 // Keys finished
