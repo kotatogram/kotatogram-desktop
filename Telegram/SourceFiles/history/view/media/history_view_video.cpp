@@ -58,15 +58,22 @@ QSize Video::sizeForAspectRatio() const {
 }
 
 QSize Video::countOptimalDimensions() const {
+	const auto captionWithPaddings = _caption.maxWidth()
+			+ st::msgPadding.left()
+			+ st::msgPadding.right();
+	auto inWebPage = (_parent->media() != this);
 	const auto desired = style::ConvertScale(_data->dimensions);
 	const auto size = desired.isEmpty() ? sizeForAspectRatio() : desired;
 	auto tw = size.width();
 	auto th = size.height();
 	if (!tw || !th) {
 		tw = th = 1;
-	} else if (tw >= th && tw > st::maxMediaSize) {
+	} else if ((!cAdaptiveBaloons() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw >= th && tw > st::maxMediaSize) {
 		th = qRound((st::maxMediaSize / float64(tw)) * th);
 		tw = st::maxMediaSize;
+	} else if (cAdaptiveBaloons() && tw >= th && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
+		th = qRound((captionWithPaddings / float64(tw)) * th);
+		tw = captionWithPaddings;
 	} else if (tw < th && th > st::maxMediaSize) {
 		tw = qRound((st::maxMediaSize / float64(th)) * tw);
 		th = st::maxMediaSize;
@@ -104,6 +111,9 @@ QSize Video::countOptimalSize() {
 	auto maxWidth = qMax(_thumbw, minWidth);
 	auto minHeight = qMax(th, st::minVideoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
+		if (cAdaptiveBaloons()) {
+			maxWidth = qMax(maxWidth, _caption.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
+		}
 		const auto captionw = maxWidth
 			- st::msgPadding.left()
 			- st::msgPadding.right();
@@ -116,6 +126,8 @@ QSize Video::countOptimalSize() {
 }
 
 QSize Video::countCurrentSize(int newWidth) {
+	auto availableWidth = newWidth;
+
 	const auto size = countOptimalDimensions();
 	auto tw = size.width();
 	auto th = size.height();
@@ -131,6 +143,10 @@ QSize Video::countCurrentSize(int newWidth) {
 	newWidth = qMax(_thumbw, minWidth);
 	auto newHeight = qMax(th, st::minPhotoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
+		if (cAdaptiveBaloons()) {
+			newWidth = qMax(newWidth, _caption.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
+			newWidth = qMin(newWidth, availableWidth);
+		}
 		const auto captionw = newWidth
 			- st::msgPadding.left()
 			- st::msgPadding.right();

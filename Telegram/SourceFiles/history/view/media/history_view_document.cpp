@@ -150,7 +150,11 @@ QSize Document::countOptimalSize() {
 
 	if (auto named = Get<HistoryDocumentNamed>()) {
 		accumulate_max(maxWidth, tleft + named->_namew + tright);
-		accumulate_min(maxWidth, st::msgMaxWidth);
+		if (cAdaptiveBaloons() && captioned) {
+			accumulate_max(maxWidth, captioned->_caption.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
+		} else {
+			accumulate_min(maxWidth, st::msgMaxWidth);
+		}
 	}
 
 	auto minHeight = 0;

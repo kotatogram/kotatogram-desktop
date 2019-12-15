@@ -85,6 +85,7 @@ public:
 	bool displayEditedBadge() const override;
 	TimeId displayedEditDate() const override;
 	int infoWidth() const override;
+	int plainMaxWidth() const override;
 
 protected:
 	void refreshDataIdHook() override;
@@ -146,7 +147,6 @@ private:
 	HistoryMessageEdited *displayedEditBadge();
 	void initTime();
 	int timeLeft() const;
-	int plainMaxWidth() const;
 
 	WebPage *logEntryOriginal() const;
 

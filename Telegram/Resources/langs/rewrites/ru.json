@@ -30,6 +30,7 @@
 	"ktg_settings_kotato": "Настройки Kotatogram",
 	"ktg_settings_chats": "Чаты",
 	"ktg_settings_sticker_height": "Высота стикеров: {pixels} пикс.",
+	"ktg_settings_adaptive_baloons": "Адаптивные пузырьки сообщений",
 	"ktg_settings_emoji_outline": "Обводка у больших эмодзи",
 	"ktg_settings_always_show_scheduled": "Всегда показывать отложенные",
 	"ktg_settings_fonts": "Изменить шрифты приложения",
