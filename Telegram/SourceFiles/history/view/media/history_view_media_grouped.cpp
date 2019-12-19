@@ -76,9 +76,17 @@ QSize GroupedMedia::countOptimalSize() {
 		sizes.push_back(media->sizeForGrouping());
 	}
 
+	const auto captionWithPaddings = _caption.maxWidth()
+			+ st::msgPadding.left()
+			+ st::msgPadding.right();
+	auto groupMaxWidth = st::historyGroupWidthMax;
+	if (cAdaptiveBaloons()) {
+		accumulate_max(groupMaxWidth, captionWithPaddings);
+	}
+
 	const auto layout = Ui::LayoutMediaGroup(
 		sizes,
-		st::historyGroupWidthMax,
+		groupMaxWidth,
 		st::historyGroupWidthMin,
 		st::historyGroupSkip);
 	Assert(layout.size() == _parts.size());
@@ -94,6 +102,9 @@ QSize GroupedMedia::countOptimalSize() {
 	}
 
 	if (!_caption.isEmpty()) {
+		if (cAdaptiveBaloons()) {
+			maxWidth = qMax(maxWidth, captionWithPaddings);
+		}
 		auto captionw = maxWidth - st::msgPadding.left() - st::msgPadding.right();
 		minHeight += st::mediaCaptionSkip + _caption.countHeight(captionw);
 		if (isBubbleBottom()) {

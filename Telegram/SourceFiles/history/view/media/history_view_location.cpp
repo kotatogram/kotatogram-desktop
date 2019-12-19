@@ -61,9 +61,15 @@ QSize Location::countOptimalSize() {
 
 	if (_parent->hasBubble()) {
 		if (!_title.isEmpty()) {
+			if (cAdaptiveBaloons()) {
+				maxWidth = qMax(maxWidth, _title.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
+			}
 			minHeight += qMin(_title.countHeight(maxWidth - st::msgPadding.left() - st::msgPadding.right()), 2 * st::webPageTitleFont->height);
 		}
 		if (!_description.isEmpty()) {
+			if (cAdaptiveBaloons()) {
+				maxWidth = qMax(maxWidth, _description.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
+			}
 			minHeight += qMin(_description.countHeight(maxWidth - st::msgPadding.left() - st::msgPadding.right()), 3 * st::webPageDescriptionFont->height);
 		}
 		if (!_title.isEmpty() || !_description.isEmpty()) {
@@ -88,8 +94,10 @@ QSize Location::countCurrentSize(int newWidth) {
 	auto newHeight = th;
 	if (tw > newWidth) {
 		newHeight = (newWidth * newHeight / tw);
-	} else {
+	} else if (!cAdaptiveBaloons()) {
 		newWidth = tw;
+	} else {
+		newHeight = (newWidth * newHeight / tw);
 	}
 	auto minWidth = qMax(st::minPhotoSize, _parent->infoWidth() + 2 * (st::msgDateImgDelta + st::msgDateImgPadding.x()));
 	accumulate_max(newWidth, minWidth);

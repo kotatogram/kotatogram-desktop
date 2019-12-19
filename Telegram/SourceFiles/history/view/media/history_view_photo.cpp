@@ -71,14 +71,21 @@ QSize Photo::countOptimalSize() {
 	auto maxWidth = 0;
 	auto minHeight = 0;
 
+	const auto captionWithPaddings = _caption.maxWidth()
+			+ st::msgPadding.left()
+			+ st::msgPadding.right();
+	auto inWebPage = (_parent->media() != this);
 	auto tw = style::ConvertScale(_data->width());
 	auto th = style::ConvertScale(_data->height());
 	if (!tw || !th) {
 		tw = th = 1;
 	}
-	if (tw > st::maxMediaSize) {
+	if ((!cAdaptiveBaloons() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
 		th = (st::maxMediaSize * th) / tw;
 		tw = st::maxMediaSize;
+	} else if (cAdaptiveBaloons() && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
+		th = (captionWithPaddings * th) / tw;
+		tw = captionWithPaddings;
 	}
 	if (th > st::maxMediaSize) {
 		tw = (st::maxMediaSize * tw) / th;
@@ -89,10 +96,14 @@ QSize Photo::countOptimalSize() {
 		return { _serviceWidth, _serviceWidth };
 	}
 	const auto minWidth = qMax((_parent->hasBubble() ? st::historyPhotoBubbleMinWidth : st::minPhotoSize), _parent->infoWidth() + 2 * (st::msgDateImgDelta + st::msgDateImgPadding.x()));
-	const auto maxActualWidth = qMax(tw, minWidth);
+	auto maxActualWidth = qMax(tw, minWidth);
 	maxWidth = qMax(maxActualWidth, th);
 	minHeight = qMax(th, st::minPhotoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
+		if (cAdaptiveBaloons()) {
+			maxActualWidth = qMax(maxActualWidth, captionWithPaddings);
+			maxWidth = qMax(maxWidth, captionWithPaddings);
+		}
 		auto captionw = maxActualWidth - st::msgPadding.left() - st::msgPadding.right();
 		minHeight += st::mediaCaptionSkip + _caption.countHeight(captionw);
 		if (isBubbleBottom()) {
@@ -103,11 +114,20 @@ QSize Photo::countOptimalSize() {
 }
 
 QSize Photo::countCurrentSize(int newWidth) {
+	auto availableWidth = newWidth;
+
+	const auto captionWithPaddings = _caption.maxWidth()
+			+ st::msgPadding.left()
+			+ st::msgPadding.right();
+	auto inWebPage = (_parent->media() != this);
 	auto tw = style::ConvertScale(_data->width());
 	auto th = style::ConvertScale(_data->height());
-	if (tw > st::maxMediaSize) {
+	if ((!cAdaptiveBaloons() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
 		th = (st::maxMediaSize * th) / tw;
 		tw = st::maxMediaSize;
+	} else if (cAdaptiveBaloons() && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
+		th = (captionWithPaddings * th) / tw;
+		tw = captionWithPaddings;
 	}
 	if (th > st::maxMediaSize) {
 		tw = (st::maxMediaSize * tw) / th;
@@ -132,6 +152,10 @@ QSize Photo::countCurrentSize(int newWidth) {
 	newWidth = qMax(_pixw, minWidth);
 	auto newHeight = qMax(_pixh, st::minPhotoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
+		if (cAdaptiveBaloons()) {
+			newWidth = qMax(newWidth, captionWithPaddings);
+			newWidth = qMin(newWidth, availableWidth);
+		}
 		const auto captionw = newWidth
 			- st::msgPadding.left()
 			- st::msgPadding.right();

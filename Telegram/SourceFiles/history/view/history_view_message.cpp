@@ -1616,7 +1616,9 @@ QRect Message::countGeometry() const {
 	//	contentLeft += st::msgPhotoSkip - (hmaxwidth - hwidth);
 	}
 	accumulate_min(contentWidth, maxWidth());
-	accumulate_min(contentWidth, st::msgMaxWidth);
+	if (!cAdaptiveBaloons()) {
+		accumulate_min(contentWidth, st::msgMaxWidth);
+	}
 	if (mediaWidth < contentWidth) {
 		const auto textualWidth = plainMaxWidth();
 		if (mediaWidth < textualWidth
@@ -1658,7 +1660,9 @@ int Message::resizeContentGetHeight(int newWidth) {
 		contentWidth -= st::msgPhotoSkip;
 	}
 	accumulate_min(contentWidth, maxWidth());
-	accumulate_min(contentWidth, st::msgMaxWidth);
+	if (!cAdaptiveBaloons()) {
+		accumulate_min(contentWidth, st::msgMaxWidth);
+	}
 	if (mediaDisplayed) {
 		media->resizeGetHeight(contentWidth);
 		if (media->width() < contentWidth) {
@@ -1681,7 +1685,7 @@ int Message::resizeContentGetHeight(int newWidth) {
 		auto mediaOnBottom = (mediaDisplayed && media->isBubbleBottom()) || (entry/* && entry->isBubbleBottom()*/);
 		auto mediaOnTop = (mediaDisplayed && media->isBubbleTop()) || (entry && entry->isBubbleTop());
 
-		if (contentWidth == maxWidth()) {
+		if (!cAdaptiveBaloons() && contentWidth == maxWidth()) {
 			if (mediaDisplayed) {
 				if (entry) {
 					newHeight += entry->resizeGetHeight(contentWidth);

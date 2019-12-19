@@ -74,15 +74,21 @@ QSize Gif::countOptimalSize() {
 		setClipReader(::Media::Clip::ReaderPointer::Bad());
 	}
 
+	const auto captionWithPaddings = _caption.maxWidth()
+			+ st::msgPadding.left()
+			+ st::msgPadding.right();
 	const auto maxSize = _data->isVideoMessage()
 		? st::maxVideoMessageSize
 		: st::maxGifSize;
 	const auto size = style::ConvertScale(videoSize());
 	auto tw = size.width();
 	auto th = size.height();
-	if (tw > maxSize) {
+	if ((!cAdaptiveBaloons() || captionWithPaddings <= maxSize) && tw > maxSize) {
 		th = (maxSize * th) / tw;
 		tw = maxSize;
+	} else if (cAdaptiveBaloons() && captionWithPaddings > maxSize && tw > captionWithPaddings) {
+		th = (captionWithPaddings * th) / tw;
+		tw = captionWithPaddings;
 	}
 	if (th > maxSize) {
 		tw = (maxSize * tw) / th;
@@ -101,6 +107,9 @@ QSize Gif::countOptimalSize() {
 	}
 	if (_parent->hasBubble()) {
 		if (!_caption.isEmpty()) {
+			if (cAdaptiveBaloons()) {
+				accumulate_max(maxWidth, captionWithPaddings);
+			}
 			auto captionw = maxWidth - st::msgPadding.left() - st::msgPadding.right();
 			minHeight += st::mediaCaptionSkip + _caption.countHeight(captionw);
 			if (isBubbleBottom()) {
@@ -123,15 +132,21 @@ QSize Gif::countOptimalSize() {
 QSize Gif::countCurrentSize(int newWidth) {
 	auto availableWidth = newWidth;
 
+	const auto captionWithPaddings = _caption.maxWidth()
+			+ st::msgPadding.left()
+			+ st::msgPadding.right();
 	const auto maxSize = _data->isVideoMessage()
 		? st::maxVideoMessageSize
 		: st::maxGifSize;
 	const auto size = style::ConvertScale(videoSize());
 	auto tw = size.width();
 	auto th = size.height();
-	if (tw > maxSize) {
+	if ((!cAdaptiveBaloons() || captionWithPaddings <= maxSize) && tw > maxSize) {
 		th = (maxSize * th) / tw;
 		tw = maxSize;
+	} else if (cAdaptiveBaloons() && captionWithPaddings > maxSize && tw > captionWithPaddings) {
+		th = (captionWithPaddings * th) / tw;
+		tw = captionWithPaddings;
 	}
 	if (th > maxSize) {
 		tw = (maxSize * tw) / th;
@@ -183,6 +198,10 @@ QSize Gif::countCurrentSize(int newWidth) {
 	}
 	if (_parent->hasBubble()) {
 		if (!_caption.isEmpty()) {
+			if (cAdaptiveBaloons()) {
+				accumulate_max(newWidth, captionWithPaddings);
+				accumulate_min(newWidth, availableWidth);
+			}
 			auto captionw = newWidth - st::msgPadding.left() - st::msgPadding.right();
 			newHeight += st::mediaCaptionSkip + _caption.countHeight(captionw);
 			if (isBubbleBottom()) {
