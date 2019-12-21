@@ -1,3 +1,8 @@
+1.1.2 beta (21.12.2019)
+- Adaptive message width option (user-contributed).
+- Compact chat list mode.
+- Forwarded info for stickers.
+
 1.1.1 beta (11.10.2019)
 - Updated TDesktop sources to 1.9.1 beta.
 
