@@ -210,6 +210,12 @@ rpl::producer<> UpdatedRecentEmoji() {
 QString gMainFont, gSemiboldFont, gMonospaceFont;
 bool gSemiboldFontIsBold = false;
 
+#ifdef DESKTOP_APP_USE_PACKAGED_FONTS
+bool gUseSystemFont = true;
+#else
+bool gUseSystemFont = false;
+#endif
+
 rpl::variable<int> gStickerHeight = 128;
 void SetStickerHeight(int height) {
 	gStickerHeight = height;

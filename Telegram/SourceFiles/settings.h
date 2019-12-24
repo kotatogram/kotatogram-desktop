@@ -183,6 +183,7 @@ DeclareSetting(QString, MainFont);
 DeclareSetting(QString, SemiboldFont);
 DeclareSetting(bool, SemiboldFontIsBold);
 DeclareSetting(QString, MonospaceFont);
+DeclareSetting(bool, UseSystemFont);
 
 void SetBigEmojiOutline(bool enabled);
 [[nodiscard]] bool BigEmojiOutline();
