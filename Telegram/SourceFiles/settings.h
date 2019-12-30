@@ -226,3 +226,5 @@ void ClearCustomScales();
 void SetDialogListLines(int lines);
 [[nodiscard]] int DialogListLines();
 [[nodiscard]] rpl::producer<int> DialogListLinesChanges();
+
+DeclareSetting(bool, DisableUpEdit);
