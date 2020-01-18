@@ -2246,66 +2246,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 // Kotatogram keys
 
 "ktg_intro_about" = "Welcome to unofficial messaging app\nbased on Telegram Desktop.";
-
 "ktg_about_text1" = "Experimental unofficial {tdesktop_link} fork.";
 "ktg_about_text1_tdesktop" = "Telegram Desktop";
 "ktg_about_text3" = "Visit {channel_link} or {faq_link} for more info.";
 "ktg_about_text3_channel" = "Kotatogram channel";
-"ktg_copy_btn_callback" = "Copy callback data";
-"ktg_profile_copy_id" = "Copy ID";
-"ktg_profile_bot_id" = "Bot ID";
-"ktg_profile_user_id" = "User ID";
-"ktg_profile_group_id" = "Group ID";
-"ktg_profile_supergroup_id" = "Supergroup ID";
-"ktg_profile_channel_id" = "Channel ID";
-"ktg_pinned_message_show" = "Show pinned message";
-"ktg_pinned_message_hide" = "Hide pinned message";
 
-"ktg_settings_show_json_settings" = "Show custom settings";
-"ktg_settings_restart" = "Restart Kotatogram";
-
-"ktg_chat_status_subscribers#one" = "{count} subscriber";
-"ktg_chat_status_subscribers#other" = "{count} subscribers";
-
-"ktg_profile_subscribers_section" = "Subscribers";
-
-"ktg_settings_kotato" = "Kotatogram Settings";
-"ktg_settings_chats" = "Chats";
-"ktg_settings_sticker_height" = "Sticker height: {pixels}px";
-"ktg_settings_adaptive_baloons" = "Adaptive baloons";
-"ktg_settings_emoji_outline" = "Big emoji outline";
-"ktg_settings_always_show_scheduled" = "Always show scheduled";
-"ktg_settings_fonts" = "Change application fonts";
-"ktg_settings_network" = "Network";
-"ktg_settings_net_speed_boost" = "Speed boost";
-"ktg_settings_other" = "Other";
-"ktg_settings_show_phone_number" = "Show phone in drawer";
-"ktg_settings_show_chat_id" = "Show chat ID";
-
-"ktg_fonts_title" = "Fonts";
-"ktg_fonts_reset" = "Reset";
-"ktg_fonts_about" = "If you want to use \"Bold\" font for your semibold, do not put \"Bold\" in font name, use \"Make semibold bold\" option.\n\nYou will need to restart app to apply and see changes.";
-
-"ktg_fonts_main" = "Main font";
-"ktg_fonts_semibold" = "Semibold font";
-"ktg_fonts_semibold_is_bold" = "Make semibold bold";
-"ktg_fonts_monospaced" = "Monospaced font";
-
-"ktg_fonts_restart_new_fonts" = "You will need to restart app to apply new fonts.\n\nRestart now?";
-"ktg_fonts_restart_reset" = "You will need to restart app to reset fonts to default.\n\nRestart now?";
-
-"ktg_fonts_restart" = "Restart";
-
-"ktg_net_speed_boost_title" = "Network speed boost";
-"ktg_net_speed_boost_desc" = "Warning: changing this parameter to high values on slow networks can make even worse. Use at your own risk.\n\nYou'll need to restart app to save changes.";
-
-"ktg_net_speed_boost_default" = "Disabled";
-"ktg_net_speed_boost_slight" = "Slight";
-"ktg_net_speed_boost_medium" = "Medium";
-"ktg_net_speed_boost_big" = "Big";
-
-"ktg_net_boost_restart_desc" = "You'll need to restart app to change network boost.\n\nRestart now?";
-
+// Replaces
 "ktg_open_from_tray" = "Open Kotatogram";
 "ktg_quit_from_tray" = "Quit Kotatogram";
 "ktg_tray_icon_text" = "Kotatogram is still running here,\nyou can change this from settings page.\nIf this icon disappears from tray menu,\nyou can drag it here from hidden icons.";
@@ -2330,10 +2276,71 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_outdated_now" = "So that Kotatogram Desktop can update to newer versions.";
 "ktg_mac_menu_show" = "Show Kotatogram";
 
-"ktg_manage_peer_subscribers" = "Subscribers";
+"ktg_settings_kotato" = "Kotatogram Settings";
+
+"ktg_settings_chats" = "Chats";
+
+"ktg_settings_sticker_height" = "Sticker height: {pixels}px";
+"ktg_settings_emoji_outline" = "Big emoji outline";
+
+"ktg_settings_always_show_scheduled" = "Always show scheduled";
+"ktg_settings_chat_list_compact" = "Compact chat list";
+
+"ktg_fonts_title" = "Fonts";
+"ktg_settings_fonts" = "Change application fonts";
+"ktg_fonts_reset" = "Reset";
+"ktg_fonts_about" = "If you want to use \"Bold\" font for your semibold, do not put \"Bold\" in font name, use \"Make semibold bold\" option.\n\nYou will need to restart app to apply and see changes.";
+
+"ktg_fonts_main" = "Main font";
+"ktg_fonts_semibold" = "Semibold font";
+"ktg_fonts_semibold_is_bold" = "Make semibold bold";
+"ktg_fonts_monospaced" = "Monospaced font";
+
+"ktg_fonts_restart_new_fonts" = "You will need to restart app to apply new fonts.\n\nRestart now?";
+"ktg_fonts_restart_reset" = "You will need to restart app to reset fonts to default.\n\nRestart now?";
+
+"ktg_fonts_restart" = "Restart";
+
+"ktg_settings_network" = "Network";
+"ktg_settings_net_speed_boost" = "Upload speed boost";
+
+"ktg_net_speed_boost_title" = "Upload speed boost";
+"ktg_net_speed_boost_desc" = "Warning: changing this parameter to high values on slow networks can make even worse. Use at your own risk.\n\nYou'll need to restart app to save changes.";
+
+"ktg_net_speed_boost_default" = "Disabled";
+"ktg_net_speed_boost_slight" = "Slight";
+"ktg_net_speed_boost_medium" = "Medium";
+"ktg_net_speed_boost_big" = "Big";
+
+"ktg_net_boost_restart_desc" = "You'll need to restart app to change upload boost.\n\nRestart now?";
+
+"ktg_settings_other" = "Other";
+"ktg_settings_show_chat_id" = "Show chat ID";
+"ktg_profile_copy_id" = "Copy ID";
+"ktg_profile_bot_id" = "Bot ID";
+"ktg_profile_user_id" = "User ID";
+"ktg_profile_group_id" = "Group ID";
+"ktg_profile_supergroup_id" = "Supergroup ID";
+"ktg_profile_channel_id" = "Channel ID";
+
+"ktg_settings_show_phone_number" = "Show phone in drawer";
 
 "ktg_user_status_unaccessible" = "account inaccessible";
 
-"ktg_settings_chat_list_compact" = "Compact chat list";
+"ktg_chat_status_subscribers#one" = "{count} subscriber";
+"ktg_chat_status_subscribers#other" = "{count} subscribers";
+
+"ktg_profile_subscribers_section" = "Subscribers";
+"ktg_manage_peer_subscribers" = "Subscribers";
+
+"ktg_settings_show_json_settings" = "Show custom settings";
+"ktg_settings_restart" = "Restart Kotatogram";
+
+"ktg_copy_btn_callback" = "Copy callback data";
+
+"ktg_pinned_message_show" = "Show pinned message";
+"ktg_pinned_message_hide" = "Hide pinned message";
+
+"ktg_settings_adaptive_baloons" = "Adaptive baloons";
 
 // Keys finished

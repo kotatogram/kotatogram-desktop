@@ -360,13 +360,14 @@ QString ChannelData::adminRank(not_null<UserData*> user) const {
 		: QString();
 }
 
-QString ChannelData::unavailableReason() const {
-	return _unavailableReason;
+auto ChannelData::unavailableReasons() const
+-> const std::vector<Data::UnavailableReason> & {
+	return _unavailableReasons;
 }
 
-void ChannelData::setUnavailableReason(const QString &text) {
-	if (_unavailableReason != text) {
-		_unavailableReason = text;
+void ChannelData::setUnavailableReasons(std::vector<Data::UnavailableReason> &&reasons) {
+	if (_unavailableReasons != reasons) {
+		_unavailableReasons = std::move(reasons);
 		Notify::peerUpdatedDelayed(
 			this,
 			Notify::PeerUpdate::Flag::UnavailableReasonChanged);

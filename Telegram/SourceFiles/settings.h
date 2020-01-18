@@ -198,9 +198,7 @@ DeclareSetting(bool, ShowChatId);
 
 DeclareSetting(int, NetSpeedBoost);
 DeclareSetting(int, NetRequestsCount);
-DeclareSetting(int, NetDownloadSessionsCount);
 DeclareSetting(int, NetUploadSessionsCount);
-DeclareSetting(int, NetMaxFileQueries);
 DeclareSetting(int, NetUploadRequestInterval);
 
 inline void SetNetworkBoost(int boost) {
@@ -213,9 +211,7 @@ inline void SetNetworkBoost(int boost) {
 	}
 
 	cSetNetRequestsCount(2 + (2 * cNetSpeedBoost()));
-	cSetNetDownloadSessionsCount(2 + (2 * cNetSpeedBoost()));
 	cSetNetUploadSessionsCount(2 + (2 * cNetSpeedBoost()));
-	cSetNetMaxFileQueries(16 + (16 * cNetSpeedBoost()));
 	cSetNetUploadRequestInterval(500 - (100 * cNetSpeedBoost()));
 }
 

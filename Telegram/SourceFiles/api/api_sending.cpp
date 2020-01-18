@@ -38,7 +38,6 @@ void SendExistingMedia(
 	const auto session = &history->session();
 	const auto api = &session->api();
 
-	media->refreshFileReference("blabla");
 	message.action.clearDraft = false;
 	message.action.generateLocal = true;
 	api->sendAction(message.action);
