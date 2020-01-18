@@ -192,7 +192,7 @@ void SetStickerHeight(int height);
 [[nodiscard]] int StickerHeight();
 [[nodiscard]] rpl::producer<int> StickerHeightChanges();
 
-DeclareSetting(bool, AdaptiveBaloons);
+DeclareSetting(bool, AdaptiveBubbles);
 DeclareSetting(bool, AlwaysShowScheduled);
 DeclareSetting(bool, ShowChatId);
 

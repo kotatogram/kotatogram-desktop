@@ -61,13 +61,13 @@ QSize Location::countOptimalSize() {
 
 	if (_parent->hasBubble()) {
 		if (!_title.isEmpty()) {
-			if (cAdaptiveBaloons()) {
+			if (cAdaptiveBubbles()) {
 				maxWidth = qMax(maxWidth, _title.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
 			}
 			minHeight += qMin(_title.countHeight(maxWidth - st::msgPadding.left() - st::msgPadding.right()), 2 * st::webPageTitleFont->height);
 		}
 		if (!_description.isEmpty()) {
-			if (cAdaptiveBaloons()) {
+			if (cAdaptiveBubbles()) {
 				maxWidth = qMax(maxWidth, _description.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
 			}
 			minHeight += qMin(_description.countHeight(maxWidth - st::msgPadding.left() - st::msgPadding.right()), 3 * st::webPageDescriptionFont->height);
@@ -94,7 +94,7 @@ QSize Location::countCurrentSize(int newWidth) {
 	auto newHeight = th;
 	if (tw > newWidth) {
 		newHeight = (newWidth * newHeight / tw);
-	} else if (!cAdaptiveBaloons()) {
+	} else if (!cAdaptiveBubbles()) {
 		newWidth = tw;
 	} else {
 		newHeight = (newWidth * newHeight / tw);

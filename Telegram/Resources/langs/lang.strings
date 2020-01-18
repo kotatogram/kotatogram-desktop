@@ -2341,6 +2341,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_pinned_message_show" = "Show pinned message";
 "ktg_pinned_message_hide" = "Hide pinned message";
 
-"ktg_settings_adaptive_baloons" = "Adaptive baloons";
+"ktg_settings_adaptive_bubbles" = "Adaptive bubbles";
 
 // Keys finished

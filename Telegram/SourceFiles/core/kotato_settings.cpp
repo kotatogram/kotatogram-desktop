@@ -152,9 +152,14 @@ bool Manager::readCustomFile() {
 		}
 	}
 
-	const auto settingsAdaptiveBaloonsIt = settings.constFind(qsl("adaptive_baloons"));
-	if (settingsAdaptiveBaloonsIt != settings.constEnd() && (*settingsAdaptiveBaloonsIt).isBool()) {
-		cSetAdaptiveBaloons((*settingsAdaptiveBaloonsIt).toBool());
+	const auto settingsAdaptiveBubblesIt = settings.constFind(qsl("adaptive_bubbles"));
+	if (settingsAdaptiveBubblesIt != settings.constEnd() && (*settingsAdaptiveBubblesIt).isBool()) {
+		cSetAdaptiveBubbles((*settingsAdaptiveBubblesIt).toBool());
+	} else {
+		const auto settingsAdaptiveBaloonsIt = settings.constFind(qsl("adaptive_baloons"));
+		if (settingsAdaptiveBaloonsIt != settings.constEnd() && (*settingsAdaptiveBaloonsIt).isBool()) {
+			cSetAdaptiveBubbles((*settingsAdaptiveBaloonsIt).toBool());
+		}
 	}
 
 	const auto settingsBigEmojiOutlineIt = settings.constFind(qsl("big_emoji_outline"));
@@ -248,7 +253,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("fonts"), settingsFonts);
 
 	settings.insert(qsl("sticker_height"), StickerHeight());
-	settings.insert(qsl("adaptive_baloons"), cAdaptiveBaloons());
+	settings.insert(qsl("adaptive_bubbles"), cAdaptiveBubbles());
 	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
 	settings.insert(qsl("show_chat_id"), cShowChatId());
@@ -301,7 +306,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("fonts"), settingsFonts);
 
 	settings.insert(qsl("sticker_height"), StickerHeight());
-	settings.insert(qsl("adaptive_baloons"), cAdaptiveBaloons());
+	settings.insert(qsl("adaptive_bubbles"), cAdaptiveBubbles());
 	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
 	settings.insert(qsl("show_chat_id"), cShowChatId());

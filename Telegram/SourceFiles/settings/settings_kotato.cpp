@@ -69,25 +69,25 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		updateStickerHeight);
 	updateStickerHeightLabel(StickerHeight());
 
-	const auto adaptiveBaloonsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
+	const auto adaptiveBubblesToggled = Ui::CreateChild<rpl::event_stream<bool>>(
 		container.get());
 	AddButton(
 		container,
-		tr::ktg_settings_adaptive_baloons(),
+		tr::ktg_settings_adaptive_bubbles(),
 		st::settingsButton
 	)->toggleOn(
-		adaptiveBaloonsToggled->events_starting_with_copy(cAdaptiveBaloons())
+		adaptiveBubblesToggled->events_starting_with_copy(cAdaptiveBubbles())
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != cAdaptiveBaloons());
+		return (enabled != cAdaptiveBubbles());
 	}) | rpl::start_with_next([=](bool enabled) {
 		const auto confirmed = [=] {
-			cSetAdaptiveBaloons(enabled);
+			cSetAdaptiveBubbles(enabled);
 			KotatoSettings::Write();
 			App::restart();
 		};
 		const auto cancelled = [=] {
-			adaptiveBaloonsToggled->fire(cAdaptiveBaloons() == true);
+			adaptiveBubblesToggled->fire(cAdaptiveBubbles() == true);
 		};
 		Ui::show(Box<ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),

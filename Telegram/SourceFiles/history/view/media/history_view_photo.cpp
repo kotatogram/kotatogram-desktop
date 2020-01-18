@@ -80,10 +80,10 @@ QSize Photo::countOptimalSize() {
 	if (!tw || !th) {
 		tw = th = 1;
 	}
-	if ((!cAdaptiveBaloons() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
+	if ((!cAdaptiveBubbles() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
 		th = (st::maxMediaSize * th) / tw;
 		tw = st::maxMediaSize;
-	} else if (cAdaptiveBaloons() && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
+	} else if (cAdaptiveBubbles() && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
 		th = (captionWithPaddings * th) / tw;
 		tw = captionWithPaddings;
 	}
@@ -100,7 +100,7 @@ QSize Photo::countOptimalSize() {
 	maxWidth = qMax(maxActualWidth, th);
 	minHeight = qMax(th, st::minPhotoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
-		if (cAdaptiveBaloons()) {
+		if (cAdaptiveBubbles()) {
 			maxActualWidth = qMax(maxActualWidth, captionWithPaddings);
 			maxWidth = qMax(maxWidth, captionWithPaddings);
 		}
@@ -122,10 +122,10 @@ QSize Photo::countCurrentSize(int newWidth) {
 	auto inWebPage = (_parent->media() != this);
 	auto tw = style::ConvertScale(_data->width());
 	auto th = style::ConvertScale(_data->height());
-	if ((!cAdaptiveBaloons() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
+	if ((!cAdaptiveBubbles() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
 		th = (st::maxMediaSize * th) / tw;
 		tw = st::maxMediaSize;
-	} else if (cAdaptiveBaloons() && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
+	} else if (cAdaptiveBubbles() && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
 		th = (captionWithPaddings * th) / tw;
 		tw = captionWithPaddings;
 	}
@@ -152,7 +152,7 @@ QSize Photo::countCurrentSize(int newWidth) {
 	newWidth = qMax(_pixw, minWidth);
 	auto newHeight = qMax(_pixh, st::minPhotoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
-		if (cAdaptiveBaloons()) {
+		if (cAdaptiveBubbles()) {
 			newWidth = qMax(newWidth, captionWithPaddings);
 			newWidth = qMin(newWidth, availableWidth);
 		}

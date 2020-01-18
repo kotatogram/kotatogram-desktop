@@ -232,7 +232,7 @@ rpl::producer<bool> BigEmojiOutlineChanges() {
 	return gBigEmojiOutline.changes();
 }
 
-bool gAdaptiveBaloons = false;
+bool gAdaptiveBubbles = false;
 bool gAlwaysShowScheduled = true;
 bool gShowChatId = true;
 
