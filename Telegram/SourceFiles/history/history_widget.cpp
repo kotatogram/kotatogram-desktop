@@ -40,6 +40,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat.h"
 #include "data/data_user.h"
 #include "data/data_scheduled_messages.h"
+#include "data/data_file_origin.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_message.h"
@@ -575,7 +576,7 @@ HistoryWidget::HistoryWidget(
 				updateNotifyControls();
 			}
 			if (update.flags & UpdateFlag::UnavailableReasonChanged) {
-				const auto unavailable = _peer->unavailableReason();
+				const auto unavailable = _peer->computeUnavailableReason();
 				if (!unavailable.isEmpty()) {
 					controller->showBackFromStack();
 					Ui::show(Box<InformBox>(unavailable));
@@ -1514,7 +1515,9 @@ void HistoryWidget::notify_showScheduledButtonChanged() {
 void HistoryWidget::setupShortcuts() {
 	Shortcuts::Requests(
 	) | rpl::filter([=] {
-		return isActiveWindow() && !Ui::isLayerShown() && inFocusChain();
+		return Ui::AppInFocus()
+			&& Ui::InFocusChain(this)
+			&& !Ui::isLayerShown();
 	}) | rpl::start_with_next([=](not_null<Shortcuts::Request*> request) {
 		using Command = Shortcuts::Command;
 		if (_history) {
@@ -1748,9 +1751,8 @@ void HistoryWidget::showHistory(
 		cancelTypingAction();
 	}
 
-	if (!session().settings().autoplayGifs()) {
-		session().data().stopAutoplayAnimations();
-	}
+	session().data().stopPlayingVideoFiles();
+
 	clearReplyReturns();
 	clearAllLoadRequests();
 
@@ -1841,8 +1843,6 @@ void HistoryWidget::showHistory(
 	_nonEmptySelection = false;
 
 	if (_peer) {
-		session().downloader().clearPriorities();
-
 		_history = _peer->owner().history(_peer);
 		_migrated = _history->migrateFrom();
 		if (_migrated
@@ -2787,6 +2787,7 @@ void HistoryWidget::preloadHistoryIfNeeded() {
 	}
 
 	updateHistoryDownVisibility();
+	updateUnreadMentionsVisibility();
 	if (!_scrollToAnimation.animating()) {
 		preloadHistoryByScroll();
 		checkReplyReturns();
@@ -3662,8 +3663,20 @@ bool HistoryWidget::eventFilter(QObject *obj, QEvent *e) {
 		const auto k = static_cast<QKeyEvent*>(e);
 		if ((k->modifiers() & kCommonModifiers) == Qt::ControlModifier) {
 			if (k->key() == Qt::Key_Up) {
+#ifdef Q_OS_MAC
+				// Cmd + Up is used instead of Home.
+				if (!_field->textCursor().atStart()) {
+					return false;
+				}
+#endif
 				return replyToPreviousMessage();
 			} else if (k->key() == Qt::Key_Down) {
+#ifdef Q_OS_MAC
+				// Cmd + Down is used instead of End.
+				if (!_field->textCursor().atEnd()) {
+					return false;
+				}
+#endif
 				return replyToNextMessage();
 			}
 		}
@@ -5444,13 +5457,24 @@ void HistoryWidget::updateUnreadMentionsVisibility() {
 	if (showUnreadMentions) {
 		session().api().preloadEnoughUnreadMentions(_history);
 	}
-	auto unreadMentionsIsVisible = [this, showUnreadMentions] {
+	const auto unreadMentionsIsShown = [&] {
 		if (!showUnreadMentions || _firstLoadRequest) {
 			return false;
 		}
-		return (_history->getUnreadMentionsLoadedCount() > 0);
-	};
-	auto unreadMentionsIsShown = unreadMentionsIsVisible();
+		if (!_history->getUnreadMentionsLoadedCount()) {
+			return false;
+		}
+		// If we have an unheard voice message with the mention
+		// and our message is the last one, we can't see the status
+		// (delivered/read) of this message.
+		// (Except for MacBooks with the TouchPad.)
+		if (_scroll->scrollTop() == _scroll->scrollTopMax()) {
+			if (const auto lastMessage = _history->lastMessage()) {
+				return !lastMessage->from()->isSelf();
+			}
+		}
+		return true;
+	}();
 	if (unreadMentionsIsShown) {
 		_unreadMentions->setUnreadCount(_history->getUnreadMentionsCount());
 	}

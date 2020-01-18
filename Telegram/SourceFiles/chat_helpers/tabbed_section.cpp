@@ -20,7 +20,7 @@ object_ptr<Window::SectionWidget> TabbedMemento::createWidget(
 		const QRect &geometry) {
 	auto result = object_ptr<TabbedSection>(parent, controller);
 	result->setGeometry(geometry);
-	return std::move(result);
+	return result;
 }
 
 TabbedSection::TabbedSection(
@@ -49,6 +49,10 @@ void TabbedSection::afterShown() {
 
 void TabbedSection::resizeEvent(QResizeEvent *e) {
 	_selector->setGeometry(rect());
+}
+
+void TabbedSection::showFinishedHook() {
+	afterShown();
 }
 
 bool TabbedSection::showInternal(

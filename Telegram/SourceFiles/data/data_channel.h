@@ -369,8 +369,8 @@ public:
 		return _ptsWaiter.waitingForShortPoll();
 	}
 
-	[[nodiscard]] QString unavailableReason() const override;
-	void setUnavailableReason(const QString &reason);
+	void setUnavailableReasons(
+		std::vector<Data::UnavailableReason> &&reason);
 
 	[[nodiscard]] MsgId availableMinId() const {
 		return _availableMinId;
@@ -413,6 +413,8 @@ public:
 	TimeId inviteDate = 0;
 
 private:
+	auto unavailableReasons() const
+		-> const std::vector<Data::UnavailableReason> & override;
 	bool canEditLastAdmin(not_null<UserData*> user) const;
 
 	Flags _flags = Flags(MTPDchannel_ClientFlag::f_forbidden | 0);
@@ -432,7 +434,7 @@ private:
 	RestrictionFlags _restrictions;
 	TimeId _restrictedUntil;
 
-	QString _unavailableReason;
+	std::vector<Data::UnavailableReason> _unavailableReasons;
 	QString _inviteLink;
 	ChannelData *_linkedChat = nullptr;
 

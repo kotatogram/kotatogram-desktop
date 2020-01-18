@@ -39,17 +39,17 @@ using Platform::File::internal::EscapeShell;
 namespace {
 
 bool RunShellCommand(const QByteArray &command) {
-        auto result = system(command.constData());
-        if (result) {
-                DEBUG_LOG(("App Error: command failed, code: %1, command (in utf8): %2").arg(result).arg(command.constData()));
-                return false;
-        }
-        DEBUG_LOG(("App Info: command succeeded, command (in utf8): %1").arg(command.constData()));
-        return true;
+	auto result = system(command.constData());
+	if (result) {
+		DEBUG_LOG(("App Error: command failed, code: %1, command (in utf8): %2").arg(result).arg(command.constData()));
+		return false;
+	}
+	DEBUG_LOG(("App Info: command succeeded, command (in utf8): %1").arg(command.constData()));
+	return true;
 }
 
 void FallbackFontConfig() {
-#ifndef TDESKTOP_DISABLE_DESKTOP_FILE_GENERATION
+#ifndef DESKTOP_APP_USE_PACKAGED
 	const auto custom = cWorkingDir() + "tdata/fc-custom-1.conf";
 	const auto finish = gsl::finally([&] {
 		if (QFile(custom).exists()) {
@@ -84,7 +84,7 @@ void FallbackFontConfig() {
 	}
 
 	QFile(":/fc/fc-custom.conf").copy(custom);
-#endif // TDESKTOP_DISABLE_DESKTOP_FILE_GENERATION
+#endif // !DESKTOP_APP_USE_PACKAGED
 }
 
 } // namespace
@@ -229,7 +229,6 @@ void start() {
 }
 
 void finish() {
-	Notifications::Finish();
 }
 
 void RegisterCustomScheme() {

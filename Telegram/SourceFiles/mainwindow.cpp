@@ -25,7 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/sandbox.h"
 #include "core/application.h"
 #include "main/main_session.h"
-#include "intro/introwidget.h"
+#include "intro/intro_widget.h"
 #include "main/main_account.h" // Account::sessionValue.
 #include "mainwidget.h"
 #include "boxes/confirm_box.h"
@@ -558,7 +558,7 @@ bool MainWindow::eventFilter(QObject *object, QEvent *e) {
 }
 
 void MainWindow::updateTrayMenu(bool force) {
-    if (!trayIconMenu || (Platform::IsWindows() && !force)) return;
+	if (!trayIconMenu || (Platform::IsWindows() && !force)) return;
 
 	auto iconMenu = trayIconMenu;
 	auto actions = iconMenu->actions();
@@ -589,12 +589,12 @@ void MainWindow::updateTrayMenu(bool force) {
 	notificationAction->setText(notificationActionText);
 
 #ifndef Q_OS_WIN
-    if (trayIcon && trayIcon->contextMenu() != iconMenu) {
+	if (trayIcon && trayIcon->contextMenu() != iconMenu) {
 		trayIcon->setContextMenu(iconMenu);
-    }
+	}
 #endif // !Q_OS_WIN
 
-    psTrayMenuUpdated();
+	psTrayMenuUpdated();
 }
 
 void MainWindow::onShowAddContact() {
@@ -694,7 +694,7 @@ void MainWindow::showFromTray(QSystemTrayIcon::ActivationReason reason) {
 			updateTrayMenu();
 			updateGlobalMenu();
 		});
-        activate();
+		activate();
 		Notify::unreadCounterUpdated();
 	}
 }

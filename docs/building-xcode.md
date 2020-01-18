@@ -33,7 +33,7 @@ Go to ***BuildPath*** and run
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 4aa377c
+    git checkout 395b620
     cd ../
     git clone https://chromium.googlesource.com/external/gyp
     git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
@@ -50,7 +50,7 @@ Go to ***BuildPath*** and run
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 4aa377c
+    git checkout 395b620
     cd ../
     git clone --branch 0.9.1 https://github.com/ericniebler/range-v3
 
@@ -237,6 +237,7 @@ Go to ***BuildPath*** and run
     git submodule update qtbase
     git submodule update qtimageformats
     cd qtbase
+    git cherry-pick 7ac4e55
     git apply ../../patches/qtbase_5_12_5.diff
     cd ..
 
@@ -247,10 +248,10 @@ Go to ***BuildPath*** and run
 
 ### Building the project
 
-Go to ***BuildPath*/tdesktop/Telegram** and run
+Go to ***BuildPath*/tdesktop/Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-    gyp/refresh.sh
+    ./configure.sh -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF
 
-Then launch Xcode, open ***BuildPath*/tdesktop/Telegram/Telegram.xcodeproj** and build for Debug / Release.
+Then launch Xcode, open ***BuildPath*/tdesktop/out/Telegram.xcodeproj** and build for Debug / Release.
 
 [api_credentials]: api_credentials.md

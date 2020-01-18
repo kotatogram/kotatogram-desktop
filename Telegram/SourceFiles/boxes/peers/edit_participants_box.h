@@ -135,7 +135,6 @@ private:
 class ParticipantsBoxController
 	: public PeerListController
 	, private base::Subscriber
-	, private MTP::Sender
 	, public base::has_weak_ptr {
 public:
 	using Role = ParticipantsRole;
@@ -239,6 +238,7 @@ private:
 
 	not_null<Window::SessionNavigation*> _navigation;
 	not_null<PeerData*> _peer;
+	MTP::Sender _api;
 	Role _role = Role::Admins;
 	int _offset = 0;
 	mtpRequestId _loadRequestId = 0;
@@ -252,9 +252,7 @@ private:
 };
 
 // Members, banned and restricted users server side search.
-class ParticipantsBoxSearchController
-	: public PeerListSearchController
-	, private MTP::Sender {
+class ParticipantsBoxSearchController : public PeerListSearchController {
 public:
 	using Role = ParticipantsBoxController::Role;
 
@@ -296,6 +294,7 @@ private:
 	not_null<ChannelData*> _channel;
 	Role _role = Role::Restricted;
 	not_null<ParticipantsAdditionalData*> _additional;
+	MTP::Sender _api;
 
 	base::Timer _timer;
 	QString _query;

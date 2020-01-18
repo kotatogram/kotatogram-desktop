@@ -18,7 +18,8 @@ You will require **api_id** and **api_hash** to access the Telegram API servers.
 
 ## Install third party software
 
-* Download **ActivePerl** installer from [https://www.activestate.com/activeperl/downloads](https://www.activestate.com/activeperl/downloads) and install to ***BuildPath*\\ThirdParty\\Perl**
+Strawberry
+* Download **Strawberry Perl** installer from [http://strawberryperl.com/](http://strawberryperl.com/) and install to ***BuildPath*\\ThirdParty\\Strawberry**
 * Download **NASM** installer from [http://www.nasm.us](http://www.nasm.us) and install to ***BuildPath*\\ThirdParty\\NASM**
 * Download **Yasm** executable from [http://yasm.tortall.net/Download.html](http://yasm.tortall.net/Download.html), rename to *yasm.exe* and put to ***BuildPath*\\ThirdParty\\yasm**
 * Download **MSYS2** installer from [http://www.msys2.org/](http://www.msys2.org/) and install to ***BuildPath*\\ThirdParty\\msys64**
@@ -32,7 +33,7 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     cd ThirdParty
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 4aa377c
+    git checkout 395b620
     cd ../
     git clone https://chromium.googlesource.com/external/gyp
     cd gyp
@@ -53,7 +54,7 @@ Add **GYP** and **Ninja** to your PATH:
 
 Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** and run
 
-    SET PATH=%cd%\ThirdParty\Perl\bin;%cd%\ThirdParty\Python27;%cd%\ThirdParty\NASM;%cd%\ThirdParty\jom;%cd%\ThirdParty\cmake\bin;%cd%\ThirdParty\yasm;%PATH%
+    SET PATH=%cd%\ThirdParty\Strawberry\perl\bin;%cd%\ThirdParty\Python27;%cd%\ThirdParty\NASM;%cd%\ThirdParty\jom;%cd%\ThirdParty\cmake\bin;%cd%\ThirdParty\yasm;%PATH%
 
     git clone --recursive https://github.com/telegramdesktop/tdesktop.git
 
@@ -64,7 +65,7 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 4aa377c
+    git checkout 395b620
     cd ..
     git clone --branch 0.9.1 https://github.com/ericniebler/range-v3 range-v3
 
@@ -164,16 +165,13 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     jom -j4 install
     cd ..
 
-    cd ../tdesktop/Telegram
-    gyp\refresh.bat
-
 ## Build the project
 
-If you want to pass a build define (like `TDESKTOP_DISABLE_AUTOUPDATE` or `TDESKTOP_DISABLE_NETWORK_PROXY`), call `set TDESKTOP_BUILD_DEFINES=TDESKTOP_DISABLE_AUTOUPDATE,TDESKTOP_DISABLE_NETWORK_PROXY,...` (comma seperated string)
+Go to ***BuildPath*\\tdesktop\\Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-After, call **gyp\refresh.bat** once again.
+    configure.bat -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF
 
-* Open ***BuildPath*\\tdesktop\\Telegram\\Telegram.sln** in Visual Studio 2019
+* Open ***BuildPath*\\tdesktop\\out\\Telegram.sln** in Visual Studio 2019
 * Select Telegram project and press Build > Build Telegram (Debug and Release configurations)
 * The result Telegram.exe will be located in **D:\TBuild\tdesktop\out\Debug** (and **Release**)
 

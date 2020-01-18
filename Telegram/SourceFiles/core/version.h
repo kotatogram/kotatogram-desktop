@@ -9,15 +9,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #define TDESKTOP_REQUESTED_ALPHA_VERSION (0ULL)
 
-#ifdef TDESKTOP_OFFICIAL_TARGET
+#ifdef TDESKTOP_ALLOW_CLOSED_ALPHA
 #define TDESKTOP_ALPHA_VERSION TDESKTOP_REQUESTED_ALPHA_VERSION
-#else // TDESKTOP_OFFICIAL_TARGET
+#else // TDESKTOP_ALLOW_CLOSED_ALPHA
 #define TDESKTOP_ALPHA_VERSION (0ULL)
-#endif // TDESKTOP_OFFICIAL_TARGET
+#endif // TDESKTOP_ALLOW_CLOSED_ALPHA
 
-constexpr auto AppVersion = 1009001;
-constexpr auto AppVersionStr = "1.9.1";
-constexpr auto AppBetaVersion = true;
+constexpr auto AppVersion = 1009004;
+constexpr auto AppVersionStr = "1.9.4";
+constexpr auto AppBetaVersion = false;
 constexpr auto AppAlphaVersion = TDESKTOP_ALPHA_VERSION;
 constexpr auto AppKotatoVersion = 1001002;
 constexpr auto AppKotatoVersionStr = "1.1.2";

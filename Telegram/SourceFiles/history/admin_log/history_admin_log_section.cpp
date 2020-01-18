@@ -97,7 +97,7 @@ object_ptr<Window::SectionWidget> SectionMemento::createWidget(
 	}
 	auto result = object_ptr<Widget>(parent, controller, _channel);
 	result->setInternalState(geometry, this);
-	return std::move(result);
+	return result;
 }
 
 FixedBar::FixedBar(
@@ -352,7 +352,9 @@ void Widget::setInternalState(const QRect &geometry, not_null<SectionMemento*> m
 void Widget::setupShortcuts() {
 	Shortcuts::Requests(
 	) | rpl::filter([=] {
-		return isActiveWindow() && !Ui::isLayerShown() && inFocusChain();
+		return Ui::AppInFocus()
+			&& Ui::InFocusChain(this)
+			&& !Ui::isLayerShown();
 	}) | rpl::start_with_next([=](not_null<Shortcuts::Request*> request) {
 		using Command = Shortcuts::Command;
 		request->check(Command::Search, 2) && request->handle([=] {
@@ -365,7 +367,7 @@ void Widget::setupShortcuts() {
 std::unique_ptr<Window::SectionMemento> Widget::createMemento() {
 	auto result = std::make_unique<SectionMemento>(channel());
 	saveState(result.get());
-	return std::move(result);
+	return result;
 }
 
 void Widget::saveState(not_null<SectionMemento*> memento) {

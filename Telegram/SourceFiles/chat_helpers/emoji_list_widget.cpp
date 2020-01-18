@@ -427,7 +427,7 @@ object_ptr<TabbedSelector::InnerFooter> EmojiListWidget::createFooter() {
 	Expects(_footer == nullptr);
 	auto result = object_ptr<Footer>(this);
 	_footer = result;
-	return std::move(result);
+	return result;
 }
 
 template <typename Callback>
@@ -770,7 +770,7 @@ QPoint EmojiListWidget::tooltipPos() const {
 }
 
 bool EmojiListWidget::tooltipWindowActive() const {
-	return Ui::InFocusChain(window());
+	return Ui::AppInFocus() && Ui::InFocusChain(window());
 }
 
 TabbedSelector::InnerFooter *EmojiListWidget::getFooter() const {

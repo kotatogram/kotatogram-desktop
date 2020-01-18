@@ -2477,7 +2477,6 @@ void InnerWidget::loadPeerPhotos() {
 
 	auto yFrom = _visibleTop;
 	auto yTo = _visibleTop + (_visibleBottom - _visibleTop) * (PreloadHeightsCount + 1);
-	session().downloader().clearPriorities();
 	if (_state == WidgetState::Default) {
 		auto otherStart = shownDialogs()->size() * DialogsRowHeight();
 		if (yFrom < otherStart) {
@@ -2966,6 +2965,16 @@ void InnerWidget::setupShortcuts() {
 		request->check(Command::ChatSelf) && request->handle([=] {
 			App::main()->choosePeer(session().userPeerId(), ShowAtUnreadMsgId);
 			return true;
+		});
+		request->check(Command::ShowArchive) && request->handle([=] {
+			const auto folder = session().data().folderLoaded(
+				Data::Folder::kId);
+			if (folder && !folder->chatsList()->empty()) {
+				_controller->openFolder(folder);
+				Ui::hideSettingsAndLayer();
+				return true;
+			}
+			return false;
 		});
 
 		static const auto kPinned = {

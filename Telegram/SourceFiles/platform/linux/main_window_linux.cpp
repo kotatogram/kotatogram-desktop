@@ -178,12 +178,12 @@ static gboolean _trayIconCheck(gpointer/* pIn*/) {
 #endif // !TDESKTOP_DISABLE_GTK_INTEGRATION
 
 quint32 djbStringHash(QString string) {
-        quint32 hash = 5381;
-        QByteArray chars = string.toLatin1();
-        for(int i = 0; i < chars.length(); i++){
-                hash = (hash << 5) + hash + chars[i];
-        }
-        return hash;
+	quint32 hash = 5381;
+	QByteArray chars = string.toLatin1();
+	for(int i = 0; i < chars.length(); i++){
+		hash = (hash << 5) + hash + chars[i];
+	}
+	return hash;
 }
 
 } // namespace
@@ -263,13 +263,6 @@ void MainWindow::psSetupTrayIcon() {
 				icon = Window::CreateIcon(&account());
 			}
 			trayIcon->setIcon(icon);
-
-			// This is very important for native notifications via libnotify!
-			// Some notification servers compose several notifications with a "Reply"
-			// action into one and after that a click on "Reply" button does not call
-			// the specified callback from any of the sent notification - libnotify
-			// just ignores ibus messages, but Qt tray icon at least emits this signal.
-			connect(trayIcon, SIGNAL(messageClicked()), this, SLOT(showFromTray()));
 
 			attachToTrayIcon(trayIcon);
 		}
@@ -546,14 +539,12 @@ void MainWindow::psFirstShow() {
 		if(snapName.isEmpty()) {
 			std::vector<QString> possibleDesktopFiles = {
 #ifdef TDESKTOP_LAUNCHER_FILENAME
-#define TDESKTOP_LAUNCHER_FILENAME_TO_STRING_HELPER(V) #V
-#define TDESKTOP_LAUNCHER_FILENAME_TO_STRING(V) TDESKTOP_LAUNCHER_FILENAME_TO_STRING_HELPER(V)
-				TDESKTOP_LAUNCHER_FILENAME_TO_STRING(TDESKTOP_LAUNCHER_FILENAME),
+				MACRO_TO_STRING(TDESKTOP_LAUNCHER_FILENAME),
 #endif // TDESKTOP_LAUNCHER_FILENAME
 				"kotatogramdesktop.desktop",
 				"Kotatogram.desktop"
 			};
-			
+
 			for (auto it = possibleDesktopFiles.begin(); it != possibleDesktopFiles.end(); it++) {
 				if (!QStandardPaths::locate(QStandardPaths::ApplicationsLocation, *it).isEmpty()) {
 					_desktopFile = *it;

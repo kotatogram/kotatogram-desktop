@@ -29,7 +29,7 @@
 #include "mainwindow.h"
 #include "observer_peer.h"
 #include "base/platform/mac/base_utilities_mac.h"
-#include "stickers.h"
+#include "chat_helpers/stickers.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_media_player.h"
 #include "styles/style_settings.h"
@@ -1163,7 +1163,7 @@ void AppendEmojiPacks(std::vector<PickerScrubberItem> &to) {
 		return item;
 	} else if (isType(kTypeScrubber)) {
 		const auto isSticker = ([dictionaryItem[@"cmd"] intValue]
-		 	== kCommandScrubberStickers);
+			== kCommandScrubberStickers);
 		const auto type = isSticker
 			? ScrubberItemType::Sticker
 			: ScrubberItemType::Emoji;
