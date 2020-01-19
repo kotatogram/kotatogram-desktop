@@ -89,7 +89,7 @@ constexpr ShiftedDcId uploadDcId(DcId dcId, int index) {
 // send(req, callbacks, MTP::uploadDcId(index)) - for upload shifted dc id
 // uploading always to the main dc so BareDcId(result) == 0
 inline ShiftedDcId uploadDcId(int index) {
-	Expects(index >= 0 && index < cNetUploadSessionsCount());
+	Expects(index >= 0 && index < kUploadSessionsCountMax);
 
 	return details::uploadDcId(0, index);
 };
