@@ -919,7 +919,7 @@ void Gif::drawGrouped(
 
 	const auto roundRadius = ImageRoundRadius::Large;
 
-	auto drawHighlighted = [&](const auto &painter, auto geometry, auto frame, bool isPixmap = false) {
+	auto drawHighlighted = [&](auto painterCallback) {
 		const auto animms = _parent->delegate()->elementHighlightTime(_parent);
 		const auto realId = _realParent->id;
 		const auto mainWidget = App::main();
@@ -931,12 +931,12 @@ void Gif::drawGrouped(
 				? ((animms / float64(st::activeFadeInDuration)))
 				: (1. - (animms - st::activeFadeInDuration)
 					/ float64(st::activeFadeOutDuration));
-			const auto o = painter.opacity();
-			painter.setOpacity(o - dt * 0.8);
-			(isPixmap ? painter.drawPixmap(geometry, frame) : painter.drawImage(geometry, frame) );
-			painter.setOpacity(o);
+			const auto o = p.opacity();
+			p.setOpacity(o - dt * 0.8);
+			painterCallback();
+			p.setOpacity(o);
 		} else {
-			(isPixmap ? painter.drawPixmap(geometry, frame) : painter.drawImage(geometry, frame) );
+			painterCallback();
 		}
 	};
 
@@ -962,20 +962,29 @@ void Gif::drawGrouped(
 				activeOwnPlaying->frozenRequest = request;
 				activeOwnPlaying->frozenFrame = streamed->frame(request);
 			}
-			drawHighlighted(p, geometry, activeOwnPlaying->frozenFrame);
+
+			drawHighlighted([&]() {
+				p.drawImage(geometry, activeOwnPlaying->frozenFrame);
+			});
 		} else {
 			if (activeOwnPlaying) {
 				activeOwnPlaying->frozenFrame = QImage();
 				activeOwnPlaying->frozenStatusText = QString();
 			}
-			drawHighlighted(p, geometry, streamed->frame(request));
+
+			drawHighlighted([&]() {
+				p.drawImage(geometry, streamed->frame(request));
+			});
+			
 			if (!paused) {
 				streamed->markFrameShown();
 			}
 		}
 	} else {
 		validateGroupedCache(geometry, corners, cacheKey, cache);
-		drawHighlighted(p, geometry, *cache, true);
+		drawHighlighted([&]() {
+			p.drawPixmap(geometry, *cache);
+		});
 	}
 
 	if (selected) {
