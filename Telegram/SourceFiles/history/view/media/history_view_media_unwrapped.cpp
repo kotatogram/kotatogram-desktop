@@ -42,7 +42,7 @@ QSize UnwrappedMedia::countOptimalSize() {
 	_content->refreshLink();
 	_contentSize = NonEmptySize(DownscaledSize(
 		_content->size(),
-		{ st::maxStickerSize, StickerHeight() }));
+		{ st::maxStickerSize, st::maxStickerSize }));
 	auto maxWidth = _contentSize.width();
 	const auto minimal = st::largeEmojiSize + 2 * st::largeEmojiOutline;
 	auto minHeight = std::max(_contentSize.height(), minimal);
