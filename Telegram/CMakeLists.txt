@@ -174,6 +174,8 @@ PRIVATE
     boxes/edit_color_box.h
     boxes/edit_privacy_box.cpp
     boxes/edit_privacy_box.h
+    boxes/fonts_box.cpp
+    boxes/fonts_box.h
     boxes/language_box.cpp
     boxes/language_box.h
     boxes/local_storage_box.cpp
