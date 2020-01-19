@@ -268,6 +268,8 @@ PRIVATE
     core/crash_reports.h
     core/file_utilities.cpp
     core/file_utilities.h
+    core/kotato_settings.cpp
+    core/kotato_settings.h
     core/launcher.cpp
     core/launcher.h
     core/local_url_handlers.cpp
