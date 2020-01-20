@@ -896,9 +896,11 @@ rpl::producer<QString> ProfilePhotoPrivacyController::title() {
 	return tr::lng_edit_privacy_profile_photo_title();
 }
 
-/*bool ProfilePhotoPrivacyController::hasOption(Option option) {
+/*
+bool ProfilePhotoPrivacyController::hasOption(Option option) {
 	return (option != Option::Nobody);
-}*/
+}
+*/
 
 rpl::producer<QString> ProfilePhotoPrivacyController::optionsTitleKey() {
 	return tr::lng_edit_privacy_profile_photo_header();

@@ -139,7 +139,7 @@ void HistoryMessageForwarded::create() const {
 			lt_user,
 			textcmdLink(1, phrase));
 	}
-	
+
 	TextParseOptions opts = {
 		TextParseRichText,
 		0,

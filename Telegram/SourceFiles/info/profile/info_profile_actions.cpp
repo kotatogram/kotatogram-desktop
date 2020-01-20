@@ -269,7 +269,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 					tr::ktg_profile_copy_id(tr::now));
 			}
 		}
-		
+
 		if (user->session().supportMode()) {
 			addInfoLineGeneric(
 				user->session().supportHelper().infoLabelValue(user),

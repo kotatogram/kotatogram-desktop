@@ -72,8 +72,8 @@ QSize Photo::countOptimalSize() {
 	auto minHeight = 0;
 
 	const auto captionWithPaddings = _caption.maxWidth()
-			+ st::msgPadding.left()
-			+ st::msgPadding.right();
+		+ st::msgPadding.left()
+		+ st::msgPadding.right();
 	auto inWebPage = (_parent->media() != this);
 	auto tw = style::ConvertScale(_data->width());
 	auto th = style::ConvertScale(_data->height());
@@ -117,8 +117,8 @@ QSize Photo::countCurrentSize(int newWidth) {
 	auto availableWidth = newWidth;
 
 	const auto captionWithPaddings = _caption.maxWidth()
-			+ st::msgPadding.left()
-			+ st::msgPadding.right();
+		+ st::msgPadding.left()
+		+ st::msgPadding.right();
 	auto inWebPage = (_parent->media() != this);
 	auto tw = style::ConvertScale(_data->width());
 	auto th = style::ConvertScale(_data->height());
@@ -399,7 +399,7 @@ void Photo::drawGrouped(
 	const auto mainWidget = App::main();
 	const auto highlightedRealId = mainWidget->highlightedOriginalId();
 	if (realId != highlightedRealId
-		&& animms 
+		&& animms
 		&& animms < st::activeFadeInDuration + st::activeFadeOutDuration) {
 		const auto dt = (animms <= st::activeFadeInDuration)
 			? ((animms / float64(st::activeFadeInDuration)))

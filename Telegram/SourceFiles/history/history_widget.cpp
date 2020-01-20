@@ -1038,7 +1038,7 @@ void HistoryWidget::start() {
 void HistoryWidget::onMentionInsert(UserData *user, FieldAutocomplete::ChooseMethod method) {
 	QString replacement, entityTag;
 	if (user->username.isEmpty()
-		|| method == FieldAutocomplete::ChooseMethod::ByRightClick 
+		|| method == FieldAutocomplete::ChooseMethod::ByRightClick
 		|| method == FieldAutocomplete::ChooseMethod::ByCtrlEnter
 		|| method == FieldAutocomplete::ChooseMethod::ByCtrlClick) {
 		replacement = user->firstName;
@@ -3172,7 +3172,6 @@ MsgId HistoryWidget::msgId() const {
 MsgId HistoryWidget::highlightOrigId() const {
 	return _highlightedOriginalMessageId;
 }
-
 
 void HistoryWidget::showAnimated(
 		Window::SlideDirection direction,

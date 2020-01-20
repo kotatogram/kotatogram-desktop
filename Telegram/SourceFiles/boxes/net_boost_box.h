@@ -29,5 +29,5 @@ private:
 
 	object_ptr<Ui::FlatLabel> _description = { nullptr };
 	std::shared_ptr<Ui::RadiobuttonGroup> _boostGroup;
-	
+
 };

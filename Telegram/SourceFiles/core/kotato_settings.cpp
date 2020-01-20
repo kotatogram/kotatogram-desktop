@@ -178,9 +178,9 @@ bool Manager::readCustomFile() {
 	}
 
 	const auto settingsNetSpeedIt = settings.constFind(qsl("net_speed_boost"));
-	if (settingsNetSpeedIt != settings.constEnd()) { 
+	if (settingsNetSpeedIt != settings.constEnd()) {
 		if ((*settingsNetSpeedIt).isString()) {
-			
+
 			const auto option = (*settingsNetSpeedIt).toString();
 			if (option == "high") {
 				SetNetworkBoost(3);
@@ -294,7 +294,7 @@ void Manager::writeCurrentSettings() {
 	auto settings = QJsonObject();
 
 	auto settingsFonts = QJsonObject();
-	
+
 	if (!cMainFont().isEmpty()) {
 		settingsFonts.insert(qsl("main"), cMainFont());
 	}

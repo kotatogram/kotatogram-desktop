@@ -163,7 +163,7 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<NetBoostBox>());
-	});	
+	});
 
 	AddSkip(container);
 }
