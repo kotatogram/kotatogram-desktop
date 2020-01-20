@@ -678,7 +678,6 @@ void FolderFiller::addTogglesForArchive() {
 
 } // namespace
 
-
 void PeerMenuHidePinnedMessage(not_null<PeerData*> peer) {
 	auto hidden = HistoryWidget::switchPinnedHidden(peer, true);
 	if (hidden) {

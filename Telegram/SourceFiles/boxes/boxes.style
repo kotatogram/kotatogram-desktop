@@ -927,4 +927,3 @@ fontsBoxTextStyle: TextStyle(defaultTextStyle) {
 	linkFont: font(13px);
 	linkFontOver: font(13px underline);
 }
-

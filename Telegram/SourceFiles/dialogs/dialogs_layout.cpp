@@ -87,8 +87,8 @@ void PaintNarrowCounter(
 		const auto allowDigits = displayMentionBadge ? 1 : 3;
 		auto unreadRight = st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
 		auto unreadTop = (lines == 1
-							? st::dialogsPadding.y()
-							: st::dialogsPadding.y() + st::dialogsPhotoSize - st::dialogsUnreadHeight);
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y() + st::dialogsPhotoSize - st::dialogsUnreadHeight);
 		auto unreadWidth = 0;
 
 		UnreadBadgeStyle st;
@@ -101,8 +101,8 @@ void PaintNarrowCounter(
 		auto counter = qsl("@");
 		auto unreadRight = st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) - skipBeforeMention;
 		auto unreadTop = (lines == 1
-							? st::dialogsPadding.y()
-							: st::dialogsPadding.y() + st::dialogsPhotoSize - st::dialogsUnreadHeight);
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y() + st::dialogsPhotoSize - st::dialogsUnreadHeight);
 		auto unreadWidth = 0;
 
 		UnreadBadgeStyle st;
@@ -866,11 +866,11 @@ void RowPainter::paint(
 		| (peer && peer->isSelf() ? Flag::SavedMessages : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
 		const auto texttop = (DialogListLines() == 1
-								? st::dialogsPadding.y()
-								: st::dialogsPadding.y()
-									+ st::msgNameFont->height
-									+ st::dialogsSkip);
-		
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y()
+				+ st::msgNameFont->height
+				+ st::dialogsSkip);
+
 		const auto availableWidth = PaintWideCounter(
 			p,
 			texttop,
@@ -1030,10 +1030,10 @@ void RowPainter::paint(
 		| (row->searchInChat().feed() ? Flag::FeedSearchResult : Flag(0))*/;
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
 		const auto texttop = (DialogListLines() == 1
-								? st::dialogsPadding.y()
-								: st::dialogsPadding.y()
-									+ st::msgNameFont->height
-									+ st::dialogsSkip);
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y()
+				+ st::msgNameFont->height
+				+ st::dialogsSkip);
 		const auto availableWidth = PaintWideCounter(
 			p,
 			texttop,
@@ -1151,7 +1151,7 @@ void PaintCollapsedRow(
 			: st::dialogsPadding.x();
 		p.drawText(left, textBaseline, text);
 	} else if (!narrow) {
-		
+
 		const auto textBaseline = unreadTop
 			+ (st::dialogsUnreadHeight - st::dialogsUnreadFont->height) / 2
 			+ st::dialogsUnreadFont->ascent;

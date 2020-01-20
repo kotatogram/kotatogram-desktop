@@ -209,7 +209,7 @@ MainMenu::MainMenu(
 	_telegram->setLinksTrusted();
 	_version->setRichText(textcmdLink(1, currentVersionText()));
 	_version->setLink(1, std::make_shared<UrlClickHandler>(qsl("https://github.com/kotatogram/kotatogram-desktop")));
-	
+
 	subscribe(_controller->session().downloaderTaskFinished(), [=] { update(); });
 	subscribe(Notify::PeerUpdated(), Notify::PeerUpdatedHandler(Notify::PeerUpdate::Flag::UserPhoneChanged, [this](const Notify::PeerUpdate &update) {
 		if (update.peer->isSelf()) {
@@ -444,7 +444,7 @@ void MainMenu::paintEvent(QPaintEvent *e) {
 				st::mainMenuCoverNameOnlyTop,
 				widthText,
 				width());
-			
+
 		}
 		if (_cloudButton) {
 			Ui::EmptyUserpic::PaintSavedMessages(

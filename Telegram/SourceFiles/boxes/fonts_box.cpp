@@ -48,7 +48,7 @@ void FontsBox::prepare() {
 
 	_about.setText(st::fontsBoxTextStyle, tr::ktg_fonts_about(tr::now));
 	_aboutHeight = _about.countHeight(st::boxWidth - st::boxPadding.left() * 1.5);
-	
+
 	setDimensions(st::boxWidth, _mainFontName->height() + _semiboldFontName->height() + _semiboldIsBold->height() + _monospacedFontName->height() + _aboutHeight + st::boxLittleSkip * 2);
 }
 

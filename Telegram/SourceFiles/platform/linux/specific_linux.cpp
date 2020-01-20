@@ -188,7 +188,7 @@ QString getHomeDir() {
 
 QString psAppDataPath() {
 	// We should not use ~/.TelegramDesktop, since it's a fork.
-	
+
 	// auto home = getHomeDir();
 	// if (!home.isEmpty()) {
 	// 	auto oldPath = home + qsl(".TelegramDesktop/");

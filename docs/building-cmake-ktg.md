@@ -262,7 +262,7 @@ Go to ***BuildPath*** and run
 ### Building the project
 
 Before refreshing, you can set build defines (skip this step if you don't need to disable anything):
-    
+
     export TDESKTOP_BUILD_DEFINES=TDESKTOP_DISABLE_CRASH_REPORTS,TDESKTOP_DISABLE_AUTOUPDATE
 
 Go to ***BuildPath*/tdesktop/Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))

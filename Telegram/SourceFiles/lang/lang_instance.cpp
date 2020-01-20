@@ -576,7 +576,7 @@ void Instance::fillDefaultJson() {
 			output.write(inputData);
 			output.close();
 		}
-		
+
 		if (outputRaw.open(QIODevice::WriteOnly)) {
 			outputRaw.write(inputData);
 			outputRaw.close();
@@ -592,7 +592,7 @@ void Instance::fillFromJson() {
 		const auto langBaseDir = jsonLangDir() + (qsl("%1.json").arg(baseId()));
 		loadFromJson(langBaseDir);
 	}
-	
+
 	const auto langDefCustomDir = jsonLangDir() + (qsl("%1.default.json").arg(id()));
 	loadFromJson(langDefCustomDir);
 	const auto langCustomDir = jsonLangDir() + (qsl("%1.json").arg(id()));
@@ -635,14 +635,14 @@ void Instance::loadFromJson(const QString &filename) {
 		const auto value = langKeys.constFind(key);
 
 		if ((*value).isString()) {
-			
+
 			const auto name = QByteArray().append(key);
 			const auto translation = QByteArray().append((*value).toString());
 
 			applyValue(name, translation);
 
 		} else if ((*value).isObject()) {
-			
+
 			const auto keyPlurals = (*value).toObject();
 			const auto pluralList = keyPlurals.keys();
 
@@ -651,8 +651,8 @@ void Instance::loadFromJson(const QString &filename) {
 				const auto pluralValue = keyPlurals.constFind(plural);
 
 				if (!(*pluralValue).isString()) {
-					LOG(("Lang Info: wrong value for key %1 in %2 in file %3, string expected"
-					).arg(plural).arg(key).arg(filename));
+					LOG(("Lang Info: wrong value for key %1 in %2 in file %3, string expected")
+						.arg(plural).arg(key).arg(filename));
 					continue;
 				}
 
@@ -665,8 +665,8 @@ void Instance::loadFromJson(const QString &filename) {
 				}
 			}
 		} else {
-			LOG(("Lang Info: wrong value for key %1 in file %2, string or object expected"
-			).arg(key).arg(filename));
+			LOG(("Lang Info: wrong value for key %1 in file %2, string or object expected")
+				.arg(key).arg(filename));
 		}
 		if (--limit <= 0) {
 			break;

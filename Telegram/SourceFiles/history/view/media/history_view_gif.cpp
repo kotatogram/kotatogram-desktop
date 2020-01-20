@@ -113,8 +113,8 @@ QSize Gif::countOptimalSize() {
 	}
 
 	const auto captionWithPaddings = _caption.maxWidth()
-			+ st::msgPadding.left()
-			+ st::msgPadding.right();
+		+ st::msgPadding.left()
+		+ st::msgPadding.right();
 	const auto maxSize = _data->isVideoFile()
 		? st::maxMediaSize
 		: _data->isVideoMessage()
@@ -173,8 +173,8 @@ QSize Gif::countCurrentSize(int newWidth) {
 	auto availableWidth = newWidth;
 
 	const auto captionWithPaddings = _caption.maxWidth()
-			+ st::msgPadding.left()
-			+ st::msgPadding.right();
+		+ st::msgPadding.left()
+		+ st::msgPadding.right();
 	const auto maxSize = _data->isVideoFile()
 		? st::maxMediaSize
 		: _data->isVideoMessage()
@@ -925,7 +925,7 @@ void Gif::drawGrouped(
 		const auto mainWidget = App::main();
 		const auto highlightedRealId = mainWidget->highlightedOriginalId();
 		if (realId != highlightedRealId
-			&& animms 
+			&& animms
 			&& animms < st::activeFadeInDuration + st::activeFadeOutDuration) {
 			const auto dt = (animms <= st::activeFadeInDuration)
 				? ((animms / float64(st::activeFadeInDuration)))
@@ -975,7 +975,7 @@ void Gif::drawGrouped(
 			drawHighlighted([&]() {
 				p.drawImage(geometry, streamed->frame(request));
 			});
-			
+
 			if (!paused) {
 				streamed->markFrameShown();
 			}

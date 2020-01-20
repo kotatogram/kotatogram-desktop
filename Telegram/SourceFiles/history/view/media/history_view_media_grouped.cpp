@@ -77,8 +77,8 @@ QSize GroupedMedia::countOptimalSize() {
 	}
 
 	const auto captionWithPaddings = _caption.maxWidth()
-			+ st::msgPadding.left()
-			+ st::msgPadding.right();
+		+ st::msgPadding.left()
+		+ st::msgPadding.right();
 	auto groupMaxWidth = st::historyGroupWidthMax;
 	if (cAdaptiveBubbles()) {
 		accumulate_max(groupMaxWidth, captionWithPaddings);
