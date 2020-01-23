@@ -120,9 +120,15 @@ private:
 	void updateControlsGeometry();
 	void updateCaptionPlaceholder();
 
+	void addThumbButtonHandlers(not_null<Ui::ScrollArea*> wrap);
+
 	bool canAddFiles(not_null<const QMimeData*> data) const;
-	bool canAddUrls(const QList<QUrl> &urls) const;
 	bool addFiles(not_null<const QMimeData*> data);
+	bool addFiles(Storage::PreparedList list);
+
+	void openDialogToAddFileToAlbum();
+	void updateLeftButtonVisibility();
+	void refreshAllAfterAlbumChanges();
 
 	const not_null<Window::SessionController*> _controller;
 	const Api::SendType _sendType = Api::SendType();
@@ -163,6 +169,9 @@ private:
 	int _albumVideosCount = 0;
 	int _albumPhotosCount = 0;
 
+	int _lastScrollTop = 0;
+
 	QPointer<Ui::RoundButton> _send;
+	QPointer<Ui::RoundButton> _addFileToAlbum;
 
 };

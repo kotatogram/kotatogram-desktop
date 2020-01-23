@@ -514,6 +514,29 @@ editMediaButton: IconButton {
 	ripple: defaultRippleAnimation;
 }
 
+// SendFilesBox
+
+sendBoxAlbumGroupEditInternalSkip: 9px;
+sendBoxAlbumGroupSkipRight: 6px;
+sendBoxAlbumGroupSkipTop: 6px;
+sendBoxAlbumGroupRadius: 12px;
+sendBoxAlbumGroupHeight: 25px;
+
+sendBoxAlbumGroupEditButtonIcon: editMediaButtonIconPhoto;
+sendBoxAlbumGroupEditButtonIconPosition: point(4px, -1px);
+
+sendBoxAlbumGroupButtonFile: IconButton(editMediaButton) {
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: windowBgRipple;
+	}
+}
+
+sendBoxAlbumGroupDeleteButtonIconPosition: point(-3px, 0px);
+sendBoxAlbumGroupDeleteButtonIcon: icon {{ "history_file_cancel", msgServiceFg}};
+sendBoxAlbumGroupDeleteButtonIconFile: icon {{ "history_file_cancel", menuIconFg, point(6px, 6px) }};
+
+// End of SendFilesBox
+
 calendarTitleHeight: boxTitleHeight;
 calendarPrevious: IconButton {
 	width: calendarTitleHeight;
@@ -812,15 +835,15 @@ createPollField: InputField(defaultInputField) {
 }
 createPollFieldPadding: margins(22px, 5px, 22px, 5px);
 createPollOptionField: InputField(createPollField) {
-	textMargins: margins(22px, 8px, 40px, 8px);
+	textMargins: margins(22px, 11px, 40px, 11px);
 	placeholderMargins: margins(2px, 0px, 2px, 0px);
-	heightMax: 64px;
+	heightMax: 68px;
 }
 createPollLimitLabel: FlatLabel(defaultFlatLabel) {
 	minWidth: 274px;
 	align: align(topleft);
 }
-createPollLimitPadding: margins(22px, 10px, 22px, 5px);
+createPollLimitPadding: margins(22px, 10px, 22px, 16px);
 createPollOptionRemove: CrossButton {
 	width: 22px;
 	height: 22px;
@@ -841,7 +864,7 @@ createPollOptionRemove: CrossButton {
 		color: windowBgOver;
 	}
 }
-createPollOptionRemovePosition: point(10px, 7px);
+createPollOptionRemovePosition: point(11px, 9px);
 createPollWarning: FlatLabel(defaultFlatLabel) {
 	textFg: windowSubTextFg;
 	palette: TextPalette(defaultTextPalette) {
@@ -849,6 +872,8 @@ createPollWarning: FlatLabel(defaultFlatLabel) {
 	}
 }
 createPollWarningPosition: point(16px, 6px);
+createPollCheckboxMargin: margins(23px, 10px, 23px, 10px);
+createPollFieldTitlePadding: margins(22px, 7px, 10px, 6px);
 
 callSettingsButton: IconButton {
 	width: 50px;
@@ -920,6 +945,33 @@ customBadgeField: InputField(defaultInputField) {
 	placeholderFont: normalFont;
 
 	heightMin: 32px;
+}
+
+pollResultsQuestion: FlatLabel(defaultFlatLabel) {
+	minWidth: 320px;
+	textFg: windowBoldFg;
+	style: TextStyle(defaultTextStyle) {
+		font: font(16px semibold);
+		linkFont: font(16px semibold);
+		linkFontOver: font(16px semibold underline);
+	}
+}
+pollResultsVotesCount: FlatLabel(defaultFlatLabel) {
+	textFg: windowSubTextFg;
+}
+pollResultsHeaderPadding: margins(22px, 22px, 22px, 8px);
+pollResultsShowMore: SettingsButton {
+	textFg: lightButtonFg;
+	textFgOver: lightButtonFgOver;
+	textBg: windowBg;
+	textBgOver: windowBgOver;
+
+	font: semiboldFont;
+
+	height: 20px;
+	padding: margins(71px, 10px, 8px, 8px);
+
+	ripple: defaultRippleAnimation;
 }
 
 fontsBoxTextStyle: TextStyle(defaultTextStyle) {

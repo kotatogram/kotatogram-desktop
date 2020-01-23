@@ -12,12 +12,17 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 
 #include <QtCore/QBuffer>
+
+#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusReply>
 #include <QtDBus/QDBusMetaType>
+#endif
 
 namespace Platform {
 namespace Notifications {
+
+#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 namespace {
 
 constexpr auto kService = str_const("org.freedesktop.Notifications");
@@ -52,19 +57,19 @@ std::vector<QString> GetServerInformation(
 	return serverInformation;
 }
 
-std::vector<QString> GetCapabilities(
+QStringList GetCapabilities(
 		const std::shared_ptr<QDBusInterface> &notificationInterface) {
 	QDBusReply<QStringList> capabilitiesReply = notificationInterface
 		->call(qsl("GetCapabilities"));
 
 	if (capabilitiesReply.isValid()) {
-		return capabilitiesReply.value().toVector().toStdVector();
+		return capabilitiesReply.value();
 	} else {
 		LOG(("Native notification error: %1")
 			.arg(capabilitiesReply.error().message()));
 	}
 
-	return std::vector<QString>();
+	return {};
 }
 
 QVersionNumber ParseSpecificationVersion(
@@ -92,9 +97,8 @@ NotificationData::NotificationData(
 , _peerId(peerId)
 , _msgId(msgId) {
 	auto capabilities = GetCapabilities(_notificationInterface);
-	auto capabilitiesEnd = capabilities.end();
 
-	if (ranges::find(capabilities, qsl("body-markup")) != capabilitiesEnd) {
+	if (capabilities.contains(qsl("body-markup"))) {
 		_body = subtitle.isEmpty()
 			? msg.toHtmlEscaped()
 			: qsl("<b>%1</b>\n%2").arg(subtitle.toHtmlEscaped())
@@ -105,24 +109,33 @@ NotificationData::NotificationData(
 			: qsl("%1\n%2").arg(subtitle).arg(msg);
 	}
 
-	if (ranges::find(capabilities, qsl("actions")) != capabilitiesEnd) {
+	if (capabilities.contains(qsl("actions"))) {
 		_actions << qsl("default") << QString();
-
-		// icon name according to https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
-		_actions << qsl("mail-reply-sender")
-			<< tr::lng_notification_reply(tr::now);
 
 		connect(_notificationInterface.get(),
 			SIGNAL(ActionInvoked(uint, QString)),
 			this, SLOT(notificationClicked(uint)));
+
+		if (capabilities.contains(qsl("inline-reply"))) {
+			_actions << qsl("inline-reply")
+				<< tr::lng_notification_reply(tr::now);
+
+			connect(_notificationInterface.get(),
+				SIGNAL(NotificationReplied(uint,QString)),
+				this, SLOT(notificationReplied(uint,QString)));
+		} else {
+			// icon name according to https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
+			_actions << qsl("mail-reply-sender")
+				<< tr::lng_notification_reply(tr::now);
+		}
 	}
 
-	if (ranges::find(capabilities, qsl("action-icons")) != capabilitiesEnd) {
+	if (capabilities.contains(qsl("action-icons"))) {
 		_hints["action-icons"] = true;
 	}
 
 	// suppress system sound if telegram sound activated, otherwise use system sound
-	if (ranges::find(capabilities, qsl("sound")) != capabilitiesEnd) {
+	if (capabilities.contains(qsl("sound"))) {
 		if (Global::SoundNotify()) {
 			_hints["suppress-sound"] = true;
 		} else {
@@ -131,20 +144,14 @@ NotificationData::NotificationData(
 		}
 	}
 
-	if (ranges::find(capabilities, qsl("x-canonical-append"))
-		!= capabilitiesEnd) {
+	if (capabilities.contains(qsl("x-canonical-append"))) {
 		_hints["x-canonical-append"] = qsl("true");
 	}
 
 	_hints["category"] = qsl("im.received");
 
-#ifdef TDESKTOP_LAUNCHER_FILENAME
 	_hints["desktop-entry"] =
-		qsl(MACRO_TO_STRING(TDESKTOP_LAUNCHER_FILENAME))
-			.remove(QRegExp(qsl("\\.desktop$"), Qt::CaseInsensitive));
-#else
-	_hints["desktop-entry"] = qsl("kotatogramdesktop");
-#endif
+		qsl(MACRO_TO_STRING(TDESKTOP_LAUNCHER_BASENAME));
 
 	connect(_notificationInterface.get(),
 		SIGNAL(NotificationClosed(uint, uint)),
@@ -238,6 +245,15 @@ void NotificationData::notificationClicked(uint id) {
 	}
 }
 
+void NotificationData::notificationReplied(uint id, const QString &text) {
+	if (id == _notificationId) {
+		const auto manager = _manager;
+		crl::on_main(manager, [=] {
+			manager->notificationReplied(_peerId, _msgId, { text, {} });
+		});
+	}
+}
+
 QDBusArgument &operator<<(QDBusArgument &argument,
 		const NotificationData::ImageData &imageData) {
 	argument.beginStructure();
@@ -265,24 +281,32 @@ const QDBusArgument &operator>>(const QDBusArgument &argument,
 	argument.endStructure();
 	return argument;
 }
+#endif
 
 bool Supported() {
+#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 	static auto Available = QDBusInterface(
 		str_const_toString(kService),
 		str_const_toString(kObjectPath),
 		str_const_toString(kInterface)).isValid();
 
 	return Available;
+#else
+	return false;
+#endif
 }
 
 std::unique_ptr<Window::Notifications::Manager> Create(
 		Window::Notifications::System *system) {
+#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 	if (Global::NativeNotifications() && Supported()) {
 		return std::make_unique<Manager>(system);
 	}
+#endif
 	return nullptr;
 }
 
+#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 Manager::Private::Private(Manager *manager, Type type)
 : _cachedUserpics(type)
 , _manager(manager)
@@ -303,14 +327,7 @@ Manager::Private::Private(Manager *manager, Type type)
 	}
 
 	if (!capabilities.empty()) {
-		const auto capabilitiesString = std::accumulate(
-			capabilities.begin(),
-			capabilities.end(),
-			QString{},
-			[](auto &s, auto &p) {
-				return s + (p + qstr(", "));
-			}).chopped(2);
-
+		const auto capabilitiesString = capabilities.join(", ");
 		LOG(("Notification daemon capabilities: %1").arg(capabilitiesString));
 	}
 }
@@ -431,6 +448,7 @@ void Manager::doClearAllFast() {
 void Manager::doClearFromHistory(not_null<History*> history) {
 	_private->clearFromHistory(history);
 }
+#endif
 
 } // namespace Notifications
 } // namespace Platform

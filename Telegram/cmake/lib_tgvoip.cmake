@@ -15,7 +15,7 @@ if (TDESKTOP_USE_PACKAGED_TGVOIP)
     target_link_libraries(lib_tgvoip INTERFACE ${TGVOIP_LIBRARIES})
 else()
     add_library(lib_tgvoip STATIC)
-    init_target(lib_tgvoip cxx_std_11)
+    init_target(lib_tgvoip)
     add_library(tdesktop::lib_tgvoip ALIAS lib_tgvoip)
 
     if (NOT APPLE)
@@ -49,6 +49,8 @@ else()
         OpusEncoder.cpp
         OpusEncoder.h
         threading.h
+        TgVoip.cpp
+        TgVoip.h
         VoIPController.cpp
         VoIPGroupController.cpp
         VoIPController.h
@@ -707,7 +709,7 @@ else()
         webrtc_dsp/common_audio/vad/vad_core.c
         webrtc_dsp/common_audio/vad/vad_sp.h
         webrtc_dsp/common_audio/vad/vad_filterbank.h
-        webrtc_dsp/common_audio/vad/vad_gmm.c 
+        webrtc_dsp/common_audio/vad/vad_gmm.c
 
         # ARM/NEON sources
         # TODO check if there's a good way to make these compile with ARM ports of TDesktop
@@ -740,6 +742,7 @@ else()
         PRIVATE
             /wd4005
             /wd4244 # conversion from 'int' to 'float', possible loss of data (several in webrtc)
+            /wd5055 # operator '>' deprecated between enumerations and floating-point types
         )
         target_compile_definitions(lib_tgvoip
         PUBLIC

@@ -149,6 +149,8 @@ historyReceivedIcon: icon {{ "history_received", historyOutIconFg, point(2px, 4p
 historyReceivedSelectedIcon: icon {{ "history_received", historyOutIconFgSelected, point(2px, 4px) }};
 historyReceivedInvertedIcon: icon {{ "history_received", historyIconFgInverted, point(2px, 4px) }};
 
+historyScheduledUntilOnlineStateSpace: 17px;
+
 historyViewsSpace: 11px;
 historyViewsWidth: 20px;
 historyViewsTop: -15px;
@@ -539,9 +541,9 @@ historyPollQuestionStyle: TextStyle(defaultTextStyle) {
 }
 historyPollAnswerStyle: defaultTextStyle;
 historyPollQuestionTop: 7px;
-historyPollSubtitleSkip: 2px;
+historyPollSubtitleSkip: 4px;
 historyPollAnswerPadding: margins(31px, 10px, 0px, 10px);
-historyPollAnswersSkip: 3px;
+historyPollAnswersSkip: 2px;
 historyPollPercentFont: semiboldFont;
 historyPollPercentSkip: 6px;
 historyPollPercentTop: 0px;
@@ -575,6 +577,17 @@ historyPollRippleOut: RippleAnimation(defaultRippleAnimation) {
 	color: msgWaveformOutInactive;
 }
 historyPollRippleOpacity: 0.3;
+historyPollRecentVotersSkip: 4px;
+historyPollRecentVoterSize: 18px;
+historyPollRecentVoterSkip: 13px;
+historyPollBottomButtonSkip: 15px;
+historyPollBottomButtonTop: 4px;
+historyPollChoiceRight: icon {{ "poll_choice_right", activeButtonFg }};
+historyPollChoiceWrong: icon {{ "poll_choice_wrong", activeButtonFg }};
+historyPollOutChosen: icon {{ "poll_select_check", historyFileOutIconFg }};
+historyPollOutChosenSelected: icon {{ "poll_select_check", historyFileOutIconFgSelected }};
+historyPollInChosen: icon {{ "poll_select_check", historyFileInIconFg }};
+historyPollInChosenSelected: icon {{ "poll_select_check", historyFileInIconFgSelected }};
 
 boxAttachEmoji: IconButton(historyAttachEmoji) {
 	width: 30px;

@@ -14,11 +14,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_cursor_state.h"
 #include "calls/calls_instance.h"
 #include "ui/text_options.h"
+#include "ui/text/text_utilities.h"
 #include "ui/effects/animations.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/effects/ripple_animation.h"
 #include "data/data_media_types.h"
 #include "data/data_poll.h"
+#include "data/data_user.h"
 #include "data/data_session.h"
 #include "layout.h"
 #include "main/main_session.h"
@@ -28,6 +30,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace HistoryView {
 namespace {
+
+constexpr auto kShowRecentVotersCount = 3;
 
 struct PercentCounterItem {
 	int index = 0;
@@ -112,6 +116,8 @@ struct Poll::AnswerAnimation {
 	anim::value percent;
 	anim::value filling;
 	anim::value opacity;
+	bool chosen = false;
+	bool correct = false;
 };
 
 struct Poll::AnswersAnimation {
@@ -132,7 +138,7 @@ struct Poll::SendingAnimation {
 struct Poll::Answer {
 	Answer();
 
-	void fillText(const PollAnswer &original);
+	void fillData(not_null<PollData*> poll, const PollAnswer &original);
 
 	Ui::Text::String text;
 	QByteArray option;
@@ -142,7 +148,10 @@ struct Poll::Answer {
 	float64 filling = 0.;
 	QString votesPercentString;
 	bool chosen = false;
+	bool correct = false;
+	bool selected = false;
 	ClickHandlerPtr handler;
+	Ui::Animations::Simple selectedAnimation;
 	mutable std::unique_ptr<Ui::RippleAnimation> ripple;
 };
 
@@ -159,7 +168,11 @@ Poll::SendingAnimation::SendingAnimation(
 Poll::Answer::Answer() : text(st::msgMinWidth / 2) {
 }
 
-void Poll::Answer::fillText(const PollAnswer &original) {
+void Poll::Answer::fillData(
+		not_null<PollData*> poll,
+		const PollAnswer &original) {
+	chosen = original.chosen;
+	correct = poll->quiz() ? original.correct : chosen;
 	if (!text.isEmpty() && text.toString() == original.text) {
 		return;
 	}
@@ -174,7 +187,15 @@ Poll::Poll(
 	not_null<PollData*> poll)
 : Media(parent)
 , _poll(poll)
-, _question(st::msgMinWidth / 2) {
+, _question(st::msgMinWidth / 2)
+, _showResultsLink(
+	std::make_shared<LambdaClickHandler>(crl::guard(
+		this,
+		[=] { showResults(); })))
+, _sendVotesLink(
+	std::make_shared<LambdaClickHandler>(crl::guard(
+		this,
+		[=] { sendMultiOptions(); }))) {
 	history()->owner().registerPollView(_poll, _parent);
 }
 
@@ -202,13 +223,17 @@ QSize Poll::countOptimalSize() {
 			+ st::historyPollAnswerPadding.bottom();
 	}), 0);
 
+	const auto bottomButtonHeight = inlineFooter()
+		? 0
+		: st::historyPollBottomButtonSkip;
 	auto minHeight = st::historyPollQuestionTop
 		+ _question.minHeight()
 		+ st::historyPollSubtitleSkip
 		+ st::msgDateFont->height
 		+ st::historyPollAnswersSkip
 		+ answersHeight
-		+ st::msgPadding.bottom()
+		+ st::historyPollTotalVotesSkip
+		+ bottomButtonHeight
 		+ st::msgDateFont->height
 		+ st::msgPadding.bottom();
 	if (!isBubbleTop()) {
@@ -218,11 +243,26 @@ QSize Poll::countOptimalSize() {
 }
 
 bool Poll::showVotes() const {
-	return _voted || _closed;
+	return _voted || (_flags & PollData::Flag::Closed);
 }
 
 bool Poll::canVote() const {
 	return !showVotes() && IsServerMsgId(_parent->data()->id);
+}
+
+bool Poll::canSendVotes() const {
+	return canVote() && _hasSelected;
+}
+
+bool Poll::showVotersCount() const {
+	return showVotes()
+		? (!_totalVotes || !(_flags & PollData::Flag::PublicVotes))
+		: !(_flags & PollData::Flag::MultiChoice);
+}
+
+bool Poll::inlineFooter() const {
+	return !(_flags
+		& (PollData::Flag::PublicVotes | PollData::Flag::MultiChoice));
 }
 
 int Poll::countAnswerTop(
@@ -278,6 +318,9 @@ QSize Poll::countCurrentSize(int newWidth) {
 		return countAnswerHeight(answer, innerWidth);
 	}), 0);
 
+	const auto bottomButtonHeight = inlineFooter()
+		? 0
+		: st::historyPollBottomButtonSkip;
 	auto newHeight = st::historyPollQuestionTop
 		+ _question.countHeight(innerWidth)
 		+ st::historyPollSubtitleSkip
@@ -285,6 +328,7 @@ QSize Poll::countCurrentSize(int newWidth) {
 		+ st::historyPollAnswersSkip
 		+ answersHeight
 		+ st::historyPollTotalVotesSkip
+		+ bottomButtonHeight
 		+ st::msgDateFont->height
 		+ st::msgPadding.bottom();
 	if (!isBubbleTop()) {
@@ -309,18 +353,37 @@ void Poll::updateTexts() {
 			_poll->question,
 			options);
 	}
-	if (_closed != _poll->closed || _subtitle.isEmpty()) {
-		_closed = _poll->closed;
+	if (_flags != _poll->flags() || _subtitle.isEmpty()) {
+		using Flag = PollData::Flag;
+		_flags = _poll->flags();
 		_subtitle.setText(
 			st::msgDateTextStyle,
-			_closed ? tr::lng_polls_closed(tr::now) : tr::lng_polls_anonymous(tr::now));
+			((_flags & Flag::Closed)
+				? tr::lng_polls_closed(tr::now)
+				: (_flags & Flag::Quiz)
+				? ((_flags & Flag::PublicVotes)
+					? tr::lng_polls_public_quiz(tr::now)
+					: tr::lng_polls_anonymous_quiz(tr::now))
+				: ((_flags & Flag::PublicVotes)
+					? tr::lng_polls_public(tr::now)
+					: tr::lng_polls_anonymous(tr::now))));
 	}
-
+	updateRecentVoters();
 	updateAnswers();
 	updateVotes();
 
 	if (willStartAnimation) {
 		startAnswersAnimation();
+	}
+}
+
+void Poll::updateRecentVoters() {
+	auto &&sliced = ranges::view::all(
+		_poll->recentVoters
+	) | ranges::view::take(kShowRecentVotersCount);
+	const auto changed = !ranges::equal(_recentVoters, sliced);
+	if (changed) {
+		_recentVoters = sliced | ranges::to_vector;
 	}
 }
 
@@ -334,16 +397,16 @@ void Poll::updateAnswers() {
 	if (!changed) {
 		auto &&answers = ranges::view::zip(_answers, _poll->answers);
 		for (auto &&[answer, original] : answers) {
-			answer.fillText(original);
+			answer.fillData(_poll, original);
 		}
 		return;
 	}
 	_answers = ranges::view::all(
 		_poll->answers
-	) | ranges::view::transform([](const PollAnswer &answer) {
+	) | ranges::view::transform([&](const PollAnswer &answer) {
 		auto result = Answer();
 		result.option = answer.option;
-		result.fillText(answer);
+		result.fillData(_poll, answer);
 		return result;
 	}) | ranges::to_vector;
 
@@ -355,12 +418,66 @@ void Poll::updateAnswers() {
 }
 
 ClickHandlerPtr Poll::createAnswerClickHandler(
-		const Answer &answer) const {
+		const Answer &answer) {
 	const auto option = answer.option;
-	const auto itemId = _parent->data()->fullId();
-	return std::make_shared<LambdaClickHandler>([=] {
-		history()->session().api().sendPollVotes(itemId, { option });
-	});
+	if (_flags & PollData::Flag::MultiChoice) {
+		return std::make_shared<LambdaClickHandler>(crl::guard(this, [=] {
+			toggleMultiOption(option);
+		}));
+	}
+	return std::make_shared<LambdaClickHandler>(crl::guard(this, [=] {
+		history()->session().api().sendPollVotes(
+			_parent->data()->fullId(),
+			{ option });
+	}));
+}
+
+void Poll::toggleMultiOption(const QByteArray &option) {
+	const auto i = ranges::find(
+		_answers,
+		option,
+		&Answer::option);
+	if (i != end(_answers)) {
+		const auto selected = i->selected;
+		i->selected = !selected;
+		i->selectedAnimation.start(
+			[=] { history()->owner().requestViewRepaint(_parent); },
+			selected ? 1. : 0.,
+			selected ? 0. : 1.,
+			st::defaultCheck.duration);
+		if (selected) {
+			const auto j = ranges::find(
+				_answers,
+				true,
+				&Answer::selected);
+			_hasSelected = (j != end(_answers));
+		} else {
+			_hasSelected = true;
+		}
+		history()->owner().requestViewRepaint(_parent);
+	}
+}
+
+void Poll::sendMultiOptions() {
+	auto chosen = _answers | ranges::view::filter(
+		&Answer::selected
+	) | ranges::view::transform(
+		&Answer::option
+	) | ranges::to_vector;
+	if (!chosen.empty()) {
+		for (auto &answer : _answers) {
+			answer.selected = false;
+		}
+		history()->session().api().sendPollVotes(
+			_parent->data()->fullId(),
+			std::move(chosen));
+	}
+}
+
+void Poll::showResults() {
+	_parent->delegate()->elementShowPollResults(
+		_poll,
+		_parent->data()->fullId());
 }
 
 void Poll::updateVotes() {
@@ -370,21 +487,23 @@ void Poll::updateVotes() {
 }
 
 void Poll::checkSendingAnimation() const {
-	const auto &sending = _poll->sendingVote;
-	if (sending.isEmpty() == !_sendingAnimation) {
+	const auto &sending = _poll->sendingVotes;
+	const auto sendingRadial = (sending.size() == 1)
+		&& !(_flags & PollData::Flag::MultiChoice);
+	if (sendingRadial == (_sendingAnimation != nullptr)) {
 		if (_sendingAnimation) {
-			_sendingAnimation->option = sending;
+			_sendingAnimation->option = sending.front();
 		}
 		return;
 	}
-	if (sending.isEmpty()) {
+	if (!sendingRadial) {
 		if (!_answersAnimation) {
 			_sendingAnimation = nullptr;
 		}
 		return;
 	}
 	_sendingAnimation = std::make_unique<SendingAnimation>(
-		sending,
+		sending.front(),
 		[=] { radialAnimationCallback(); });
 	_sendingAnimation->animation.start();
 }
@@ -394,9 +513,17 @@ void Poll::updateTotalVotes() {
 		return;
 	}
 	_totalVotes = _poll->totalVoters;
+	const auto quiz = _poll->quiz();
 	const auto string = !_totalVotes
-		? tr::lng_polls_votes_none(tr::now)
-		: tr::lng_polls_votes_count(tr::now, lt_count_short, _totalVotes);
+		? (quiz
+			? tr::lng_polls_answers_none
+			: tr::lng_polls_votes_none)(tr::now)
+		: (quiz
+			? tr::lng_polls_answers_count
+			: tr::lng_polls_votes_count)(
+				tr::now,
+				lt_count_short,
+				_totalVotes);
 	_totalVotesLabel.setText(st::msgDateTextStyle, string);
 }
 
@@ -485,6 +612,7 @@ void Poll::draw(Painter &p, const QRect &r, TextSelection selection, crl::time m
 
 	p.setPen(regular);
 	_subtitle.drawLeftElided(p, padding.left(), tshift, paintw, width());
+	paintRecentVoters(p, padding.left() + _subtitle.maxWidth(), tshift, selection);
 	tshift += st::msgDateFont->height + st::historyPollAnswersSkip;
 
 	const auto progress = _answersAnimation
@@ -517,23 +645,80 @@ void Poll::draw(Painter &p, const QRect &r, TextSelection selection, crl::time m
 			selection);
 		tshift += height;
 	}
-	if (!_totalVotesLabel.isEmpty()) {
+	if (!inlineFooter()) {
+		paintBottom(p, padding.left(), tshift, paintw, selection);
+	} else if (!_totalVotesLabel.isEmpty()) {
 		tshift += st::msgPadding.bottom();
+		paintInlineFooter(p, padding.left(), tshift, paintw, selection);
+	}
+}
+
+void Poll::paintInlineFooter(
+		Painter &p,
+		int left,
+		int top,
+		int paintw,
+		TextSelection selection) const {
+	const auto selected = (selection == FullSelection);
+	const auto outbg = _parent->hasOutLayout();
+	const auto &regular = selected ? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected) : (outbg ? st::msgOutDateFg : st::msgInDateFg);
+	p.setPen(regular);
+	_totalVotesLabel.drawLeftElided(
+		p,
+		left,
+		top,
+		std::min(
+			_totalVotesLabel.maxWidth(),
+			paintw - _parent->infoWidth()),
+		width());
+}
+
+void Poll::paintBottom(
+		Painter &p,
+		int left,
+		int top,
+		int paintw,
+		TextSelection selection) const {
+	const auto stringtop = top + st::msgPadding.bottom() + st::historyPollBottomButtonTop;
+	const auto selected = (selection == FullSelection);
+	const auto outbg = _parent->hasOutLayout();
+	const auto &regular = selected ? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected) : (outbg ? st::msgOutDateFg : st::msgInDateFg);
+	if (showVotersCount()) {
 		p.setPen(regular);
-		_totalVotesLabel.drawLeftElided(
-			p,
-			padding.left(),
-			tshift,
-			std::min(
-				_totalVotesLabel.maxWidth(),
-				paintw - _parent->infoWidth()),
-			width());
+		_totalVotesLabel.draw(p, left, stringtop, paintw, style::al_top);
+	} else {
+		const auto link = showVotes()
+			? _showResultsLink
+			: canSendVotes()
+			? _sendVotesLink
+			: nullptr;
+		if (_linkRipple) {
+			const auto linkHeight = bottomButtonHeight();
+			p.setOpacity(st::historyPollRippleOpacity);
+			_linkRipple->paint(p, left - st::msgPadding.left(), height() - linkHeight, width());
+			if (_linkRipple->empty()) {
+				_linkRipple.reset();
+			}
+			p.setOpacity(1.);
+		}
+		p.setFont(st::semiboldFont);
+		if (!link) {
+			p.setPen(regular);
+		} else {
+			p.setPen(outbg ? (selected ? st::msgFileThumbLinkOutFgSelected : st::msgFileThumbLinkOutFg) : (selected ? st::msgFileThumbLinkInFgSelected : st::msgFileThumbLinkInFg));
+		}
+		const auto string = showVotes()
+			? tr::lng_polls_view_results(tr::now, Ui::Text::Upper)
+			: tr::lng_polls_submit_votes(tr::now, Ui::Text::Upper);
+		const auto stringw = st::semiboldFont->width(string);
+		p.drawTextLeft(left + (paintw - stringw) / 2, stringtop, width(), string, stringw);
 	}
 }
 
 void Poll::resetAnswersAnimation() const {
 	_answersAnimation = nullptr;
-	if (_poll->sendingVote.isEmpty()) {
+	if (_poll->sendingVotes.size() != 1
+		|| (_flags & PollData::Flag::MultiChoice)) {
 		_sendingAnimation = nullptr;
 	}
 }
@@ -541,6 +726,36 @@ void Poll::resetAnswersAnimation() const {
 void Poll::radialAnimationCallback() const {
 	if (!anim::Disabled()) {
 		history()->owner().requestViewRepaint(_parent);
+	}
+}
+
+void Poll::paintRecentVoters(
+		Painter &p,
+		int left,
+		int top,
+		TextSelection selection) const {
+	const auto count = int(_recentVoters.size());
+	if (!count) {
+		return;
+	}
+	auto x = left
+		+ st::historyPollRecentVotersSkip
+		+ (count - 1) * st::historyPollRecentVoterSkip;
+	auto y = top;
+	const auto size = st::historyPollRecentVoterSize;
+	const auto outbg = _parent->hasOutLayout();
+	const auto selected = (selection == FullSelection);
+	auto pen = (selected
+		? (outbg ? st::msgOutBgSelected : st::msgInBgSelected)
+		: (outbg ? st::msgOutBg : st::msgInBg))->p;
+	pen.setWidth(st::lineWidth);
+	for (const auto &recent : _recentVoters) {
+		recent->paintUserpic(p, x, y, size);
+		p.setPen(pen);
+		p.setBrush(Qt::NoBrush);
+		PainterHighQualityEnabler hq(p);
+		p.drawEllipse(x, y, size, size);
+		x -= st::historyPollRecentVoterSkip;
 	}
 }
 
@@ -592,6 +807,8 @@ int Poll::paintAnswer(
 			p.setOpacity(sqrt(opacity));
 			paintFilling(
 				p,
+				animation->chosen,
+				animation->correct,
 				animation->filling.current(),
 				left,
 				top,
@@ -613,6 +830,8 @@ int Poll::paintAnswer(
 			selection);
 		paintFilling(
 			p,
+			answer.chosen,
+			answer.correct,
 			answer.filling,
 			left,
 			top,
@@ -644,9 +863,13 @@ void Poll::paintRadio(
 	const auto over = ClickHandler::showAsActive(answer.handler);
 	const auto &regular = selected ? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected) : (outbg ? st::msgOutDateFg : st::msgInDateFg);
 
-	p.setBrush(Qt::NoBrush);
+	const auto checkmark = answer.selectedAnimation.value(answer.selected ? 1. : 0.);
+
 	const auto o = p.opacity();
-	p.setOpacity(o * (over ? st::historyPollRadioOpacityOver : st::historyPollRadioOpacity));
+	if (checkmark < 1.) {
+		p.setBrush(Qt::NoBrush);
+		p.setOpacity(o * (over ? st::historyPollRadioOpacityOver : st::historyPollRadioOpacity));
+	}
 
 	const auto rect = QRectF(left, top, st.diameter, st.diameter).marginsRemoved(QMarginsF(st.thickness / 2., st.thickness / 2., st.thickness / 2., st.thickness / 2.));
 	if (_sendingAnimation && _sendingAnimation->option == answer.option) {
@@ -665,10 +888,24 @@ void Poll::paintRadio(
 				state.arcLength);
 		}
 	} else {
-		auto pen = regular->p;
-		pen.setWidth(st.thickness);
-		p.setPen(pen);
-		p.drawEllipse(rect);
+		if (checkmark < 1.) {
+			auto pen = regular->p;
+			pen.setWidth(st.thickness);
+			p.setPen(pen);
+			p.drawEllipse(rect);
+		}
+		if (checkmark > 0.) {
+			const auto removeFull = (st.diameter / 2 - st.thickness);
+			const auto removeNow = removeFull * (1. - checkmark);
+			const auto color = outbg ? (selected ? st::msgFileThumbLinkOutFgSelected : st::msgFileThumbLinkOutFg) : (selected ? st::msgFileThumbLinkInFgSelected : st::msgFileThumbLinkInFg);
+			auto pen = color->p;
+			pen.setWidth(st.thickness);
+			p.setPen(pen);
+			p.setBrush(color);
+			p.drawEllipse(rect.marginsRemoved({ removeNow, removeNow, removeNow, removeNow }));
+			const auto &icon = outbg ? (selected ? st::historyPollOutChosenSelected : st::historyPollOutChosen) : (selected ? st::historyPollInChosenSelected : st::historyPollInChosen);
+			icon.paint(p, left + (st.diameter - icon.width()) / 2, top + (st.diameter - icon.height()) / 2, width());
+		}
 	}
 
 	p.setOpacity(o);
@@ -696,6 +933,8 @@ void Poll::paintPercent(
 
 void Poll::paintFilling(
 		Painter &p,
+		bool chosen,
+		bool correct,
 		float64 filling,
 		int left,
 		int top,
@@ -712,15 +951,36 @@ void Poll::paintFilling(
 
 	top += st::historyPollAnswerPadding.top();
 
-	const auto bar = outbg ? (selected ? st::msgWaveformOutActiveSelected : st::msgWaveformOutActive) : (selected ? st::msgWaveformInActiveSelected : st::msgWaveformInActive);
 	PainterHighQualityEnabler hq(p);
 	p.setPen(Qt::NoPen);
-	p.setBrush(bar);
+	const auto thickness = st::historyPollFillingHeight;
 	const auto max = awidth - st::historyPollFillingRight;
 	const auto size = anim::interpolate(st::historyPollFillingMin, max, filling);
 	const auto radius = st::historyPollFillingRadius;
-	const auto ftop = bottom - st::historyPollFillingBottom - st::historyPollFillingHeight;
-	p.drawRoundedRect(aleft, ftop, size, st::historyPollFillingHeight, radius, radius);
+	const auto ftop = bottom - st::historyPollFillingBottom - thickness;
+
+	if (chosen && !correct) {
+		p.setBrush(st::boxTextFgError);
+	} else {
+		const auto bar = outbg ? (selected ? st::msgWaveformOutActiveSelected : st::msgWaveformOutActive) : (selected ? st::msgWaveformInActiveSelected : st::msgWaveformInActive);
+		p.setBrush(bar);
+	}
+	auto barleft = aleft;
+	auto barwidth = size;
+	if (chosen || correct) {
+		const auto &icon = (chosen && !correct)
+			? st::historyPollChoiceWrong
+			: st::historyPollChoiceRight;
+		const auto cleft = aleft - st::historyPollPercentSkip - icon.width();
+		const auto ctop = ftop - (icon.height() - thickness) / 2;
+		p.drawEllipse(cleft, ctop, icon.width(), icon.height());
+		icon.paint(p, cleft, ctop, width);
+		//barleft += icon.width() - radius;
+		//barwidth -= icon.width() - radius;
+	}
+	if (barwidth > 0) {
+		p.drawRoundedRect(barleft, ftop, barwidth, thickness, radius, radius);
+	}
 }
 
 bool Poll::answerVotesChanged() const {
@@ -748,6 +1008,8 @@ void Poll::saveStateInAnimation() const {
 		result.percent = show ? float64(answer.votesPercent) : 0.;
 		result.filling = show ? answer.filling : 0.;
 		result.opacity = show ? 1. : 0.;
+		result.chosen = answer.chosen;
+		result.correct = answer.correct;
 		return result;
 	};
 	ranges::transform(
@@ -761,7 +1023,7 @@ bool Poll::checkAnimationStart() const {
 		// Skip initial changes.
 		return false;
 	}
-	const auto result = (showVotes() != (_poll->voted() || _poll->closed))
+	const auto result = (showVotes() != (_poll->voted() || _poll->closed()))
 		|| answerVotesChanged();
 	if (result) {
 		saveStateInAnimation();
@@ -780,6 +1042,8 @@ void Poll::startAnswersAnimation() const {
 		data.percent.start(show ? float64(answer.votesPercent) : 0.);
 		data.filling.start(show ? answer.filling : 0.);
 		data.opacity.start(show ? 1. : 0.);
+		data.chosen = data.chosen || answer.chosen;
+		data.correct = data.correct || answer.correct;
 	}
 	_answersAnimation->progress.start(
 		[=] { history()->owner().requestViewRepaint(_parent); },
@@ -790,7 +1054,7 @@ void Poll::startAnswersAnimation() const {
 
 TextState Poll::textState(QPoint point, StateRequest request) const {
 	auto result = TextState(_parent);
-	if (!_poll->sendingVote.isEmpty()) {
+	if (!_poll->sendingVotes.empty()) {
 		return result;
 	}
 
@@ -819,14 +1083,38 @@ TextState Poll::textState(QPoint point, StateRequest request) const {
 				result.customTooltip = true;
 				using Flag = Ui::Text::StateRequest::Flag;
 				if (request.flags & Flag::LookupCustomTooltip) {
+					const auto quiz = _poll->quiz();
 					result.customTooltipText = answer.votes
-						? tr::lng_polls_votes_count(tr::now, lt_count_decimal, answer.votes)
-						: tr::lng_polls_votes_none(tr::now);
+						? (quiz
+							? tr::lng_polls_answers_count
+							: tr::lng_polls_votes_count)(
+								tr::now,
+								lt_count_decimal,
+								answer.votes)
+						: (quiz
+							? tr::lng_polls_answers_none
+							: tr::lng_polls_votes_none)(tr::now);
 				}
 			}
 			return result;
 		}
 		tshift += height;
+	}
+	if (!showVotersCount()) {
+		const auto link = showVotes()
+			? _showResultsLink
+			: canSendVotes()
+			? _sendVotesLink
+			: nullptr;
+		if (link) {
+			const auto linkHeight = bottomButtonHeight();
+			const auto linkTop = height() - linkHeight;
+			if (QRect(0, linkTop, width(), linkHeight).contains(point)) {
+				_lastLinkPoint = point;
+				result.link = link;
+				return result;
+			}
+		}
 	}
 	return result;
 }
@@ -842,6 +1130,8 @@ void Poll::clickHandlerPressedChanged(
 		&Answer::handler);
 	if (i != end(_answers)) {
 		toggleRipple(*i, pressed);
+	} else if (handler == _sendVotesLink || handler == _showResultsLink) {
+		toggleLinkRipple(pressed);
 	}
 }
 
@@ -864,10 +1154,55 @@ void Poll::toggleRipple(Answer &answer, bool pressed) {
 		}
 		const auto top = countAnswerTop(answer, innerWidth);
 		answer.ripple->add(_lastLinkPoint - QPoint(0, top));
-	} else {
-		if (answer.ripple) {
-			answer.ripple->lastStop();
+	} else if (answer.ripple) {
+		answer.ripple->lastStop();
+	}
+}
+
+int Poll::bottomButtonHeight() const {
+	const auto skip = st::historyPollChoiceRight.height()
+		- st::historyPollFillingBottom
+		- st::historyPollFillingHeight
+		- (st::historyPollChoiceRight.height() - st::historyPollFillingHeight) / 2;
+	return st::historyPollTotalVotesSkip
+		- skip
+		+ st::historyPollBottomButtonSkip
+		+ st::msgDateFont->height
+		+ st::msgPadding.bottom();
+}
+
+void Poll::toggleLinkRipple(bool pressed) {
+	if (pressed) {
+		const auto linkWidth = width();
+		const auto linkHeight = bottomButtonHeight();
+		if (!_linkRipple) {
+			const auto drawMask = [&](QPainter &p) {
+				const auto radius = st::historyMessageRadius;
+				p.drawRoundedRect(
+					0,
+					0,
+					linkWidth,
+					linkHeight,
+					radius,
+					radius);
+				p.fillRect(0, 0, linkWidth, radius * 2, Qt::white);
+			};
+			auto mask = isBubbleBottom()
+				? Ui::RippleAnimation::maskByDrawer(
+					QSize(linkWidth, linkHeight),
+					false,
+					drawMask)
+				: Ui::RippleAnimation::rectMask({ linkWidth, linkHeight });
+			_linkRipple = std::make_unique<Ui::RippleAnimation>(
+				(_parent->hasOutLayout()
+					? st::historyPollRippleOut
+					: st::historyPollRippleIn),
+				std::move(mask),
+				[=] { history()->owner().requestViewRepaint(_parent); });
 		}
+		_linkRipple->add(_lastLinkPoint - QPoint(0, height() - linkHeight));
+	} else if (_linkRipple) {
+		_linkRipple->lastStop();
 	}
 }
 

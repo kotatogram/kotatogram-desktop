@@ -426,6 +426,11 @@ void Filler::addUserActions(not_null<UserData*> user) {
 				tr::lng_profile_invite_to_group(tr::now),
 				[=] { AddBotToGroup::Start(controller, user); });
 		}
+		if (user->canSendPolls()) {
+			_addAction(
+				tr::lng_polls_create(tr::now),
+				[=] { PeerMenuCreatePoll(user); });
+		}
 		if (user->canExportChatHistory()) {
 			_addAction(
 				tr::lng_profile_export_chat(tr::now),
@@ -764,9 +769,18 @@ void PeerMenuShareContactBox(
 		}));
 }
 
-void PeerMenuCreatePoll(not_null<PeerData*> peer) {
+void PeerMenuCreatePoll(
+		not_null<PeerData*> peer,
+		PollData::Flags chosen,
+		PollData::Flags disabled) {
+	if (peer->isChannel() && !peer->isMegagroup()) {
+		chosen &= ~PollData::Flag::PublicVotes;
+		disabled |= PollData::Flag::PublicVotes;
+	}
 	const auto box = Ui::show(Box<CreatePollBox>(
 		&peer->session(),
+		chosen,
+		disabled,
 		Api::SendType::Normal));
 	const auto lock = box->lifetime().make_state<bool>(false);
 	box->submitRequests(

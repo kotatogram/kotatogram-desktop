@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/qthelp_url.h"
 #include "base/event_filter.h"
 #include "boxes/abstract_box.h"
+#include "core/shortcuts.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/ui_utility.h"
@@ -33,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QTextBlock>
 #include <QtGui/QClipboard>
+#include <QtWidgets/QApplication>
 
 namespace {
 
@@ -666,7 +668,7 @@ void MessageLinksParser::apply(
 	_list = std::move(parsed);
 }
 
-void SetupSendMenu(
+void SetupSendMenuAndShortcuts(
 		not_null<Ui::RpWidget*> button,
 		Fn<SendMenuType()> type,
 		Fn<void()> silent,
@@ -688,9 +690,9 @@ void SetupSendMenu(
 		}
 		if (schedule && now != SendMenuType::SilentOnly) {
 			(*menu)->addAction(
-				(now == SendMenuType::Scheduled
-					? tr::lng_schedule_message(tr::now)
-					: tr::lng_reminder_message(tr::now)),
+				(now == SendMenuType::Reminder
+					? tr::lng_reminder_message(tr::now)
+					: tr::lng_schedule_message(tr::now)),
 				schedule);
 		}
 		(*menu)->popup(QCursor::pos());
@@ -702,4 +704,46 @@ void SetupSendMenu(
 		}
 		return base::EventFilterResult::Continue;
 	});
+
+	Shortcuts::Requests(
+	) | rpl::start_with_next([=](not_null<Shortcuts::Request*> request) {
+		using Command = Shortcuts::Command;
+
+		const auto now = type();
+		if (now == SendMenuType::Disabled
+			|| (!silent && now == SendMenuType::SilentOnly)) {
+			return;
+		}
+		(silent
+			&& (now != SendMenuType::Reminder)
+			&& request->check(Command::SendSilentMessage)
+			&& request->handle([=] {
+				silent();
+				return true;
+			}))
+		||
+		(schedule
+			&& (now != SendMenuType::SilentOnly)
+			&& request->check(Command::ScheduleMessage)
+			&& request->handle([=] {
+				schedule();
+				return true;
+			}))
+		||
+		(request->check(Command::JustSendMessage) && request->handle([=] {
+			const auto post = [&](QEvent::Type type) {
+				QApplication::postEvent(
+					button,
+					new QMouseEvent(
+						type,
+						QPointF(0, 0),
+						Qt::LeftButton,
+						Qt::LeftButton,
+						Qt::NoModifier));
+			};
+			post(QEvent::MouseButtonPress);
+			post(QEvent::MouseButtonRelease);
+			return true;
+		}));
+	}, button->lifetime());
 }

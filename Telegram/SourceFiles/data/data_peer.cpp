@@ -754,6 +754,17 @@ int PeerData::slowmodeSecondsLeft() const {
 	return 0;
 }
 
+bool PeerData::canSendPolls() const {
+	if (const auto user = asUser()) {
+		return user->isBot();
+	} else if (const auto chat = asChat()) {
+		return chat->canSendPolls();
+	} else if (const auto channel = asChannel()) {
+		return channel->canSendPolls();
+	}
+	return false;
+}
+
 namespace Data {
 
 std::vector<ChatRestrictions> ListOfRestrictions() {

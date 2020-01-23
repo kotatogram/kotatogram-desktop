@@ -252,7 +252,9 @@ void DownloadManagerMtproto::requestSucceeded(
 
 	if (duration >= kBadRequestDurationThreshold) {
 		DEBUG_LOG(("Duration too large, signaling time out."));
-		sessionTimedOut(dcId, index);
+		crl::on_main(this, [=] {
+			sessionTimedOut(dcId, index);
+		});
 		return;
 	}
 	if (amountAtRequestStart == data.maxWaitedAmount
@@ -495,10 +497,13 @@ void DownloadMtprotoTask::removeSession(int sessionIndex) {
 		}
 	}
 	for (const auto &[requestId, offset] : redirect) {
+		const auto needMakeRequest = (requestId != _cdnHashesRequestId);
 		cancelRequest(requestId);
-		const auto newIndex = _owner->chooseSessionIndex(dcId());
-		Assert(newIndex < sessionIndex);
-		makeRequest({ offset, newIndex });
+		if (needMakeRequest) {
+			const auto newIndex = _owner->chooseSessionIndex(dcId());
+			Assert(newIndex < sessionIndex);
+			makeRequest({ offset, newIndex });
+		}
 	}
 }
 
@@ -553,7 +558,7 @@ mtpRequestId DownloadMtprotoTask::sendRequest(
 	}, [&](const StorageFileLocation &location) {
 		const auto reference = location.fileReference();
 		return api().request(MTPupload_GetFile(
-			MTP_flags(0),
+			MTP_flags(MTPupload_GetFile::Flag::f_cdn_supported),
 			location.tl(api().session().userId()),
 			MTP_int(offset),
 			MTP_int(limit)

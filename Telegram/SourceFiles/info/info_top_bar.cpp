@@ -635,6 +635,11 @@ rpl::producer<QString> TitleValue(
 			return tr::ktg_settings_kotato();
 		}
 		Unexpected("Bad settings type in Info::TitleValue()");
+
+	case Section::Type::PollResults:
+		return key.poll()->quiz()
+			? tr::lng_polls_quiz_results_title()
+			: tr::lng_polls_poll_results_title();
 	}
 	Unexpected("Bad section type in Info::TitleValue()");
 }

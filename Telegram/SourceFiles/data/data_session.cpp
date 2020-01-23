@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "api/api_text_entities.h"
 #include "core/application.h"
+#include "core/mime_type.h" // Core::IsMimeSticker
 #include "core/crash_reports.h" // CrashReports::SetAnnotation
 #include "ui/image/image.h"
 #include "ui/image/image_source.h" // Images::LocalFileSource
@@ -2390,8 +2391,7 @@ not_null<DocumentData*> Session::processDocument(
 	case mtpc_document: {
 		const auto &fields = data.c_document();
 		const auto mime = qs(fields.vmime_type());
-		const auto format = (mime == qstr("image/webp")
-			|| mime == qstr("application/x-tgsticker"))
+		const auto format = Core::IsMimeSticker(mime)
 			? "WEBP"
 			: "JPG";
 		return document(
@@ -2895,7 +2895,7 @@ void Session::gameApplyFields(
 not_null<PollData*> Session::poll(PollId id) {
 	auto i = _polls.find(id);
 	if (i == _polls.cend()) {
-		i = _polls.emplace(id, std::make_unique<PollData>(id)).first;
+		i = _polls.emplace(id, std::make_unique<PollData>(this, id)).first;
 	}
 	return i->second.get();
 }

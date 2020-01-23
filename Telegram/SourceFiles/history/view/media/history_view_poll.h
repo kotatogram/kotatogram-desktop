@@ -8,12 +8,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "history/view/media/history_view_media.h"
+#include "data/data_poll.h"
+#include "base/weak_ptr.h"
 
-struct PollAnswer;
+namespace Ui {
+class RippleAnimation;
+} // namespace Ui
 
 namespace HistoryView {
 
-class Poll : public Media {
+class Poll : public Media, public base::has_weak_ptr {
 public:
 	Poll(
 		not_null<Element*> parent,
@@ -53,6 +57,7 @@ private:
 
 	[[nodiscard]] bool showVotes() const;
 	[[nodiscard]] bool canVote() const;
+	[[nodiscard]] bool canSendVotes() const;
 
 	[[nodiscard]] int countAnswerTop(
 		const Answer &answer,
@@ -61,11 +66,14 @@ private:
 		const Answer &answer,
 		int innerWidth) const;
 	[[nodiscard]] ClickHandlerPtr createAnswerClickHandler(
-		const Answer &answer) const;
+		const Answer &answer);
 	void updateTexts();
+	void updateRecentVoters();
 	void updateAnswers();
 	void updateVotes();
 	void updateTotalVotes();
+	bool showVotersCount() const;
+	bool inlineFooter() const;
 	void updateAnswerVotes();
 	void updateAnswerVotesFromOriginal(
 		Answer &answer,
@@ -74,6 +82,11 @@ private:
 		int maxVotes);
 	void checkSendingAnimation() const;
 
+	void paintRecentVoters(
+		Painter &p,
+		int left,
+		int top,
+		TextSelection selection) const;
 	int paintAnswer(
 		Painter &p,
 		const Answer &answer,
@@ -99,11 +112,25 @@ private:
 		TextSelection selection) const;
 	void paintFilling(
 		Painter &p,
+		bool chosen,
+		bool correct,
 		float64 filling,
 		int left,
 		int top,
 		int width,
 		int height,
+		TextSelection selection) const;
+	void paintInlineFooter(
+		Painter &p,
+		int left,
+		int top,
+		int paintw,
+		TextSelection selection) const;
+	void paintBottom(
+		Painter &p,
+		int left,
+		int top,
+		int paintw,
 		TextSelection selection) const;
 
 	bool checkAnimationStart() const;
@@ -114,17 +141,30 @@ private:
 	void radialAnimationCallback() const;
 
 	void toggleRipple(Answer &answer, bool pressed);
+	void toggleLinkRipple(bool pressed);
+	void toggleMultiOption(const QByteArray &option);
+	void sendMultiOptions();
+	void showResults();
 
-	not_null<PollData*> _poll;
+	[[nodiscard]] int bottomButtonHeight() const;
+
+	const not_null<PollData*> _poll;
 	int _pollVersion = 0;
 	int _totalVotes = 0;
 	bool _voted = false;
-	bool _closed = false;
+	PollData::Flags _flags = PollData::Flags();
 
 	Ui::Text::String _question;
 	Ui::Text::String _subtitle;
+	std::vector<not_null<UserData*>> _recentVoters;
+	QImage _recentVotersImage;
+
 	std::vector<Answer> _answers;
 	Ui::Text::String _totalVotesLabel;
+	ClickHandlerPtr _showResultsLink;
+	ClickHandlerPtr _sendVotesLink;
+	mutable std::unique_ptr<Ui::RippleAnimation> _linkRipple;
+	bool _hasSelected = false;
 
 	mutable std::unique_ptr<AnswersAnimation> _answersAnimation;
 	mutable std::unique_ptr<SendingAnimation> _sendingAnimation;

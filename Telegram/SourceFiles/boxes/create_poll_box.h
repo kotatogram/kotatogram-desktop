@@ -31,6 +31,8 @@ public:
 	CreatePollBox(
 		QWidget*,
 		not_null<Main::Session*> session,
+		PollData::Flags chosen,
+		PollData::Flags disabled,
 		Api::SendType sendType);
 
 	rpl::producer<Result> submitRequests() const;
@@ -47,6 +49,8 @@ private:
 		not_null<Ui::VerticalLayout*> container);
 
 	const not_null<Main::Session*> _session;
+	const PollData::Flags _chosen = PollData::Flags();
+	const PollData::Flags _disabled = PollData::Flags();
 	const Api::SendType _sendType = Api::SendType();
 	Fn<void()> _setInnerFocus;
 	Fn<rpl::producer<bool>()> _dataIsValidValue;

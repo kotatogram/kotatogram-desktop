@@ -30,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/inactive_press.h"
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
+#include "window/window_controller.h"
 #include "boxes/confirm_box.h"
 #include "boxes/report_box.h"
 #include "boxes/sticker_set_box.h"
@@ -1719,8 +1720,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				}
 				if (const auto media = item->media()) {
 					if (const auto poll = media->poll()) {
-						if (!poll->closed) {
-							if (poll->voted()) {
+						if (!poll->closed()) {
+							if (poll->voted() && !poll->quiz()) {
 								_menu->addAction(tr::lng_polls_retract(tr::now), [=] {
 									session().api().sendPollVotes(itemId, {});
 								});
@@ -2416,6 +2417,12 @@ bool HistoryInner::elementIntersectsRange(
 void HistoryInner::elementStartStickerLoop(
 		not_null<const Element*> view) {
 	_animatedStickersPlayed.emplace(view->data());
+}
+
+void HistoryInner::elementShowPollResults(
+		not_null<PollData*> poll,
+		FullMsgId context) {
+	_controller->showPollResults(poll, context);
 }
 
 auto HistoryInner::getSelectionState() const
@@ -3276,6 +3283,13 @@ not_null<HistoryView::ElementDelegate*> HistoryInner::ElementDelegate() {
 				not_null<const Element*> view) override {
 			if (Instance) {
 				Instance->elementStartStickerLoop(view);
+			}
+		}
+		void elementShowPollResults(
+				not_null<PollData*> poll,
+				FullMsgId context) override {
+			if (Instance) {
+				Instance->elementShowPollResults(poll, context);
 			}
 		}
 

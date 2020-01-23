@@ -314,7 +314,7 @@ HistoryWidget::HistoryWidget(
 	_fieldBarCancel->addClickHandler([=] { cancelFieldAreaState(); });
 	_send->addClickHandler([=] { sendButtonClicked(); });
 
-	SetupSendMenu(
+	SetupSendMenuAndShortcuts(
 		_send,
 		[=] { return sendButtonMenuType(); },
 		[=] { sendSilent(); },
@@ -3066,6 +3066,8 @@ SendMenuType HistoryWidget::sendMenuType() const {
 		? SendMenuType::Disabled
 		: _peer->isSelf()
 		? SendMenuType::Reminder
+		: HistoryView::CanScheduleUntilOnline(_peer)
+		? SendMenuType::ScheduledToUser
 		: SendMenuType::Scheduled;
 }
 
@@ -6900,7 +6902,13 @@ void HistoryWidget::drawPinnedBar(Painter &p) {
 		}
 		p.setPen(st::historyReplyNameFg);
 		p.setFont(st::msgServiceNameFont);
-		p.drawText(left, top + st::msgServiceNameFont->ascent, (media && media->poll()) ? tr::lng_pinned_poll(tr::now) : tr::lng_pinned_message(tr::now));
+		const auto poll = media ? media->poll() : nullptr;
+		const auto pinnedHeader = !poll
+			? tr::lng_pinned_message(tr::now)
+			: poll->quiz()
+			? tr::lng_pinned_quiz(tr::now)
+			: tr::lng_pinned_poll(tr::now);
+		p.drawText(left, top + st::msgServiceNameFont->ascent, pinnedHeader);
 
 		p.setPen(st::historyComposeAreaFg);
 		p.setTextPalette(st::historyComposeAreaPalette);

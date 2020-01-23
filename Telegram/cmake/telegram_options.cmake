@@ -5,15 +5,16 @@
 # https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 option(TDESKTOP_FORCE_GTK_FILE_DIALOG "Force using GTK file dialog (Linux only)." OFF)
-option(TDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME "Disable automatic 'tg://' URL scheme handler registration." OFF)
+option(TDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME "Disable automatic 'tg://' URL scheme handler registration." ${DESKTOP_APP_USE_PACKAGED})
 option(TDESKTOP_DISABLE_NETWORK_PROXY "Disable all code for working through Socks5 or MTProxy." OFF)
-option(TDESKTOP_DISABLE_DESKTOP_FILE_GENERATION "Disable automatic '.desktop' file generation (Linux only)." OFF)
+option(TDESKTOP_DISABLE_DESKTOP_FILE_GENERATION "Disable automatic '.desktop' file generation (Linux only)." ${DESKTOP_APP_USE_PACKAGED})
 option(TDESKTOP_DISABLE_GTK_INTEGRATION "Disable all code for GTK integration (Linux only)." OFF)
+option(TDESKTOP_DISABLE_DBUS_INTEGRATION "Disable all code for D-Bus integration (Linux only)." OFF)
 option(TDESKTOP_USE_PACKAGED_TGVOIP "Find libtgvoip using CMake instead of bundled one." ${DESKTOP_APP_USE_PACKAGED})
 option(TDESKTOP_API_TEST "Use test API credentials." OFF)
 set(TDESKTOP_API_ID "0" CACHE STRING "Provide 'api_id' for the Telegram API access.")
 set(TDESKTOP_API_HASH "" CACHE STRING "Provide 'api_hash' for the Telegram API access.")
-set(TDESKTOP_LAUNCHER_FILENAME "" CACHE STRING "Use custom desktop file name (Linux only).")
+set(TDESKTOP_LAUNCHER_BASENAME "" CACHE STRING "Desktop file base name (Linux only).")
 
 if (TDESKTOP_API_TEST)
     set(TDESKTOP_API_ID 17349)
@@ -21,7 +22,7 @@ if (TDESKTOP_API_TEST)
 endif()
 
 if (TDESKTOP_API_ID STREQUAL "0" OR TDESKTOP_API_HASH STREQUAL "")
-    message(FATAL_ERROR 
+    message(FATAL_ERROR
     " \n"
     " PROVIDE: -D TDESKTOP_API_ID=[API_ID] -D TDESKTOP_API_HASH=[API_HASH]\n"
     " \n"
@@ -85,6 +86,11 @@ if (TDESKTOP_DISABLE_GTK_INTEGRATION)
     target_compile_definitions(Telegram PRIVATE TDESKTOP_DISABLE_GTK_INTEGRATION)
 endif()
 
-if (TDESKTOP_LAUNCHER_FILENAME)
-    target_compile_definitions(Telegram PRIVATE TDESKTOP_LAUNCHER_FILENAME=${TDESKTOP_LAUNCHER_FILENAME})
+if (TDESKTOP_DISABLE_DBUS_INTEGRATION)
+    target_compile_definitions(Telegram PRIVATE TDESKTOP_DISABLE_DBUS_INTEGRATION)
 endif()
+
+if (NOT TDESKTOP_LAUNCHER_BASENAME)
+    set(TDESKTOP_LAUNCHER_BASENAME "telegramdesktop")
+endif()
+target_compile_definitions(Telegram PRIVATE TDESKTOP_LAUNCHER_BASENAME=${TDESKTOP_LAUNCHER_BASENAME})

@@ -191,6 +191,7 @@ public:
 	[[nodiscard]] bool canRevokeFullHistory() const;
 	[[nodiscard]] bool slowmodeApplied() const;
 	[[nodiscard]] int slowmodeSecondsLeft() const;
+	[[nodiscard]] bool canSendPolls() const;
 
 	[[nodiscard]] UserData *asUser();
 	[[nodiscard]] const UserData *asUser() const;
@@ -366,7 +367,7 @@ private:
 
 	static constexpr auto kUnknownPhotoId = PhotoId(0xFFFFFFFFFFFFFFFFULL);
 
-	not_null<Data::Session*> _owner;
+	const not_null<Data::Session*> _owner;
 
 	ImagePtr _userpic;
 	PhotoId _userpicPhotoId = kUnknownPhotoId;
