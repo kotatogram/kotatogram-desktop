@@ -43,7 +43,7 @@ BEGIN
             VALUE "CompanyName", "Kotatogram"
             VALUE "FileDescription", "Kotatogram Desktop Updater"
             VALUE "FileVersion", "1.1.4.0"
-            VALUE "LegalCopyright", "Copyright (C) 2014-2019"
+            VALUE "LegalCopyright", "Copyright (C) 2014-2020"
             VALUE "ProductName", "Kotatogram Desktop"
             VALUE "ProductVersion", "1.1.4.0"
         END
