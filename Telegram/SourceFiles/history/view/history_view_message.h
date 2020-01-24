@@ -87,6 +87,8 @@ public:
 	int infoWidth() const override;
 	int plainMaxWidth() const override;
 
+	VerticalRepaintRange verticalRepaintRange() const override;
+
 protected:
 	void refreshDataIdHook() override;
 

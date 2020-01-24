@@ -605,6 +605,13 @@ bool Element::hasVisibleText() const {
 	return false;
 }
 
+auto Element::verticalRepaintRange() const -> VerticalRepaintRange {
+	return {
+		.top = 0,
+		.height = height()
+	};
+}
+
 void Element::unloadHeavyPart() {
 	if (_media) {
 		_media->unloadHeavyPart();

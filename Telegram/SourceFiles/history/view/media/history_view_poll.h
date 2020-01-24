@@ -8,11 +8,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "history/view/media/history_view_media.h"
+#include "ui/effects/animations.h"
 #include "data/data_poll.h"
 #include "base/weak_ptr.h"
 
 namespace Ui {
 class RippleAnimation;
+class FireworksAnimation;
 } // namespace Ui
 
 namespace HistoryView {
@@ -39,6 +41,13 @@ public:
 	bool customInfoLayout() const override {
 		return false;
 	}
+
+	BubbleRoll bubbleRoll() const override;
+	QMargins bubbleRollRepaintMargins() const override;
+	void paintBubbleFireworks(
+		Painter &p,
+		const QRect &bubble,
+		crl::time ms) const override;
 
 	void clickHandlerPressedChanged(
 		const ClickHandlerPtr &handler,
@@ -145,6 +154,7 @@ private:
 	void toggleMultiOption(const QByteArray &option);
 	void sendMultiOptions();
 	void showResults();
+	void checkQuizAnswered();
 
 	[[nodiscard]] int bottomButtonHeight() const;
 
@@ -164,11 +174,16 @@ private:
 	ClickHandlerPtr _showResultsLink;
 	ClickHandlerPtr _sendVotesLink;
 	mutable std::unique_ptr<Ui::RippleAnimation> _linkRipple;
-	bool _hasSelected = false;
 
 	mutable std::unique_ptr<AnswersAnimation> _answersAnimation;
 	mutable std::unique_ptr<SendingAnimation> _sendingAnimation;
+	mutable std::unique_ptr<Ui::FireworksAnimation> _fireworksAnimation;
+	Ui::Animations::Simple _wrongAnswerAnimation;
 	mutable QPoint _lastLinkPoint;
+
+	bool _hasSelected = false;
+	bool _votedFromHere = false;
+	mutable bool _wrongAnswerAnimated = false;
 
 };
 

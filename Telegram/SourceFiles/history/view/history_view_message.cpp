@@ -409,6 +409,15 @@ void Message::draw(
 
 	paintHighlight(p, g.height());
 
+	const auto roll = media ? media->bubbleRoll() : Media::BubbleRoll();
+	if (roll) {
+		p.save();
+		p.translate(g.center());
+		p.rotate(roll.rotate);
+		p.scale(roll.scale, roll.scale);
+		p.translate(-g.center());
+	}
+
 	p.setTextPalette(selected
 		? (outbg ? st::outTextPaletteSelected : st::inTextPaletteSelected)
 		: (outbg ? st::outTextPalette : st::inTextPalette));
@@ -496,6 +505,10 @@ void Message::draw(
 			const auto fastShareTop = g.top() + g.height() - fastShareSkip - st::historyFastShareSize;
 			drawRightAction(p, fastShareLeft, fastShareTop, width());
 		}
+
+		if (media) {
+			media->paintBubbleFireworks(p, g, ms);
+		}
 	} else if (media && media->isDisplayed()) {
 		p.translate(g.topLeft());
 		media->draw(p, clip.translated(-g.topLeft()), skipTextSelection(selection), ms);
@@ -503,6 +516,10 @@ void Message::draw(
 	}
 
 	p.restoreTextPalette();
+
+	if (roll) {
+		p.restore();
+	}
 
 	const auto reply = item->Get<HistoryMessageReply>();
 	if (reply && reply->isNameUpdated()) {
@@ -1278,6 +1295,15 @@ int Message::infoWidth() const {
 		result += st::historySendStateSpace;
 	}
 	return result;
+}
+
+auto Message::verticalRepaintRange() const -> VerticalRepaintRange {
+	const auto media = this->media();
+	const auto add = media ? media->bubbleRollRepaintMargins() : QMargins();
+	return {
+		.top = -add.top(),
+		.height = height() + add.top() + add.bottom()
+	};
 }
 
 void Message::refreshDataIdHook() {

@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/animations.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/effects/ripple_animation.h"
+#include "ui/effects/fireworks_animation.h"
 #include "data/data_media_types.h"
 #include "data/data_poll.h"
 #include "data/data_user.h"
@@ -32,6 +33,11 @@ namespace HistoryView {
 namespace {
 
 constexpr auto kShowRecentVotersCount = 3;
+constexpr auto kRotateSegments = 8;
+constexpr auto kRotateAmplitude = 3.;
+constexpr auto kScaleSegments = 2;
+constexpr auto kScaleAmplitude = 0.03;
+constexpr auto kRollDuration = crl::time(400);
 
 struct PercentCounterItem {
 	int index = 0;
@@ -344,6 +350,7 @@ void Poll::updateTexts() {
 	_pollVersion = _poll->version;
 
 	const auto willStartAnimation = checkAnimationStart();
+	const auto voted = _voted;
 
 	if (_question.toString() != _poll->question) {
 		auto options = Ui::WebpageTextTitleOptions();
@@ -374,6 +381,30 @@ void Poll::updateTexts() {
 
 	if (willStartAnimation) {
 		startAnswersAnimation();
+		if (!voted) {
+			checkQuizAnswered();
+		}
+	}
+}
+
+void Poll::checkQuizAnswered() {
+	if (!_voted || !_votedFromHere || !_poll->quiz() || anim::Disabled()) {
+		return;
+	}
+	const auto i = ranges::find(_answers, true, &Answer::chosen);
+	if (i == end(_answers)) {
+		return;
+	}
+	if (i->correct) {
+		_fireworksAnimation = std::make_unique<Ui::FireworksAnimation>(
+			[=] { history()->owner().requestViewRepaint(_parent); });
+	} else {
+		_wrongAnswerAnimation.start(
+			[=] { history()->owner().requestViewRepaint(_parent); },
+			0.,
+			1.,
+			kRollDuration,
+			anim::linear);
 	}
 }
 
@@ -426,6 +457,7 @@ ClickHandlerPtr Poll::createAnswerClickHandler(
 		}));
 	}
 	return std::make_shared<LambdaClickHandler>(crl::guard(this, [=] {
+		_votedFromHere = true;
 		history()->session().api().sendPollVotes(
 			_parent->data()->fullId(),
 			{ option });
@@ -465,9 +497,7 @@ void Poll::sendMultiOptions() {
 		&Answer::option
 	) | ranges::to_vector;
 	if (!chosen.empty()) {
-		for (auto &answer : _answers) {
-			answer.selected = false;
-		}
+		_votedFromHere = true;
 		history()->session().api().sendPollVotes(
 			_parent->data()->fullId(),
 			std::move(chosen));
@@ -481,7 +511,17 @@ void Poll::showResults() {
 }
 
 void Poll::updateVotes() {
-	_voted = _poll->voted();
+	const auto voted = _poll->voted();
+	if (_voted != voted) {
+		_voted = voted;
+		if (_voted) {
+			for (auto &answer : _answers) {
+				answer.selected = false;
+			}
+		} else {
+			_votedFromHere = false;
+		}
+	}
 	updateAnswerVotes();
 	updateTotalVotes();
 }
@@ -961,6 +1001,8 @@ void Poll::paintFilling(
 
 	if (chosen && !correct) {
 		p.setBrush(st::boxTextFgError);
+	} else if (chosen && correct && _poll->quiz() && !outbg) {
+		p.setBrush(st::boxTextFgGood);
 	} else {
 		const auto bar = outbg ? (selected ? st::msgWaveformOutActiveSelected : st::msgWaveformOutActive) : (selected ? st::msgWaveformInActiveSelected : st::msgWaveformInActive);
 		p.setBrush(bar);
@@ -1117,6 +1159,49 @@ TextState Poll::textState(QPoint point, StateRequest request) const {
 		}
 	}
 	return result;
+}
+
+auto Poll::bubbleRoll() const -> BubbleRoll {
+	const auto value = _wrongAnswerAnimation.value(1.);
+	_wrongAnswerAnimated = (value < 1.);
+	if (!_wrongAnswerAnimated) {
+		return BubbleRoll();
+	}
+	const auto rotateFull = value * kRotateSegments;
+	const auto progress = [](float64 full) {
+		const auto lower = std::floor(full);
+		const auto shift = (full - lower);
+		switch (int(lower) % 4) {
+		case 0: return -shift;
+		case 1: return (shift - 1.);
+		case 2: return shift;
+		case 3: return (1. - shift);
+		}
+		Unexpected("Value in Poll::getBubbleRollDegrees.");
+	};
+	return {
+		.rotate = progress(value * kRotateSegments) * kRotateAmplitude,
+		.scale = 1. + progress(value * kScaleSegments) * kScaleAmplitude
+	};
+}
+
+QMargins Poll::bubbleRollRepaintMargins() const {
+	if (!_wrongAnswerAnimated) {
+		return QMargins();
+	}
+	static const auto kAdd = int(std::ceil(
+		st::msgMaxWidth * std::sin(kRotateAmplitude * M_PI / 180.)));
+	return QMargins(kAdd, kAdd, kAdd, kAdd);
+}
+
+void Poll::paintBubbleFireworks(
+		Painter &p,
+		const QRect &bubble,
+		crl::time ms) const {
+	if (!_fireworksAnimation || _fireworksAnimation->paint(p, bubble)) {
+		return;
+	}
+	_fireworksAnimation = nullptr;
 }
 
 void Poll::clickHandlerPressedChanged(

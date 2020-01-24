@@ -264,6 +264,12 @@ public:
 	virtual TimeId displayedEditDate() const;
 	virtual bool hasVisibleText() const;
 
+	struct VerticalRepaintRange {
+		int top = 0;
+		int height = 0;
+	};
+	[[nodiscard]] virtual VerticalRepaintRange verticalRepaintRange() const;
+
 	virtual void unloadHeavyPart();
 
 	// Legacy blocks structure.
