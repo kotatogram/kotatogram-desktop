@@ -123,10 +123,10 @@ QSize Gif::countOptimalSize() {
 	const auto size = style::ConvertScale(videoSize());
 	auto tw = size.width();
 	auto th = size.height();
-	if ((!cAdaptiveBubbles() || captionWithPaddings <= maxSize) && tw > maxSize) {
+	if ((!AdaptiveBubbles() || captionWithPaddings <= maxSize) && tw > maxSize) {
 		th = (maxSize * th) / tw;
 		tw = maxSize;
-	} else if (cAdaptiveBubbles() && captionWithPaddings > maxSize && tw > captionWithPaddings) {
+	} else if (AdaptiveBubbles() && captionWithPaddings > maxSize && tw > captionWithPaddings) {
 		th = (captionWithPaddings * th) / tw;
 		tw = captionWithPaddings;
 	}
@@ -147,7 +147,7 @@ QSize Gif::countOptimalSize() {
 	}
 	if (_parent->hasBubble()) {
 		if (!_caption.isEmpty()) {
-			if (cAdaptiveBubbles()) {
+			if (AdaptiveBubbles()) {
 				accumulate_max(maxWidth, captionWithPaddings);
 			}
 			auto captionw = maxWidth - st::msgPadding.left() - st::msgPadding.right();
@@ -183,10 +183,10 @@ QSize Gif::countCurrentSize(int newWidth) {
 	const auto size = style::ConvertScale(videoSize());
 	auto tw = size.width();
 	auto th = size.height();
-	if ((!cAdaptiveBubbles() || captionWithPaddings <= maxSize) && tw > maxSize) {
+	if ((!AdaptiveBubbles() || captionWithPaddings <= maxSize) && tw > maxSize) {
 		th = (maxSize * th) / tw;
 		tw = maxSize;
-	} else if (cAdaptiveBubbles() && captionWithPaddings > maxSize && tw > captionWithPaddings) {
+	} else if (AdaptiveBubbles() && captionWithPaddings > maxSize && tw > captionWithPaddings) {
 		th = (captionWithPaddings * th) / tw;
 		tw = captionWithPaddings;
 	}
@@ -213,7 +213,7 @@ QSize Gif::countCurrentSize(int newWidth) {
 	}
 	if (_parent->hasBubble()) {
 		if (!_caption.isEmpty()) {
-			if (cAdaptiveBubbles()) {
+			if (AdaptiveBubbles()) {
 				accumulate_max(newWidth, captionWithPaddings);
 				accumulate_min(newWidth, availableWidth);
 			}

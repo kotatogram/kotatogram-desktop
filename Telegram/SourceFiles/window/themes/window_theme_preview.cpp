@@ -251,7 +251,7 @@ void Generator::addAudioBubble(QVector<int> waveform, int waveactive, QString wa
 	tleft = st::msgFilePadding.left() + st::msgFileSize + st::msgFilePadding.right();
 	tright = st::msgFileThumbPadding.left();
 	accumulate_max(width, tleft + st::normalFont->width(wavestatus) + skipBlock.width() + st::msgPadding.right());
-	if (!cAdaptiveBubbles()) {
+	if (!AdaptiveBubbles()) {
 		accumulate_min(width, st::msgMaxWidth);
 	}
 
@@ -281,7 +281,7 @@ void Generator::addTextBubble(QString text, QString date, Status status) {
 
 	auto width = _history.width() - st::msgMargin.left() - st::msgMargin.right();
 	accumulate_min(width, st::msgPadding.left() + bubble.text.maxWidth() + st::msgPadding.right());
-	if (!cAdaptiveBubbles()) {
+	if (!AdaptiveBubbles()) {
 		accumulate_min(width, st::msgMaxWidth);
 	}
 
@@ -307,7 +307,7 @@ void Generator::addPhotoBubble(QString image, QString caption, QString date, Sta
 
 	auto width = _history.width() - st::msgMargin.left() - st::msgMargin.right();
 	accumulate_min(width, bubble.photoWidth);
-	if (!cAdaptiveBubbles()) {
+	if (!AdaptiveBubbles()) {
 		accumulate_min(width, st::msgMaxWidth);
 	}
 

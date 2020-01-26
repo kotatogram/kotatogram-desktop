@@ -164,7 +164,7 @@ void paintBubblePart(Painter &p, int x, int y, int width, int height, SideStyle 
 void paintPreparedDate(Painter &p, const QString &dateText, int dateTextWidth, int y, int w) {
 	int left = st::msgServiceMargin.left();
 	int maxwidth = w;
-	if (Adaptive::ChatWide() && !cAdaptiveBubbles()) {
+	if (Adaptive::ChatWide() && !AdaptiveBubbles()) {
 		maxwidth = qMin(maxwidth, WideChatWidth());
 	}
 	w = maxwidth - st::msgServiceMargin.left() - st::msgServiceMargin.left();
@@ -319,7 +319,7 @@ not_null<HistoryService*> Service::message() const {
 
 QRect Service::countGeometry() const {
 	auto result = QRect(0, 0, width(), height());
-	if (Adaptive::ChatWide() && !cAdaptiveBubbles()) {
+	if (Adaptive::ChatWide() && !AdaptiveBubbles()) {
 		result.setWidth(qMin(result.width(), st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left()));
 	}
 	return result.marginsRemoved(st::msgServiceMargin);
@@ -342,7 +342,7 @@ QSize Service::performCountCurrentSize(int newWidth) {
 		item->_textHeight = 0;
 	} else {
 		auto contentWidth = newWidth;
-		if (Adaptive::ChatWide() && !cAdaptiveBubbles()) {
+		if (Adaptive::ChatWide() && !AdaptiveBubbles()) {
 			accumulate_min(contentWidth, st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left());
 		}
 		contentWidth -= st::msgServiceMargin.left() + st::msgServiceMargin.left(); // two small margins

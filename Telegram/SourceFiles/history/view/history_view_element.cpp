@@ -166,7 +166,7 @@ void UnreadBar::paint(Painter &p, int y, int w) const {
 
 	int left = st::msgServiceMargin.left();
 	int maxwidth = w;
-	if (Adaptive::ChatWide() && !cAdaptiveBubbles()) {
+	if (Adaptive::ChatWide() && !AdaptiveBubbles()) {
 		maxwidth = qMin(
 			maxwidth,
 			st::msgMaxWidth

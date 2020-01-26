@@ -1647,7 +1647,7 @@ QRect Message::countGeometry() const {
 	//	contentLeft += st::msgPhotoSkip - (hmaxwidth - hwidth);
 	}
 	accumulate_min(contentWidth, maxWidth());
-	if (!cAdaptiveBubbles()) {
+	if (!AdaptiveBubbles()) {
 		accumulate_min(contentWidth, st::msgMaxWidth);
 	}
 	if (mediaWidth < contentWidth) {
@@ -1691,7 +1691,7 @@ int Message::resizeContentGetHeight(int newWidth) {
 		contentWidth -= st::msgPhotoSkip;
 	}
 	accumulate_min(contentWidth, maxWidth());
-	if (!cAdaptiveBubbles()) {
+	if (!AdaptiveBubbles()) {
 		accumulate_min(contentWidth, st::msgMaxWidth);
 	}
 	if (mediaDisplayed) {
@@ -1716,7 +1716,7 @@ int Message::resizeContentGetHeight(int newWidth) {
 		auto mediaOnBottom = (mediaDisplayed && media->isBubbleBottom()) || (entry/* && entry->isBubbleBottom()*/);
 		auto mediaOnTop = (mediaDisplayed && media->isBubbleTop()) || (entry && entry->isBubbleTop());
 
-		if (!cAdaptiveBubbles() && contentWidth == maxWidth()) {
+		if (!AdaptiveBubbles() && contentWidth == maxWidth()) {
 			if (mediaDisplayed) {
 				if (entry) {
 					newHeight += entry->resizeGetHeight(contentWidth);

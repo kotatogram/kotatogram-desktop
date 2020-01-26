@@ -80,7 +80,7 @@ QSize GroupedMedia::countOptimalSize() {
 		+ st::msgPadding.left()
 		+ st::msgPadding.right();
 	auto groupMaxWidth = st::historyGroupWidthMax;
-	if (cAdaptiveBubbles()) {
+	if (AdaptiveBubbles()) {
 		accumulate_max(groupMaxWidth, captionWithPaddings);
 	}
 
@@ -102,7 +102,7 @@ QSize GroupedMedia::countOptimalSize() {
 	}
 
 	if (!_caption.isEmpty()) {
-		if (cAdaptiveBubbles()) {
+		if (AdaptiveBubbles()) {
 			maxWidth = qMax(maxWidth, captionWithPaddings);
 		}
 		auto captionw = maxWidth - st::msgPadding.left() - st::msgPadding.right();
