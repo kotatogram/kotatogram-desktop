@@ -231,3 +231,7 @@ void SetDialogListLines(int lines);
 [[nodiscard]] rpl::producer<int> DialogListLinesChanges();
 
 DeclareSetting(bool, DisableUpEdit);
+
+using CustomReplacementsMap = QMap<QString, QString>;
+DeclareRefSetting(CustomReplacementsMap, CustomReplaces);
+bool AddCustomReplace(QString from, QString to);

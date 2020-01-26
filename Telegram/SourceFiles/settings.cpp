@@ -283,3 +283,9 @@ rpl::producer<int> DialogListLinesChanges() {
 }
 
 bool gDisableUpEdit = false;
+
+CustomReplacementsMap gCustomReplaces;
+bool AddCustomReplace(QString from, QString to) {
+	gCustomReplaces.insert(from, to);
+	return true;
+}
