@@ -326,7 +326,7 @@ jobs:
           fi
           echo "::set-env name=TDESKTOP_BUILD_DEFINE::$DEFINE"
 
-      - name: Telegram Desktop build.
+      - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         shell: cmd
         run: |
@@ -347,11 +347,11 @@ jobs:
         run: |
           cd %REPO_NAME%\out\Debug
           mkdir artifact
-          move Telegram.exe artifact/
+          move Kotatogram.exe artifact/
           move Updater.exe artifact/
       - uses: actions/upload-artifact@master
         name: Upload artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
-          name: Telegram
+          name: Kotatogram
           path: ${{ env.REPO_NAME }}\out\Debug\artifact\

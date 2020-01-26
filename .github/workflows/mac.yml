@@ -423,7 +423,7 @@ jobs:
           make clean
           cp -r $QT_PREFIX $LibrariesPath/qt-cache
 
-      - name: Telegram Desktop build.
+      - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
           cd $REPO_NAME/Telegram
@@ -446,11 +446,11 @@ jobs:
         run: |
           cd $REPO_NAME/out/Debug
           mkdir artifact
-          mv Telegram.app artifact/
+          mv Kotatogram.app artifact/
           mv Updater artifact/
       - uses: actions/upload-artifact@master
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
         with:
-          name: Telegram
+          name: Kotatogram
           path: ${{ env.REPO_NAME }}/out/Debug/artifact/

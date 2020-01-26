@@ -456,7 +456,7 @@ jobs:
           mkdir -p breakpad/out/Default/
           cp breakpad-cache/dump_syms breakpad/out/Default/dump_syms
 
-      - name: Telegram Desktop build.
+      - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
           cd $REPO_NAME/Telegram
@@ -471,12 +471,12 @@ jobs:
 
           cd ../out/Debug
           make -j$(nproc)
-          strip -s bin/Telegram
+          strip -s bin/Kotatogram
 
       - name: Check.
         if: env.ONLY_CACHE == 'false'
         run: |
-          filePath="$REPO_NAME/out/Debug/bin/Telegram"
+          filePath="$REPO_NAME/out/Debug/bin/Kotatogram"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
 
@@ -492,10 +492,10 @@ jobs:
         run: |
           cd $REPO_NAME/out/Debug/bin
           mkdir artifact
-          mv Telegram artifact/
+          mv Kotatogram artifact/
       - uses: actions/upload-artifact@master
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
         with:
-          name: Telegram
+          name: Kotatogram
           path: ${{ env.REPO_NAME }}/out/Debug/bin/artifact/
