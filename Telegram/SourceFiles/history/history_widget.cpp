@@ -529,7 +529,14 @@ HistoryWidget::HistoryWidget(
 	AdaptiveBubblesChanges(
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {
-			updateHistoryGeometry();
+			if (_history) {
+				_history->forceFullResize();
+				if (_migrated) {
+					_migrated->forceFullResize();
+				}
+				updateHistoryGeometry();
+				update();
+			}
 		});
 	}, lifetime());
 
