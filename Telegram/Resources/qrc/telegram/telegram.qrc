@@ -60,5 +60,6 @@
   </qresource>
   <qresource prefix="/ktg_lang">
     <file alias="ru.json">../../langs/rewrites/ru.json</file>
+    <file alias="kotatogramdesktop.desktop">../../../../lib/xdg/kotatogramdesktop.desktop</file>
   </qresource>
 </RCC>

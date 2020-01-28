@@ -29,6 +29,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Platform {
 namespace {
 
+constexpr auto kLauncherBasename = str_const(MACRO_TO_STRING(TDESKTOP_LAUNCHER_BASENAME) ".desktop");
+
 bool noQtTrayIcon = false, tryAppIndicator = false;
 bool useGtkBase = false, useAppIndicator = false, useStatusIcon = false, trayIconChecked = false, useUnityCount = false;
 
@@ -547,7 +549,7 @@ void MainWindow::psFirstShow() {
 		auto snapName = QString::fromLatin1(qgetenv("SNAP_NAME"));
 		if(snapName.isEmpty()) {
 			std::vector<QString> possibleDesktopFiles = {
-				MACRO_TO_STRING(TDESKTOP_LAUNCHER_BASENAME) ".desktop",
+				str_const_toString(kLauncherBasename),
 				"Kotatogram.desktop"
 			};
 
@@ -563,8 +565,12 @@ void MainWindow::psFirstShow() {
 				LOG(("Could not get Unity Launcher entry!"));
 			}
 		} else {
-			LOG(("SNAP Environment detected, setting Launcher entry to %1-kotatogramdesktop.desktop!").arg(snapName));
-			_desktopFile = snapName + "_kotatogramdesktop.desktop";
+			LOG(("SNAP Environment detected, setting Launcher entry to %1_%2.desktop!")
+				.arg(snapName)
+				.arg(str_const_toString(kLauncherBasename)));
+			_desktopFile = snapName
+				+ '_'
+				+ str_const_toString(kLauncherBasename);
 			useUnityCount=true;
 		}
 		_dbusPath = "/com/canonical/unity/launcherentry/" + QString::number(djbStringHash("application://" + _desktopFile));
@@ -573,25 +579,24 @@ void MainWindow::psFirstShow() {
 	}
 #endif
 
-	bool showShadows = true;
-
 	show();
-	//_private.enableShadow(winId());
 	if (cWindowPos().maximized) {
 		DEBUG_LOG(("Window Pos: First show, setting maximized."));
 		setWindowState(Qt::WindowMaximized);
 	}
 
 	if ((cLaunchMode() == LaunchModeAutoStart && cStartMinimized()) || cStartInTray()) {
-		setWindowState(Qt::WindowMinimized);
-		if (Global::WorkMode().value() == dbiwmTrayOnly || Global::WorkMode().value() == dbiwmWindowAndTray) {
-			hide();
-		} else {
-			show();
-		}
-		showShadows = false;
-	} else {
-		show();
+		// If I call hide() synchronously here after show() then on Ubuntu 14.04
+		// it will show a window frame with transparent window body, without content.
+		// And to be able to "Show from tray" one more hide() will be required.
+		crl::on_main(this, [=] {
+			setWindowState(Qt::WindowMinimized);
+			if (Global::WorkMode().value() == dbiwmTrayOnly || Global::WorkMode().value() == dbiwmWindowAndTray) {
+				hide();
+			} else {
+				show();
+			}
+		});
 	}
 
 	setPositionInited();
