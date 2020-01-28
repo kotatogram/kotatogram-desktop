@@ -1,5 +1,5 @@
-name: telegram-desktop
-adopt-info: telegram
+name: kotatogram-desktop
+adopt-info: kotatogram
 icon: Telegram/Resources/art/icon512@2x.png
 
 base: core18
@@ -7,10 +7,10 @@ grade: stable
 confinement: strict
 
 apps:
-  telegram-desktop:
-    command: bin/desktop-launch telegram-desktop
-    common-id: org.telegram.desktop
-    desktop: share/applications/telegramdesktop.desktop
+  kotatogram-desktop:
+    command: bin/desktop-launch kotatogram-desktop
+    common-id: io.github.kotatogram
+    desktop: share/applications/kotatogramdesktop.desktop
     environment:
       # Use GTK3 cursor theme, icon theme and open/save file dialogs.
       QT_QPA_PLATFORMTHEME: gtk3
@@ -42,11 +42,11 @@ plugs:
     default-provider: gtk-common-themes
 
 parts:
-  telegram:
+  kotatogram:
     plugin: cmake
     source: .
     source-type: git
-    parse-info: [share/metainfo/telegramdesktop.appdata.xml]
+    parse-info: [share/metainfo/kotatogramdesktop.appdata.xml]
     build-packages:
       - gcc-8
       - g++-8
@@ -108,7 +108,7 @@ parts:
 
       snapcraftctl set-version "$version"
 
-      sed -i 's|^Icon=.*|Icon=/share/icons/hicolor/512x512/apps/telegram.png|g' lib/xdg/telegramdesktop.desktop
+      sed -i 's|^Icon=.*|Icon=/share/icons/hicolor/512x512/apps/kotatogram.png|g' lib/xdg/kotatogramdesktop.desktop
     after:
       - cmake
       - desktop-qt5

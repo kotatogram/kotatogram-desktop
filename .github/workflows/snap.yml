@@ -73,14 +73,14 @@ jobs:
         if: steps.cache-enchant.outputs.cache-hit != 'true'
         run: snapcraft build --destructive-mode enchant
 
-      - name: Telegram Desktop snap build.
+      - name: Kotatogram Desktop snap build.
         if: env.ONLY_CACHE == 'false'
         run: snapcraft --destructive-mode
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          artifact_name=$(echo telegram-desktop_*.snap)
+          artifact_name=$(echo kotatogram-desktop_*.snap)
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
           mkdir artifact
