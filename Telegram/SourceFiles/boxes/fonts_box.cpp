@@ -18,7 +18,8 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "app.h"
 
 FontsBox::FontsBox(QWidget* parent)
-: _mainFontName(this, st::defaultInputField, tr::ktg_fonts_main())
+: _useSystemFont(this, tr::ktg_fonts_use_system_font(tr::now), cUseSystemFont())
+, _mainFontName(this, st::defaultInputField, tr::ktg_fonts_main())
 , _semiboldFontName(this, st::defaultInputField, tr::ktg_fonts_semibold())
 , _semiboldIsBold(this, tr::ktg_fonts_semibold_is_bold(tr::now), cSemiboldFontIsBold())
 , _monospacedFontName(this, st::defaultInputField, tr::ktg_fonts_monospaced())
@@ -49,7 +50,13 @@ void FontsBox::prepare() {
 	_about.setText(st::fontsBoxTextStyle, tr::ktg_fonts_about(tr::now));
 	_aboutHeight = _about.countHeight(st::boxWidth - st::boxPadding.left() * 1.5);
 
-	setDimensions(st::boxWidth, _mainFontName->height() + _semiboldFontName->height() + _semiboldIsBold->height() + _monospacedFontName->height() + _aboutHeight + st::boxLittleSkip * 2);
+	setDimensions(st::boxWidth, _useSystemFont->height()
+		+ _mainFontName->height()
+		+ _semiboldFontName->height()
+		+ _semiboldIsBold->height()
+		+ _monospacedFontName->height()
+		+ _aboutHeight
+		+ st::boxLittleSkip * 2);
 }
 
 
@@ -58,7 +65,12 @@ void FontsBox::paintEvent(QPaintEvent *e) {
 
 	Painter p(this);
 	int32 w = st::boxWidth - st::boxPadding.left() * 1.5;
-	int32 abouty = _mainFontName->height() + _semiboldFontName->height() + _semiboldIsBold->height() + _monospacedFontName->height() + st::boxLittleSkip * 2;
+	int32 abouty = _useSystemFont->height()
+		+ _mainFontName->height()
+		+ _semiboldFontName->height()
+		+ _semiboldIsBold->height()
+		+ _monospacedFontName->height()
+		+ st::boxLittleSkip * 2;
 	p.setPen(st::windowSubTextFg);
 	_about.drawLeft(p, st::boxPadding.left(), abouty, w, width());
 
@@ -68,8 +80,10 @@ void FontsBox::resizeEvent(QResizeEvent *e) {
 	BoxContent::resizeEvent(e);
 
 	int32 w = st::boxWidth - st::boxPadding.left() - st::boxPadding.right();
+	_useSystemFont->resize(w, _useSystemFont->height());
+	_useSystemFont->moveToLeft(st::boxPadding.left(), 0);
 	_mainFontName->resize(w, _mainFontName->height());
-	_mainFontName->moveToLeft(st::boxPadding.left(), 0);
+	_mainFontName->moveToLeft(st::boxPadding.left(), _useSystemFont->y() + _useSystemFont->height() + st::boxLittleSkip);
 	_semiboldFontName->resize(w, _semiboldFontName->height());
 	_semiboldFontName->moveToLeft(st::boxPadding.left(), _mainFontName->y() + _mainFontName->height());
 	_semiboldIsBold->resize(w, _semiboldIsBold->height());
@@ -83,12 +97,14 @@ void FontsBox::setInnerFocus() {
 }
 
 void FontsBox::save() {
+	const auto useSystemFont = _useSystemFont->checked();
 	const auto mainFont = _mainFontName->getLastText().trimmed();
 	const auto semiboldFont = _semiboldFontName->getLastText().trimmed();
 	const auto semiboldIsBold = _semiboldIsBold->checked();
 	const auto monospacedFont = _monospacedFontName->getLastText().trimmed();
 
 	const auto changeFonts = [=] {
+		cSetUseSystemFont(useSystemFont);
 		cSetMainFont(mainFont);
 		cSetSemiboldFont(semiboldFont);
 		cSetSemiboldFontIsBold(semiboldIsBold);
