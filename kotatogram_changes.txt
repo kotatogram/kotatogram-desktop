@@ -1,5 +1,10 @@
+1.1.6 (31.01.2020)
+- Updated TDesktop sources to 1.9.9.
+- Custom text replaces.
+- Ability to use system font (user-contributed).
+
 1.1.5 (25.01.2020)
-- Updated TDesktop sources to 1.9.7.
+- Updated TDesktop sources to 1.9.8.
 
 1.1.4 (24.01.2020)
 - Updated TDesktop sources to 1.9.7.
