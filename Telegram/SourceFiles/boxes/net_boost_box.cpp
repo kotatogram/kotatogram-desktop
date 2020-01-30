@@ -83,7 +83,7 @@ void NetBoostBox::save() {
 	*box = getDelegate()->show(
 		Box<ConfirmBox>(
 			tr::ktg_net_boost_restart_desc(tr::now),
-			tr::ktg_fonts_restart(tr::now),
+			tr::lng_settings_restart_now(tr::now),
 			tr::lng_cancel(tr::now),
 			changeBoost));
 }
