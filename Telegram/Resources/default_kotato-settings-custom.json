@@ -8,10 +8,10 @@
     //     "semibold_is_bold": false,
     //     "monospaced": "Consolas"
     // },
-    // "sticker_height": 128,
-    // "big_emoji_outline": false,
-    // "always_show_scheduled": true,
-    // "show_chat_id": true,
+    // "sticker_height": 170,
+    // "big_emoji_outline": true,
+    // "always_show_scheduled": false,
+    // "show_chat_id": false,
     // "net_speed_boost": null,
     // "show_phone_in_drawer": true,
     // "scales": []

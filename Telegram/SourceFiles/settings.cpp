@@ -216,7 +216,7 @@ bool gUseSystemFont = true;
 bool gUseSystemFont = false;
 #endif
 
-rpl::variable<int> gStickerHeight = 128;
+rpl::variable<int> gStickerHeight = 170;
 void SetStickerHeight(int height) {
 	gStickerHeight = height;
 }
@@ -227,7 +227,7 @@ rpl::producer<int> StickerHeightChanges() {
 	return gStickerHeight.changes();
 }
 
-rpl::variable<bool> gBigEmojiOutline = false;
+rpl::variable<bool> gBigEmojiOutline = true;
 void SetBigEmojiOutline(bool enabled) {
 	gBigEmojiOutline = enabled;
 }
@@ -249,8 +249,8 @@ rpl::producer<bool> AdaptiveBubblesChanges() {
 	return gAdaptiveBubbles.changes();
 }
 
-bool gAlwaysShowScheduled = true;
-bool gShowChatId = true;
+bool gAlwaysShowScheduled = false;
+bool gShowChatId = false;
 
 int gNetSpeedBoost = 0;
 int gNetRequestsCount = 2;
