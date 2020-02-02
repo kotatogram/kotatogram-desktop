@@ -63,8 +63,8 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	};
 	stickerHeightSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 	stickerHeightSlider->setPseudoDiscrete(
-		129,
-		[](int val) { return val + 128; },
+		193,
+		[](int val) { return val + 64; },
 		StickerHeight(),
 		updateStickerHeight);
 	updateStickerHeightLabel(StickerHeight());

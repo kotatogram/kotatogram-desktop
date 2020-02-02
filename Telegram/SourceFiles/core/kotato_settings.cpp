@@ -153,7 +153,7 @@ bool Manager::readCustomFile() {
 	const auto settingsStickerHeightIt = settings.constFind(qsl("sticker_height"));
 	if (settingsStickerHeightIt != settings.constEnd()) {
 		const auto settingsStickerHeight = (*settingsStickerHeightIt).toInt();
-		if (settingsStickerHeight >= 128 || settingsStickerHeight <= 256) {
+		if (settingsStickerHeight >= 64 || settingsStickerHeight <= 256) {
 			SetStickerHeight(settingsStickerHeight);
 		}
 	}
