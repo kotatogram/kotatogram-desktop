@@ -64,23 +64,55 @@ QString FormatVersionPrecise(int version) {
 
 } // namespace
 
-Changelogs::Changelogs(not_null<Main::Session*> session, int oldVersion)
+Changelogs::Changelogs(not_null<Main::Session*> session, int oldVersion, int oldKotatoVersion)
 : _session(session)
-, _oldVersion(oldVersion) {
+, _oldVersion(oldVersion)
+, _oldKotatoVersion(oldKotatoVersion) {
+
 	_session->data().chatsListChanges(
 	) | rpl::filter([](Data::Folder *folder) {
 		return !folder;
 	}) | rpl::start_with_next([=] {
-		requestCloudLogs();
+		addKotatoLogs();
 	}, _chatsSubscription);
 }
 
 std::unique_ptr<Changelogs> Changelogs::Create(
 		not_null<Main::Session*> session) {
 	const auto oldVersion = Local::oldMapVersion();
-	return (oldVersion > 0 && oldVersion < AppVersion)
-		? std::make_unique<Changelogs>(session, oldVersion)
+	const auto oldKotatoVersion = Local::oldKotatoVersion();
+	return (!cKotatoFirstRun() && oldKotatoVersion < AppKotatoVersion)
+		? std::make_unique<Changelogs>(session, oldVersion, oldKotatoVersion)
 		: nullptr;
+}
+
+void Changelogs::addKotatoLogs() {
+	_chatsSubscription.destroy();
+	
+	auto baseLang = Lang::Current().baseId();
+	auto currentLang = Lang::Current().id();
+	QString channelLink;
+
+	for (const auto language : { "ru", "uk", "be" }) {
+		if (baseLang.startsWith(QLatin1String(language)) || currentLang == QString(language)) {
+			channelLink = "https://t.me/kotatogram_ru";
+			break;
+		}
+	}
+
+	if (channelLink.isEmpty()) {
+		channelLink = "https://t.me/kotatogram";
+	}
+
+	const auto text = tr::ktg_new_version(
+		tr::now,
+		lt_version,
+		QString::fromLatin1(AppKotatoVersionStr),
+		lt_td_version,
+		QString::fromLatin1(AppVersionStr),
+		lt_link,
+		channelLink);
+	addLocalLog(text.trimmed());
 }
 
 void Changelogs::requestCloudLogs() {
@@ -121,7 +153,7 @@ void Changelogs::addLocalLogs() {
 		addBetaLogs();
 	}
 	if (!_addedSomeLocal) {
-		const auto text = tr::ktg_new_version_wrap(
+		const auto text = tr::lng_new_version_wrap(
 			tr::now,
 			lt_version,
 			QString::fromLatin1(AppVersionStr),

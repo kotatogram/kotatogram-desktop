@@ -98,6 +98,8 @@ int32 oldMapVersion();
 
 int32 oldSettingsVersion();
 
+int32 oldKotatoVersion();
+
 struct MessageDraft {
 	MessageDraft(MsgId msgId = 0, TextWithTags textWithTags = TextWithTags(), bool previewCancelled = false)
 		: msgId(msgId)
@@ -183,6 +185,9 @@ bool isBotTrusted(UserData *bot);
 
 bool encrypt(const void *src, void *dst, uint32 len, const void *key128);
 bool decrypt(const void *src, void *dst, uint32 len, const void *key128);
+
+qint32 readKotatoVersion();
+void writeKotatoVersion(int version);
 
 namespace internal {
 

@@ -207,6 +207,8 @@ rpl::producer<> UpdatedRecentEmoji() {
 	return UpdatesRecentEmoji.events();
 }
 
+bool gKotatoFirstRun = true;
+
 QString gMainFont, gSemiboldFont, gMonospaceFont;
 bool gSemiboldFontIsBold = false;
 

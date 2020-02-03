@@ -702,6 +702,7 @@ FileKey _languagesKey = 0;
 
 bool _mapChanged = false;
 int32 _oldMapVersion = 0, _oldSettingsVersion = 0;
+int32 _oldKotatoVersion = 0;
 
 enum class WriteMapWhen {
 	Now,
@@ -2578,6 +2579,9 @@ void readLangPack();
 void start() {
 	Expects(!_manager);
 
+	_oldKotatoVersion = readKotatoVersion();
+	writeKotatoVersion(AppKotatoVersion);
+
 	_manager = new internal::Manager();
 	_localLoader = new TaskQueue(kFileLoaderQueueStopTimeout);
 
@@ -2915,6 +2919,10 @@ int32 oldMapVersion() {
 
 int32 oldSettingsVersion() {
 	return _oldSettingsVersion;
+}
+
+int32 oldKotatoVersion() {
+	return _oldKotatoVersion;
 }
 
 void writeDrafts(const PeerId &peer, const MessageDraft &localDraft, const MessageDraft &editDraft) {
@@ -4965,6 +4973,32 @@ bool decrypt(const void *src, void *dst, uint32 len, const void *key128) {
 	}
 	MTP::aesDecryptLocal(src, dst, len, LocalKey, key128);
 	return true;
+}
+
+qint32 readKotatoVersion() {
+	qint32 version = 0;
+	QFile f(cWorkingDir() + qsl("tdata/ktg_version"));
+	if (f.open(QIODevice::ReadOnly)) {
+		QDataStream stream(&f);
+		stream.setVersion(QDataStream::Qt_5_1);
+		while (!stream.atEnd()) {
+			stream >> version;
+			break;
+		}
+		f.close();
+	}
+
+	return version;
+}
+
+void writeKotatoVersion(int version) {
+	qint32 writtenVersion = version;
+	QFile f(cWorkingDir() + qsl("tdata/ktg_version"));
+	if (f.open(QIODevice::WriteOnly)) {
+		QDataStream stream(&f);
+		stream << writtenVersion;
+		f.close();
+	}
 }
 
 struct ClearManagerData {

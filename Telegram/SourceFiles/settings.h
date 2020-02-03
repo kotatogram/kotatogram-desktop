@@ -179,6 +179,8 @@ inline void ValidateScale() {
 	style::SetScale(cEvalScale(cConfigScale()));
 }
 
+DeclareSetting(bool, KotatoFirstRun);
+
 DeclareSetting(QString, MainFont);
 DeclareSetting(QString, SemiboldFont);
 DeclareSetting(bool, SemiboldFontIsBold);

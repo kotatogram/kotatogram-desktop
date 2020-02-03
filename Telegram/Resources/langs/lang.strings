@@ -2280,6 +2280,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_about_text1_tdesktop" = "Telegram Desktop";
 "ktg_about_text3" = "Visit {channel_link} or {faq_link} for more info.";
 "ktg_about_text3_channel" = "Kotatogram channel";
+"ktg_new_version" = "Kotatogram Desktop has been updated to {version} (TD {td_version})\n\nFull version history is available here:\n{link}";
 
 // Replaces
 "ktg_open_from_tray" = "Open Kotatogram";
@@ -2295,7 +2296,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_passcode_about" = "When a local passcode is set, a lock icon appears at the top of your chats list. Click it to lock the app.\n\nNote: if you forget your local passcode, you'll need to relogin in Kotatogram Desktop.";
 "ktg_message_unsupported" = "This message is not supported by your version of Kotatogram Desktop. Please update to the latest version in Settings, or install it from {link}";
 "ktg_bot_share_location_unavailable" = "Sorry, location sharing is currently unavailable in Kotatogram Desktop.";
-"ktg_new_version_wrap" = "Kotatogram Desktop was rebased on Telegram Desktop {version}\n\n{changes}\n\nFull version history is available here:\n{link}";
 "ktg_theme_editor_need_unlock" = "You need to unlock Kotatogram to save your theme.";
 "ktg_payments_not_supported" = "Sorry, Kotatogram Desktop doesn't support payments yet. Please use one of our mobile apps to do this.";
 "ktg_no_mic_permission" = "Kotatogram needs access to your microphone so that you can make calls and record voice messages.";

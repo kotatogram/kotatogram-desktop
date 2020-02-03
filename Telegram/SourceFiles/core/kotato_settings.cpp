@@ -97,8 +97,10 @@ void Manager::write(bool force) {
 bool Manager::readCustomFile() {
 	QFile file(CustomFilePath());
 	if (!file.exists()) {
+		cSetKotatoFirstRun(true);
 		return false;
 	}
+	cSetKotatoFirstRun(false);
 	if (!file.open(QIODevice::ReadOnly)) {
 		return true;
 	}
