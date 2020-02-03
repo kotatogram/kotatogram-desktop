@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_call.h"
 
+#include "boxes/confirm_box.h"
 #include "lang/lang_keys.h"
 #include "layout.h"
 #include "history/history.h"
@@ -50,7 +51,14 @@ QSize Call::countOptimalSize() {
 	const auto user = _parent->data()->history()->peer->asUser();
 	_link = std::make_shared<LambdaClickHandler>([=] {
 		if (user) {
-			user->session().calls().startOutgoingCall(user);
+			if (cConfirmBeforeCall()) {
+				Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
+					Ui::hideLayer();
+					user->session().calls().startOutgoingCall(user);
+				}));
+			} else {
+				user->session().calls().startOutgoingCall(user);
+			}
 		}
 	});
 

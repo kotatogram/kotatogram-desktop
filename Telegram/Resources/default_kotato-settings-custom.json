@@ -14,5 +14,6 @@
     // "show_chat_id": false,
     // "net_speed_boost": null,
     // "show_phone_in_drawer": true,
-    // "scales": []
+    // "scales": [],
+    // "confirm_before_calls": false
 }

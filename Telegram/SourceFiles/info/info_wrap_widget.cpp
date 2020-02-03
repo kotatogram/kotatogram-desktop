@@ -497,7 +497,14 @@ void WrapWidget::addProfileCallsButton() {
 					? st::infoLayerTopBarCall
 					: st::infoTopBarCall))
 		)->addClickHandler([=] {
-			user->session().calls().startOutgoingCall(user);
+			if (cConfirmBeforeCall()) {
+				Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
+					Ui::hideLayer();
+					user->session().calls().startOutgoingCall(user);
+				}));
+			} else {
+				user->session().calls().startOutgoingCall(user);
+			}
 		});
 	}, _topBar->lifetime());
 

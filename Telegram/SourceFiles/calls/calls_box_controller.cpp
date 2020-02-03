@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_box_controller.h"
 
+#include "boxes/confirm_box.h"
 #include "styles/style_calls.h"
 #include "styles/style_boxes.h"
 #include "lang/lang_keys.h"
@@ -314,7 +315,14 @@ void BoxController::rowActionClicked(not_null<PeerListRow*> row) {
 	auto user = row->peer()->asUser();
 	Assert(user != nullptr);
 
-	user->session().calls().startOutgoingCall(user);
+	if (cConfirmBeforeCall()) {
+		Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
+			Ui::hideLayer();
+			user->session().calls().startOutgoingCall(user);
+		}));
+	} else {
+		user->session().calls().startOutgoingCall(user);
+	}
 }
 
 void BoxController::receivedCalls(const QVector<MTPMessage> &result) {

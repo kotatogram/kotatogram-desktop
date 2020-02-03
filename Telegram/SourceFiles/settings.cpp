@@ -295,3 +295,5 @@ bool AddCustomReplace(QString from, QString to) {
 	gCustomReplaces.insert(from, to);
 	return true;
 }
+
+bool gConfirmBeforeCall = false;

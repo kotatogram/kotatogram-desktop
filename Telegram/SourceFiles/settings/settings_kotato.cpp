@@ -188,6 +188,20 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 		KotatoSettings::Write();
 	}, container->lifetime());
 
+	AddButton(
+		container,
+		tr::ktg_settings_call_confirm(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cConfirmBeforeCall())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cConfirmBeforeCall());
+	}) | rpl::start_with_next([](bool enabled) {
+		cSetConfirmBeforeCall(enabled);
+		KotatoSettings::Write();
+	}, container->lifetime());
+
 	AddSkip(container);
 }
 

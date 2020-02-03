@@ -236,3 +236,4 @@ DeclareSetting(bool, DisableUpEdit);
 using CustomReplacementsMap = QMap<QString, QString>;
 DeclareRefSetting(CustomReplacementsMap, CustomReplaces);
 bool AddCustomReplace(QString from, QString to);
+DeclareSetting(bool, ConfirmBeforeCall);

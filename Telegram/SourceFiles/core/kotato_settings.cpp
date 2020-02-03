@@ -258,6 +258,11 @@ bool Manager::readCustomFile() {
 		}
 
 	}
+
+	const auto settingsCallConfirmIt = settings.constFind(qsl("confirm_before_calls"));
+	if (settingsCallConfirmIt != settings.constEnd() && (*settingsCallConfirmIt).isBool()) {
+		cSetConfirmBeforeCall((*settingsCallConfirmIt).toBool());
+	}
 	return true;
 }
 
@@ -295,6 +300,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
 	settings.insert(qsl("chat_list_lines"), DialogListLines());
 	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
+	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -353,6 +359,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
 	settings.insert(qsl("chat_list_lines"), DialogListLines());
 	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
+	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();

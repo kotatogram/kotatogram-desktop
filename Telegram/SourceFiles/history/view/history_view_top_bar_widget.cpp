@@ -189,7 +189,14 @@ void TopBarWidget::onSearch() {
 void TopBarWidget::onCall() {
 	if (const auto peer = _activeChat.peer()) {
 		if (const auto user = peer->asUser()) {
-			user->session().calls().startOutgoingCall(user);
+			if (cConfirmBeforeCall()) {
+				Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
+					Ui::hideLayer();
+					user->session().calls().startOutgoingCall(user);
+				}));
+			} else {
+				user->session().calls().startOutgoingCall(user);
+			}
 		}
 	}
 }
