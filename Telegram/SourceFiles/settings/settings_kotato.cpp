@@ -128,6 +128,20 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 
 	AddButton(
 		container,
+		tr::ktg_settings_disable_up_edit(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cDisableUpEdit())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cDisableUpEdit());
+	}) | rpl::start_with_next([](bool enabled) {
+		cSetDisableUpEdit(enabled);
+		KotatoSettings::Write();
+	}, container->lifetime());
+
+	AddButton(
+		container,
 		tr::ktg_settings_fonts(),
 		st::settingsButton
 	)->addClickHandler([=] {

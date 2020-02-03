@@ -2313,6 +2313,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_sticker_height" = "Sticker height: {pixels}px";
 "ktg_settings_emoji_outline" = "Big emoji outline";
 
+"ktg_settings_disable_up_edit" = "Disable edit by Up key";
+
 "ktg_settings_always_show_scheduled" = "Always show scheduled";
 "ktg_settings_chat_list_compact" = "Compact chat list";
 
