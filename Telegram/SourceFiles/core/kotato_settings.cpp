@@ -150,6 +150,11 @@ bool Manager::readCustomFile() {
 		if (settingsFontsUseSystemFont != settingsFonts.constEnd() && (*settingsFontsUseSystemFont).isBool()) {
 			cSetUseSystemFont((*settingsFontsUseSystemFont).toBool());
 		}
+
+		const auto settingsFontsUseOriginalMetrics = settingsFonts.constFind(qsl("use_original_metrics"));
+		if (settingsFontsUseOriginalMetrics != settingsFonts.constEnd() && (*settingsFontsUseOriginalMetrics).isBool()) {
+			cSetUseOriginalMetrics((*settingsFontsUseOriginalMetrics).toBool());
+		}
 	}
 
 	const auto settingsStickerHeightIt = settings.constFind(qsl("sticker_height"));
@@ -290,6 +295,7 @@ void Manager::writeDefaultFile() {
 	settingsFonts.insert(qsl("semibold_is_bold"), false);
 	settingsFonts.insert(qsl("monospaced"), qsl("Consolas"));
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
+	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
 
 	settings.insert(qsl("fonts"), settingsFonts);
 
@@ -349,6 +355,7 @@ void Manager::writeCurrentSettings() {
 
 	settingsFonts.insert(qsl("semibold_is_bold"), cSemiboldFontIsBold());
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
+	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
 
 	settings.insert(qsl("fonts"), settingsFonts);
 

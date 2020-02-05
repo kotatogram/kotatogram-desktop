@@ -178,6 +178,9 @@ void Application::run() {
 	if (cUseSystemFont()) {
 		style::internal::SetUseSystemFont(cUseSystemFont());
 	}
+	if (cUseOriginalMetrics()) {
+		style::internal::SetUseOriginalMetrics(cUseOriginalMetrics());
+	}
 	style::internal::StartFonts();
 
 	ThirdParty::start();

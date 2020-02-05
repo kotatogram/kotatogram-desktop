@@ -33,6 +33,7 @@ private:
 	object_ptr<Ui::InputField> _semiboldFontName = { nullptr };
 	object_ptr<Ui::Checkbox> _semiboldIsBold = { nullptr };
 	object_ptr<Ui::InputField> _monospacedFontName = { nullptr };
+	object_ptr<Ui::Checkbox> _useOriginalMetrics = { nullptr };
 	Ui::Text::String _about;
 
 	int _aboutHeight = 0;
