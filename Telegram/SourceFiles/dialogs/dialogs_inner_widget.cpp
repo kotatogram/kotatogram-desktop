@@ -746,7 +746,11 @@ void InnerWidget::paintPeerSearchResult(
 
 	auto nameleft = st::dialogsPadding.x() + DialogsPhotoSize() + st::dialogsPhotoPadding;
 	auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
-	QRect rectForName(nameleft, st::dialogsPadding.y() + st::dialogsNameTop, namewidth, st::msgNameFont->height);
+	QRect rectForName(
+		nameleft,
+		(DialogListLines() == 1) ? st::dialogsPadding.y() : st::dialogsPadding.y() + st::dialogsNameTop,
+		namewidth,
+		st::msgNameFont->height);
 
 	// draw chat icon
 	if (auto chatTypeIcon = Layout::ChatTypeIcon(peer, active, selected)) {
@@ -773,29 +777,43 @@ void InnerWidget::paintPeerSearchResult(
 		badgeStyle);
 	rectForName.setWidth(rectForName.width() - badgeWidth);
 
-	QRect tr(nameleft, st::dialogsPadding.y() + st::msgNameFont->height + st::dialogsSkip, namewidth, st::dialogsTextFont->height);
-	p.setFont(st::dialogsTextFont);
-	QString username = peer->userName();
-	if (!active && username.toLower().startsWith(_peerSearchQuery)) {
-		auto first = '@' + username.mid(0, _peerSearchQuery.size());
-		auto second = username.mid(_peerSearchQuery.size());
-		auto w = st::dialogsTextFont->width(first);
-		if (w >= tr.width()) {
-			p.setPen(st::dialogsTextFgService);
-			p.drawText(tr.left(), tr.top() + st::dialogsTextFont->ascent, st::dialogsTextFont->elided(first, tr.width()));
-		} else {
-			p.setPen(st::dialogsTextFgService);
-			p.drawText(tr.left(), tr.top() + st::dialogsTextFont->ascent, first);
-			p.setPen(st::dialogsTextFg);
-			p.drawText(tr.left() + w, tr.top() + st::dialogsTextFont->ascent, st::dialogsTextFont->elided(second, tr.width() - w));
-		}
-	} else {
-		p.setPen(active ? st::dialogsTextFgActive : st::dialogsTextFgService);
-		p.drawText(tr.left(), tr.top() + st::dialogsTextFont->ascent, st::dialogsTextFont->elided('@' + username, tr.width()));
-	}
+	if (DialogListLines() == 1) {
+		QString text = peer->nameText().toString();
+		p.setPen(active
+			? st::dialogsNameFgActive
+			: selected
+			? st::dialogsNameFgOver
+			: st::dialogsNameFg);
+		p.setFont(st::dialogsTextFont);
 
-	p.setPen(active ? st::dialogsTextFgActive : st::dialogsNameFg);
-	peer->nameText().drawElided(p, rectForName.left(), rectForName.top(), rectForName.width());
+		Ui::Text::String textStr;
+		textStr.setText(st::dialogsTextStyle, text, Ui::NameTextOptions());
+		textStr.drawElided(p, rectForName.left(), rectForName.top(), rectForName.width());
+	} else {
+		QRect tr(nameleft, st::dialogsPadding.y() + st::msgNameFont->height + st::dialogsSkip, namewidth, st::dialogsTextFont->height);
+		p.setFont(st::dialogsTextFont);
+		QString username = peer->userName();
+		if (!active && username.toLower().startsWith(_peerSearchQuery)) {
+			auto first = '@' + username.mid(0, _peerSearchQuery.size());
+			auto second = username.mid(_peerSearchQuery.size());
+			auto w = st::dialogsTextFont->width(first);
+			if (w >= tr.width()) {
+				p.setPen(st::dialogsTextFgService);
+				p.drawText(tr.left(), tr.top() + st::dialogsTextFont->ascent, st::dialogsTextFont->elided(first, tr.width()));
+			} else {
+				p.setPen(st::dialogsTextFgService);
+				p.drawText(tr.left(), tr.top() + st::dialogsTextFont->ascent, first);
+				p.setPen(st::dialogsTextFg);
+				p.drawText(tr.left() + w, tr.top() + st::dialogsTextFont->ascent, st::dialogsTextFont->elided(second, tr.width() - w));
+			}
+		} else {
+			p.setPen(active ? st::dialogsTextFgActive : st::dialogsTextFgService);
+			p.drawText(tr.left(), tr.top() + st::dialogsTextFont->ascent, st::dialogsTextFont->elided('@' + username, tr.width()));
+		}
+
+		p.setPen(active ? st::dialogsTextFgActive : st::dialogsNameFg);
+		peer->nameText().drawElided(p, rectForName.left(), rectForName.top(), rectForName.width());
+	}
 }
 
 void InnerWidget::paintSearchInChat(Painter &p) const {

@@ -379,7 +379,8 @@ void paintOneLineRow(
 	}
 
 	if (!(from && (flags & Flag::SearchResult))) {
-		Ui::Text::String textStr = { st::dialogsTextStyle, text };
+		Ui::Text::String textStr;
+		textStr.setText(st::dialogsTextStyle, text, Ui::NameTextOptions());
 		textStr.drawElided(p, rectForName.left(), rectForName.top(), rectForName.width());
 	}
 }
