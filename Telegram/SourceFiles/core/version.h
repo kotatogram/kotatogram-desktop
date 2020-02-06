@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/const_string.h"
+
 #define TDESKTOP_REQUESTED_ALPHA_VERSION (0ULL)
 
 #ifdef TDESKTOP_ALLOW_CLOSED_ALPHA
@@ -15,9 +17,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #define TDESKTOP_ALPHA_VERSION (0ULL)
 #endif // TDESKTOP_ALLOW_CLOSED_ALPHA
 
-constexpr auto AppVersion = 1009009;
-constexpr auto AppVersionStr = "1.9.9";
-constexpr auto AppBetaVersion = false;
+// used in Updater.cpp and Setup.iss for Windows
+constexpr auto AppId = "{C4A4AE8F-B9F7-4CC7-8A6C-BF7EEE87ACA5}"_cs;
+constexpr auto AppNameOld = "Telegram Win (Unofficial)"_cs;
+constexpr auto AppName = "Kotatogram Desktop"_cs;
+constexpr auto AppFile = "Kotatogram"_cs;
+constexpr auto AppVersion = 1009010;
+constexpr auto AppVersionStr = "1.9.10";
+constexpr auto AppBetaVersion = true;
 constexpr auto AppAlphaVersion = TDESKTOP_ALPHA_VERSION;
 constexpr auto AppKotatoVersion = 1001006;
 constexpr auto AppKotatoVersionStr = "1.1.6";

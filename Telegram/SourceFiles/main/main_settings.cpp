@@ -23,6 +23,14 @@ constexpr auto kVersionTag = -1;
 constexpr auto kVersion = 1;
 constexpr auto kMaxSavedPlaybackPositions = 16;
 
+[[nodiscard]] qint32 SerializePlaybackSpeed(float64 speed) {
+	return int(std::round(std::clamp(speed * 4., 2., 8.))) - 2;
+}
+
+float64 DeserializePlaybackSpeed(qint32 speed) {
+	return (std::clamp(speed, 0, 6) + 2) / 4.;
+}
+
 } // namespace
 
 Settings::Variables::Variables()
@@ -36,12 +44,14 @@ Settings::Variables::Variables()
 
 QByteArray Settings::serialize() const {
 	const auto autoDownload = _variables.autoDownload.serialize();
-	auto size = sizeof(qint32) * 30;
+	auto size = sizeof(qint32) * 38;
 	for (auto i = _variables.soundOverrides.cbegin(), e = _variables.soundOverrides.cend(); i != e; ++i) {
 		size += Serialize::stringSize(i.key()) + Serialize::stringSize(i.value());
 	}
 	size += _variables.groupStickersSectionHidden.size() * sizeof(quint64);
+	size += _variables.mediaLastPlaybackPosition.size() * 2 * sizeof(quint64);
 	size += Serialize::bytearraySize(autoDownload);
+	size += Serialize::bytearraySize(_variables.videoPipGeometry);
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -98,6 +108,8 @@ QByteArray Settings::serialize() const {
 		for (const auto &[id, time] : _variables.mediaLastPlaybackPosition) {
 			stream << quint64(id) << qint64(time);
 		}
+		stream << qint32(SerializePlaybackSpeed(_variables.videoPlaybackSpeed.current()));
+		stream << _variables.videoPipGeometry;
 	}
 	return result;
 }
@@ -148,6 +160,8 @@ void Settings::constructFromSerialized(const QByteArray &serialized) {
 	qint32 suggestStickersByEmoji = _variables.suggestStickersByEmoji ? 1 : 0;
 	qint32 spellcheckerEnabled = _variables.spellcheckerEnabled.current() ? 1 : 0;
 	std::vector<std::pair<DocumentId, crl::time>> mediaLastPlaybackPosition;
+	qint32 videoPlaybackSpeed = SerializePlaybackSpeed(_variables.videoPlaybackSpeed.current());
+	QByteArray videoPipGeometry = _variables.videoPipGeometry;
 
 	stream >> versionTag;
 	if (versionTag == kVersionTag) {
@@ -268,6 +282,12 @@ void Settings::constructFromSerialized(const QByteArray &serialized) {
 			}
 		}
 	}
+	if (!stream.atEnd()) {
+		stream >> videoPlaybackSpeed;
+	}
+	if (!stream.atEnd()) {
+		stream >> videoPipGeometry;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Main::Settings::constructFromSerialized()"));
@@ -355,6 +375,8 @@ void Settings::constructFromSerialized(const QByteArray &serialized) {
 	_variables.suggestStickersByEmoji = (suggestStickersByEmoji == 1);
 	_variables.spellcheckerEnabled = (spellcheckerEnabled == 1);
 	_variables.mediaLastPlaybackPosition = std::move(mediaLastPlaybackPosition);
+	_variables.videoPlaybackSpeed = DeserializePlaybackSpeed(videoPlaybackSpeed);
+	_variables.videoPipGeometry = videoPipGeometry;
 }
 
 void Settings::setSupportChatsTimeSlice(int slice) {

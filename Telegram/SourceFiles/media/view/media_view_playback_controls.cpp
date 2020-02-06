@@ -13,10 +13,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/continuous_sliders.h"
 #include "ui/effects/fade_animation.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/popup_menu.h"
 #include "lang/lang_keys.h"
 #include "layout.h"
 #include "app.h"
-#include "styles/style_mediaview.h"
+#include "styles/style_media_view.h"
 
 namespace Media {
 namespace View {
@@ -29,10 +30,14 @@ PlaybackControls::PlaybackControls(
 , _playPauseResume(this, st::mediaviewPlayButton)
 , _playbackSlider(this, st::mediaviewPlayback)
 , _playbackProgress(std::make_unique<PlaybackProgress>())
+, _volumeToggle(this, st::mediaviewVolumeToggle)
 , _volumeController(this, st::mediaviewPlayback)
+, _menuToggle(this, st::mediaviewMenuToggle)
 , _fullScreenToggle(this, st::mediaviewFullScreenButton)
+, _pictureInPicture(this, st::mediaviewPipButton)
 , _playedAlready(this, st::mediaviewPlayProgressLabel)
 , _toPlayLeft(this, st::mediaviewPlayProgressLabel)
+, _speedMenuStyle(st::mediaviewControlsPopupMenu)
 , _fadeAnimation(std::make_unique<Ui::FadeAnimation>(this)) {
 	_fadeAnimation->show();
 	_fadeAnimation->setFinishedCallback([=] {
@@ -42,9 +47,26 @@ PlaybackControls::PlaybackControls(
 		fadeUpdated(opacity);
 	});
 
+	_pictureInPicture->addClickHandler([=] {
+		_delegate->playbackControlsToPictureInPicture();
+	});
+	_menuToggle->addClickHandler([=] {
+		showMenu();
+	});
+
 	_volumeController->setValue(_delegate->playbackControlsCurrentVolume());
 	_volumeController->setChangeProgressCallback([=](float64 value) {
 		_delegate->playbackControlsVolumeChanged(value);
+		updateVolumeToggleIcon();
+	});
+	_volumeController->setChangeFinishedCallback([=](float64) {
+		_delegate->playbackControlsVolumeChangeFinished();
+	});
+	updateVolumeToggleIcon();
+	_volumeToggle->setClickedCallback([=] {
+		_delegate->playbackControlsVolumeToggled();
+		_volumeController->setValue(_delegate->playbackControlsCurrentVolume());
+		updateVolumeToggleIcon();
 	});
 
 	_playPauseResume->addClickHandler([=] {
@@ -153,10 +175,91 @@ void PlaybackControls::fadeUpdated(float64 opacity) {
 	_volumeController->setFadeOpacity(opacity);
 }
 
+void PlaybackControls::validateSpeedMenuStyle() {
+	auto &st = _speedMenuStyle.menu;
+	const auto &check = st::mediaviewMenuCheck;
+	const auto normal = tr::lng_mediaview_playback_speed_normal(tr::now);
+	const auto itemHeight = st.itemPadding.top()
+		+ st.itemStyle.font->height
+		+ st.itemPadding.bottom();
+	const auto itemWidth = st.itemPadding.left()
+		+ st.itemStyle.font->width(normal)
+		+ st.itemPadding.right();
+	if (itemWidth + st.itemPadding.right() + check.width() > st.widthMin) {
+		st.widthMin = itemWidth + st.itemPadding.right() + check.width();
+	}
+	const auto realWidth = std::clamp(itemWidth, st.widthMin, st.widthMax);
+	st.itemIconPosition = QPoint(
+		realWidth - st.itemPadding.right() - check.width(),
+		(itemHeight - check.height()) / 2);
+}
+
+void PlaybackControls::showMenu() {
+	if (_menu) {
+		_menu = nullptr;
+		return;
+	}
+
+	validateSpeedMenuStyle();
+
+	auto submenu = std::make_unique<Ui::PopupMenu>(
+		this,
+		_speedMenuStyle);
+	const auto addSpeed = [&](float64 speed, QString text = QString()) {
+		if (text.isEmpty()) {
+			text = QString::number(speed);
+		}
+		const auto checked = (speed == _delegate->playbackControlsCurrentSpeed());
+		const auto action = submenu->addAction(
+			text,
+			[=] { updatePlaybackSpeed(speed); },
+			checked ? &st::mediaviewMenuCheck : nullptr);
+	};
+	addSpeed(0.5);
+	addSpeed(0.75);
+	addSpeed(1., tr::lng_mediaview_playback_speed_normal(tr::now));
+	addSpeed(1.25);
+	addSpeed(1.5);
+	addSpeed(1.75);
+	addSpeed(2.);
+	_menu.emplace(this, st::mediaviewControlsPopupMenu);
+	_menu->addAction("Rotate video", [=] {
+		_delegate->playbackControlsRotate();
+	});
+	_menu->addSeparator();
+	_menu->addAction(
+		tr::lng_mediaview_playback_speed(tr::now),
+		std::move(submenu));
+	_menu->setForcedOrigin(Ui::PanelAnimation::Origin::BottomLeft);
+	_menu->popup(mapToGlobal(_menuToggle->geometry().topLeft()));
+}
+
+void PlaybackControls::updatePlaybackSpeed(float64 speed) {
+	_delegate->playbackControlsSpeedChanged(speed);
+	resizeEvent(nullptr);
+}
+
 void PlaybackControls::updatePlayback(const Player::TrackState &state) {
 	updatePlayPauseResumeState(state);
 	_playbackProgress->updateState(state, countDownloadedTillPercent(state));
 	updateTimeTexts(state);
+}
+
+void PlaybackControls::updateVolumeToggleIcon() {
+	const auto volume = _delegate->playbackControlsCurrentVolume();
+	_volumeToggle->setIconOverride([&] {
+		return (volume <= 0.)
+			? nullptr
+			: (volume < 1 / 2.)
+			? &st::mediaviewVolumeIcon1
+			: &st::mediaviewVolumeIcon2;
+	}(), [&] {
+		return (volume <= 0.)
+			? nullptr
+			: (volume < 1 / 2.)
+			? &st::mediaviewVolumeIcon1Over
+			: &st::mediaviewVolumeIcon2Over;
+	}());
 }
 
 float64 PlaybackControls::countDownloadedTillPercent(
@@ -187,14 +290,8 @@ void PlaybackControls::setLoadingProgress(int ready, int total) {
 		const auto percent = int(std::round(progress * 100));
 		if (_loadingPercent != percent) {
 			_loadingPercent = percent;
-			_downloadProgress->setText(tr::lng_mediaview_video_loading(
-				tr::now,
-				lt_percent,
-				QString::number(percent) + '%'));
-			if (_playbackSlider->width() > _downloadProgress->width()) {
-				const auto left = (_playbackSlider->width() - _downloadProgress->width()) / 2;
-				_downloadProgress->move(_playbackSlider->x() + left, st::mediaviewPlayProgressTop);
-			}
+			_downloadProgress->setText(QString::number(percent) + '%');
+			updateDownloadProgressPosition();
 			refreshFadeCache();
 		}
 	} else {
@@ -275,26 +372,48 @@ void PlaybackControls::setInFullScreen(bool inFullScreen) {
 }
 
 void PlaybackControls::resizeEvent(QResizeEvent *e) {
-	int playTop = (height() - _playPauseResume->height()) / 2;
-	_playPauseResume->moveToLeft(st::mediaviewPlayPauseLeft, playTop);
-
-	int fullScreenTop = (height() - _fullScreenToggle->height()) / 2;
-	_fullScreenToggle->moveToRight(st::mediaviewFullScreenLeft, fullScreenTop);
-
-	_volumeController->resize(st::mediaviewVolumeWidth, st::mediaviewPlayback.seekSize.height());
-	_volumeController->moveToRight(st::mediaviewFullScreenLeft + _fullScreenToggle->width() + st::mediaviewVolumeLeft, st::mediaviewPlaybackTop);
-
-	auto playbackWidth = width() - st::mediaviewPlayPauseLeft - _playPauseResume->width() - playTop - fullScreenTop - _volumeController->width() - st::mediaviewVolumeLeft - _fullScreenToggle->width() - st::mediaviewFullScreenLeft;
+	const auto textSkip = st::mediaviewPlayProgressSkip;
+	const auto textLeft = st::mediaviewPlayProgressLeft;
+	const auto textTop = st::mediaviewPlaybackTop + (_playbackSlider->height() - _playedAlready->height()) / 2;
+	_playedAlready->moveToLeft(textLeft + textSkip, textTop);
+	_toPlayLeft->moveToRight(textLeft + textSkip, textTop);
+	const auto remove = 2 * textLeft + 4 * textSkip + _playedAlready->width() + _toPlayLeft->width();
+	auto playbackWidth = width() - remove;
 	_playbackSlider->resize(playbackWidth, st::mediaviewPlayback.seekSize.height());
-	_playbackSlider->moveToLeft(st::mediaviewPlayPauseLeft + _playPauseResume->width() + playTop, st::mediaviewPlaybackTop);
+	_playbackSlider->moveToLeft(textLeft + 2 * textSkip + _playedAlready->width(), st::mediaviewPlaybackTop);
 
-	_playedAlready->moveToLeft(st::mediaviewPlayPauseLeft + _playPauseResume->width() + playTop, st::mediaviewPlayProgressTop);
-	_toPlayLeft->moveToRight(width() - (st::mediaviewPlayPauseLeft + _playPauseResume->width() + playTop) - playbackWidth, st::mediaviewPlayProgressTop);
+	_playPauseResume->moveToLeft(
+		(width() - _playPauseResume->width()) / 2,
+		st::mediaviewPlayButtonTop);
 
-	if (_downloadProgress) {
-		const auto left = (_playbackSlider->width() - _downloadProgress->width()) / 2;
-		_downloadProgress->move(_playbackSlider->x() + left, st::mediaviewPlayProgressTop);
+	auto right = st::mediaviewMenuToggleSkip;
+	_menuToggle->moveToRight(right, st::mediaviewButtonsTop);
+	right += _menuToggle->width() + st::mediaviewPipButtonSkip;
+	_pictureInPicture->moveToRight(right, st::mediaviewButtonsTop);
+	right += _pictureInPicture->width() + st::mediaviewFullScreenButtonSkip;
+	_fullScreenToggle->moveToRight(right, st::mediaviewButtonsTop);
+
+	updateDownloadProgressPosition();
+
+	auto left = st::mediaviewVolumeToggleSkip;
+	_volumeToggle->moveToLeft(left, st::mediaviewVolumeTop);
+	left += _volumeToggle->width() + st::mediaviewVolumeSkip;
+	_volumeController->resize(
+		st::mediaviewVolumeWidth,
+		st::mediaviewPlayback.seekSize.height());
+	_volumeController->moveToLeft(left, st::mediaviewVolumeTop + (_volumeToggle->height() - _volumeController->height()) / 2);
+}
+
+void PlaybackControls::updateDownloadProgressPosition() {
+	if (!_downloadProgress) {
+		return;
 	}
+	const auto left = _playPauseResume->x() + _playPauseResume->width();
+	const auto right = _fullScreenToggle->x();
+	const auto available = right - left;
+	const auto x = left + (available - _downloadProgress->width()) / 2;
+	const auto y = _playPauseResume->y() + (_playPauseResume->height() - _downloadProgress->height()) / 2;
+	_downloadProgress->move(x, y);
 }
 
 void PlaybackControls::paintEvent(QPaintEvent *e) {

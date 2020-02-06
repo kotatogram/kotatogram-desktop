@@ -43,7 +43,7 @@ set(style_files
     history/history.style
     info/info.style
     intro/intro.style
-    media/view/mediaview.style
+    media/view/media_view.style
     media/player/media_player.style
     overview/overview.style
     passport/passport.style
@@ -74,6 +74,14 @@ if (DESKTOP_APP_USE_PACKAGED)
     PRIVATE
         ${CMAKE_DL_LIBS}
         Threads::Threads
+    )
+endif()
+
+if (LINUX AND NOT TDESKTOP_DISABLE_DBUS_INTEGRATION)
+    target_link_libraries(Telegram
+    PRIVATE
+        desktop-app::external_statusnotifieritem
+        desktop-app::external_dbusmenu_qt
     )
 endif()
 
@@ -335,6 +343,8 @@ PRIVATE
     data/data_groups.h
     data/data_location.cpp
     data/data_location.h
+    data/data_media_rotation.cpp
+    data/data_media_rotation.h
     data/data_media_types.cpp
     data/data_media_types.h
     data/data_messages.cpp
@@ -670,14 +680,16 @@ PRIVATE
     media/streaming/media_streaming_utility.h
     media/streaming/media_streaming_video_track.cpp
     media/streaming/media_streaming_video_track.h
-    media/view/media_view_playback_controls.cpp
-    media/view/media_view_playback_controls.h
-    media/view/media_view_playback_progress.cpp
-    media/view/media_view_playback_progress.h
     media/view/media_view_group_thumbs.cpp
     media/view/media_view_group_thumbs.h
     media/view/media_view_overlay_widget.cpp
     media/view/media_view_overlay_widget.h
+    media/view/media_view_pip.cpp
+    media/view/media_view_pip.h
+    media/view/media_view_playback_controls.cpp
+    media/view/media_view_playback_controls.h
+    media/view/media_view_playback_progress.cpp
+    media/view/media_view_playback_progress.h
     mtproto/config_loader.cpp
     mtproto/config_loader.h
     mtproto/connection_abstract.cpp
@@ -1067,28 +1079,6 @@ elseif (LINUX)
             find_library(X11_LIBRARY X11)
             target_link_libraries(Telegram PRIVATE ${X11_LIBRARY})
         endif()
-
-        set(appindicator_packages
-            ayatana-appindicator3-0.1
-            ayatana-appindicator-0.1
-            appindicator3-0.1
-            appindicator-0.1
-        )
-        set(appindicator_found 0)
-        foreach (package ${appindicator_packages})
-            pkg_check_modules(APPIND_${package} ${package})
-            if (APPIND_${package}_FOUND)
-                set(appindicator_found 1)
-                target_include_directories(Telegram PRIVATE "${APPIND_${package}_INCLUDE_DIRS}")
-                if (${package} MATCHES "ayatana")
-                    target_compile_definitions(Telegram PRIVATE TDESKTOP_USE_AYATANA_INDICATORS)
-                endif()
-                break()
-            endif()
-        endforeach()
-        if (NOT ${appindicator_found})
-            message(FATAL_ERROR "No libappindicator found by pkg-config.")
-        endif()
     endif()
 endif()
 
@@ -1188,7 +1178,7 @@ if ((NOT disable_autoupdate OR NOT LINUX) AND NOT build_macstore AND NOT build_w
     set_target_properties(Updater PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${output_folder})
 
     if (LINUX)
-        target_link_options(Updater INTERFACE -static-libstdc++)
+        target_link_options(Updater PRIVATE -static-libstdc++)
     endif()
 
     if (DESKTOP_APP_SPECIAL_TARGET)

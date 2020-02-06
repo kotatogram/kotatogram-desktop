@@ -958,6 +958,9 @@ void Player::unlock() {
 	--_locks;
 	if (!_locks) {
 		stopAudio();
+		if (active()) {
+			setSpeed(1.);
+		}
 		setWaitForMarkAsShown(true);
 	}
 }

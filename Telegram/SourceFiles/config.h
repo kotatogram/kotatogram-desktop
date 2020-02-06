@@ -10,12 +10,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/version.h"
 #include "settings.h"
 
-constexpr str_const AppNameOld = "Telegram Win (Unofficial)";
-constexpr str_const AppName = "Kotatogram Desktop";
-
-constexpr str_const AppId = "{C4A4AE8F-B9F7-4CC7-8A6C-BF7EEE87ACA5}"; // used in updater.cpp and Setup.iss for Windows
-constexpr str_const AppFile = "Kotatogram";
-
 enum {
 	MaxSelectedItems = 100,
 
@@ -44,8 +38,6 @@ enum {
 	AudioVoiceMsgChannels = 2, // stereo
 
 	StickerMaxSize = 2048, // 2048x2048 is a max image size for sticker
-
-	ZoomToScreenLevel = 1024, // just constant
 
 	PreloadHeightsCount = 3, // when 3 screens to scroll left make a preload request
 
