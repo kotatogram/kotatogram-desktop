@@ -35,6 +35,18 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.1.7" date="2020-02-08">
+            <description>
+                <p>TDesktop sources were updated to 1.9.10 beta.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Allow up to 64px as minimal sticker size.</li>
+                    <li>Optional confirmation before calling.</li>
+                    <li>"Disable Up to edit" now in options menu.</li>
+                    <li>Option to use original font height.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.1.6" date="2020-01-31">
             <description>
                 <p>TDesktop sources were updated to 1.9.9.</p>
