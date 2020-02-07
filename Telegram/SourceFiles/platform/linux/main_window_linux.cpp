@@ -106,9 +106,6 @@ QImage TrayIconImageGen() {
 
 			_trayIconImageBack = _trayIconImageBack.convertToFormat(
 				QImage::Format_ARGB32);
-
-			w = _trayIconImageBack.width();
-			h = _trayIconImageBack.height();
 		}
 
 		_trayIconImage = _trayIconImageBack;
