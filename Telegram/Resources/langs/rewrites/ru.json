@@ -88,5 +88,7 @@
 	"ktg_settings_call_confirm": "Подтверждение перед звонком",
 	"ktg_call_sure": "Вы уверены, что хотите позвонить этому пользователю?",
 	"ktg_call_button": "Позвонить",
-	"ktg_settings_adaptive_bubbles": "Адаптивные пузырьки сообщений"
+	"ktg_settings_adaptive_bubbles": "Адаптивные пузырьки сообщений",
+	"ktg_settings_disable_sound_from_tray": "Отключить звук",
+	"ktg_settings_enable_sound_from_tray": "Включить звук"
 }

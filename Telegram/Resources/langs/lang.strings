@@ -2391,4 +2391,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_settings_adaptive_bubbles" = "Adaptive bubbles";
 
+"ktg_settings_disable_sound_from_tray" = "Disable sound";
+"ktg_settings_enable_sound_from_tray" = "Enable sound";
+
 // Keys finished

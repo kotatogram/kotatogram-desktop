@@ -135,6 +135,7 @@ public slots:
 	void quitFromTray();
 	void showFromTray(QSystemTrayIcon::ActivationReason reason = QSystemTrayIcon::Unknown);
 	void toggleDisplayNotifyFromTray();
+	void toggleSoundNotifyFromTray();
 
 	void onClearFinished(int task, void *manager);
 	void onClearFailed(int task, void *manager);

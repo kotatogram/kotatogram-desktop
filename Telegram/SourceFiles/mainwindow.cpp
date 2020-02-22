@@ -142,11 +142,16 @@ void MainWindow::createTrayIconMenu() {
 		? tr::lng_disable_notifications_from_tray(tr::now)
 		: tr::lng_enable_notifications_from_tray(tr::now);
 
+	auto soundActionText = Global::SoundNotify()
+		? tr::ktg_settings_disable_sound_from_tray(tr::now)
+		: tr::ktg_settings_enable_sound_from_tray(tr::now);
+
 	if (Platform::IsLinux()) {
 		trayIconMenu->addAction(tr::ktg_open_from_tray(tr::now), this, SLOT(showFromTray()));
 	}
 	trayIconMenu->addAction(tr::lng_minimize_to_tray(tr::now), this, SLOT(minimizeToTray()));
 	trayIconMenu->addAction(notificationActionText, this, SLOT(toggleDisplayNotifyFromTray()));
+	trayIconMenu->addAction(soundActionText, this, SLOT(toggleSoundNotifyFromTray()));
 	trayIconMenu->addAction(tr::ktg_quit_from_tray(tr::now), this, SLOT(quitFromTray()));
 
 	initTrayMenuHook();
@@ -613,6 +618,12 @@ void MainWindow::updateTrayMenu(bool force) {
 		: tr::lng_enable_notifications_from_tray(tr::now);
 	notificationAction->setText(notificationActionText);
 
+	auto soundAction = actions.at(Platform::IsLinux() ? 3 : 2);
+	auto soundActionText = Global::SoundNotify()
+		? tr::ktg_settings_disable_sound_from_tray(tr::now)
+		: tr::ktg_settings_enable_sound_from_tray(tr::now);
+	soundAction->setText(soundActionText);
+
 	psTrayMenuUpdated();
 }
 
@@ -780,6 +791,22 @@ void MainWindow::toggleDisplayNotifyFromTray() {
 		account().session().notifications().settingsChanged().notify(
 			Window::Notifications::ChangeType::SoundEnabled);
 	}
+}
+
+void MainWindow::toggleSoundNotifyFromTray() {
+	if (Core::App().locked()) {
+		if (!isActive()) showFromTray();
+		Ui::show(Box<InformBox>(tr::lng_passcode_need_unblock(tr::now)));
+		return;
+	}
+	if (!account().sessionExists()) {
+		return;
+	}
+
+	Global::SetSoundNotify(!Global::SoundNotify());
+	Local::writeUserSettings();
+	account().session().notifications().settingsChanged().notify(
+		Window::Notifications::ChangeType::SoundEnabled);
 }
 
 void MainWindow::closeEvent(QCloseEvent *e) {
