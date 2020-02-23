@@ -2394,4 +2394,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_disable_sound_from_tray" = "Disable sound";
 "ktg_settings_enable_sound_from_tray" = "Enable sound";
 
+"ktg_settings_recent_stickers_limit#one" = "Recent stickers: show {count} sticker";
+"ktg_settings_recent_stickers_limit#other" = "Recent stickers: show {count} stickers";
+"ktg_settings_recent_stickers_limit_none" = "Recent stickers: hide all";
+
 // Keys finished

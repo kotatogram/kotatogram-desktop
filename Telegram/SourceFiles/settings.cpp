@@ -303,3 +303,16 @@ bool AddCustomReplace(QString from, QString to) {
 
 bool gConfirmBeforeCall = false;
 bool gNoTaskbarFlashing = false;
+
+rpl::variable<int> gRecentStickersLimit = 20;
+void SetRecentStickersLimit(int limit) {
+	if (limit >= 0 || limit <= 200) {
+		gRecentStickersLimit = limit;
+	}
+}
+int RecentStickersLimit() {
+	return gRecentStickersLimit.current();
+}
+rpl::producer<int> RecentStickersLimitChanges() {
+	return gRecentStickersLimit.changes();
+}

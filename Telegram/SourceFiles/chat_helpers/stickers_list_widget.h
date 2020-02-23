@@ -350,6 +350,8 @@ private:
 	rpl::event_stream<> _scrollUpdated;
 	rpl::event_stream<> _checkForHide;
 
+	rpl::lifetime _lifetime;
+
 };
 
 } // namespace ChatHelpers

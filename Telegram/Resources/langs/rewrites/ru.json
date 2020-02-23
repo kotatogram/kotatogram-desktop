@@ -90,5 +90,12 @@
 	"ktg_call_button": "Позвонить",
 	"ktg_settings_adaptive_bubbles": "Адаптивные пузырьки сообщений",
 	"ktg_settings_disable_sound_from_tray": "Отключить звук",
-	"ktg_settings_enable_sound_from_tray": "Включить звук"
+	"ktg_settings_enable_sound_from_tray": "Включить звук",
+	"ktg_settings_recent_stickers_limit": {
+		"one": "Недавние стикеры: показывать {count} стикер",
+		"few": "Недавние стикеры: показывать {count} стикера",
+		"many": "Недавние стикеры: показывать {count} стикеров",
+		"other": "Недавние стикеры: показывать {count} стикеров"
+	},
+	"ktg_settings_recent_stickers_limit_none": "Недавние стикеры: скрыть все"
 }

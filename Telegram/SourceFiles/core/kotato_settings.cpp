@@ -275,6 +275,14 @@ bool Manager::readCustomFile() {
 	if (settingsNoTaskbarFlashing != settings.constEnd() && (*settingsNoTaskbarFlashing).isBool()) {
 		cSetNoTaskbarFlashing((*settingsNoTaskbarFlashing).toBool());
 	}
+
+	const auto settingsRecentStickersLimitIt = settings.constFind(qsl("recent_stickers_limit"));
+	if (settingsRecentStickersLimitIt != settings.constEnd()) {
+		const auto settingsRecentStickersLimit = (*settingsRecentStickersLimitIt).toInt();
+		if (settingsRecentStickersLimit >= 0 || settingsRecentStickersLimit <= 200) {
+			SetRecentStickersLimit(settingsRecentStickersLimit);
+		}
+	}
 	return true;
 }
 
@@ -315,6 +323,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
 	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
 	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
+	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -376,6 +385,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
 	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
 	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
+	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();

@@ -43,7 +43,6 @@ namespace {
 
 constexpr auto kInlineItemsMaxPerRow = 5;
 constexpr auto kSearchRequestDelay = 400;
-constexpr auto kRecentDisplayLimit = 20;
 
 bool SetInMyList(MTPDstickerSet::Flags flags) {
 	return (flags & MTPDstickerSet::Flag::f_installed_date)
@@ -857,6 +856,13 @@ StickersListWidget::StickersListWidget(
 			refreshStickers();
 		}
 	}));
+
+	RecentStickersLimitChanges(
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			refreshStickers();
+		});
+	}, _lifetime);
 }
 
 Main::Session &StickersListWidget::session() const {
@@ -2307,7 +2313,7 @@ auto StickersListWidget::collectRecentStickers() -> std::vector<Sticker> {
 	_custom.reserve(cloudCount + recent.size() + customCount);
 
 	auto add = [&](not_null<DocumentData*> document, bool custom) {
-		if (result.size() >= kRecentDisplayLimit) {
+		if (result.size() >= RecentStickersLimit()) {
 			return;
 		}
 		const auto i = ranges::find(result, document, &Sticker::document);

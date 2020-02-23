@@ -69,6 +69,38 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		updateStickerHeight);
 	updateStickerHeightLabel(StickerHeight());
 
+	const auto recentStickersLimitLabel = container->add(
+		object_ptr<Ui::LabelSimple>(
+			container,
+			st::settingsAudioVolumeLabel),
+		st::settingsAudioVolumeLabelPadding);
+	const auto recentStickersLimitSlider = container->add(
+		object_ptr<Ui::MediaSlider>(
+			container,
+			st::settingsAudioVolumeSlider),
+		st::settingsAudioVolumeSliderPadding);
+	const auto updateRecentStickersLimitLabel = [=](int value) {
+		if (value == 0) {
+			recentStickersLimitLabel->setText(
+				tr::ktg_settings_recent_stickers_limit_none(tr::now));
+		} else {
+			recentStickersLimitLabel->setText(
+				tr::ktg_settings_recent_stickers_limit(tr::now, lt_count_decimal, value));
+		}
+	};
+	const auto updateRecentStickersLimitHeight = [=](int value) {
+		updateRecentStickersLimitLabel(value);
+		SetRecentStickersLimit(value);
+		KotatoSettings::Write();
+	};
+	recentStickersLimitSlider->resize(st::settingsAudioVolumeSlider.seekSize);
+	recentStickersLimitSlider->setPseudoDiscrete(
+		201,
+		[](int val) { return val; },
+		RecentStickersLimit(),
+		updateRecentStickersLimitHeight);
+	updateRecentStickersLimitLabel(RecentStickersLimit());
+
 	AddButton(
 		container,
 		tr::ktg_settings_adaptive_bubbles(),

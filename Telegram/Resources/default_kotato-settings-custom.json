@@ -16,5 +16,6 @@
     // "show_phone_in_drawer": true,
     // "scales": [],
     // "confirm_before_calls": false,
-    // "no_taskbar_flash": false
+    // "no_taskbar_flash": false,
+    // "recent_stickers_limit": 20
 }
