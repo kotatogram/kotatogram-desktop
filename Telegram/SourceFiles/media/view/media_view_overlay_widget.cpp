@@ -704,7 +704,7 @@ void OverlayWidget::refreshCaptionGeometry() {
 		_groupThumbs = nullptr;
 		_groupThumbsRect = QRect();
 	}
-	const auto captionBottom = (_streamed && !videoIsGifv())
+	const auto captionBottom = (_streamed/* && !videoIsGifv()*/)
 		? (_streamed->controls.y() - st::mediaviewCaptionMargin.height())
 		: _groupThumbs
 		? _groupThumbsTop
@@ -876,7 +876,7 @@ void OverlayWidget::contentSizeChanged() {
 }
 
 void OverlayWidget::resizeContentByScreenSize() {
-	const auto bottom = (!_streamed || videoIsGifv())
+	const auto bottom = (!_streamed/* || videoIsGifv()*/)
 		? height()
 		: (_streamed->controls.y()
 			- st::mediaviewCaptionPadding.bottom()
@@ -1150,7 +1150,7 @@ void OverlayWidget::onHideControls(bool force) {
 			|| _menu
 			|| _mousePressed
 			|| (_fullScreenVideo
-				&& !videoIsGifv()
+				/*&& !videoIsGifv()*/
 				&& _streamed->controls.geometry().contains(_lastMouseMovePos))) {
 			return;
 		}
@@ -1742,7 +1742,7 @@ void OverlayWidget::refreshCaption(HistoryItem *item) {
 
 	using namespace HistoryView;
 	_caption = Ui::Text::String(st::msgMinWidth);
-	const auto duration = (_streamed && !videoIsGifv())
+	const auto duration = (_streamed/* && !videoIsGifv()*/)
 		? _doc->getDuration()
 		: 0;
 	const auto base = duration
@@ -2247,12 +2247,12 @@ bool OverlayWidget::createStreamingObjects() {
 		|| _doc->isVoiceMessage()
 		|| _doc->isVideoMessage();
 
-	if (videoIsGifv()) {
-		_streamed->controls.hide();
-	} else {
+	// if (videoIsGifv()) {
+	// 	_streamed->controls.hide();
+	// } else {
 		refreshClipControllerGeometry();
 		_streamed->controls.show();
-	}
+	// }
 	return true;
 }
 
@@ -2413,7 +2413,7 @@ void OverlayWidget::initThemePreview() {
 }
 
 void OverlayWidget::refreshClipControllerGeometry() {
-	if (!_streamed || videoIsGifv()) {
+	if (!_streamed/* || videoIsGifv()*/) {
 		return;
 	}
 
@@ -2448,9 +2448,9 @@ void OverlayWidget::playbackControlsFromFullScreen() {
 }
 
 void OverlayWidget::playbackControlsToPictureInPicture() {
-	if (!videoIsGifv()) {
+	//if (!videoIsGifv()) {
 		switchToPip();
-	}
+	//}
 }
 
 void OverlayWidget::playbackControlsRotate() {
@@ -2579,7 +2579,7 @@ void OverlayWidget::playbackControlsSpeedChanged(float64 speed) {
 		_doc->session().settings().setVideoPlaybackSpeed(speed);
 		_doc->session().saveSettingsDelayed();
 	}
-	if (_streamed && !videoIsGifv()) {
+	if (_streamed/* && !videoIsGifv()*/) {
 		DEBUG_LOG(("Media playback speed: %1 to _streamed.").arg(speed));
 		_streamed->instance.setSpeed(speed);
 	}
@@ -2620,7 +2620,7 @@ void OverlayWidget::switchToPip() {
 void OverlayWidget::playbackToggleFullScreen() {
 	Expects(_streamed != nullptr);
 
-	if (!videoShown() || (videoIsGifv() && !_fullScreenVideo)) {
+	if (!videoShown()/* || (videoIsGifv() && !_fullScreenVideo)*/) {
 		return;
 	}
 	_fullScreenVideo = !_fullScreenVideo;
@@ -2673,9 +2673,11 @@ void OverlayWidget::playbackPauseMusic() {
 void OverlayWidget::updatePlaybackState() {
 	Expects(_streamed != nullptr);
 
+	/*
 	if (videoIsGifv()) {
 		return;
 	}
+	*/
 	const auto state = _streamed->instance.player().prepareLegacyState();
 	if (state.position != kTimeUnknown && state.length != kTimeUnknown) {
 		_streamed->controls.updatePlayback(state);
