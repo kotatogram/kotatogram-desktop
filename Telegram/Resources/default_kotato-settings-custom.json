@@ -15,5 +15,6 @@
     // "net_speed_boost": null,
     // "show_phone_in_drawer": true,
     // "scales": [],
-    // "confirm_before_calls": false
+    // "confirm_before_calls": false,
+    // "no_taskbar_flash": false
 }

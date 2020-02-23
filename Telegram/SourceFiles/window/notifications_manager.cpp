@@ -290,7 +290,9 @@ void System::showNext() {
 		}
 	}
 	if (alert) {
-		Platform::Notifications::FlashBounce();
+		if (!cNoTaskbarFlashing()) {
+			Platform::Notifications::FlashBounce();
+		}
 		if (Global::SoundNotify() && !Platform::Notifications::SkipAudio()) {
 			ensureSoundCreated();
 			_soundTrack->playOnce();

@@ -169,6 +169,28 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 }
 
+void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
+	AddDivider(container);
+	AddSkip(container);
+	AddSubsectionTitle(container, tr::ktg_settings_system());
+
+	AddButton(
+		container,
+		tr::ktg_settings_no_taskbar_flash(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cNoTaskbarFlashing())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cNoTaskbarFlashing());
+	}) | rpl::start_with_next([](bool enabled) {
+		cSetNoTaskbarFlashing(enabled);
+		KotatoSettings::Write();
+	}, container->lifetime());
+
+	AddSkip(container);
+}
+
 void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
@@ -231,6 +253,7 @@ void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 
 	SetupKotatoChats(content);
 	SetupKotatoNetwork(content);
+	SetupKotatoSystem(content);
 	SetupKotatoOther(content);
 
 	Ui::ResizeFitChild(this, content);

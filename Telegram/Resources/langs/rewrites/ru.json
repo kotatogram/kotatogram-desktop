@@ -74,6 +74,8 @@
 	"ktg_net_speed_boost_medium": "Среднее",
 	"ktg_net_speed_boost_big": "Высокое",
 	"ktg_net_boost_restart_desc": "Для изменения ускорения загрузки на сервер требуется перезапуск.\n\nПерезапустить сейчас?",
+	"ktg_settings_system": "Система",
+	"ktg_settings_no_taskbar_flash": "Отключить мигание на панели задач",
 	"ktg_settings_other": "Прочие",
 	"ktg_settings_show_chat_id": "Показывать ID чата",
 	"ktg_profile_copy_id": "Копировать ID",

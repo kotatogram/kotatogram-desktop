@@ -220,6 +220,7 @@ bool gUseSystemFont = false;
 
 bool gUseOriginalMetrics = false;
 
+
 rpl::variable<int> gStickerHeight = 170;
 void SetStickerHeight(int height) {
 	gStickerHeight = height;
@@ -301,3 +302,4 @@ bool AddCustomReplace(QString from, QString to) {
 }
 
 bool gConfirmBeforeCall = false;
+bool gNoTaskbarFlashing = false;

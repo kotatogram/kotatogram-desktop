@@ -2355,6 +2355,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_net_boost_restart_desc" = "You'll need to restart app to change upload boost.\n\nRestart now?";
 
+"ktg_settings_system" = "System";
+"ktg_settings_no_taskbar_flash" = "Disable taskbar flashing";
+
 "ktg_settings_other" = "Other";
 "ktg_settings_show_chat_id" = "Show chat ID";
 "ktg_profile_copy_id" = "Copy ID";
