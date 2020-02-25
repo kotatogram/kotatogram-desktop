@@ -15,13 +15,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/animations.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/emoji_config.h"
-#include "lang/lang_keys.h"
-#include "base/zlib_help.h"
-#include "layout.h"
 #include "core/application.h"
 #include "main/main_account.h"
 #include "mainwidget.h"
 #include "app.h"
+#include "storage/storage_cloud_blob.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
@@ -30,69 +28,37 @@ namespace Ui {
 namespace Emoji {
 namespace {
 
-struct Available {
-	int size = 0;
+using namespace Storage::CloudBlob;
 
-	inline bool operator<(const Available &other) const {
-		return size < other.size;
-	}
-	inline bool operator==(const Available &other) const {
-		return size == other.size;
-	}
+struct Set : public Blob {
+	QString previewPath;
 };
-struct Ready {
-	inline bool operator<(const Ready &other) const {
-		return false;
-	}
-	inline bool operator==(const Ready &other) const {
-		return true;
-	}
+
+inline auto PreviewPath(int i) {
+	return qsl(":/gui/emoji/set%1_preview.webp").arg(i);
+}
+
+const auto kSets = {
+	Set{ {0,   0,         0, "Mac"},       PreviewPath(0) },
+	Set{ {1, 246, 7'336'383, "Android"},   PreviewPath(1) },
+	Set{ {2, 206, 5'038'738, "Twemoji"},   PreviewPath(2) },
+	Set{ {3, 238, 6'992'260, "JoyPixels"}, PreviewPath(3) },
 };
-struct Active {
-	inline bool operator<(const Active &other) const {
-		return false;
-	}
-	inline bool operator==(const Active &other) const {
-		return true;
-	}
-};
+
 using Loading = MTP::DedicatedLoader::Progress;
-struct Failed {
-	inline bool operator<(const Failed &other) const {
-		return false;
-	}
-	inline bool operator==(const Failed &other) const {
-		return true;
-	}
-};
-using SetState = base::variant<
-	Available,
-	Ready,
-	Active,
-	Loading,
-	Failed>;
+using SetState = BlobState;
 
-class Loader : public QObject {
+class Loader : public BlobLoader {
 public:
-	Loader(QObject *parent, int id);
+	Loader(
+		QObject *parent,
+		int id,
+		MTP::DedicatedLoader::Location location,
+		const QString &folder,
+		int size);
 
-	int id() const;
-
-	rpl::producer<SetState> state() const;
-	void destroy();
-
-private:
-	void setImplementation(std::unique_ptr<MTP::DedicatedLoader> loader);
-	void unpack(const QString &path);
-	void finalize(const QString &path);
-	void fail();
-
-	int _id = 0;
-	int _size = 0;
-	rpl::variable<SetState> _state;
-
-	MTP::WeakInstance _mtproto;
-	std::unique_ptr<MTP::DedicatedLoader> _implementation;
+	void destroy() override;
+	void unpack(const QString &path) override;
 
 };
 
@@ -127,6 +93,7 @@ private:
 	void setupHandler();
 	void load();
 	void radialAnimationCallback(crl::time now);
+	void updateLoadingToFinished();
 
 	int _id = 0;
 	bool _switching = false;
@@ -148,15 +115,19 @@ void SetGlobalLoader(base::unique_qptr<Loader> loader) {
 }
 
 int GetDownloadSize(int id) {
-	const auto sets = Sets();
-	return ranges::find(sets, id, &Set::id)->size;
+	return ranges::find(kSets, id, &Set::id)->size;
+}
+
+[[nodiscard]] float64 CountProgress(not_null<const Loading*> loading) {
+	return (loading->size > 0)
+		? (loading->already / float64(loading->size))
+		: 0.;
 }
 
 MTP::DedicatedLoader::Location GetDownloadLocation(int id) {
-	constexpr auto kUsername = "tdhbcfiles";
-	const auto sets = Sets();
-	const auto i = ranges::find(sets, id, &Set::id);
-	return MTP::DedicatedLoader::Location{ kUsername, i->postId };
+	const auto username = kCloudLocationUsername.utf16();
+	const auto i = ranges::find(kSets, id, &Set::id);
+	return MTP::DedicatedLoader::Location{ username, i->postId };
 }
 
 SetState ComputeState(int id) {
@@ -169,45 +140,9 @@ SetState ComputeState(int id) {
 }
 
 QString StateDescription(const SetState &state) {
-	return state.match([](const Available &data) {
-		return tr::lng_emoji_set_download(tr::now, lt_size, formatSizeText(data.size));
-	}, [](const Ready &data) -> QString {
-		return tr::lng_emoji_set_ready(tr::now);
-	}, [](const Active &data) -> QString {
-		return tr::lng_emoji_set_active(tr::now);
-	}, [](const Loading &data) {
-		const auto percent = (data.size > 0)
-			? snap((data.already * 100) / float64(data.size), 0., 100.)
-			: 0.;
-		return tr::lng_emoji_set_loading(
-			tr::now,
-			lt_percent,
-			QString::number(int(std::round(percent))) + '%',
-			lt_progress,
-			formatDownloadText(data.already, data.size));
-	}, [](const Failed &data) {
-		return tr::lng_attach_failed(tr::now);
-	});
-}
-
-QByteArray ReadFinalFile(const QString &path) {
-	constexpr auto kMaxZipSize = 10 * 1024 * 1024;
-	auto file = QFile(path);
-	if (file.size() > kMaxZipSize || !file.open(QIODevice::ReadOnly)) {
-		return QByteArray();
-	}
-	return file.readAll();
-}
-
-bool ExtractZipFile(zlib::FileToRead &zip, const QString path) {
-	constexpr auto kMaxSize = 10 * 1024 * 1024;
-	const auto content = zip.readCurrentFileContent(kMaxSize);
-	if (content.isEmpty() || zip.error() != UNZ_OK) {
-		return false;
-	}
-	auto file = QFile(path);
-	return file.open(QIODevice::WriteOnly)
-		&& (file.write(content) == content.size());
+	return StateDescription(
+		state,
+		tr::lng_emoji_set_active);
 }
 
 bool GoodSetPartName(const QString &name) {
@@ -217,89 +152,24 @@ bool GoodSetPartName(const QString &name) {
 }
 
 bool UnpackSet(const QString &path, const QString &folder) {
-	const auto bytes = ReadFinalFile(path);
-	if (bytes.isEmpty()) {
-		return false;
-	}
-
-	auto zip = zlib::FileToRead(bytes);
-	if (zip.goToFirstFile() != UNZ_OK) {
-		return false;
-	}
-	do {
-		const auto name = zip.getCurrentFileName();
-		const auto path = folder + '/' + name;
-		if (GoodSetPartName(name) && !ExtractZipFile(zip, path)) {
-			return false;
-		}
-
-		const auto jump = zip.goToNextFile();
-		if (jump == UNZ_END_OF_LIST_OF_FILE) {
-			break;
-		} else if (jump != UNZ_OK) {
-			return false;
-		}
-	} while (true);
-	return true;
+	return UnpackBlob(path, folder, GoodSetPartName);
 }
 
-Loader::Loader(QObject *parent, int id)
-: QObject(parent)
-, _id(id)
-, _size(GetDownloadSize(_id))
-, _state(Loading{ 0, _size })
-, _mtproto(Core::App().activeAccount().mtp()) {
-	const auto ready = [=](std::unique_ptr<MTP::DedicatedLoader> loader) {
-		if (loader) {
-			setImplementation(std::move(loader));
-		} else {
-			fail();
-		}
-	};
-	const auto location = GetDownloadLocation(id);
-	const auto folder = internal::SetDataPath(id);
-	MTP::StartDedicatedLoader(&_mtproto, location, folder, ready);
-}
-
-int Loader::id() const {
-	return _id;
-}
-
-rpl::producer<SetState> Loader::state() const {
-	return _state.value();
-}
-
-void Loader::setImplementation(
-		std::unique_ptr<MTP::DedicatedLoader> loader) {
-	_implementation = std::move(loader);
-	auto convert = [](auto value) {
-		return SetState(value);
-	};
-	_state = _implementation->progress(
-	) | rpl::map([](const Loading &state) {
-		return SetState(state);
-	});
-	_implementation->failed(
-	) | rpl::start_with_next([=] {
-		fail();
-	}, _implementation->lifetime());
-
-	_implementation->ready(
-	) | rpl::start_with_next([=](const QString &filepath) {
-		unpack(filepath);
-	}, _implementation->lifetime());
-
-	QDir(internal::SetDataPath(_id)).removeRecursively();
-	_implementation->start();
+Loader::Loader(
+	QObject *parent,
+	int id,
+	MTP::DedicatedLoader::Location location,
+	const QString &folder,
+	int size) : BlobLoader(parent, id, location, folder, size) {
 }
 
 void Loader::unpack(const QString &path) {
-	const auto folder = internal::SetDataPath(_id);
+	const auto folder = internal::SetDataPath(id());
 	const auto weak = Ui::MakeWeak(this);
 	crl::async([=] {
 		if (UnpackSet(path, folder)) {
 			QFile(path).remove();
-			SwitchToSet(_id, crl::guard(weak, [=](bool success) {
+			SwitchToSet(id(), crl::guard(weak, [=](bool success) {
 				if (success) {
 					destroy();
 				} else {
@@ -312,13 +182,6 @@ void Loader::unpack(const QString &path) {
 			});
 		}
 	});
-}
-
-void Loader::finalize(const QString &path) {
-}
-
-void Loader::fail() {
-	_state = Failed();
 }
 
 void Loader::destroy() {
@@ -334,8 +197,7 @@ Inner::Inner(QWidget *parent) : RpWidget(parent) {
 void Inner::setupContent() {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 
-	const auto sets = Sets();
-	for (const auto &set : sets) {
+	for (const auto &set : kSets) {
 		content->add(object_ptr<Row>(content, set));
 	}
 
@@ -379,6 +241,9 @@ void Row::paintPreview(Painter &p) const {
 }
 
 void Row::paintRadio(Painter &p) {
+	if (_loading && !_loading->animating()) {
+		_loading = nullptr;
+	}
 	const auto loading = _loading
 		? _loading->computeState()
 		: Ui::RadialState{ 0., 0, FullArcLength };
@@ -536,7 +401,12 @@ void Row::setupHandler() {
 }
 
 void Row::load() {
-	SetGlobalLoader(base::make_unique_q<Loader>(App::main(), _id));
+	SetGlobalLoader(base::make_unique_q<Loader>(
+		App::main(),
+		_id,
+		GetDownloadLocation(_id),
+		internal::SetDataPath(_id),
+		GetDownloadSize(_id)));
 }
 
 void Row::setupLabels(const Set &set) {
@@ -580,14 +450,20 @@ void Row::setupPreview(const Set &set) {
 	}
 }
 
+void Row::updateLoadingToFinished() {
+	_loading->update(
+		_state.current().is<Failed>() ? 0. : 1.,
+		true,
+		crl::now());
+}
+
 void Row::radialAnimationCallback(crl::time now) {
 	const auto updated = [&] {
 		const auto state = _state.current();
 		if (const auto loading = base::get_if<Loading>(&state)) {
-			const auto progress = (loading->size > 0)
-				? (loading->already / float64(loading->size))
-				: 0.;
-			return _loading->update(progress, false, now);
+			return _loading->update(CountProgress(loading), false, now);
+		} else {
+			updateLoadingToFinished();
 		}
 		return false;
 	}();
@@ -636,15 +512,9 @@ void Row::setupAnimation() {
 		if (loading && !_loading) {
 			_loading = std::make_unique<Ui::RadialAnimation>(
 				[=](crl::time now) { radialAnimationCallback(now); });
-			const auto progress = (loading->size > 0)
-				? (loading->already / float64(loading->size))
-				: 0.;
-			_loading->start(progress);
+			_loading->start(CountProgress(loading));
 		} else if (!loading && _loading) {
-			_loading->update(
-				_state.current().is<Failed>() ? 0. : 1.,
-				true,
-				crl::now());
+			updateLoadingToFinished();
 		}
 	}, lifetime());
 

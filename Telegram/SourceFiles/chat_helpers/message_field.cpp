@@ -280,17 +280,13 @@ void InitSpellchecker(
 		not_null<Main::Session*> session,
 		not_null<Ui::InputField*> field) {
 #ifndef TDESKTOP_DISABLE_SPELLCHECK
-	if (!Platform::Spellchecker::IsAvailable()) {
-		return;
-	}
 	const auto s = Ui::CreateChild<Spellchecker::SpellingHighlighter>(
 		field.get(),
-		session->settings().spellcheckerEnabledValue());
-	Spellchecker::SetPhrases({ {
-		{ &ph::lng_spellchecker_add, tr::lng_spellchecker_add() },
-		{ &ph::lng_spellchecker_remove, tr::lng_spellchecker_remove() },
-		{ &ph::lng_spellchecker_ignore, tr::lng_spellchecker_ignore() },
-	} });
+		session->settings().spellcheckerEnabledValue(),
+		Spellchecker::SpellingHighlighter::CustomContextMenuItem{
+			tr::lng_settings_manage_dictionaries(tr::now),
+			[=] { Ui::show(Box<Ui::ManageDictionariesBox>(session)); }
+		});
 	field->setExtendedContextMenu(s->contextMenuCreated());
 #endif // TDESKTOP_DISABLE_SPELLCHECK
 }

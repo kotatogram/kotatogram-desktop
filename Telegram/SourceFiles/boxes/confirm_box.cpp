@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat.h"
 #include "data/data_user.h"
 #include "data/data_file_origin.h"
+#include "data/data_histories.h"
 #include "base/unixtime.h"
 #include "main/main_session.h"
 #include "observer_peer.h"
@@ -785,7 +786,9 @@ void DeleteMessagesBox::deleteAndClear() {
 		_deleteConfirmedCallback();
 	}
 
-	base::flat_map<not_null<PeerData*>, QVector<MTPint>> idsByPeer;
+	auto remove = std::vector<not_null<HistoryItem*>>();
+	remove.reserve(_ids.size());
+	base::flat_map<not_null<History*>, QVector<MTPint>> idsByPeer;
 	base::flat_map<not_null<PeerData*>, QVector<MTPint>> scheduledIdsByPeer;
 	for (const auto itemId : _ids) {
 		if (const auto item = _session->data().message(itemId)) {
@@ -801,21 +804,15 @@ void DeleteMessagesBox::deleteAndClear() {
 				}
 				continue;
 			}
-			const auto wasOnServer = IsServerMsgId(item->id);
-			const auto wasLast = (history->lastMessage() == item);
-			const auto wasInChats = (history->chatListMessage() == item);
-			item->destroy();
-
-			if (wasOnServer) {
-				idsByPeer[history->peer].push_back(MTP_int(itemId.msg));
-			} else if (wasLast || wasInChats) {
-				history->requestChatListMessage();
+			remove.push_back(item);
+			if (IsServerMsgId(item->id)) {
+				idsByPeer[history].push_back(MTP_int(itemId.msg));
 			}
 		}
 	}
 
-	for (const auto &[peer, ids] : idsByPeer) {
-		peer->session().api().deleteMessages(peer, ids, revoke);
+	for (const auto &[history, ids] : idsByPeer) {
+		history->owner().histories().deleteMessages(history, ids, revoke);
 	}
 	for (const auto &[peer, ids] : scheduledIdsByPeer) {
 		peer->session().api().request(MTPmessages_DeleteScheduledMessages(
@@ -824,6 +821,17 @@ void DeleteMessagesBox::deleteAndClear() {
 		)).done([=, peer=peer](const MTPUpdates &updates) {
 			peer->session().api().applyUpdates(updates);
 		}).send();
+	}
+
+	for (const auto item : remove) {
+		const auto history = item->history();
+		const auto wasLast = (history->lastMessage() == item);
+		const auto wasInChats = (history->chatListMessage() == item);
+		item->destroy();
+
+		if (wasLast || wasInChats) {
+			history->requestChatListMessage();
+		}
 	}
 
 	const auto session = _session;

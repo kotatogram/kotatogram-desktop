@@ -88,8 +88,12 @@ QVersionNumber ParseSpecificationVersion(
 NotificationData::NotificationData(
 		const std::shared_ptr<QDBusInterface> &notificationInterface,
 		const base::weak_ptr<Manager> &manager,
-		const QString &title, const QString &subtitle,
-		const QString &msg, PeerId peerId, MsgId msgId)
+		const QString &title,
+		const QString &subtitle,
+		const QString &msg,
+		PeerId peerId,
+		MsgId msgId,
+		bool hideReplyButton)
 : _notificationInterface(notificationInterface)
 , _manager(manager)
 , _title(title)
@@ -118,9 +122,9 @@ NotificationData::NotificationData(
 			kInterface.utf16(),
 			qsl("ActionInvoked"),
 			this,
-			SLOT(notificationClicked(uint)));
+			SLOT(notificationClicked(uint,QString)));
 
-		if (capabilities.contains(qsl("inline-reply"))) {
+		if (capabilities.contains(qsl("inline-reply")) && !hideReplyButton) {
 			_actions << qsl("inline-reply")
 				<< tr::lng_notification_reply(tr::now);
 
@@ -169,12 +173,14 @@ NotificationData::NotificationData(
 		SLOT(notificationClosed(uint)));
 }
 
-bool NotificationData::show() {
+bool NotificationData::show(bool hideNameAndPhoto) {
 	const QDBusReply<uint> notifyReply = _notificationInterface->call(
 		qsl("Notify"),
 		AppName.utf16(),
 		uint(0),
-		QString(),
+		hideNameAndPhoto
+			? qsl("telegram")
+			: QString(),
 		_title,
 		_body,
 		_actions,
@@ -261,13 +267,19 @@ void NotificationData::notificationClosed(uint id) {
 	}
 }
 
-void NotificationData::notificationClicked(uint id) {
-	if (id == _notificationId) {
-		const auto manager = _manager;
-		crl::on_main(manager, [=] {
-			manager->notificationActivated(_peerId, _msgId);
-		});
+void NotificationData::notificationClicked(uint id, const QString &actionId) {
+	if (id != _notificationId) {
+		return;
 	}
+
+	if (actionId != qsl("default") && actionId != qsl("mail-reply-sender")) {
+		return;
+	}
+
+	const auto manager = _manager;
+	crl::on_main(manager, [=] {
+		manager->notificationActivated(_peerId, _msgId);
+	});
 }
 
 void NotificationData::notificationReplied(uint id, const QString &text) {
@@ -279,7 +291,8 @@ void NotificationData::notificationReplied(uint id, const QString &text) {
 	}
 }
 
-QDBusArgument &operator<<(QDBusArgument &argument,
+QDBusArgument &operator<<(
+		QDBusArgument &argument,
 		const NotificationData::ImageData &imageData) {
 	argument.beginStructure();
 	argument << imageData.width
@@ -293,7 +306,8 @@ QDBusArgument &operator<<(QDBusArgument &argument,
 	return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument,
+const QDBusArgument &operator>>(
+		const QDBusArgument &argument,
 		NotificationData::ImageData &imageData) {
 	argument.beginStructure();
 	argument >> imageData.width
@@ -374,12 +388,13 @@ void Manager::Private::showNotification(
 		subtitle,
 		msg,
 		peer->id,
-		msgId);
+		msgId,
+		hideReplyButton);
 
-	const auto key = hideNameAndPhoto
-		? InMemoryKey()
-		: peer->userpicUniqueKey();
-	notification->setImage(_cachedUserpics.get(key, peer));
+	if (!hideNameAndPhoto) {
+		const auto key = peer->userpicUniqueKey();
+		notification->setImage(_cachedUserpics.get(key, peer));
+	}
 
 	auto i = _notifications.find(peer->id);
 	if (i != _notifications.cend()) {
@@ -395,7 +410,7 @@ void Manager::Private::showNotification(
 		i = _notifications.insert(peer->id, QMap<MsgId, Notification>());
 	}
 	_notifications[peer->id].insert(msgId, notification);
-	if (!notification->show()) {
+	if (!notification->show(hideNameAndPhoto)) {
 		i = _notifications.find(peer->id);
 		if (i != _notifications.cend()) {
 			i->remove(msgId);

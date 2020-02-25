@@ -33,6 +33,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_settings.h"
 
 #ifndef TDESKTOP_DISABLE_SPELLCHECK
+#include "boxes/dictionaries_manager.h"
+#include "chat_helpers/spellchecker_common.h"
 #include "spellcheck/platform/platform_spellcheck.h"
 #endif // !TDESKTOP_DISABLE_SPELLCHECK
 
@@ -250,28 +252,72 @@ void SetupUpdate(not_null<Ui::VerticalLayout*> container) {
 bool HasSystemSpellchecker() {
 #ifdef TDESKTOP_DISABLE_SPELLCHECK
 	return false;
-#else
-	return Platform::Spellchecker::IsAvailable();
 #endif // TDESKTOP_DISABLE_SPELLCHECK
+	return true;
 }
 
 void SetupSpellchecker(
 		not_null<Window::SessionController*> controller,
 		not_null<Ui::VerticalLayout*> container) {
+#ifndef TDESKTOP_DISABLE_SPELLCHECK
 	const auto session = &controller->session();
-	AddButton(
+	const auto settings = &session->settings();
+	const auto isSystem = Platform::Spellchecker::IsSystemSpellchecker();
+	const auto button = AddButton(
 		container,
-		tr::lng_settings_system_spellchecker(),
+		isSystem
+			? tr::lng_settings_system_spellchecker()
+			: tr::lng_settings_custom_spellchecker(),
 		st::settingsButton
 	)->toggleOn(
-		rpl::single(session->settings().spellcheckerEnabled())
-	)->toggledValue(
+		rpl::single(settings->spellcheckerEnabled())
+	);
+
+	button->toggledValue(
 	) | rpl::filter([=](bool enabled) {
-		return (enabled != session->settings().spellcheckerEnabled());
+		return (enabled != settings->spellcheckerEnabled());
 	}) | rpl::start_with_next([=](bool enabled) {
-		session->settings().setSpellcheckerEnabled(enabled);
+		settings->setSpellcheckerEnabled(enabled);
 		session->saveSettingsDelayed();
 	}, container->lifetime());
+
+	if (isSystem) {
+		return;
+	}
+
+	const auto sliding = container->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			container,
+			object_ptr<Ui::VerticalLayout>(container)));
+
+	AddButton(
+		sliding->entity(),
+		tr::lng_settings_auto_download_dictionaries(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(settings->autoDownloadDictionaries())
+	)->toggledValue(
+	) | rpl::filter([=](bool enabled) {
+		return (enabled != settings->autoDownloadDictionaries());
+	}) | rpl::start_with_next([=](bool enabled) {
+		settings->setAutoDownloadDictionaries(enabled);
+		session->saveSettingsDelayed();
+	}, sliding->entity()->lifetime());
+
+	AddButtonWithLabel(
+		sliding->entity(),
+		tr::lng_settings_manage_dictionaries(),
+		Spellchecker::ButtonManageDictsState(session),
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<Ui::ManageDictionariesBox>(session));
+	});
+
+	button->toggledValue(
+	) | rpl::start_with_next([=](bool enabled) {
+		sliding->toggle(enabled, anim::type::normal);
+	}, container->lifetime());
+#endif // !TDESKTOP_DISABLE_SPELLCHECK
 }
 
 bool HasTray() {

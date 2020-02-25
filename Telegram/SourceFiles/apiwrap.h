@@ -141,6 +141,9 @@ public:
 	void applyUpdates(
 		const MTPUpdates &updates,
 		uint64 sentMessageRandomId = 0);
+	int applyAffectedHistory(
+		not_null<PeerData*> peer,
+		const MTPmessages_AffectedHistory &result);
 
 	void registerModifyRequest(const QString &key, mtpRequestId requestId);
 	void clearModifyRequest(const QString &key);
@@ -170,18 +173,10 @@ public:
 	rpl::producer<bool> dialogsLoadMayBlockByDate() const;
 	rpl::producer<bool> dialogsLoadBlockedByDate() const;
 
-	void requestDialogEntry(not_null<Data::Folder*> folder);
-	void requestDialogEntry(
-		not_null<History*> history,
-		Fn<void()> callback = nullptr);
-	void dialogEntryApplied(not_null<History*> history);
 	//void applyFeedSources(const MTPDchannels_feedSources &data); // #feed
 	//void setFeedChannels(
 	//	not_null<Data::Feed*> feed,
 	//	const std::vector<not_null<ChannelData*>> &channels);
-	void changeDialogUnreadMark(not_null<History*> history, bool unread);
-	//void changeDialogUnreadMark(not_null<Data::Feed*> feed, bool unread); // #feed
-	void requestFakeChatListMessage(not_null<History*> history);
 
 	void requestWallPaper(
 		const QString &slug,
@@ -305,10 +300,6 @@ public:
 
 	void clearHistory(not_null<PeerData*> peer, bool revoke);
 	void deleteConversation(not_null<PeerData*> peer, bool revoke);
-	void deleteMessages(
-		not_null<PeerData*> peer,
-		const QVector<MTPint> &ids,
-		bool revoke);
 
 	base::Observable<PeerData*> &fullPeerUpdated() {
 		return _fullPeerUpdated;
@@ -389,11 +380,12 @@ public:
 		const QString &lastName,
 		const SendAction &action);
 	void shareContact(not_null<UserData*> user, const SendAction &action);
-	void readServerHistory(not_null<History*> history);
-	void readServerHistoryForce(not_null<History*> history);
 	//void readFeed( // #feed
 	//	not_null<Data::Feed*> feed,
 	//	Data::MessagePosition position);
+	void applyAffectedMessages(
+		not_null<PeerData*> peer,
+		const MTPmessages_AffectedMessages &result);
 
 	void sendVoiceMessage(
 		QByteArray result,
@@ -475,8 +467,8 @@ public:
 	void createPoll(
 		const PollData &data,
 		const SendAction &action,
-		FnMut<void()> done,
-		FnMut<void(const RPCError &error)> fail);
+		Fn<void()> done,
+		Fn<void(const RPCError &error)> fail);
 	void sendPollVotes(
 		FullMsgId itemId,
 		const std::vector<QByteArray> &options);
@@ -531,7 +523,6 @@ private:
 
 	QVector<MTPInputMessage> collectMessageIds(const MessageDataRequests &requests);
 	MessageDataRequests *messageDataRequests(ChannelData *channel, bool onlyExisting = false);
-	void applyPeerDialogs(const MTPmessages_PeerDialogs &dialogs);
 
 	void gotChatFull(
 		not_null<PeerData*> peer,
@@ -623,14 +614,7 @@ private:
 		not_null<PeerData*> peer,
 		bool justClear,
 		bool revoke);
-	void sendReadRequest(not_null<PeerData*> peer, MsgId upTo);
-	int applyAffectedHistory(
-		not_null<PeerData*> peer,
-		const MTPmessages_AffectedHistory &result);
 	void applyAffectedMessages(const MTPmessages_AffectedMessages &result);
-	void applyAffectedMessages(
-		not_null<PeerData*> peer,
-		const MTPmessages_AffectedMessages &result);
 
 	void deleteAllFromUserSend(
 		not_null<ChannelData*> channel,
@@ -684,8 +668,6 @@ private:
 		not_null<PeerData*> peer,
 		not_null<ChannelData*> channel);
 	void migrateFail(not_null<PeerData*> peer, const RPCError &error);
-
-	void sendDialogRequests();
 
 	not_null<Main::Session*> _session;
 
@@ -756,22 +738,14 @@ private:
 
 	mtpRequestId _contactsRequestId = 0;
 	mtpRequestId _contactsStatusesRequestId = 0;
-	base::flat_set<not_null<Data::Folder*>> _dialogFolderRequests;
-	base::flat_map<
-		not_null<History*>,
-		std::vector<Fn<void()>>> _dialogRequests;
-	base::flat_map<
-		not_null<History*>,
-		std::vector<Fn<void()>>> _dialogRequestsPending;
-	base::flat_set<not_null<History*>> _fakeChatListRequests;
 
 	base::flat_map<not_null<History*>, mtpRequestId> _unreadMentionsRequests;
 
-	base::flat_map<std::tuple<
+	base::flat_set<std::tuple<
 		not_null<PeerData*>,
 		SharedMediaType,
 		MsgId,
-		SliceType>, mtpRequestId> _sharedMediaRequests;
+		SliceType>> _sharedMediaRequests;
 
 	base::flat_map<not_null<UserData*>, mtpRequestId> _userPhotosRequests;
 
@@ -799,18 +773,6 @@ private:
 		DialogsLoadState> _foldersLoadState;
 
 	rpl::event_stream<SendAction> _sendActions;
-
-	struct ReadRequest {
-		ReadRequest(mtpRequestId requestId, MsgId upTo)
-		: requestId(requestId)
-		, upTo(upTo) {
-		}
-
-		mtpRequestId requestId = 0;
-		MsgId upTo = 0;
-	};
-	base::flat_map<not_null<PeerData*>, ReadRequest> _readRequests;
-	base::flat_map<not_null<PeerData*>, MsgId> _readRequestsPending;
 
 	std::unique_ptr<TaskQueue> _fileLoader;
 	base::flat_map<uint64, std::shared_ptr<SendingAlbum>> _sendingAlbums;

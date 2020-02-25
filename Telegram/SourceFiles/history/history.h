@@ -90,6 +90,25 @@ public:
 
 	void applyGroupAdminChanges(const base::flat_set<UserId> &changes);
 
+	template <typename ...Args>
+	not_null<HistoryMessage*> makeMessage(Args &&...args) {
+		return static_cast<HistoryMessage*>(
+			insertItem(
+				std::make_unique<HistoryMessage>(
+					this,
+					std::forward<Args>(args)...)).get());
+	}
+
+	template <typename ...Args>
+	not_null<HistoryService*> makeServiceMessage(Args &&...args) {
+		return static_cast<HistoryService*>(
+			insertItem(
+				std::make_unique<HistoryService>(
+					this,
+					std::forward<Args>(args)...)).get());
+	}
+	void destroyMessage(not_null<HistoryItem*> item);
+
 	HistoryItem *addNewMessage(
 		const MTPMessage &msg,
 		MTPDmessage_ClientFlags clientFlags,
@@ -158,7 +177,7 @@ public:
 	void unregisterLocalMessage(not_null<HistoryItem*> item);
 	[[nodiscard]] HistoryItem *latestSendingMessage() const;
 
-	MsgId readInbox();
+	[[nodiscard]] bool readInboxTillNeedsRequest(MsgId tillId);
 	void applyInboxReadUpdate(
 		FolderId folderId,
 		MsgId upTo,
@@ -172,8 +191,13 @@ public:
 		not_null<const HistoryItem*> item) const;
 	[[nodiscard]] MsgId loadAroundId() const;
 
+	[[nodiscard]] bool trackUnreadMessages() const;
 	[[nodiscard]] int unreadCount() const;
 	[[nodiscard]] bool unreadCountKnown() const;
+
+	// Some old unread count is known, but we read history till some place.
+	[[nodiscard]] bool unreadCountRefreshNeeded(MsgId readTillId) const;
+
 	void setUnreadCount(int newUnreadCount);
 	void setUnreadMark(bool unread);
 	[[nodiscard]] bool unreadMark() const;
@@ -182,7 +206,6 @@ public:
 	bool changeMute(bool newMute);
 	void addUnreadBar();
 	void destroyUnreadBar();
-	[[nodiscard]] bool hasNotFreezedUnreadBar() const;
 	[[nodiscard]] Element *unreadBar() const;
 	void calculateFirstUnreadMessage();
 	void unsetFirstUnreadMessage();
@@ -197,7 +220,9 @@ public:
 	void getReadyFor(MsgId msgId);
 
 	[[nodiscard]] HistoryItem *lastMessage() const;
+	[[nodiscard]] HistoryItem *lastServerMessage() const;
 	[[nodiscard]] bool lastMessageKnown() const;
+	[[nodiscard]] bool lastServerMessageKnown() const;
 	void unknownMessageDeleted(MsgId messageId);
 	void applyDialogTopMessage(MsgId topMessageId);
 	void applyDialog(Data::Folder *requestFolder, const MTPDdialog &data);
@@ -344,6 +369,10 @@ public:
 		HistoryItem *folderDialogItem = nullptr);
 	void clearFolder();
 
+	// Interface for Data::Histories.
+	void setInboxReadTill(MsgId upTo);
+	std::optional<int> countStillUnreadLocal(MsgId readTillId) const;
+
 	// Still public data.
 	std::deque<std::unique_ptr<HistoryBlock>> blocks;
 
@@ -395,6 +424,7 @@ private:
 	void removeBlock(not_null<HistoryBlock*> block);
 	void clearSharedMedia();
 
+	not_null<HistoryItem*> insertItem(std::unique_ptr<HistoryItem> item);
 	not_null<HistoryItem*> addNewItem(
 		not_null<HistoryItem*> item,
 		bool unread);
@@ -432,7 +462,6 @@ private:
 	TimeId adjustedChatListTimeId() const override;
 	void changedChatListPinHook() override;
 
-	void setInboxReadTill(MsgId upTo);
 	void setOutboxReadTill(MsgId upTo);
 	void readClientSideMessages();
 
@@ -446,6 +475,7 @@ private:
 	// After adding a new history slice check lastMessage / loadedAtBottom.
 	void checkLastMessage();
 	void setLastMessage(HistoryItem *item);
+	void setLastServerMessage(HistoryItem *item);
 
 	void refreshChatListMessage();
 	void setChatListMessage(HistoryItem *item);
@@ -468,7 +498,6 @@ private:
 	HistoryItem *lastAvailableMessage() const;
 	void getNextFirstUnreadMessage();
 	bool nonEmptyCountMoreThan(int count) const;
-	std::optional<int> countUnread(MsgId upTo) const;
 
 	// Creates if necessary a new block for adding item.
 	// Depending on isBuildingFrontBlock() gets front or back block.
@@ -501,7 +530,9 @@ private:
 	std::optional<int> _unreadMentionsCount;
 	base::flat_set<MsgId> _unreadMentions;
 	std::optional<HistoryItem*> _lastMessage;
+	std::optional<HistoryItem*> _lastServerMessage;
 	base::flat_set<not_null<HistoryItem*>> _localMessages;
+	std::unordered_set<std::unique_ptr<HistoryItem>> _messages;
 
 	// This almost always is equal to _lastMessage. The only difference is
 	// for a group that migrated to a supergroup. Then _lastMessage can

@@ -41,6 +41,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "data/data_scheduled_messages.h"
 #include "data/data_file_origin.h"
+#include "data/data_histories.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_message.h"
@@ -142,22 +143,6 @@ void ActivateWindow(not_null<Window::SessionController*> controller) {
 	const auto window = controller->widget();
 	window->activateWindow();
 	Ui::ActivateWindowDelayed(window);
-}
-
-bool ShowHistoryEndInsteadOfUnread(
-		not_null<Data::Session*> session,
-		PeerId peerId) {
-	// Ignore unread messages in case of unread changelogs.
-	// We must show this history at end for the changelog to be visible.
-	if (peerId != PeerData::kServiceNotificationsId) {
-		return false;
-	}
-	const auto history = session->history(peerId);
-	if (!history->unreadCount()) {
-		return false;
-	}
-	const auto last = history->lastMessage();
-	return (last != nullptr) && !IsServerMsgId(last->id);
 }
 
 object_ptr<Ui::FlatButton> SetupDiscussButton(
@@ -839,6 +824,7 @@ void HistoryWidget::scrollToCurrentVoiceMessage(FullMsgId fromId, FullMsgId toId
 
 void HistoryWidget::animatedScrollToItem(MsgId msgId) {
 	Expects(_history != nullptr);
+
 	if (hasPendingResizedItems()) {
 		updateListSize();
 	}
@@ -857,6 +843,7 @@ void HistoryWidget::animatedScrollToItem(MsgId msgId) {
 
 void HistoryWidget::animatedScrollToY(int scrollTo, HistoryItem *attachTo) {
 	Expects(_history != nullptr);
+
 	if (hasPendingResizedItems()) {
 		updateListSize();
 	}
@@ -1623,10 +1610,7 @@ void HistoryWidget::fastShowAtEnd(not_null<History*> history) {
 	}
 
 	clearAllLoadRequests();
-
 	setMsgId(ShowAtUnreadMsgId);
-	_historyInited = false;
-
 	if (_history->isReadyFor(_showAtMsgId)) {
 		historyLoaded();
 	} else {
@@ -1692,6 +1676,18 @@ void HistoryWidget::applyCloudDraft(History *history) {
 	}
 }
 
+bool HistoryWidget::insideJumpToEndInsteadOfToUnread() const {
+	if (session().supportMode()) {
+		return true;
+	} else if (!_historyInited) {
+		return false;
+	}
+	_history->calculateFirstUnreadMessage();
+	const auto unread = _history->firstUnreadMessage();
+	const auto visibleBottom = _scroll->scrollTop() + _scroll->height();
+	return unread && _list->itemTop(unread) <= visibleBottom;
+}
+
 void HistoryWidget::showHistory(
 		const PeerId &peerId,
 		MsgId showAtMsgId,
@@ -1702,9 +1698,6 @@ void HistoryWidget::showHistory(
 	const auto startBot = (showAtMsgId == ShowAndStartBotMsgId);
 	if (startBot) {
 		showAtMsgId = ShowAtTheEndMsgId;
-	} else if ((showAtMsgId == ShowAtUnreadMsgId)
-		&& ShowHistoryEndInsteadOfUnread(&session().data(), peerId)) {
-		showAtMsgId = ShowAtTheEndMsgId;
 	}
 
 	clearHighlightMessages();
@@ -1712,7 +1705,16 @@ void HistoryWidget::showHistory(
 		if (_peer->id == peerId && !reload) {
 			updateForwarding();
 
-			bool canShowNow = _history->isReadyFor(showAtMsgId);
+			if (showAtMsgId == ShowAtUnreadMsgId
+				&& insideJumpToEndInsteadOfToUnread()) {
+				showAtMsgId = ShowAtTheEndMsgId;
+			}
+			if (!IsServerMsgId(showAtMsgId)
+				&& !IsServerMsgId(-showAtMsgId)) {
+				// To end or to unread.
+				destroyUnreadBar();
+			}
+			const auto canShowNow = _history->isReadyFor(showAtMsgId);
 			if (!canShowNow) {
 				delayedShowAt(showAtMsgId);
 			} else {
@@ -1734,11 +1736,12 @@ void HistoryWidget::showHistory(
 
 				setMsgId(showAtMsgId);
 				if (_historyInited) {
-					countHistoryShowFrom();
-					destroyUnreadBar();
-
-					auto item = getItemFromHistoryOrMigrated(_showAtMsgId);
-					animatedScrollToY(countInitialScrollTop(), item);
+					const auto to = countInitialScrollTop();
+					const auto item = getItemFromHistoryOrMigrated(
+						_showAtMsgId);
+					animatedScrollToY(
+						std::clamp(to, 0, _scroll->scrollTopMax()),
+						item);
 				} else {
 					historyLoaded();
 				}
@@ -1763,14 +1766,13 @@ void HistoryWidget::showHistory(
 			return;
 		}
 		updateSendAction(_history, SendAction::Type::Typing, -1);
+		session().data().histories().sendPendingReadInbox(_history);
 		cancelTypingAction();
 	}
 
 	session().data().stopPlayingVideoFiles();
 
 	clearReplyReturns();
-	clearAllLoadRequests();
-
 	if (_history) {
 		if (Ui::InFocusChain(_list)) {
 			// Removing focus from list clears selected and updates top bar.
@@ -1786,10 +1788,12 @@ void HistoryWidget::showHistory(
 
 		_history->showAtMsgId = _showAtMsgId;
 
-		destroyUnreadBar();
+		destroyUnreadBarOnClose();
 		destroyPinnedBar();
 		_membersDropdown.destroy();
 		_scrollToAnimation.stop();
+
+		clearAllLoadRequests();
 		_history = _migrated = nullptr;
 		_list = nullptr;
 		_peer = nullptr;
@@ -1896,7 +1900,9 @@ void HistoryWidget::showHistory(
 		_updateHistoryItems.stop();
 
 		pinnedMsgVisibilityUpdated();
-		if (_history->scrollTopItem || (_migrated && _migrated->scrollTopItem) || _history->isReadyFor(_showAtMsgId)) {
+		if (_history->scrollTopItem
+			|| (_migrated && _migrated->scrollTopItem)
+			|| _history->isReadyFor(_showAtMsgId)) {
 			historyLoaded();
 		} else {
 			firstLoadMessages();
@@ -1928,10 +1934,17 @@ void HistoryWidget::showHistory(
 				}
 			}
 		}
+		if (!_history->folderKnown()) {
+			session().data().histories().requestDialogEntry(_history);
+		}
 		if (_history->chatListUnreadMark()) {
-			session().api().changeDialogUnreadMark(_history, false);
+			_history->owner().histories().changeDialogUnreadMark(
+				_history,
+				false);
 			if (_migrated) {
-				session().api().changeDialogUnreadMark(_migrated, false);
+				_migrated->owner().histories().changeDialogUnreadMark(
+					_migrated,
+					false);
 			}
 
 			// Must be done before unreadCountUpdated(), or we auto-close.
@@ -1965,18 +1978,35 @@ void HistoryWidget::showHistory(
 
 void HistoryWidget::clearDelayedShowAt() {
 	_delayedShowAtMsgId = -1;
+	clearDelayedShowAtRequest();
+}
+
+void HistoryWidget::clearDelayedShowAtRequest() {
+	Expects(_history != nullptr);
+
 	if (_delayedShowAtRequest) {
-		MTP::cancel(_delayedShowAtRequest);
+		_history->owner().histories().cancelRequest(_delayedShowAtRequest);
 		_delayedShowAtRequest = 0;
 	}
 }
 
 void HistoryWidget::clearAllLoadRequests() {
-	clearDelayedShowAt();
-	if (_firstLoadRequest) MTP::cancel(_firstLoadRequest);
-	if (_preloadRequest) MTP::cancel(_preloadRequest);
-	if (_preloadDownRequest) MTP::cancel(_preloadDownRequest);
-	_preloadRequest = _preloadDownRequest = _firstLoadRequest = 0;
+	Expects(_history != nullptr);
+
+	auto &histories = _history->owner().histories();
+	clearDelayedShowAtRequest();
+	if (_firstLoadRequest) {
+		histories.cancelRequest(_firstLoadRequest);
+		_firstLoadRequest = 0;
+	}
+	if (_preloadRequest) {
+		histories.cancelRequest(_preloadRequest);
+		_preloadRequest = 0;
+	}
+	if (_preloadDownRequest) {
+		histories.cancelRequest(_preloadDownRequest);
+		_preloadDownRequest = 0;
+	}
 }
 
 void HistoryWidget::updateFieldSubmitSettings() {
@@ -2314,8 +2344,22 @@ void HistoryWidget::destroyUnreadBar() {
 	if (_migrated) _migrated->destroyUnreadBar();
 }
 
+void HistoryWidget::destroyUnreadBarOnClose() {
+	if (!_history || !_historyInited) {
+		return;
+	} else if (_scroll->scrollTop() == _scroll->scrollTopMax()) {
+		destroyUnreadBar();
+		return;
+	}
+	const auto top = unreadBarTop();
+	if (top && *top < _scroll->scrollTop()) {
+		destroyUnreadBar();
+		return;
+	}
+}
+
 void HistoryWidget::unreadMessageAdded(not_null<HistoryItem*> item) {
-	if (_history != item->history()) {
+	if (_history != item->history() || !_historyInited) {
 		return;
 	}
 
@@ -2326,16 +2370,18 @@ void HistoryWidget::unreadMessageAdded(not_null<HistoryItem*> item) {
 	// - on second we get wrong doWeReadServerHistory() and read both.
 	session().data().sendHistoryChangeNotifications();
 
-	if (_scroll->scrollTop() + 1 > _scroll->scrollTopMax()) {
-		destroyUnreadBar();
+	const auto atBottom = (_scroll->scrollTop() >= _scroll->scrollTopMax());
+	if (!atBottom) {
+		return;
 	}
-	if (!App::wnd()->doWeReadServerHistory()) {
+	destroyUnreadBar();
+	if (!doWeReadServerHistory()) {
 		return;
 	}
 	if (item->isUnreadMention() && !item->isUnreadMedia()) {
 		session().api().markMediaRead(item);
 	}
-	session().api().readServerHistoryForce(_history);
+	session().data().histories().readInboxOnNewMessage(item);
 
 	// Also clear possible scheduled messages notifications.
 	session().notifications().clearFromHistory(_history);
@@ -2365,8 +2411,10 @@ void HistoryWidget::unreadCountUpdated() {
 	}
 }
 
-bool HistoryWidget::messagesFailed(const RPCError &error, mtpRequestId requestId) {
-	if (MTP::isDefaultHandledError(error)) return false;
+bool HistoryWidget::messagesFailed(const RPCError &error, int requestId) {
+	if (MTP::isDefaultHandledError(error)) {
+		return false;
+	}
 
 	if (error.type() == qstr("CHANNEL_PRIVATE")
 		|| error.type() == qstr("CHANNEL_PUBLIC_GROUP_NA")
@@ -2391,15 +2439,20 @@ bool HistoryWidget::messagesFailed(const RPCError &error, mtpRequestId requestId
 	return true;
 }
 
-void HistoryWidget::messagesReceived(PeerData *peer, const MTPmessages_Messages &messages, mtpRequestId requestId) {
-	if (!_history) {
-		_preloadRequest = _preloadDownRequest = _firstLoadRequest = _delayedShowAtRequest = 0;
-		return;
-	}
+void HistoryWidget::messagesReceived(PeerData *peer, const MTPmessages_Messages &messages, int requestId) {
+	Expects(_history != nullptr);
 
 	bool toMigrated = (peer == _peer->migrateFrom());
 	if (peer != _peer && !toMigrated) {
-		_preloadRequest = _preloadDownRequest = _firstLoadRequest = _delayedShowAtRequest = 0;
+		if (_preloadRequest == requestId) {
+			_preloadRequest = 0;
+		} else if (_preloadDownRequest == requestId) {
+			_preloadDownRequest = 0;
+		} else if (_firstLoadRequest == requestId) {
+			_firstLoadRequest = 0;
+		} else if (_delayedShowAtRequest == requestId) {
+			_delayedShowAtRequest = 0;
+		}
 		return;
 	}
 
@@ -2464,7 +2517,9 @@ void HistoryWidget::messagesReceived(PeerData *peer, const MTPmessages_Messages 
 		addMessagesToBack(peer, *histList);
 		_preloadDownRequest = 0;
 		preloadHistoryIfNeeded();
-		if (_history->loadedAtBottom() && App::wnd()) App::wnd()->checkHistoryActivation();
+		if (_history->loadedAtBottom()) {
+			checkHistoryActivation();
+		}
 	} else if (_firstLoadRequest == requestId) {
 		if (toMigrated) {
 			_history->clear(History::ClearType::Unload);
@@ -2486,22 +2541,19 @@ void HistoryWidget::messagesReceived(PeerData *peer, const MTPmessages_Messages 
 			_migrated->clear(History::ClearType::Unload);
 		}
 
-		_delayedShowAtRequest = 0;
+		clearAllLoadRequests();
+		_firstLoadRequest = -1; // hack - don't updateListSize yet
 		_history->getReadyFor(_delayedShowAtMsgId);
 		if (_history->isEmpty()) {
-			if (_preloadRequest) MTP::cancel(_preloadRequest);
-			if (_preloadDownRequest) MTP::cancel(_preloadDownRequest);
-			if (_firstLoadRequest) MTP::cancel(_firstLoadRequest);
-			_preloadRequest = _preloadDownRequest = 0;
-			_firstLoadRequest = -1; // hack - don't updateListSize yet
 			addMessagesToFront(peer, *histList);
-			_firstLoadRequest = 0;
-			if (_history->loadedAtTop()
-				&& _history->isEmpty()
-				&& count > 0) {
-				firstLoadMessages();
-				return;
-			}
+		}
+		_firstLoadRequest = 0;
+
+		if (_history->loadedAtTop()
+			&& _history->isEmpty()
+			&& count > 0) {
+			firstLoadMessages();
+			return;
 		}
 		while (_replyReturn) {
 			if (_replyReturn->history() == _history
@@ -2515,16 +2567,14 @@ void HistoryWidget::messagesReceived(PeerData *peer, const MTPmessages_Messages 
 			}
 		}
 
+		_delayedShowAtRequest = 0;
 		setMsgId(_delayedShowAtMsgId);
-
-		_historyInited = false;
 		historyLoaded();
 	}
 }
 
 void HistoryWidget::historyLoaded() {
-	countHistoryShowFrom();
-	destroyUnreadBar();
+	_historyInited = false;
 	doneShow();
 }
 
@@ -2533,43 +2583,38 @@ void HistoryWidget::windowShown() {
 }
 
 bool HistoryWidget::doWeReadServerHistory() const {
-	if (!_history || !_list) return true;
-	if (_firstLoadRequest || _a_show.animating()) return false;
-	if (_history->loadedAtBottom()) {
-		int scrollTop = _scroll->scrollTop();
-		if (scrollTop + 1 > _scroll->scrollTopMax()) return true;
-
-		if (const auto unread = firstUnreadMessage()) {
-			const auto scrollBottom = scrollTop + _scroll->height();
-			if (scrollBottom > _list->itemTop(unread)) {
-				return true;
-			}
-		}
-	}
-	if (_history->hasNotFreezedUnreadBar()
-		|| (_migrated && _migrated->hasNotFreezedUnreadBar())) {
-		return true;
-	}
-	return false;
+	return doWeReadMentions() && !session().supportMode();
 }
 
 bool HistoryWidget::doWeReadMentions() const {
-	if (!_history || !_list) return true;
-	if (_firstLoadRequest || _a_show.animating()) return false;
-	return true;
+	return _history
+		&& _list
+		&& _historyInited
+		&& !_firstLoadRequest
+		&& !_delayedShowAtRequest
+		&& !_a_show.animating()
+		&& App::wnd()->doWeMarkAsRead();
+}
+
+void HistoryWidget::checkHistoryActivation() {
+	if (_list) {
+		_list->checkHistoryActivation();
+	}
 }
 
 void HistoryWidget::firstLoadMessages() {
-	if (!_history || _firstLoadRequest) return;
+	if (!_history || _firstLoadRequest) {
+		return;
+	}
 
-	auto from = _peer;
+	auto from = _history;
 	auto offsetId = 0;
 	auto offset = 0;
 	auto loadCount = kMessagesPerPage;
 	if (_showAtMsgId == ShowAtUnreadMsgId) {
 		if (const auto around = _migrated ? _migrated->loadAroundId() : 0) {
 			_history->getReadyFor(_showAtMsgId);
-			from = _migrated->peer;
+			from = _migrated;
 			offset = -loadCount / 2;
 			offsetId = around;
 		} else if (const auto around = _history->loadAroundId()) {
@@ -2589,7 +2634,7 @@ void HistoryWidget::firstLoadMessages() {
 	} else if (_showAtMsgId < 0 && _history->isChannel()) {
 		if (_showAtMsgId < 0 && -_showAtMsgId < ServerMaxMsgId && _migrated) {
 			_history->getReadyFor(_showAtMsgId);
-			from = _migrated->peer;
+			from = _migrated;
 			offset = -loadCount / 2;
 			offsetId = -_showAtMsgId;
 		} else if (_showAtMsgId == SwitchAtTopMsgId) {
@@ -2602,28 +2647,42 @@ void HistoryWidget::firstLoadMessages() {
 	auto minId = 0;
 	auto historyHash = 0;
 
-	_firstLoadRequest = MTP::send(
-		MTPmessages_GetHistory(
-			from->input,
+	const auto history = from;
+	const auto type = Data::Histories::RequestType::History;
+	auto &histories = history->owner().histories();
+	_firstLoadRequest = histories.sendRequest(history, type, [=](Fn<void()> finish) {
+		return history->session().api().request(MTPmessages_GetHistory(
+			history->peer->input,
 			MTP_int(offsetId),
 			MTP_int(offsetDate),
 			MTP_int(offset),
 			MTP_int(loadCount),
 			MTP_int(maxId),
 			MTP_int(minId),
-			MTP_int(historyHash)),
-		rpcDone(&HistoryWidget::messagesReceived, from),
-		rpcFail(&HistoryWidget::messagesFailed));
+			MTP_int(historyHash)
+		)).done([=](const MTPmessages_Messages &result) {
+			messagesReceived(history->peer, result, _firstLoadRequest);
+			finish();
+		}).fail([=](const RPCError &error) {
+			messagesFailed(error, _firstLoadRequest);
+			finish();
+		}).send();
+	});
 }
 
 void HistoryWidget::loadMessages() {
-	if (!_history || _preloadRequest) return;
+	if (!_history || _preloadRequest) {
+		return;
+	}
 
 	if (_history->isEmpty() && _migrated && _migrated->isEmpty()) {
 		return firstLoadMessages();
 	}
 
-	auto loadMigrated = _migrated && (_history->isEmpty() || _history->loadedAtTop() || (!_migrated->isEmpty() && !_migrated->loadedAtBottom()));
+	auto loadMigrated = _migrated
+		&& (_history->isEmpty()
+			|| _history->loadedAtTop()
+			|| (!_migrated->isEmpty() && !_migrated->loadedAtBottom()));
 	auto from = loadMigrated ? _migrated : _history;
 	if (from->loadedAtTop()) {
 		return;
@@ -2639,22 +2698,33 @@ void HistoryWidget::loadMessages() {
 	auto minId = 0;
 	auto historyHash = 0;
 
-	_preloadRequest = MTP::send(
-		MTPmessages_GetHistory(
-			from->peer->input,
+	const auto history = from;
+	const auto type = Data::Histories::RequestType::History;
+	auto &histories = history->owner().histories();
+	_preloadRequest = histories.sendRequest(history, type, [=](Fn<void()> finish) {
+		return history->session().api().request(MTPmessages_GetHistory(
+			history->peer->input,
 			MTP_int(offsetId),
 			MTP_int(offsetDate),
 			MTP_int(addOffset),
 			MTP_int(loadCount),
 			MTP_int(maxId),
 			MTP_int(minId),
-			MTP_int(historyHash)),
-		rpcDone(&HistoryWidget::messagesReceived, from->peer.get()),
-		rpcFail(&HistoryWidget::messagesFailed));
+			MTP_int(historyHash)
+		)).done([=](const MTPmessages_Messages &result) {
+			messagesReceived(history->peer, result, _preloadRequest);
+			finish();
+		}).fail([=](const RPCError &error) {
+			messagesFailed(error, _preloadRequest);
+			finish();
+		}).send();
+	});
 }
 
 void HistoryWidget::loadMessagesDown() {
-	if (!_history || _preloadDownRequest) return;
+	if (!_history || _preloadDownRequest) {
+		return;
+	}
 
 	if (_history->isEmpty() && _migrated && _migrated->isEmpty()) {
 		return firstLoadMessages();
@@ -2679,33 +2749,45 @@ void HistoryWidget::loadMessagesDown() {
 	auto minId = 0;
 	auto historyHash = 0;
 
-	_preloadDownRequest = MTP::send(
-		MTPmessages_GetHistory(
-			from->peer->input,
+	const auto history = from;
+	const auto type = Data::Histories::RequestType::History;
+	auto &histories = history->owner().histories();
+	_preloadDownRequest = histories.sendRequest(history, type, [=](Fn<void()> finish) {
+		return history->session().api().request(MTPmessages_GetHistory(
+			history->peer->input,
 			MTP_int(offsetId + 1),
 			MTP_int(offsetDate),
 			MTP_int(addOffset),
 			MTP_int(loadCount),
 			MTP_int(maxId),
 			MTP_int(minId),
-			MTP_int(historyHash)),
-		rpcDone(&HistoryWidget::messagesReceived, from->peer.get()),
-		rpcFail(&HistoryWidget::messagesFailed));
+			MTP_int(historyHash)
+		)).done([=](const MTPmessages_Messages &result) {
+			messagesReceived(history->peer, result, _preloadDownRequest);
+			finish();
+		}).fail([=](const RPCError &error) {
+			messagesFailed(error, _preloadDownRequest);
+			finish();
+		}).send();
+	});
 }
 
 void HistoryWidget::delayedShowAt(MsgId showAtMsgId) {
-	if (!_history || (_delayedShowAtRequest && _delayedShowAtMsgId == showAtMsgId)) return;
+	if (!_history
+		|| (_delayedShowAtRequest && _delayedShowAtMsgId == showAtMsgId)) {
+		return;
+	}
 
-	clearDelayedShowAt();
+	clearAllLoadRequests();
 	_delayedShowAtMsgId = showAtMsgId;
 
-	auto from = _peer;
+	auto from = _history;
 	auto offsetId = 0;
 	auto offset = 0;
 	auto loadCount = kMessagesPerPage;
 	if (_delayedShowAtMsgId == ShowAtUnreadMsgId) {
 		if (const auto around = _migrated ? _migrated->loadAroundId() : 0) {
-			from = _migrated->peer;
+			from = _migrated;
 			offset = -loadCount / 2;
 			offsetId = around;
 		} else if (const auto around = _history->loadAroundId()) {
@@ -2721,7 +2803,7 @@ void HistoryWidget::delayedShowAt(MsgId showAtMsgId) {
 		offsetId = _delayedShowAtMsgId;
 	} else if (_delayedShowAtMsgId < 0 && _history->isChannel()) {
 		if (_delayedShowAtMsgId < 0 && -_delayedShowAtMsgId < ServerMaxMsgId && _migrated) {
-			from = _migrated->peer;
+			from = _migrated;
 			offset = -loadCount / 2;
 			offsetId = -_delayedShowAtMsgId;
 		}
@@ -2731,18 +2813,27 @@ void HistoryWidget::delayedShowAt(MsgId showAtMsgId) {
 	auto minId = 0;
 	auto historyHash = 0;
 
-	_delayedShowAtRequest = MTP::send(
-		MTPmessages_GetHistory(
-			from->input,
+	const auto history = from;
+	const auto type = Data::Histories::RequestType::History;
+	auto &histories = history->owner().histories();
+	_delayedShowAtRequest = histories.sendRequest(history, type, [=](Fn<void()> finish) {
+		return history->session().api().request(MTPmessages_GetHistory(
+			history->peer->input,
 			MTP_int(offsetId),
 			MTP_int(offsetDate),
 			MTP_int(offset),
 			MTP_int(loadCount),
 			MTP_int(maxId),
 			MTP_int(minId),
-			MTP_int(historyHash)),
-		rpcDone(&HistoryWidget::messagesReceived, from),
-		rpcFail(&HistoryWidget::messagesFailed));
+			MTP_int(historyHash)
+		)).done([=](const MTPmessages_Messages &result) {
+			messagesReceived(history->peer, result, _delayedShowAtRequest);
+			finish();
+		}).fail([=](const RPCError &error) {
+			messagesFailed(error, _delayedShowAtRequest);
+			finish();
+		}).send();
+	});
 }
 
 void HistoryWidget::onScroll() {
@@ -2775,29 +2866,15 @@ void HistoryWidget::visibleAreaUpdated() {
 		const auto scrollBottom = scrollTop + _scroll->height();
 		_list->visibleAreaUpdated(scrollTop, scrollBottom);
 		controller()->floatPlayerAreaUpdated().notify(true);
-
-		const auto atBottom = (scrollTop >= _scroll->scrollTopMax());
-		if (_history->loadedAtBottom()
-			&& atBottom
-			&& App::wnd()->doWeReadServerHistory()) {
-			// Clear possible scheduled messages notifications.
-			session().api().readServerHistory(_history);
-			session().notifications().clearFromHistory(_history);
-		} else if (_history->loadedAtBottom()
-			&& (_history->unreadCount() > 0
-				|| (_migrated && _migrated->unreadCount() > 0))) {
-			const auto unread = firstUnreadMessage();
-			const auto unreadVisible = unread
-				&& (scrollBottom > _list->itemTop(unread));
-			if (unreadVisible && App::wnd()->doWeReadServerHistory()) {
-				session().api().readServerHistory(_history);
-			}
-		}
 	}
 }
 
 void HistoryWidget::preloadHistoryIfNeeded() {
-	if (_firstLoadRequest || _scroll->isHidden() || !_peer) {
+	if (_firstLoadRequest
+		|| _delayedShowAtRequest
+		|| _scroll->isHidden()
+		|| !_peer
+		|| !_historyInited) {
 		return;
 	}
 
@@ -2816,7 +2893,11 @@ void HistoryWidget::preloadHistoryIfNeeded() {
 }
 
 void HistoryWidget::preloadHistoryByScroll() {
-	if (_firstLoadRequest || _scroll->isHidden() || !_peer) {
+	if (_firstLoadRequest
+		|| _delayedShowAtRequest
+		|| _scroll->isHidden()
+		|| !_peer
+		|| !_historyInited) {
 		return;
 	}
 
@@ -2832,7 +2913,10 @@ void HistoryWidget::preloadHistoryByScroll() {
 }
 
 void HistoryWidget::checkReplyReturns() {
-	if (_firstLoadRequest || _scroll->isHidden() || !_peer) {
+	if (_firstLoadRequest
+		|| _scroll->isHidden()
+		|| !_peer
+		|| !_historyInited) {
 		return;
 	}
 	auto scrollTop = _scroll->scrollTop();
@@ -2881,9 +2965,7 @@ void HistoryWidget::historyDownClicked() {
 	} else if (_replyReturn && _replyReturn->history() == _migrated) {
 		showHistory(_peer->id, -_replyReturn->id);
 	} else if (_peer) {
-		showHistory(
-			_peer->id,
-			session().supportMode() ? ShowAtTheEndMsgId : ShowAtUnreadMsgId);
+		showHistory(_peer->id, ShowAtUnreadMsgId);
 	}
 }
 
@@ -2936,7 +3018,8 @@ void HistoryWidget::saveEditMsg() {
 		sendFlags |= MTPmessages_EditMessage::Flag::f_entities;
 	}
 
-	_saveEditMsgRequestId = MTP::send(
+	const auto history = _history;
+	_saveEditMsgRequestId = history->session().api().request(
 		MTPmessages_EditMessage(
 			MTP_flags(sendFlags),
 			_history->peer->input,
@@ -2945,9 +3028,12 @@ void HistoryWidget::saveEditMsg() {
 			MTPInputMedia(),
 			MTPReplyMarkup(),
 			sentEntities,
-			MTP_int(0)), // schedule_date
-		rpcDone(&HistoryWidget::saveEditMsgDone, _history),
-		rpcFail(&HistoryWidget::saveEditMsgFail, _history));
+			MTP_int(0)
+	)).done([=](const MTPUpdates &result, mtpRequestId requestId) {
+		saveEditMsgDone(history, result, requestId);
+	}).fail([=](const RPCError &error, mtpRequestId requestId) {
+		saveEditMsgFail(history, error, requestId);
+	}).send();
 }
 
 void HistoryWidget::saveEditMsgDone(History *history, const MTPUpdates &updates, mtpRequestId req) {
@@ -2965,7 +3051,9 @@ void HistoryWidget::saveEditMsgDone(History *history, const MTPUpdates &updates,
 }
 
 bool HistoryWidget::saveEditMsgFail(History *history, const RPCError &error, mtpRequestId req) {
-	if (MTP::isDefaultHandledError(error)) return false;
+	if (MTP::isDefaultHandledError(error)) {
+		return false;
+	}
 	if (req == _saveEditMsgRequestId) {
 		_saveEditMsgRequestId = 0;
 	}
@@ -3243,10 +3331,8 @@ void HistoryWidget::doneShow() {
 		handlePendingHistoryUpdate();
 	}
 	preloadHistoryIfNeeded();
-	if (App::wnd()) {
-		App::wnd()->checkHistoryActivation();
-		App::wnd()->setInnerFocus();
-	}
+	checkHistoryActivation();
+	App::wnd()->setInnerFocus();
 }
 
 void HistoryWidget::finishAnimating() {
@@ -3791,7 +3877,9 @@ void HistoryWidget::inlineBotResolveDone(
 }
 
 bool HistoryWidget::inlineBotResolveFail(QString name, const RPCError &error) {
-	if (MTP::isDefaultHandledError(error)) return false;
+	if (MTP::isDefaultHandledError(error)) {
+		return false;
+	}
 
 	_inlineBotResolveRequestId = 0;
 //	Notify::inlineBotRequesting(false);
@@ -5053,12 +5141,13 @@ MsgId HistoryWidget::replyToId() const {
 }
 
 int HistoryWidget::countInitialScrollTop() {
-	auto result = ScrollMax;
 	if (_history->scrollTopItem || (_migrated && _migrated->scrollTopItem)) {
-		result = _list->historyScrollTop();
-	} else if (_showAtMsgId && (_showAtMsgId > 0 || -_showAtMsgId < ServerMaxMsgId)) {
-		auto item = getItemFromHistoryOrMigrated(_showAtMsgId);
-		auto itemTop = _list->itemTop(item);
+		return _list->historyScrollTop();
+	} else if (_showAtMsgId
+		&& (IsServerMsgId(_showAtMsgId)
+			|| IsServerMsgId(-_showAtMsgId))) {
+		const auto item = getItemFromHistoryOrMigrated(_showAtMsgId);
+		const auto itemTop = _list->itemTop(item);
 		if (itemTop < 0) {
 			setMsgId(0);
 			return countInitialScrollTop();
@@ -5066,42 +5155,63 @@ int HistoryWidget::countInitialScrollTop() {
 			const auto view = item->mainView();
 			Assert(view != nullptr);
 
-			result = itemTopForHighlight(view);
 			enqueueMessageHighlight(view);
+			const auto result = itemTopForHighlight(view);
+			createUnreadBarIfBelowVisibleArea(result);
+			return result;
 		}
+	} else if (_showAtMsgId == ShowAtTheEndMsgId) {
+		return ScrollMax;
 	} else if (const auto top = unreadBarTop()) {
-		result = *top;
+		return *top;
 	} else {
+		_history->calculateFirstUnreadMessage();
 		return countAutomaticScrollTop();
 	}
-	return qMin(result, _scroll->scrollTopMax());
+}
+
+void HistoryWidget::createUnreadBarIfBelowVisibleArea(int withScrollTop) {
+	if (_history->unreadBar()) {
+		return;
+	}
+	_history->calculateFirstUnreadMessage();
+	if (const auto unread = _history->firstUnreadMessage()) {
+		if (_list->itemTop(unread) > withScrollTop) {
+			createUnreadBarAndResize();
+		}
+	}
+}
+
+void HistoryWidget::createUnreadBarAndResize() {
+	if (!_history->firstUnreadMessage()) {
+		return;
+	}
+	const auto was = base::take(_historyInited);
+	_history->addUnreadBar();
+	if (hasPendingResizedItems()) {
+		updateListSize();
+	}
+	_historyInited = was;
 }
 
 int HistoryWidget::countAutomaticScrollTop() {
-	auto result = ScrollMax;
-	if (const auto unread = firstUnreadMessage()) {
-		result = _list->itemTop(unread);
+	Expects(_history != nullptr);
+	Expects(_list != nullptr);
+
+	if (const auto unread = _history->firstUnreadMessage()) {
+		const auto firstUnreadTop = _list->itemTop(unread);
 		const auto possibleUnreadBarTop = _scroll->scrollTopMax()
 			+ HistoryView::UnreadBar::height()
 			- HistoryView::UnreadBar::marginTop();
-		if (result < possibleUnreadBarTop) {
-			const auto history = unread->data()->history();
-			history->addUnreadBar();
-			if (hasPendingResizedItems()) {
-				updateListSize();
-			}
-			if (history->unreadBar() != nullptr) {
+		if (firstUnreadTop < possibleUnreadBarTop) {
+			createUnreadBarAndResize();
+			if (_history->unreadBar() != nullptr) {
 				setMsgId(ShowAtUnreadMsgId);
-				result = countInitialScrollTop();
-				App::wnd()->checkHistoryActivation();
-				if (session().supportMode()) {
-					history->unsetFirstUnreadMessage();
-				}
-				return result;
+				return countInitialScrollTop();
 			}
 		}
 	}
-	return qMin(result, _scroll->scrollTopMax());
+	return ScrollMax;
 }
 
 void HistoryWidget::updateHistoryGeometry(
@@ -5145,10 +5255,10 @@ void HistoryWidget::updateHistoryGeometry(
 	if (newScrollHeight <= 0) {
 		return;
 	}
-	auto wasScrollTop = _scroll->scrollTop();
-	auto wasScrollTopMax = _scroll->scrollTopMax();
-	auto wasAtBottom = wasScrollTop + 1 > wasScrollTopMax;
-	auto needResize = (_scroll->width() != width()) || (_scroll->height() != newScrollHeight);
+	const auto wasScrollTop = _scroll->scrollTop();
+	const auto wasAtBottom = (wasScrollTop == _scroll->scrollTopMax());
+	const auto needResize = (_scroll->width() != width())
+		|| (_scroll->height() != newScrollHeight);
 	if (needResize) {
 		_scroll->resize(width(), newScrollHeight);
 		// on initial updateListSize we didn't put the _scroll->scrollTop correctly yet
@@ -5177,52 +5287,30 @@ void HistoryWidget::updateHistoryGeometry(
 	updateListSize();
 	_updateHistoryGeometryRequired = false;
 
-	if ((!initial && !wasAtBottom)
-		|| (loadedDown
-			&& (!_history->firstUnreadMessage()
-				|| _history->unreadBar()
-				|| _history->loadedAtBottom())
-			&& (!_migrated
-				|| !_migrated->firstUnreadMessage()
-				|| _migrated->unreadBar()
-				|| _history->loadedAtBottom()))) {
-		const auto historyScrollTop = _list->historyScrollTop();
-		if (!wasAtBottom && historyScrollTop == ScrollMax) {
-			// History scroll top was not inited yet.
-			// If we're showing locally unread messages, we get here
-			// from destroyUnreadBar() before we have time to scroll
-			// to good initial position, like top of an unread bar.
-			return;
-		}
-		auto toY = qMin(_list->historyScrollTop(), _scroll->scrollTopMax());
-		if (change.type == ScrollChangeAdd) {
-			toY += change.value;
-		} else if (change.type == ScrollChangeNoJumpToBottom) {
-			toY = wasScrollTop;
-		} else if (_addToScroll) {
-			toY += _addToScroll;
-			_addToScroll = 0;
-		}
-		toY = snap(toY, 0, _scroll->scrollTopMax());
-		if (_scroll->scrollTop() == toY) {
-			visibleAreaUpdated();
-		} else {
-			synteticScrollToY(toY);
-		}
-		return;
-	}
-
+	auto newScrollTop = 0;
 	if (initial) {
+		newScrollTop = countInitialScrollTop();
 		_historyInited = true;
 		_scrollToAnimation.stop();
+	} else if (wasAtBottom && !loadedDown) {
+		newScrollTop = countAutomaticScrollTop();
+	} else {
+		newScrollTop = std::min(
+			_list->historyScrollTop(),
+			_scroll->scrollTopMax());
+		if (change.type == ScrollChangeAdd) {
+			newScrollTop += change.value;
+		} else if (change.type == ScrollChangeNoJumpToBottom) {
+			newScrollTop = wasScrollTop;
+		} else if (const auto add = base::take(_addToScroll)) {
+			newScrollTop += add;
+		}
 	}
-	auto newScrollTop = initial
-		? countInitialScrollTop()
-		: countAutomaticScrollTop();
-	if (_scroll->scrollTop() == newScrollTop) {
+	const auto toY = std::clamp(newScrollTop, 0, _scroll->scrollTopMax());
+	if (_scroll->scrollTop() == toY) {
 		visibleAreaUpdated();
 	} else {
-		synteticScrollToY(newScrollTop);
+		synteticScrollToY(toY);
 	}
 }
 
@@ -5245,15 +5333,13 @@ bool HistoryWidget::hasPendingResizedItems() const {
 }
 
 std::optional<int> HistoryWidget::unreadBarTop() const {
-	auto getUnreadBar = [this]() -> HistoryView::Element* {
+	const auto bar = [&]() -> HistoryView::Element* {
 		if (const auto bar = _migrated ? _migrated->unreadBar() : nullptr) {
 			return bar;
-		} else if (const auto bar = _history->unreadBar()) {
-			return bar;
 		}
-		return nullptr;
-	};
-	if (const auto bar = getUnreadBar()) {
+		return _history->unreadBar();
+	}();
+	if (bar) {
 		const auto result = _list->itemTop(bar)
 			+ HistoryView::UnreadBar::marginTop();
 		if (bar->Has<HistoryView::DateBadge>()) {
@@ -5264,15 +5350,6 @@ std::optional<int> HistoryWidget::unreadBarTop() const {
 	return std::nullopt;
 }
 
-HistoryView::Element *HistoryWidget::firstUnreadMessage() const {
-	if (_migrated) {
-		if (const auto result = _migrated->firstUnreadMessage()) {
-			return result;
-		}
-	}
-	return _history ? _history->firstUnreadMessage() : nullptr;
-}
-
 void HistoryWidget::addMessagesToFront(PeerData *peer, const QVector<MTPMessage> &messages) {
 	_list->messagesReceived(peer, messages);
 	if (!_firstLoadRequest) {
@@ -5281,25 +5358,23 @@ void HistoryWidget::addMessagesToFront(PeerData *peer, const QVector<MTPMessage>
 	}
 }
 
-void HistoryWidget::addMessagesToBack(PeerData *peer, const QVector<MTPMessage> &messages) {
+void HistoryWidget::addMessagesToBack(
+		PeerData *peer,
+		const QVector<MTPMessage> &messages) {
+	const auto checkForUnreadStart = [&] {
+		if (_history->unreadBar() || !_history->trackUnreadMessages()) {
+			return false;
+		}
+		_history->calculateFirstUnreadMessage();
+		return !_history->firstUnreadMessage();
+	}();
 	_list->messagesReceivedDown(peer, messages);
+	if (checkForUnreadStart) {
+		_history->calculateFirstUnreadMessage();
+		createUnreadBarAndResize();
+	}
 	if (!_firstLoadRequest) {
 		updateHistoryGeometry(false, true, { ScrollChangeNoJumpToBottom, 0 });
-	}
-}
-
-void HistoryWidget::countHistoryShowFrom() {
-	if (_migrated
-		&& _showAtMsgId == ShowAtUnreadMsgId
-		&& _migrated->unreadCount()) {
-		_migrated->calculateFirstUnreadMessage();
-	}
-	if ((_migrated && _migrated->firstUnreadMessage())
-		|| (_showAtMsgId != ShowAtUnreadMsgId)
-		|| !_history->unreadCount()) {
-		_history->unsetFirstUnreadMessage();
-	} else {
-		_history->calculateFirstUnreadMessage();
 	}
 }
 
@@ -5419,7 +5494,7 @@ void HistoryWidget::updateHistoryDownPosition() {
 void HistoryWidget::updateHistoryDownVisibility() {
 	if (_a_show.animating()) return;
 
-	auto haveUnreadBelowBottom = [&](History *history) {
+	const auto haveUnreadBelowBottom = [&](History *history) {
 		if (!_list || !history || history->unreadCount() <= 0) {
 			return false;
 		}
@@ -5430,7 +5505,7 @@ void HistoryWidget::updateHistoryDownVisibility() {
 		const auto top = _list->itemTop(unread);
 		return (top >= _scroll->scrollTop() + _scroll->height());
 	};
-	auto historyDownIsVisible = [&] {
+	const auto historyDownIsVisible = [&] {
 		if (!_list || _firstLoadRequest) {
 			return false;
 		}
@@ -6192,7 +6267,7 @@ void HistoryWidget::cancelEdit() {
 	applyDraft();
 
 	if (_saveEditMsgRequestId) {
-		MTP::cancel(_saveEditMsgRequestId);
+		_history->session().api().request(_saveEditMsgRequestId).cancel();
 		_saveEditMsgRequestId = 0;
 	}
 
@@ -7077,5 +7152,8 @@ void HistoryWidget::synteticScrollToY(int y) {
 }
 
 HistoryWidget::~HistoryWidget() {
+	if (_history) {
+		clearAllLoadRequests();
+	}
 	setTabbedPanel(nullptr);
 }

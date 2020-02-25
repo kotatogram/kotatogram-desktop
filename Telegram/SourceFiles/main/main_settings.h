@@ -241,6 +241,31 @@ public:
 		return _variables.spellcheckerEnabled.changes();
 	}
 
+	void setDictionariesEnabled(std::vector<int> dictionaries) {
+		_variables.dictionariesEnabled = std::move(dictionaries);
+	}
+
+	std::vector<int> dictionariesEnabled() const {
+		return _variables.dictionariesEnabled.current();
+	}
+
+	rpl::producer<std::vector<int>> dictionariesEnabledChanges() const {
+		return _variables.dictionariesEnabled.changes();
+	}
+
+	void setAutoDownloadDictionaries(bool value) {
+		_variables.autoDownloadDictionaries = value;
+	}
+	bool autoDownloadDictionaries() const {
+		return _variables.autoDownloadDictionaries.current();
+	}
+	rpl::producer<bool> autoDownloadDictionariesValue() const {
+		return _variables.autoDownloadDictionaries.value();
+	}
+	rpl::producer<bool> autoDownloadDictionariesChanges() const {
+		return _variables.autoDownloadDictionaries.changes();
+	}
+
 	[[nodiscard]] float64 videoPlaybackSpeed() const {
 		return _variables.videoPlaybackSpeed.current();
 	}
@@ -254,11 +279,14 @@ public:
 		_variables.videoPipGeometry = geometry;
 	}
 
+	[[nodiscard]] static bool ThirdColumnByDefault();
+
 private:
 	struct Variables {
 		Variables();
 
 		static constexpr auto kDefaultDialogsWidthRatio = 5. / 14;
+		static constexpr auto kDefaultBigDialogsWidthRatio = 0.275;
 		static constexpr auto kDefaultThirdColumnWidth = 0;
 
 		bool lastSeenWarningSeen = false;
@@ -273,8 +301,7 @@ private:
 		bool thirdSectionInfoEnabled = true; // per-window
 		bool smallDialogsList = false; // per-window
 		int thirdSectionExtendedBy = -1; // per-window
-		rpl::variable<float64> dialogsWidthRatio
-			= kDefaultDialogsWidthRatio; // per-window
+		rpl::variable<float64> dialogsWidthRatio; // per-window
 		rpl::variable<int> thirdColumnWidth
 			= kDefaultThirdColumnWidth; // per-window
 		Ui::InputSubmitSettings sendSubmitWay;
@@ -296,6 +323,8 @@ private:
 		std::vector<std::pair<DocumentId, crl::time>> mediaLastPlaybackPosition;
 		rpl::variable<float64> videoPlaybackSpeed = 1.;
 		QByteArray videoPipGeometry;
+		rpl::variable<std::vector<int>> dictionariesEnabled;
+		rpl::variable<bool> autoDownloadDictionaries = true;
 
 		static constexpr auto kDefaultSupportChatsLimitSlice
 			= 7 * 24 * 60 * 60;

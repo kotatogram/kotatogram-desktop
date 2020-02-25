@@ -129,7 +129,7 @@ private:
 		const Query &query,
 		Data *listData);
 
-	MTP::Sender _api;
+	const not_null<Main::Session*> _session;
 	Cache _cache;
 	Cache::iterator _current = _cache.end();
 

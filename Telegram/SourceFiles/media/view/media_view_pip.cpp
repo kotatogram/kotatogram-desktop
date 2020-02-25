@@ -47,7 +47,7 @@ constexpr auto kMsInSecond = 1000;
 [[nodiscard]] QRect ScreenFromPosition(QPoint point) {
 	const auto screen = [&]() -> QScreen* {
 		for (const auto screen : QGuiApplication::screens()) {
-			if (screen->virtualGeometry().contains(point)) {
+			if (screen->geometry().contains(point)) {
 				return screen;
 			}
 		}
@@ -1391,6 +1391,7 @@ QImage Pip::videoFrame(const FrameRequest &request) const {
 		if (state == ThumbState::Cover) {
 			_preparedCoverStorage = Streaming::PrepareByRequest(
 				_instance.info().video.cover,
+				false,
 				_instance.info().video.rotation,
 				request,
 				std::move(_preparedCoverStorage));

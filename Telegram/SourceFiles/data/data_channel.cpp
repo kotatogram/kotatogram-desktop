@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_folder.h"
 #include "data/data_location.h"
+#include "data/data_histories.h"
 #include "lang/lang_keys.h"
 #include "base/unixtime.h"
 #include "history/history.h"
@@ -709,13 +710,14 @@ void ApplyChannelUpdate(
 		const auto folder = folderId
 			? channel->owner().folderLoaded(folderId)
 			: nullptr;
+		auto &histories = channel->owner().histories();
 		if (folder && history->folder() != folder) {
 			// If history folder is unknown or not synced, request both.
-			channel->session().api().requestDialogEntry(history);
-			channel->session().api().requestDialogEntry(folder);
+			histories.requestDialogEntry(history);
+			histories.requestDialogEntry(folder);
 		} else if (!history->folderKnown()
 			|| channel->pts() != update.vpts().v) {
-			channel->session().api().requestDialogEntry(history);
+			histories.requestDialogEntry(history);
 		} else {
 			history->applyDialogFields(
 				history->folder(),
@@ -761,6 +763,9 @@ void ApplyChannelUpdate(
 	channel->session().api().applyNotifySettings(
 		MTP_inputNotifyPeer(channel->input),
 		update.vnotify_settings());
+
+	// For clearUpTill() call.
+	channel->owner().sendHistoryChangeNotifications();
 }
 
 void ApplyMegagroupAdmins(

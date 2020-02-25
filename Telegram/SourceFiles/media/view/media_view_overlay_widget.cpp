@@ -920,8 +920,8 @@ void OverlayWidget::resizeContentByScreenSize() {
 		_w = _width;
 		_h = _height;
 	}
-	_x = skipWidth + (usew - _w) / 2;
-	_y = skipHeight + (useh - _h) / 2;
+	_x = (width() - _w) / 2;
+	_y = (height() - _h) / 2;
 }
 
 float64 OverlayWidget::radialProgress() const {
@@ -2573,17 +2573,26 @@ void OverlayWidget::playbackControlsVolumeChangeFinished() {
 }
 
 void OverlayWidget::playbackControlsSpeedChanged(float64 speed) {
+	DEBUG_LOG(("Media playback speed: change to %1.").arg(speed));
 	if (_doc) {
+		DEBUG_LOG(("Media playback speed: %1 to settings.").arg(speed));
 		_doc->session().settings().setVideoPlaybackSpeed(speed);
 		_doc->session().saveSettingsDelayed();
 	}
 	if (_streamed && !videoIsGifv()) {
+		DEBUG_LOG(("Media playback speed: %1 to _streamed.").arg(speed));
 		_streamed->instance.setSpeed(speed);
 	}
 }
 
 float64 OverlayWidget::playbackControlsCurrentSpeed() {
-	return _doc ? _doc->session().settings().videoPlaybackSpeed() : 1.;
+	const auto result = _doc
+		? _doc->session().settings().videoPlaybackSpeed()
+		: 1.;
+	DEBUG_LOG(("Media playback speed: now %1 (doc %2)."
+		).arg(result
+		).arg(Logs::b(_doc != nullptr)));
+	return result;
 }
 
 void OverlayWidget::switchToPip() {
@@ -2682,12 +2691,12 @@ void OverlayWidget::validatePhotoImage(Image *image, bool blurred) {
 	} else if (!_staticContent.isNull() && (blurred || !_blurred)) {
 		return;
 	}
-	const auto w = _width * cIntRetinaFactor();
-	const auto h = _height * cIntRetinaFactor();
+	const auto use = flipSizeByRotation({ _width, _height })
+		* cIntRetinaFactor();
 	_staticContent = image->pixNoCache(
 		fileOrigin(),
-		w,
-		h,
+		use.width(),
+		use.height(),
 		Images::Option::Smooth
 		| (blurred ? Images::Option::Blurred : Images::Option(0)));
 	_staticContent.setDevicePixelRatio(cRetinaFactor());
@@ -3681,7 +3690,7 @@ void OverlayWidget::updateOver(QPoint pos) {
 	} else if (documentContentShown() && contentRect().contains(pos)) {
 		if ((_doc->isVideoFile() || _doc->isVideoMessage()) && _streamed) {
 			updateOverState(OverVideo);
-		} else if (!_doc->loaded()) {
+		} else if (!_streamed && !_doc->loaded()) {
 			updateOverState(OverIcon);
 		} else if (_over != OverNone) {
 			updateOverState(OverNone);

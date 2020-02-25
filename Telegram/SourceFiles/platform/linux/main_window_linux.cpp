@@ -21,6 +21,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "app.h"
 
+#include <QtCore/QSize>
+
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 #include <QtDBus>
 #endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
@@ -36,24 +38,13 @@ constexpr auto kAttentionPanelTrayIconName = "kotatogram-attention-panel"_cs;
 constexpr auto kSNIWatcherService = "org.kde.StatusNotifierWatcher"_cs;
 constexpr auto kTrayIconFilename = "kdesktop-trayicon-XXXXXX.png"_cs;
 
-int32 _trayIconSize = 48;
-bool _trayIconMuted = true;
-int32 _trayIconCount = 0;
-QImage _trayIconImageBack, _trayIconImage;
-QString _trayIconThemeName, _trayIconName;
+bool TrayIconMuted = true;
+int32 TrayIconCount = 0;
+base::flat_map<int, QImage> TrayIconImageBack;
+QIcon TrayIcon;
+QString TrayIconThemeName, TrayIconName;
 
-#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
-bool UseUnityCount = false;
-QString UnityCountDesktopFile;
-QString UnityCountDBusPath = "/";
-#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
-
-#define QT_RED 0
-#define QT_GREEN 1
-#define QT_BLUE 2
-#define QT_ALPHA 3
-
-QString GetTrayIconName() {
+QString GetPanelIconName() {
 	const auto counter = Core::App().unreadBadge();
 	const auto muted = Core::App().unreadBadgeMuted();
 
@@ -64,108 +55,175 @@ QString GetTrayIconName() {
 		: kPanelTrayIconName.utf16();
 }
 
-QImage TrayIconImageGen() {
+QString GetTrayIconName() {
+	const auto panelIconName = GetPanelIconName();
+
+	if (QIcon::hasThemeIcon(panelIconName)) {
+		return panelIconName;
+	} else if (InSandbox()) {
+		const auto launcherBasename = GetLauncherBasename();
+
+		if (QIcon::hasThemeIcon(launcherBasename)) {
+			return launcherBasename;
+		}
+	} else if (QIcon::hasThemeIcon(kTrayIconName.utf16())) {
+		return kTrayIconName.utf16();
+	}
+
+	return QString();
+}
+
+QIcon TrayIconGen() {
+	const auto iconThemeName = QIcon::themeName();
+	const auto iconName = GetTrayIconName();
+
+	if (qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+		&& !iconName.isEmpty()) {
+		if (TrayIcon.isNull()
+			|| iconThemeName != TrayIconThemeName
+			|| iconName != TrayIconName) {
+			TrayIcon = QIcon::fromTheme(iconName);
+			TrayIconThemeName = iconThemeName;
+			TrayIconName = iconName;
+		}
+
+		return TrayIcon;
+	}
+
 	const auto counter = Core::App().unreadBadge();
 	const auto muted = Core::App().unreadBadgeMuted();
 	const auto counterSlice = (counter >= 1000)
 		? (1000 + (counter % 100))
 		: counter;
 
-	const auto iconThemeName = QIcon::themeName();
-	const auto iconName = GetTrayIconName();
+	if (TrayIcon.isNull()
+		|| iconThemeName != TrayIconThemeName
+		|| iconName != TrayIconName
+		|| muted != TrayIconMuted
+		|| counterSlice != TrayIconCount) {
+		QIcon result;
+		QIcon systemIcon;
 
-	if (_trayIconImage.isNull()
-		|| _trayIconImage.width() != _trayIconSize
-		|| iconThemeName != _trayIconThemeName
-		|| iconName != _trayIconName
-		|| muted != _trayIconMuted
-		|| counterSlice != _trayIconCount) {
-		if (_trayIconImageBack.isNull()
-			|| _trayIconImageBack.width() != _trayIconSize
-			|| iconThemeName != _trayIconThemeName
-			|| iconName != _trayIconName) {
-			_trayIconImageBack = Core::App().logo();
+		const auto iconSizes = {
+			16,
+			22,
+			24,
+			32,
+			48,
+			64
+		};
 
-			_trayIconImageBack = QIcon::fromTheme(
-				iconName,
-				QIcon::fromTheme(
-					kTrayIconName.utf16(),
-					QIcon(QPixmap::fromImage(_trayIconImageBack)))
-			).pixmap(_trayIconSize, _trayIconSize).toImage();
+		for (const auto iconSize : iconSizes) {
+			auto &currentImageBack = TrayIconImageBack[iconSize];
+			const auto desiredSize = QSize(iconSize, iconSize);
 
-			auto w = _trayIconImageBack.width(),
-				h = _trayIconImageBack.height();
+			if (currentImageBack.isNull()
+				|| iconThemeName != TrayIconThemeName
+				|| iconName != TrayIconName) {
+				if (!iconName.isEmpty()) {
+					if(systemIcon.isNull()) {
+						systemIcon = QIcon::fromTheme(iconName);
+					}
 
-			if (w != _trayIconSize || h != _trayIconSize) {
-				_trayIconImageBack = _trayIconImageBack.scaled(
-					_trayIconSize,
-					_trayIconSize,
-					Qt::IgnoreAspectRatio,
-					Qt::SmoothTransformation);
+					if (systemIcon.actualSize(desiredSize) == desiredSize) {
+						currentImageBack = systemIcon
+							.pixmap(desiredSize)
+							.toImage();
+					} else {
+						const auto availableSizes = systemIcon
+							.availableSizes();
+
+						const auto biggestSize = ranges::max_element(
+							availableSizes,
+							std::less<>(),
+							&QSize::width);
+
+						currentImageBack = systemIcon
+							.pixmap(*biggestSize)
+							.toImage();
+					}
+				} else {
+					currentImageBack = Core::App().logo();
+				}
+
+				if (currentImageBack.size() != desiredSize) {
+					currentImageBack = currentImageBack.scaled(
+						desiredSize,
+						Qt::IgnoreAspectRatio,
+						Qt::SmoothTransformation);
+				}
 			}
 
-			_trayIconImageBack = _trayIconImageBack.convertToFormat(
-				QImage::Format_ARGB32);
-		}
+			auto iconImage = currentImageBack;
+			TrayIconMuted = muted;
+			TrayIconCount = counterSlice;
+			TrayIconThemeName = iconThemeName;
+			TrayIconName = iconName;
 
-		_trayIconImage = _trayIconImageBack;
-		_trayIconMuted = muted;
-		_trayIconCount = counterSlice;
-		_trayIconThemeName = iconThemeName;
-		_trayIconName = iconName;
+			if (!qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+				&& counter > 0) {
+				QPainter p(&iconImage);
+				int32 layerSize = -16;
 
-		if (counter > 0) {
-			QPainter p(&_trayIconImage);
-			int32 layerSize = -16;
+				if (iconSize >= 48) {
+					layerSize = -32;
+				} else if (iconSize >= 36) {
+					layerSize = -24;
+				} else if (iconSize >= 32) {
+					layerSize = -20;
+				}
 
-			if (_trayIconSize >= 48) {
-				layerSize = -32;
-			} else if (_trayIconSize >= 36) {
-				layerSize = -24;
-			} else if (_trayIconSize >= 32) {
-				layerSize = -20;
+				auto &bg = muted
+					? st::trayCounterBgMute
+					: st::trayCounterBg;
+
+				auto &fg = st::trayCounterFg;
+
+				auto layer = App::wnd()->iconWithCounter(
+					layerSize,
+					counter,
+					bg,
+					fg,
+					false);
+
+				p.drawImage(
+					iconImage.width() - layer.width() - 1,
+					iconImage.height() - layer.height() - 1,
+					layer);
 			}
 
-			auto &bg = (muted ? st::trayCounterBgMute : st::trayCounterBg);
-			auto &fg = st::trayCounterFg;
-
-			auto layer = App::wnd()->iconWithCounter(
-				layerSize,
-				counter,
-				bg,
-				fg,
-				false);
-
-			p.drawImage(
-				_trayIconImage.width() - layer.width() - 1,
-				_trayIconImage.height() - layer.height() - 1,
-				layer);
+			result.addPixmap(App::pixmapFromImageInPlace(
+				std::move(iconImage)));
 		}
+
+		TrayIcon = result;
 	}
 
-	return _trayIconImage;
+	return TrayIcon;
+}
+
+bool IsAppIndicator() {
+#ifdef TDESKTOP_DISABLE_DBUS_INTEGRATION
+	static const auto AppIndicator = false;
+#else // TDESKTOP_DISABLE_DBUS_INTEGRATION
+	static const auto AppIndicator = QDBusInterface(
+		qsl("com.canonical.indicator.application"),
+		qsl("/com/canonical/indicator/application/service"),
+		qsl("com.canonical.indicator.application.service")).isValid()
+			|| QDBusInterface(
+				qsl("org.ayatana.indicator.application"),
+				qsl("/org/ayatana/indicator/application/service"),
+				qsl("org.ayatana.indicator.application.service")).isValid();
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
+
+	return AppIndicator;
 }
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 static bool NeedTrayIconFile() {
 	// Hack for indicator-application, which doesn't handle icons sent across D-Bus:
 	// save the icon to a temp file and set the icon name to that filename.
-	static const auto TrayIconFileNeeded = [&] {
-		auto necessary = false;
-		const auto session = QDBusConnection::sessionBus();
-		const auto pid = session.interface()
-			->servicePid(kSNIWatcherService.utf16()).value();
-		const auto processName = ProcessNameByPID(QString::number(pid));
-		necessary = processName.endsWith(
-			qsl("indicator-application-service"));
-		if (!necessary) {
-			// Accessing to process name might be not allowed if the application
-			// is confined, thus we can just rely on the current desktop in use
-			necessary = DesktopEnvironment::IsUnity()
-				|| DesktopEnvironment::IsMATE();
-		}
-		return necessary;
-	}();
+	static const auto TrayIconFileNeeded = IsAppIndicator();
 	return TrayIconFileNeeded;
 }
 
@@ -176,12 +234,14 @@ static inline QString TrayIconFileTemplate() {
 }
 
 std::unique_ptr<QTemporaryFile> TrayIconFile(
-		const QPixmap &icon, QObject *parent) {
+		const QIcon &icon,
+		int size,
+		QObject *parent) {
 	auto ret = std::make_unique<QTemporaryFile>(
 		TrayIconFileTemplate(),
 		parent);
 	ret->open();
-	icon.save(ret.get());
+	icon.pixmap(size).save(ret.get());
 	ret->close();
 	return ret;
 }
@@ -205,6 +265,18 @@ bool IsSNIAvailable() {
 	}();
 
 	return SNIAvailable;
+}
+
+bool UseUnityCounter() {
+#ifdef TDESKTOP_DISABLE_DBUS_INTEGRATION
+	static const auto UnityCounter = false;
+#else // TDESKTOP_DISABLE_DBUS_INTEGRATION
+	static const auto UnityCounter = QDBusInterface(
+		"com.canonical.Unity",
+		"/").isValid();
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
+
+	return UnityCounter;
 }
 
 quint32 djbStringHash(QString string) {
@@ -247,24 +319,25 @@ void MainWindow::psTrayMenuUpdated() {
 }
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
-void MainWindow::setSNITrayIcon(
-		const QIcon &icon, const QPixmap &iconPixmap) {
-	if (!NeedTrayIconFile()) {
-		_sniTrayIcon->setIconByPixmap(icon);
-		_sniTrayIcon->setToolTipIconByPixmap(icon);
-	}
+void MainWindow::setSNITrayIcon(const QIcon &icon) {
+	const auto iconName = GetTrayIconName();
 
-	if (qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())) {
-		const auto iconName = GetTrayIconName();
+	if (qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+		&& !iconName.isEmpty()) {
 		_sniTrayIcon->setIconByName(iconName);
 		_sniTrayIcon->setToolTipIconByName(iconName);
 	} else if (NeedTrayIconFile()) {
-		_trayIconFile = TrayIconFile(iconPixmap, this);
+		_trayIconFile = TrayIconFile(icon, 22, this);
+		_trayToolTipIconFile = TrayIconFile(icon, 48, this);
 
 		if (_trayIconFile) {
 			_sniTrayIcon->setIconByName(_trayIconFile->fileName());
-			_sniTrayIcon->setToolTipIconByName(_trayIconFile->fileName());
+			_sniTrayIcon->setToolTipIconByName(
+				_trayToolTipIconFile->fileName());
 		}
+	} else {
+		_sniTrayIcon->setIconByPixmap(icon);
+		_sniTrayIcon->setToolTipIconByPixmap(icon);
 	}
 }
 
@@ -291,9 +364,6 @@ void MainWindow::attachToSNITrayIcon() {
 #endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 
 void MainWindow::psSetupTrayIcon() {
-	const auto iconPixmap = QPixmap::fromImage(TrayIconImageGen());
-	const auto icon = QIcon(iconPixmap);
-
 	if (IsSNIAvailable()) {
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 		LOG(("Using SNI tray icon."));
@@ -302,8 +372,8 @@ void MainWindow::psSetupTrayIcon() {
 				QCoreApplication::applicationName(),
 				this);
 
-			_sniTrayIcon->setTitle(QCoreApplication::applicationName());
-			setSNITrayIcon(icon, iconPixmap);
+			_sniTrayIcon->setTitle(AppName.utf16());
+			setSNITrayIcon(TrayIconGen());
 
 			attachToSNITrayIcon();
 		}
@@ -319,7 +389,7 @@ void MainWindow::psSetupTrayIcon() {
 
 		if (!trayIcon) {
 			trayIcon = new QSystemTrayIcon(this);
-			trayIcon->setIcon(icon);
+			trayIcon->setIcon(TrayIconGen());
 
 			attachToTrayIcon(trayIcon);
 		}
@@ -362,8 +432,9 @@ void MainWindow::updateIconCounters() {
 	updateWindowIcon();
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
-	if (UseUnityCount) {
+	if (UseUnityCounter()) {
 		const auto counter = Core::App().unreadBadge();
+		const auto launcherUrl = "application://" + GetLauncherFilename();
 		QVariantMap dbusUnityProperties;
 		if (counter > 0) {
 			// Gnome requires that count is a 64bit integer
@@ -371,32 +442,30 @@ void MainWindow::updateIconCounters() {
 				"count",
 				(qint64) ((counter > 9999)
 					? 9999
-					: (counter)));
+					: counter));
 			dbusUnityProperties.insert("count-visible", true);
 		} else {
 			dbusUnityProperties.insert("count-visible", false);
 		}
 		QDBusMessage signal = QDBusMessage::createSignal(
-			UnityCountDBusPath,
+			"/com/canonical/unity/launcherentry/"
+				+ QString::number(djbStringHash(launcherUrl)),
 			"com.canonical.Unity.LauncherEntry",
 			"Update");
-		signal << "application://" + UnityCountDesktopFile;
+		signal << launcherUrl;
 		signal << dbusUnityProperties;
 		QDBusConnection::sessionBus().send(signal);
 	}
 #endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 
-	const auto iconPixmap = QPixmap::fromImage(TrayIconImageGen());
-	const auto icon = QIcon(iconPixmap);
-
 	if (IsSNIAvailable()) {
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 		if (_sniTrayIcon) {
-			setSNITrayIcon(icon, iconPixmap);
+			setSNITrayIcon(TrayIconGen());
 		}
 #endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 	} else if (trayIcon) {
-		trayIcon->setIcon(icon);
+		trayIcon->setIcon(TrayIconGen());
 	}
 }
 
@@ -406,71 +475,20 @@ void MainWindow::LibsLoaded() {
 	qDBusRegisterMetaType<IconPixmap>();
 	qDBusRegisterMetaType<IconPixmapList>();
 #endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
-
-	if (!IsSNIAvailable()) {
-		_trayIconSize = 22;
-	}
 }
 
-void MainWindow::psFirstShow() {
+void MainWindow::initTrayMenuHook() {
 	const auto trayAvailable = IsSNIAvailable()
 		|| QSystemTrayIcon::isSystemTrayAvailable();
 
 	LOG(("System tray available: %1").arg(Logs::b(trayAvailable)));
 	cSetSupportTray(trayAvailable);
 
-#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
-	if (QDBusInterface("com.canonical.Unity", "/").isValid()) {
-		const std::vector<QString> possibleDesktopFiles = {
-			GetLauncherFilename(),
-			"Kotatogram.desktop"
-		};
-
-		for (auto it = possibleDesktopFiles.begin();
-			it != possibleDesktopFiles.end(); it++) {
-			if (!QStandardPaths::locate(
-				QStandardPaths::ApplicationsLocation, *it).isEmpty()) {
-				UnityCountDesktopFile = *it;
-				LOG(("Found Unity Launcher entry %1!")
-					.arg(UnityCountDesktopFile));
-				UseUnityCount = true;
-				break;
-			}
-		}
-		if (!UseUnityCount) {
-			LOG(("Could not get Unity Launcher entry!"));
-		}
-		UnityCountDBusPath = "/com/canonical/unity/launcherentry/"
-			+ QString::number(
-				djbStringHash("application://" + UnityCountDesktopFile));
+	if (UseUnityCounter()) {
+		LOG(("Using Unity launcher counter."));
 	} else {
-		LOG(("Not using Unity Launcher count."));
+		LOG(("Not using Unity launcher counter."));
 	}
-#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
-
-	show();
-	if (cWindowPos().maximized) {
-		DEBUG_LOG(("Window Pos: First show, setting maximized."));
-		setWindowState(Qt::WindowMaximized);
-	}
-
-	if ((cLaunchMode() == LaunchModeAutoStart && cStartMinimized())
-		|| cStartInTray()) {
-		// If I call hide() synchronously here after show() then on Ubuntu 14.04
-		// it will show a window frame with transparent window body, without content.
-		// And to be able to "Show from tray" one more hide() will be required.
-		crl::on_main(this, [=] {
-			setWindowState(Qt::WindowMinimized);
-			if (Global::WorkMode().value() == dbiwmTrayOnly
-				|| Global::WorkMode().value() == dbiwmWindowAndTray) {
-				hide();
-			} else {
-				show();
-			}
-		});
-	}
-
-	setPositionInited();
 }
 
 MainWindow::~MainWindow() {

@@ -14,6 +14,8 @@ apps:
     environment:
       # Use GTK3 cursor theme, icon theme and open/save file dialogs.
       QT_QPA_PLATFORMTHEME: gtk3
+      # Wayland support is still too bad.
+      DISABLE_WAYLAND: 1
     plugs:
       - desktop
       - desktop-legacy
@@ -60,6 +62,7 @@ parts:
       - libswscale-dev
       - libswresample-dev
       - libdbusmenu-qt5-dev
+      - libhunspell-dev
       - liblz4-dev
       - liblzma-dev
       - libminizip-dev
@@ -77,6 +80,7 @@ parts:
       - libswscale4
       - libswresample2
       - libdbusmenu-qt5-2
+      - libhunspell-1.6-0
       - liblz4-1
       - liblzma5
       - libminizip1
@@ -92,6 +96,7 @@ parts:
       - -DTDESKTOP_API_ID=611335
       - -DTDESKTOP_API_HASH=d524b414d21f4d37f08684c1df41ac9c
       - -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF
+      - -DDESKTOP_APP_USE_PACKAGED_GSL=OFF
       - -DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF
       - -DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF
       - -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
@@ -114,26 +119,8 @@ parts:
     after:
       - cmake
       - desktop-qt5
-      - enchant
-      - gsl
       - range-v3
       - xxhash
-
-  spellchecking:
-    plugin: nil
-    stage-packages:
-      - hunspell-de-de
-      - hunspell-en-au
-      - hunspell-en-ca
-      - hunspell-en-gb
-      - hunspell-en-us
-      - hunspell-en-za
-      - hunspell-fr-classical
-      - hunspell-it
-      - hunspell-pl
-      - hunspell-es
-      - hunspell-pt-br
-      - hunspell-pt-pt
 
   desktop-qt5:
     source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
@@ -168,7 +155,7 @@ parts:
   cmake:
     source: "https://gitlab.kitware.com/cmake/cmake.git"
     source-depth: 1
-    source-branch: master
+    source-tag: v3.16.4
     source-type: git
     plugin: make
     override-build: |
@@ -187,31 +174,6 @@ parts:
       - libssl1.1
       - libncurses5
       - libtinfo5
-    prime: [-./*]
-
-  enchant:
-    source: https://github.com/AbiWord/enchant.git
-    source-depth: 1
-    source-tag: v2.2.7
-    plugin: autotools
-    build-packages:
-      - libltdl-dev
-      - libglib2.0-dev
-      - libhunspell-dev
-    stage-packages:
-      - libglib2.0-0
-      - libhunspell-1.6-0
-    configflags:
-      - --enable-relocatable
-    prime: [-./bin/*]
-
-  gsl:
-    source: https://github.com/microsoft/GSL.git
-    source-depth: 1
-    source-tag: v2.1.0
-    plugin: cmake
-    configflags:
-      - -DGSL_TEST=OFF
     prime: [-./*]
 
   range-v3:

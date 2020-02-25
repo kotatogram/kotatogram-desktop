@@ -48,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_cloud_themes.h"
 #include "data/data_streaming.h"
 #include "data/data_media_rotation.h"
+#include "data/data_histories.h"
 #include "base/platform/base_platform_info.h"
 #include "base/unixtime.h"
 #include "base/call_delayed.h"
@@ -194,7 +195,8 @@ Session::Session(not_null<Main::Session*> session)
 , _scheduledMessages(std::make_unique<ScheduledMessages>(this))
 , _cloudThemes(std::make_unique<CloudThemes>(session))
 , _streaming(std::make_unique<Streaming>(this))
-, _mediaRotation(std::make_unique<MediaRotation>()) {
+, _mediaRotation(std::make_unique<MediaRotation>())
+, _histories(std::make_unique<Histories>(this)) {
 	_cache->open(Local::cacheKey());
 	_bigFileCache->open(Local::cacheBigFileKey());
 
@@ -215,9 +217,7 @@ Session::Session(not_null<Main::Session*> session)
 void Session::clear() {
 	_sendActions.clear();
 
-	for (const auto &[peerId, history] : _histories) {
-		history->clear(History::ClearType::Unload);
-	}
+	_histories->unloadAll();
 	_scheduledMessages = nullptr;
 	_dependentMessages.clear();
 	base::take(_messages);
@@ -227,7 +227,7 @@ void Session::clear() {
 	cSetRecentInlineBots(RecentInlineBots());
 	cSetRecentStickers(RecentStickerPack());
 	App::clearMousedItems();
-	_histories.clear();
+	_histories->clearAll();
 }
 
 not_null<PeerData*> Session::peer(PeerId id) {
@@ -768,20 +768,11 @@ void Session::enumerateChannels(
 }
 
 not_null<History*> Session::history(PeerId peerId) {
-	Expects(peerId != 0);
-
-	if (const auto result = historyLoaded(peerId)) {
-		return result;
-	}
-	const auto [i, ok] = _histories.emplace(
-		peerId,
-		std::make_unique<History>(this, peerId));
-	return i->second.get();
+	return _histories->findOrCreate(peerId);
 }
 
 History *Session::historyLoaded(PeerId peerId) const {
-	const auto i = peerId ? _histories.find(peerId) : end(_histories);
-	return (i != end(_histories)) ? i->second.get() : nullptr;
+	return _histories->find(peerId);
 }
 
 not_null<History*> Session::history(not_null<const PeerData*> peer) {
@@ -1539,7 +1530,7 @@ void Session::applyDialog(
 		return;
 	}
 
-	const auto history = session().data().history(peerId);
+	const auto history = this->history(peerId);
 	history->applyDialog(requestFolder, data);
 	setPinnedFromDialog(history, data.is_pinned());
 
@@ -1733,18 +1724,15 @@ auto Session::messagesListForInsert(ChannelId channelId)
 		: &_channelMessages[channelId];
 }
 
-HistoryItem *Session::registerMessage(std::unique_ptr<HistoryItem> item) {
-	Expects(item != nullptr);
-
-	const auto result = item.get();
-	const auto list = messagesListForInsert(result->channelId());
-	const auto i = list->find(result->id);
+void Session::registerMessage(not_null<HistoryItem*> item) {
+	const auto list = messagesListForInsert(item->channelId());
+	const auto itemId = item->id;
+	const auto i = list->find(itemId);
 	if (i != list->end()) {
 		LOG(("App Error: Trying to re-registerMessage()."));
 		i->second->destroy();
 	}
-	list->emplace(result->id, std::move(item));
-	return result;
+	list->emplace(itemId, item);
 }
 
 void Session::processMessagesDeleted(
@@ -1763,7 +1751,7 @@ void Session::processMessagesDeleted(
 		const auto i = list ? list->find(messageId.v) : Messages::iterator();
 		if (list && i != list->end()) {
 			const auto history = i->second->history();
-			destroyMessage(i->second.get());
+			i->second->destroy();
 			if (!history->chatListMessageKnown()) {
 				historiesToCheck.emplace(history);
 			}
@@ -1789,32 +1777,12 @@ void Session::removeDependencyMessage(not_null<HistoryItem*> item) {
 	}
 }
 
-void Session::destroyMessage(not_null<HistoryItem*> item) {
-	Expects(item->isHistoryEntry() || !item->mainView());
-
+void Session::unregisterMessage(not_null<HistoryItem*> item) {
 	const auto peerId = item->history()->peer->id;
-	if (item->isHistoryEntry()) {
-		// All this must be done for all items manually in History::clear()!
-		item->eraseFromUnreadMentions();
-		if (IsServerMsgId(item->id)) {
-			if (const auto types = item->sharedMediaTypes()) {
-				session().storage().remove(Storage::SharedMediaRemoveOne(
-					peerId,
-					types,
-					item->id));
-			}
-		} else {
-			session().api().cancelLocalItem(item);
-		}
-		item->history()->itemRemoved(item);
-	}
 	_itemRemoved.fire_copy(item);
 	groups().unregisterMessage(item);
 	removeDependencyMessage(item);
-	session().notifications().clearFromItem(item);
-
-	const auto list = messagesListForInsert(peerToChannel(peerId));
-	list->erase(item->id);
+	messagesListForInsert(peerToChannel(peerId))->erase(item->id);
 }
 
 MsgId Session::nextLocalMessageId() {
@@ -3629,7 +3597,7 @@ void Session::serviceNotification(
 	}
 	const auto history = this->history(PeerData::kServiceNotificationsId);
 	if (!history->folderKnown()) {
-		_session->api().requestDialogEntry(history, [=] {
+		histories().requestDialogEntry(history, [=] {
 			insertCheckedServiceNotification(message, media, date);
 		});
 	} else {

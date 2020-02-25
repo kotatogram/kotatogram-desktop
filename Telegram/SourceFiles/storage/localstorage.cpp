@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_drafts.h"
 #include "data/data_user.h"
 #include "boxes/send_files_box.h"
+#include "base/platform/base_platform_info.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/emoji_config.h"
 #include "export/export_settings.h"
@@ -40,8 +41,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 
 #include <QtCore/QBuffer>
+#include <QtCore/QSaveFile>
 #include <QtCore/QtEndian>
 #include <QtCore/QDirIterator>
+
+#ifndef Q_OS_WIN
+#include <unistd.h>
+#endif // Q_OS_WIN
 
 extern "C" {
 #include <openssl/evp.h>
@@ -113,10 +119,18 @@ inline constexpr auto is_flag_type(FileOption) { return true; };
 
 bool keyAlreadyUsed(QString &name, FileOptions options = FileOption::User | FileOption::Safe) {
 	name += '0';
-	if (QFileInfo(name).exists()) return true;
+	if (QFileInfo(name).exists()) {
+		return true;
+	}
 	if (options & (FileOption::Safe)) {
 		name[name.size() - 1] = '1';
-		return QFileInfo(name).exists();
+		if (QFileInfo(name).exists()) {
+			return true;
+		}
+		name[name.size() - 1] = 's';
+		if (QFileInfo(name).exists()) {
+			return true;
+		}
 	}
 	return false;
 }
@@ -154,6 +168,8 @@ void clearKey(const FileKey &key, FileOptions options = FileOption::User | FileO
 	QFile::remove(name);
 	if (options & FileOption::Safe) {
 		name[name.size() - 1] = '1';
+		QFile::remove(name);
+		name[name.size() - 1] = 's';
 		QFile::remove(name);
 	}
 }
@@ -235,10 +251,12 @@ struct EncryptedDescriptor {
 };
 
 struct FileWriteDescriptor {
-	FileWriteDescriptor(const FileKey &key, FileOptions options = FileOption::User | FileOption::Safe) {
+	FileWriteDescriptor(const FileKey &key, FileOptions options = FileOption::User | FileOption::Safe)
+	: file((options & FileOption::Safe) ? (QFileDevice&)saveFile : plainFile) {
 		init(toFilePart(key), options);
 	}
-	FileWriteDescriptor(const QString &name, FileOptions options = FileOption::User | FileOption::Safe) {
+	FileWriteDescriptor(const QString &name, FileOptions options = FileOption::User | FileOption::Safe)
+	: file((options & FileOption::Safe) ? (QFileDevice&)saveFile : plainFile) {
 		init(name, options);
 	}
 	void init(const QString &name, FileOptions options) {
@@ -248,29 +266,13 @@ struct FileWriteDescriptor {
 			if (!_working()) return;
 		}
 
-		// detect order of read attempts and file version
-		QString toTry[2];
-		toTry[0] = ((options & FileOption::User) ? _userBasePath : _basePath) + name + '0';
+		const auto base = ((options & FileOption::User) ? _userBasePath : _basePath) + name;
 		if (options & FileOption::Safe) {
-			toTry[1] = ((options & FileOption::User) ? _userBasePath : _basePath) + name + '1';
-			QFileInfo toTry0(toTry[0]);
-			QFileInfo toTry1(toTry[1]);
-			if (toTry0.exists()) {
-				if (toTry1.exists()) {
-					QDateTime mod0 = toTry0.lastModified(), mod1 = toTry1.lastModified();
-					if (mod0 > mod1) {
-						qSwap(toTry[0], toTry[1]);
-					}
-				} else {
-					qSwap(toTry[0], toTry[1]);
-				}
-				toDelete = toTry[1];
-			} else if (toTry1.exists()) {
-				toDelete = toTry[1];
-			}
+			toDelete = base;
+			saveFile.setFileName(base + 's');
+		} else {
+			plainFile.setFileName(base + '0');
 		}
-
-		file.setFileName(toTry[0]);
 		if (file.open(QIODevice::WriteOnly)) {
 			file.write(tdfMagic, tdfMagicLen);
 			qint32 version = AppVersion;
@@ -325,13 +327,21 @@ struct FileWriteDescriptor {
 		md5.feed(&version, sizeof(version));
 		md5.feed(tdfMagic, tdfMagicLen);
 		file.write((const char*)md5.result(), 0x10);
-		file.close();
+
+		if (saveFile.isOpen()) {
+			saveFile.commit();
+		} else {
+			plainFile.close();
+		}
 
 		if (!toDelete.isEmpty()) {
-			QFile::remove(toDelete);
+			QFile::remove(toDelete + '0');
+			QFile::remove(toDelete + '1');
 		}
 	}
-	QFile file;
+	QFile plainFile;
+	QSaveFile saveFile;
+	QFileDevice &file;
 	QDataStream stream;
 
 	QString toDelete;
@@ -351,25 +361,35 @@ bool readFile(FileReadDescriptor &result, const QString &name, FileOptions optio
 		if (!_working()) return false;
 	}
 
+	const auto base = ((options & FileOption::User) ? _userBasePath : _basePath) + name;
+
 	// detect order of read attempts
 	QString toTry[2];
-	toTry[0] = ((options & FileOption::User) ? _userBasePath : _basePath) + name + '0';
 	if (options & FileOption::Safe) {
-		QFileInfo toTry0(toTry[0]);
-		if (toTry0.exists()) {
-			toTry[1] = ((options & FileOption::User) ? _userBasePath : _basePath) + name + '1';
-			QFileInfo toTry1(toTry[1]);
-			if (toTry1.exists()) {
-				QDateTime mod0 = toTry0.lastModified(), mod1 = toTry1.lastModified();
-				if (mod0 < mod1) {
-					qSwap(toTry[0], toTry[1]);
+		const auto modern = base + 's';
+		if (QFileInfo(modern).exists()) {
+			toTry[0] = modern;
+		} else {
+			// Legacy way.
+			toTry[0] = base + '0';
+			QFileInfo toTry0(toTry[0]);
+			if (toTry0.exists()) {
+				toTry[1] = ((options & FileOption::User) ? _userBasePath : _basePath) + name + '1';
+				QFileInfo toTry1(toTry[1]);
+				if (toTry1.exists()) {
+					QDateTime mod0 = toTry0.lastModified(), mod1 = toTry1.lastModified();
+					if (mod0 < mod1) {
+						qSwap(toTry[0], toTry[1]);
+					}
+				} else {
+					toTry[1] = QString();
 				}
 			} else {
-				toTry[1] = QString();
+				toTry[0][toTry[0].size() - 1] = '1';
 			}
-		} else {
-			toTry[0][toTry[0].size() - 1] = '1';
 		}
+	} else {
+		toTry[0] = base + '0';
 	}
 	for (int32 i = 0; i < 2; ++i) {
 		QString fname(toTry[i]);
@@ -2050,7 +2070,10 @@ bool _readOldMtpData(bool remove, ReadSettingsContext &context) {
 }
 
 void _writeUserSettings() {
-	if (_readingUserSettings) {
+	if (!_userWorking()) {
+		LOG(("App Error: attempt to write user settings too early!"));
+		return;
+	} else if (_readingUserSettings) {
 		LOG(("App Error: attempt to write settings while reading them!"));
 		return;
 	}
@@ -2574,6 +2597,7 @@ void finish() {
 }
 
 void InitialLoadTheme();
+bool ApplyDefaultNightMode();
 void readLangPack();
 
 void start() {
@@ -2596,7 +2620,10 @@ void start() {
 		_readOldMtpData(false, context); // needed further in _readMtpData
 		applyReadContext(std::move(context));
 
-		return writeSettings();
+		if (!ApplyDefaultNightMode()) {
+			writeSettings();
+		}
+		return;
 	}
 	LOG(("App Info: reading settings..."));
 
@@ -2873,7 +2900,7 @@ base::flat_set<QString> CollectGoodNames() {
 		_exportSettingsKey,
 		_trustedBotsKey
 	};
-	auto result = base::flat_set<QString>{ "map0", "map1" };
+	auto result = base::flat_set<QString>{ "map0", "map1", "maps" };
 	const auto push = [&](FileKey key) {
 		if (!key) {
 			return;
@@ -2881,6 +2908,8 @@ base::flat_set<QString> CollectGoodNames() {
 		auto name = toFilePart(key) + '0';
 		result.emplace(name);
 		name[name.size() - 1] = '1';
+		result.emplace(name);
+		name[name.size() - 1] = 's';
 		result.emplace(name);
 	};
 	for (const auto &value : _draftsMap) {
@@ -4380,6 +4409,20 @@ void InitialLoadTheme() {
 	}
 }
 
+bool ApplyDefaultNightMode() {
+	const auto NightByDefault = Platform::IsMacStoreBuild();
+	if (!NightByDefault
+		|| Window::Theme::IsNightMode()
+		|| _themeKeyDay
+		|| _themeKeyNight
+		|| _themeKeyLegacy) {
+		return false;
+	}
+	Window::Theme::ToggleNightMode();
+	Window::Theme::KeepApplied();
+	return true;
+}
+
 Window::Theme::Saved readThemeAfterSwitch() {
 	const auto key = Window::Theme::IsNightMode()
 		? _themeKeyNight
@@ -5113,7 +5156,7 @@ void ClearManager::onStart() {
 					if (!QDir(di.filePath()).removeRecursively()) result = false;
 				} else {
 					QString path = di.filePath();
-					if (!path.endsWith(qstr("map0")) && !path.endsWith(qstr("map1"))) {
+					if (!path.endsWith(qstr("map0")) && !path.endsWith(qstr("map1")) && !path.endsWith(qstr("maps"))) {
 						if (!QFile::remove(di.filePath())) result = false;
 					}
 				}

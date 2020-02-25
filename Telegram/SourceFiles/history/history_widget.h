@@ -105,13 +105,13 @@ public:
 
 	void start();
 
-	void messagesReceived(PeerData *peer, const MTPmessages_Messages &messages, mtpRequestId requestId);
 	void historyLoaded();
 
 	void windowShown();
-	bool doWeReadServerHistory() const;
-	bool doWeReadMentions() const;
+	[[nodiscard]] bool doWeReadServerHistory() const;
+	[[nodiscard]] bool doWeReadMentions() const;
 	bool skipItemRepaint();
+	void checkHistoryActivation();
 
 	void leaveToChildEvent(QEvent *e, QWidget *child) override;
 	void dragEnterEvent(QDragEnterEvent *e) override;
@@ -216,8 +216,9 @@ public:
 	void applyDraft(
 		FieldHistoryAction fieldHistoryAction = FieldHistoryAction::Clear);
 	void showHistory(const PeerId &peer, MsgId showAtMsgId, bool reload = false);
-	void clearDelayedShowAt();
 	void clearAllLoadRequests();
+	void clearDelayedShowAtRequest();
+	void clearDelayedShowAt();
 	void saveFieldToHistoryLocalDraft();
 
 	void applyCloudDraft(History *history);
@@ -560,6 +561,10 @@ private:
 
 	// destroys _history and _migrated unread bars
 	void destroyUnreadBar();
+	void destroyUnreadBarOnClose();
+	void createUnreadBarIfBelowVisibleArea(int withScrollTop);
+	[[nodiscard]] bool insideJumpToEndInsteadOfToUnread() const;
+	void createUnreadBarAndResize();
 
 	void saveEditMsg();
 	void saveEditMsgDone(History *history, const MTPUpdates &updates, mtpRequestId req);
@@ -568,7 +573,8 @@ private:
 	void checkPreview();
 	void requestPreview();
 	void gotPreview(QString links, const MTPMessageMedia &media, mtpRequestId req);
-	bool messagesFailed(const RPCError &error, mtpRequestId requestId);
+	void messagesReceived(PeerData *peer, const MTPmessages_Messages &messages, int requestId);
+	bool messagesFailed(const RPCError &error, int requestId);
 	void addMessagesToFront(PeerData *peer, const QVector<MTPMessage> &messages);
 	void addMessagesToBack(PeerData *peer, const QVector<MTPMessage> &messages);
 
@@ -586,14 +592,11 @@ private:
 	std::optional<int> unreadBarTop() const;
 	int itemTopForHighlight(not_null<HistoryView::Element*> view) const;
 	void scrollToCurrentVoiceMessage(FullMsgId fromId, FullMsgId toId);
-	HistoryView::Element *firstUnreadMessage() const;
 
 	// Scroll to current y without updating the _lastUserScrolled time.
 	// Used to distinguish between user scrolls and syntetic scrolls.
 	// This one is syntetic.
 	void synteticScrollToY(int y);
-
-	void countHistoryShowFrom();
 
 	void writeDrafts(Data::Draft **localDraft, Data::Draft **editDraft);
 	void writeDrafts(History *history);
@@ -683,12 +686,12 @@ private:
 	bool _canSendMessages = false;
 	MsgId _showAtMsgId = ShowAtUnreadMsgId;
 
-	mtpRequestId _firstLoadRequest = 0;
-	mtpRequestId _preloadRequest = 0;
-	mtpRequestId _preloadDownRequest = 0;
+	int _firstLoadRequest = 0; // Not real mtpRequestId.
+	int _preloadRequest = 0; // Not real mtpRequestId.
+	int _preloadDownRequest = 0; // Not real mtpRequestId.
 
 	MsgId _delayedShowAtMsgId = -1;
-	mtpRequestId _delayedShowAtRequest = 0;
+	int _delayedShowAtRequest = 0; // Not real mtpRequestId.
 
 	object_ptr<HistoryView::TopBarWidget> _topBar;
 	object_ptr<Ui::ScrollArea> _scroll;

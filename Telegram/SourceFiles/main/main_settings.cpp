@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "support/support_common.h"
 #include "storage/serialize_common.h"
 #include "boxes/send_files_box.h"
+#include "base/platform/base_platform_info.h"
 
 namespace Main {
 namespace {
@@ -38,8 +39,15 @@ Settings::Variables::Variables()
 , selectorTab(ChatHelpers::SelectorTab::Emoji)
 , floatPlayerColumn(Window::Column::Second)
 , floatPlayerCorner(RectPart::TopRight)
+, dialogsWidthRatio(ThirdColumnByDefault()
+	? kDefaultBigDialogsWidthRatio
+	: kDefaultDialogsWidthRatio)
 , sendSubmitWay(Ui::InputSubmitSettings::Enter)
 , supportSwitch(Support::SwitchSettings::Next) {
+}
+
+bool Settings::ThirdColumnByDefault() {
+	return Platform::IsMacStoreBuild();
 }
 
 QByteArray Settings::serialize() const {
@@ -110,6 +118,11 @@ QByteArray Settings::serialize() const {
 		}
 		stream << qint32(SerializePlaybackSpeed(_variables.videoPlaybackSpeed.current()));
 		stream << _variables.videoPipGeometry;
+		stream << qint32(_variables.dictionariesEnabled.current().size());
+		for (const auto i : _variables.dictionariesEnabled.current()) {
+			stream << quint64(i);
+		}
+		stream << qint32(_variables.autoDownloadDictionaries.current() ? 1 : 0);
 	}
 	return result;
 }
@@ -162,6 +175,8 @@ void Settings::constructFromSerialized(const QByteArray &serialized) {
 	std::vector<std::pair<DocumentId, crl::time>> mediaLastPlaybackPosition;
 	qint32 videoPlaybackSpeed = SerializePlaybackSpeed(_variables.videoPlaybackSpeed.current());
 	QByteArray videoPipGeometry = _variables.videoPipGeometry;
+	std::vector<int> dictionariesEnabled;
+	qint32 autoDownloadDictionaries = _variables.autoDownloadDictionaries.current() ? 1 : 0;
 
 	stream >> versionTag;
 	if (versionTag == kVersionTag) {
@@ -288,6 +303,20 @@ void Settings::constructFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> videoPipGeometry;
 	}
+	if (!stream.atEnd()) {
+		auto count = qint32(0);
+		stream >> count;
+		if (stream.status() == QDataStream::Ok) {
+			for (auto i = 0; i != count; ++i) {
+				qint64 langId;
+				stream >> langId;
+				dictionariesEnabled.emplace_back(langId);
+			}
+		}
+	}
+	if (!stream.atEnd()) {
+		stream >> autoDownloadDictionaries;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Main::Settings::constructFromSerialized()"));
@@ -377,6 +406,8 @@ void Settings::constructFromSerialized(const QByteArray &serialized) {
 	_variables.mediaLastPlaybackPosition = std::move(mediaLastPlaybackPosition);
 	_variables.videoPlaybackSpeed = DeserializePlaybackSpeed(videoPlaybackSpeed);
 	_variables.videoPipGeometry = videoPipGeometry;
+	_variables.dictionariesEnabled = std::move(dictionariesEnabled);
+	_variables.autoDownloadDictionaries = (autoDownloadDictionaries == 1);
 }
 
 void Settings::setSupportChatsTimeSlice(int slice) {

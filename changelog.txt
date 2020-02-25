@@ -1,3 +1,43 @@
+1.9.19 beta (25.02.20)
+
+- Bug fixes and other minor improvements.
+
+1.9.18 beta (25.02.20)
+
+- Bug fixes and other minor improvements.
+
+1.9.17 beta (24.02.20)
+
+- Spell checker on Windows 7.
+- Bug fixes and other minor improvements.
+
+1.9.16 beta (23.02.20)
+
+- Bug fixes and other minor improvements.
+
+1.9.15 beta (21.02.20)
+
+- Mark new messages as read while scrolling down through them.
+- Bug fixes and other minor improvements.
+
+1.9.14 (17.02.20)
+
+- Bug fixes and other minor improvements.
+
+1.9.13 (12.02.20)
+
+- Bug fixes and other minor improvements.
+
+1.9.12 (11.02.20)
+
+- Switch to Picture-in-Picture mode to watch your video in a small window while doing something else.
+- Change playback speed in the '...' menu when watching videos.
+- Rotate photos and videos in the media viewer using the rotate button in the bottom right corner.
+
+1.9.11 beta (10.02.20)
+
+- Bug fixes and other minor improvements.
+
 1.9.10 beta (05.02.20)
 
 - Switch to the Picture-in-Picture mode to watch your video in a small window.

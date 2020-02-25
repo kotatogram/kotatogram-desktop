@@ -130,7 +130,7 @@ void MainWindow::initHook() {
 		Qt::QueuedConnection);
 }
 
-void MainWindow::firstShow() {
+void MainWindow::createTrayIconMenu() {
 #ifdef Q_OS_WIN
 	trayIconMenu = new Ui::PopupMenu(nullptr);
 	trayIconMenu->deleteOnHide(false);
@@ -148,9 +148,48 @@ void MainWindow::firstShow() {
 	trayIconMenu->addAction(tr::lng_minimize_to_tray(tr::now), this, SLOT(minimizeToTray()));
 	trayIconMenu->addAction(notificationActionText, this, SLOT(toggleDisplayNotifyFromTray()));
 	trayIconMenu->addAction(tr::ktg_quit_from_tray(tr::now), this, SLOT(quitFromTray()));
+
+	initTrayMenuHook();
+}
+
+void MainWindow::applyInitialWorkMode() {
 	Global::RefWorkMode().setForced(Global::WorkMode().value(), true);
 
-	psFirstShow();
+	if (cWindowPos().maximized) {
+		DEBUG_LOG(("Window Pos: First show, setting maximized."));
+		setWindowState(Qt::WindowMaximized);
+	}
+	if (cStartInTray()
+		|| (cLaunchMode() == LaunchModeAutoStart
+			&& cStartMinimized()
+			&& !Core::App().passcodeLocked())) {
+		const auto minimizeAndHide = [=] {
+			DEBUG_LOG(("Window Pos: First show, setting minimized after."));
+			setWindowState(windowState() | Qt::WindowMinimized);
+			if (Global::WorkMode().value() == dbiwmTrayOnly
+				|| Global::WorkMode().value() == dbiwmWindowAndTray) {
+				hide();
+			}
+		};
+
+		if (Platform::IsLinux()) {
+			// If I call hide() synchronously here after show() then on Ubuntu 14.04
+			// it will show a window frame with transparent window body, without content.
+			// And to be able to "Show from tray" one more hide() will be required.
+			crl::on_main(this, minimizeAndHide);
+		} else {
+			minimizeAndHide();
+		}
+	}
+	setPositionInited();
+}
+
+void MainWindow::finishFirstShow() {
+	createTrayIconMenu();
+	initShadows();
+	applyInitialWorkMode();
+	createGlobalMenu();
+	firstShadowsUpdate();
 	updateTrayMenu();
 
 	windowDeactivateEvents(
@@ -194,6 +233,7 @@ void MainWindow::setupPasscodeLock() {
 	if (animated) {
 		_passcodeLock->showAnimated(bg);
 	} else {
+		_passcodeLock->showFinished();
 		setInnerFocus();
 	}
 }
@@ -463,23 +503,17 @@ void MainWindow::themeUpdated(const Window::Theme::BackgroundUpdate &data) {
 	}
 }
 
-bool MainWindow::doWeReadServerHistory() {
+bool MainWindow::doWeMarkAsRead() {
+	if (!_main || Ui::isLayerShown()) {
+		return false;
+	}
 	updateIsActive(0);
-	return isActive()
-		&& !Ui::isLayerShown()
-		&& (_main ? _main->doWeReadServerHistory() : false);
-}
-
-bool MainWindow::doWeReadMentions() {
-	updateIsActive(0);
-	return isActive()
-		&& !Ui::isLayerShown()
-		&& (_main ? _main->doWeReadMentions() : false);
+	return isActive() && _main->doWeMarkAsRead();
 }
 
 void MainWindow::checkHistoryActivation() {
-	if (doWeReadServerHistory()) {
-		_main->markActiveHistoryAsRead();
+	if (_main) {
+		_main->checkHistoryActivation();
 	}
 }
 
@@ -515,10 +549,12 @@ bool MainWindow::eventFilter(QObject *object, QEvent *e) {
 	} break;
 
 	case QEvent::MouseMove: {
-		if (_main && _main->isIdle()) {
+		const auto position = static_cast<QMouseEvent*>(e)->globalPos();
+		if (_main && _main->isIdle() && _lastMousePosition != position) {
 			Core::App().updateNonIdle();
 			_main->checkIdleFinish();
 		}
+		_lastMousePosition = position;
 	} break;
 
 	case QEvent::MouseButtonRelease: {
@@ -556,8 +592,7 @@ bool MainWindow::eventFilter(QObject *object, QEvent *e) {
 void MainWindow::updateTrayMenu(bool force) {
 	if (!trayIconMenu || (Platform::IsWindows() && !force)) return;
 
-	auto iconMenu = trayIconMenu;
-	auto actions = iconMenu->actions();
+	auto actions = trayIconMenu->actions();
 	if (Platform::IsLinux()) {
 		auto minimizeAction = actions.at(1);
 		minimizeAction->setEnabled(isVisible());
@@ -571,12 +606,6 @@ void MainWindow::updateTrayMenu(bool force) {
 		toggleAction->setText(active
 			? tr::lng_minimize_to_tray(tr::now)
 			: tr::ktg_open_from_tray(tr::now));
-
-		// On macOS just remove trayIcon menu if the window is not active.
-		// So we will activate the window on click instead of showing the menu.
-		if (!active && Platform::IsMac()) {
-			iconMenu = nullptr;
-		}
 	}
 	auto notificationAction = actions.at(Platform::IsLinux() ? 2 : 1);
 	auto notificationActionText = Global::DesktopNotify()

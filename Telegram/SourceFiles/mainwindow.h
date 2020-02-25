@@ -49,7 +49,7 @@ public:
 	explicit MainWindow(not_null<Window::Controller*> controller);
 	~MainWindow();
 
-	void firstShow();
+	void finishFirstShow();
 
 	void setupPasscodeLock();
 	void clearPasscodeLock();
@@ -62,8 +62,7 @@ public:
 
 	MainWidget *mainWidget();
 
-	bool doWeReadServerHistory();
-	bool doWeReadMentions();
+	[[nodiscard]] bool doWeMarkAsRead();
 
 	void activate();
 
@@ -152,9 +151,11 @@ signals:
 private:
 	[[nodiscard]] bool skipTrayClick() const;
 
+	void createTrayIconMenu();
 	void handleTrayIconActication(
 		QSystemTrayIcon::ActivationReason reason) override;
 
+	void applyInitialWorkMode();
 	void ensureLayerCreated();
 	void destroyLayer();
 
@@ -166,6 +167,7 @@ private:
 	QImage icon16, icon32, icon64, iconbig16, iconbig32, iconbig64;
 
 	crl::time _lastTrayClickTime = 0;
+	QPoint _lastMousePosition;
 
 	object_ptr<Window::PasscodeLockWidget> _passcodeLock = { nullptr };
 	object_ptr<Intro::Widget> _intro = { nullptr };

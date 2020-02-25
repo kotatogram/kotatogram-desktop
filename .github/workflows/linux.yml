@@ -31,8 +31,9 @@ jobs:
       CMAKE_VER: "3.16.3"
       UPLOAD_ARTIFACT: "false"
       ONLY_CACHE: "false"
-      MANUAL_CACHING: "2"
+      MANUAL_CACHING: "6"
       DOC_PATH: "docs/building-cmake.md"
+      AUTO_CACHING: "1"
 
     steps:
       - name: Get repository name.
@@ -43,7 +44,20 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Disable man for further package installs.
+        run: |
+          cfgFile="/etc/dpkg/dpkg.cfg.d/no_man"
+          sudo touch $cfgFile
+          p() {
+            sudo echo "path-exclude=/usr/share/$1/*" >> $cfgFile
+          }
+
+          p man
+          p locale
+          p doc
+
       - name: First set up.
+        shell: bash
         run: |
           cd ..
           mv $REPO_NAME temp
@@ -55,13 +69,13 @@ jobs:
           sudo apt-get install software-properties-common -y && \
           sudo apt-get install git libexif-dev liblzma-dev libz-dev libssl-dev \
           libgtk2.0-dev libice-dev libsm-dev libicu-dev libdrm-dev dh-autoreconf \
-          autoconf automake build-essential libass-dev libfreetype6-dev \
+          autoconf automake build-essential libxml2-dev libass-dev libfreetype6-dev \
           libgpac-dev libsdl1.2-dev libtheora-dev libtool libva-dev libvdpau-dev \
           libvorbis-dev libenchant-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev \
           libxcb-xfixes0-dev libxcb-keysyms1-dev libxcb-icccm4-dev libatspi2.0-dev \
           libxcb-render-util0-dev libxcb-util0-dev libxcb-xkb-dev libxrender-dev \
-          libasound-dev libpulse-dev libxcb-sync0-dev libxcb-randr0-dev bison \
-          libx11-xcb-dev libffi-dev libncurses5-dev pkg-config texi2html yasm \
+          libasound-dev libpulse-dev libxcb-sync0-dev libxcb-randr0-dev libegl1-mesa-dev \
+          libx11-xcb-dev libffi-dev libncurses5-dev pkg-config texi2html bison yasm \
           zlib1g-dev xutils-dev python-xcbgen chrpath gperf wget -y --force-yes && \
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update && \
@@ -75,6 +89,10 @@ jobs:
 
           gcc --version > CACHE_KEY.txt
           echo $MANUAL_CACHING >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" == "1" ]; then
+            thisFile=$REPO_NAME/.github/workflows/linux.yml
+            echo `md5sum $thisFile | cut -c -32` >> CACHE_KEY.txt
+          fi
           md5cache=$(md5sum CACHE_KEY.txt | cut -c -32)
           echo ::set-env name=CACHE_KEY::$md5cache
 
@@ -111,16 +129,6 @@ jobs:
 
           cmake --version
 
-      - name: Zlib.
-        run: |
-          cd $LibrariesPath
-
-          git clone $GIT/madler/zlib.git
-          cd zlib
-          ./configure
-          make -j$(nproc)
-          sudo make install
-
       - name: Opus cache.
         id: cache-opus
         uses: actions/cache@v1
@@ -132,9 +140,8 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone $GIT/xiph/opus
+          git clone -b v1.3 --depth=1 $GIT/xiph/opus
           cd opus
-          git checkout v1.3
           ./autogen.sh
           ./configure
           make -j$(nproc)
@@ -152,17 +159,20 @@ jobs:
           ./autogen.sh --enable-static
           make -j$(nproc)
           sudo make install
+          cd ..
+          rm -rf libva
 
       - name: Libvdpau.
         run: |
           cd $LibrariesPath
 
-          git clone git://anongit.freedesktop.org/vdpau/libvdpau
+          git clone -b libvdpau-1.2 --depth=1 https://gitlab.freedesktop.org/vdpau/libvdpau.git
           cd libvdpau
-          git checkout libvdpau-1.2
           ./autogen.sh --enable-static
           make -j$(nproc)
           sudo make install
+          cd ..
+          rm -rf libvdpau
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
@@ -278,6 +288,8 @@ jobs:
 
           make -j$(nproc)
           sudo make install
+          cd ..
+          rm -rf ffmpeg
       - name: FFmpeg install.
         run: |
           cd $LibrariesPath
@@ -304,18 +316,20 @@ jobs:
           ./configure
           make -j$(nproc)
           sudo make install
+          cd ..
+          rm -rf portaudio
 
       - name: OpenAL Soft.
         run: |
           cd $LibrariesPath
 
-          git clone $GIT/kcat/openal-soft.git
-          cd openal-soft
-          git checkout openal-soft-1.19.1
-          cd build
+          git clone -b openal-soft-1.19.1 --depth=1 $GIT/kcat/openal-soft.git
+          cd openal-soft/build
           cmake -D LIBTYPE:STRING=STATIC ..
           make -j$(nproc)
           sudo make install
+          cd -
+          rm -rf openal-soft
 
       - name: OpenSSL cache.
         id: cache-openssl
@@ -328,12 +342,14 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone $GIT/openssl/openssl openssl_$OPENSSL_VER
-          cd openssl_$OPENSSL_VER
-          git checkout OpenSSL_1_1_1-stable
+          git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
+            $GIT/openssl/openssl openssl_${OPENSSL_VER}
+          cd openssl_${OPENSSL_VER}
           ./config --prefix=$LibrariesPath/openssl-cache
           make -j$(nproc)
           sudo make install
+          cd ..
+          rm -rf openssl_${OPENSSL_VER}
       - name: OpenSSL install.
         run: |
           cd $LibrariesPath
@@ -344,12 +360,25 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone $GIT/xkbcommon/libxkbcommon.git
+          git clone -b xkbcommon-0.8.4 --depth=1 $GIT/xkbcommon/libxkbcommon.git
           cd libxkbcommon
-          git checkout xkbcommon-0.8.4
           ./autogen.sh
           make -j$(nproc)
           sudo make install
+          cd ..
+          rm -rf libxkbcommon
+
+      - name: Libwayland.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 1.16 https://gitlab.freedesktop.org/wayland/wayland
+          cd wayland
+          ./autogen.sh --enable-static --disable-documentation
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          rm -rf wayland
 
       - name: Qt 5.12.5 cache.
         id: cache-qt
@@ -362,14 +391,12 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone git://code.qt.io/qt/qt5.git qt_$QT
-          cd qt_$QT
-          perl init-repository --module-subset=qtbase,qtimageformats
-          git checkout v5.12.5
-          git submodule update qtbase
-          git submodule update qtimageformats
+          git clone -b v5.12.5 --depth=1 git://code.qt.io/qt/qt5.git qt_${QT}
+          cd qt_${QT}
+          perl init-repository --module-subset=qtbase,qtwayland,qtimageformats,qtsvg
+          git submodule update qtbase qtwayland qtimageformats qtsvg
           cd qtbase
-          git apply ../../patches/qtbase_$QT.diff
+          git apply ../../patches/qtbase_${QT}.diff
           cd src/plugins/platforminputcontexts
           git clone $GIT/desktop-app/fcitx.git
           git clone $GIT/desktop-app/hime.git
@@ -389,10 +416,9 @@ jobs:
           -qt-xcb \
           -system-freetype \
           -fontconfig \
-          -no-opengl \
-          -no-glib \
           -no-gtk \
           -static \
+          -dbus-runtime \
           -openssl-linked \
           -I "$OPENSSL_PREFIX/include" OPENSSL_LIBS="$OPENSSL_PREFIX/lib/libssl.a $OPENSSL_PREFIX/lib/libcrypto.a -ldl -lpthread" \
           -nomake examples \
@@ -400,6 +426,8 @@ jobs:
 
           make -j$(nproc)
           sudo make install
+          cd ..
+          rm -rf qt_${QT}
       - name: Qt 5.12.5 install.
         run: |
           cd $LibrariesPath
@@ -450,6 +478,8 @@ jobs:
           make -j$(nproc) dump_syms
 
           mv dump_syms $BreakpadCache/
+          cd ..
+          rm -rf gyp breakpad
       - name: Breakpad install.
         run: |
           cd $LibrariesPath
