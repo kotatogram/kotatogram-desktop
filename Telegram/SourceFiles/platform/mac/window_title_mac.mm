@@ -49,8 +49,7 @@ void TitleWidget::paintEvent(QPaintEvent *e) {
 
 	auto active = isActiveWindow();
 	p.fillRect(rect(), active ? st::titleBgActive : st::titleBg);
-
-	p.setFont(_font);
+	p.setFont(style::font(_font.pixelSize(), 0, _font.family()));
 	p.setPen(active ? st::titleFgActive : st::titleFg);
 	p.drawText(rect(), static_cast<MainWindow*>(parentWidget())->titleText(), style::al_center);
 }
@@ -132,7 +131,7 @@ void PreviewWindowTitle(Painter &p, const style::palette &palette, QRect body, i
 	}
 
 	p.setPen(st::titleFgActive[palette]);
-	p.setFont(font);
+	p.setFont(style::font(font.pixelSize(), 0, font.family()));
 
 	p.drawText(titleRect, qsl("Kotatogram"), style::al_center);
 
