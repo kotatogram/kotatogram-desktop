@@ -26,5 +26,5 @@ constexpr auto AppVersion = 1009019;
 constexpr auto AppVersionStr = "1.9.19";
 constexpr auto AppBetaVersion = true;
 constexpr auto AppAlphaVersion = TDESKTOP_ALPHA_VERSION;
-constexpr auto AppKotatoVersion = 1001007;
-constexpr auto AppKotatoVersionStr = "1.1.7";
+constexpr auto AppKotatoVersion = 1001008;
+constexpr auto AppKotatoVersionStr = "1.1.8";

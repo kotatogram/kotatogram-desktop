@@ -35,6 +35,17 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.1.8" date="2020-02-26">
+            <description>
+                <p>TDesktop sources were updated to 1.9.19 beta.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Control notification sound from tray menu.</li>
+                    <li>Option to change recent stickers show limit (up to 200 or disable at all).</li>
+                    <li>Show video playback controls for GIFs.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.1.7" date="2020-02-08">
             <description>
                 <p>TDesktop sources were updated to 1.9.10 beta.</p>
