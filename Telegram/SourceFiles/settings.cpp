@@ -220,7 +220,6 @@ bool gUseSystemFont = false;
 
 bool gUseOriginalMetrics = false;
 
-
 rpl::variable<int> gStickerHeight = 170;
 void SetStickerHeight(int height) {
 	gStickerHeight = height;

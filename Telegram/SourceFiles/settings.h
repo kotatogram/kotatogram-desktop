@@ -188,7 +188,6 @@ DeclareSetting(QString, MonospaceFont);
 DeclareSetting(bool, UseSystemFont);
 DeclareSetting(bool, UseOriginalMetrics);
 
-
 void SetBigEmojiOutline(bool enabled);
 [[nodiscard]] bool BigEmojiOutline();
 [[nodiscard]] rpl::producer<bool> BigEmojiOutlineChanges();

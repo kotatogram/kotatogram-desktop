@@ -49,6 +49,7 @@ void TitleWidget::paintEvent(QPaintEvent *e) {
 
 	auto active = isActiveWindow();
 	p.fillRect(rect(), active ? st::titleBgActive : st::titleBg);
+
 	p.setFont(style::font(_font.pixelSize(), 0, _font.family()));
 	p.setPen(active ? st::titleFgActive : st::titleFg);
 	p.drawText(rect(), static_cast<MainWindow*>(parentWidget())->titleText(), style::al_center);
