@@ -27,9 +27,6 @@ inline bool SkipToast() {
 	return false;
 }
 
-inline void FlashBounce() {
-}
-
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 class NotificationData : public QObject {
 	Q_OBJECT
