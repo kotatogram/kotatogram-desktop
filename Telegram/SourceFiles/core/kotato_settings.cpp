@@ -67,6 +67,70 @@ void WriteDefaultCustomFile() {
 	}
 }
 
+bool ReadOption(QJsonObject obj, QString key, std::function<void(QJsonValue)> callback) {
+	const auto it = obj.constFind(key);
+	if (it == obj.constEnd()) {
+		return false;
+	}
+	callback(*it);
+	return true;
+}
+
+bool ReadObjectOption(QJsonObject obj, QString key, std::function<void(QJsonObject)> callback) {
+	auto readResult = false;
+	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
+		if (v.isObject()) {
+			callback(v.toObject());
+			readResult = true;
+		}
+	});
+	return (readValueResult && readResult);
+}
+
+bool ReadArrayOption(QJsonObject obj, QString key, std::function<void(QJsonArray)> callback) {
+	auto readResult = false;
+	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
+		if (v.isArray()) {
+			callback(v.toArray());
+			readResult = true;
+		}
+	});
+	return (readValueResult && readResult);
+}
+
+bool ReadStringOption(QJsonObject obj, QString key, std::function<void(QString)> callback) {
+	auto readResult = false;
+	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
+		if (v.isString()) {
+			callback(v.toString());
+			readResult = true;
+		}
+	});
+	return (readValueResult && readResult);
+}
+
+bool ReadIntOption(QJsonObject obj, QString key, std::function<void(int)> callback) {
+	auto readResult = false;
+	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
+		if (v.isDouble()) {
+			callback(v.toInt());
+			readResult = true;
+		}
+	});
+	return (readValueResult && readResult);
+}
+
+bool ReadBoolOption(QJsonObject obj, QString key, std::function<void(bool)> callback) {
+	auto readResult = false;
+	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
+		if (v.isBool()) {
+			callback(v.toBool());
+			readResult = true;
+		}
+	});
+	return (readValueResult && readResult);
+}
+
 std::unique_ptr<Manager> Data;
 
 } // namespace
@@ -121,80 +185,64 @@ bool Manager::readCustomFile() {
 		return true;
 	}
 
-	const auto settingsFontsIt = settings.constFind(qsl("fonts"));
+	ReadObjectOption(settings, "fonts", [&](auto o) {
+		ReadStringOption(o, "main", [&](auto v) {
+			cSetMainFont(v);
+		});
 
-	if (settingsFontsIt != settings.constEnd() && (*settingsFontsIt).isObject()) {
-		const auto settingsFonts = (*settingsFontsIt).toObject();
+		ReadStringOption(o, "semibold", [&](auto v) {
+			cSetSemiboldFont(v);
+		});
 
-		const auto settingsFontsMain = settingsFonts.constFind(qsl("main"));
-		if (settingsFontsMain != settingsFonts.constEnd() && (*settingsFontsMain).isString()) {
-			cSetMainFont((*settingsFontsMain).toString());
+		ReadBoolOption(o, "semibold_is_bold", [&](auto v) {
+			cSetSemiboldFontIsBold(v);
+		});
+
+		ReadStringOption(o, "monospaced", [&](auto v) {
+			cSetMonospaceFont(v);
+		});
+
+		ReadBoolOption(o, "use_system_font", [&](auto v) {
+			cSetUseSystemFont(v);
+		});
+
+		ReadBoolOption(o, "use_original_metrics", [&](auto v) {
+			cSetUseOriginalMetrics(v);
+		});
+	});
+
+	ReadIntOption(settings, "sticker_height", [&](auto v) {
+		if (v >= 64 || v <= 256) {
+			SetStickerHeight(v);
 		}
+	});
 
-		const auto settingsFontsSemibold = settingsFonts.constFind(qsl("semibold"));
-		if (settingsFontsSemibold != settingsFonts.constEnd() && (*settingsFontsSemibold).isString()) {
-			cSetSemiboldFont((*settingsFontsSemibold).toString());
-		}
+	auto isAdaptiveBubblesSet = ReadBoolOption(settings, "adaptive_bubbles", [&](auto v) {
+		SetAdaptiveBubbles(v);
+	});
 
-		const auto settingsFontsSemiboldIsBold = settingsFonts.constFind(qsl("semibold_is_bold"));
-		if (settingsFontsSemiboldIsBold != settingsFonts.constEnd() && (*settingsFontsSemiboldIsBold).isBool()) {
-			cSetSemiboldFontIsBold((*settingsFontsSemiboldIsBold).toBool());
-		}
-
-		const auto settingsFontsMonospace = settingsFonts.constFind(qsl("monospaced"));
-		if (settingsFontsMonospace != settingsFonts.constEnd() && (*settingsFontsMonospace).isString()) {
-			cSetMonospaceFont((*settingsFontsMonospace).toString());
-		}
-
-		const auto settingsFontsUseSystemFont = settingsFonts.constFind(qsl("use_system_font"));
-		if (settingsFontsUseSystemFont != settingsFonts.constEnd() && (*settingsFontsUseSystemFont).isBool()) {
-			cSetUseSystemFont((*settingsFontsUseSystemFont).toBool());
-		}
-
-		const auto settingsFontsUseOriginalMetrics = settingsFonts.constFind(qsl("use_original_metrics"));
-		if (settingsFontsUseOriginalMetrics != settingsFonts.constEnd() && (*settingsFontsUseOriginalMetrics).isBool()) {
-			cSetUseOriginalMetrics((*settingsFontsUseOriginalMetrics).toBool());
-		}
+	if (!isAdaptiveBubblesSet) {
+		ReadBoolOption(settings, "adaptive_baloons", [&](auto v) {
+			SetAdaptiveBubbles(v);
+		});
 	}
 
-	const auto settingsStickerHeightIt = settings.constFind(qsl("sticker_height"));
-	if (settingsStickerHeightIt != settings.constEnd()) {
-		const auto settingsStickerHeight = (*settingsStickerHeightIt).toInt();
-		if (settingsStickerHeight >= 64 || settingsStickerHeight <= 256) {
-			SetStickerHeight(settingsStickerHeight);
-		}
-	}
+	ReadBoolOption(settings, "big_emoji_outline", [&](auto v) {
+		SetBigEmojiOutline(v);
+	});
 
-	const auto settingsAdaptiveBubblesIt = settings.constFind(qsl("adaptive_bubbles"));
-	if (settingsAdaptiveBubblesIt != settings.constEnd() && (*settingsAdaptiveBubblesIt).isBool()) {
-		SetAdaptiveBubbles((*settingsAdaptiveBubblesIt).toBool());
-	} else {
-		const auto settingsAdaptiveBaloonsIt = settings.constFind(qsl("adaptive_baloons"));
-		if (settingsAdaptiveBaloonsIt != settings.constEnd() && (*settingsAdaptiveBaloonsIt).isBool()) {
-			SetAdaptiveBubbles((*settingsAdaptiveBaloonsIt).toBool());
-		}
-	}
+	ReadBoolOption(settings, "always_show_scheduled", [&](auto v) {
+		cSetAlwaysShowScheduled(v);
+	});
 
-	const auto settingsBigEmojiOutlineIt = settings.constFind(qsl("big_emoji_outline"));
-	if (settingsBigEmojiOutlineIt != settings.constEnd() && (*settingsBigEmojiOutlineIt).isBool()) {
-		SetBigEmojiOutline((*settingsBigEmojiOutlineIt).toBool());
-	}
+	ReadBoolOption(settings, "show_chat_id", [&](auto v) {
+		cSetShowChatId(v);
+	});
 
-	const auto settingsAlwaysShowScheduledIt = settings.constFind(qsl("always_show_scheduled"));
-	if (settingsAlwaysShowScheduledIt != settings.constEnd() && (*settingsAlwaysShowScheduledIt).isBool()) {
-		cSetAlwaysShowScheduled((*settingsAlwaysShowScheduledIt).toBool());
-	}
+	ReadOption(settings, "net_speed_boost", [&](auto v) {
+		if (v.isString()) {
 
-	const auto settingsShowChatIdIt = settings.constFind(qsl("show_chat_id"));
-	if (settingsShowChatIdIt != settings.constEnd() && (*settingsShowChatIdIt).isBool()) {
-		cSetShowChatId((*settingsShowChatIdIt).toBool());
-	}
-
-	const auto settingsNetSpeedIt = settings.constFind(qsl("net_speed_boost"));
-	if (settingsNetSpeedIt != settings.constEnd()) {
-		if ((*settingsNetSpeedIt).isString()) {
-
-			const auto option = (*settingsNetSpeedIt).toString();
+			const auto option = v.toString();
 			if (option == "high") {
 				SetNetworkBoost(3);
 			} else if (option == "medium") {
@@ -205,49 +253,40 @@ bool Manager::readCustomFile() {
 				SetNetworkBoost(0);
 			}
 
-		} else if ((*settingsNetSpeedIt).isNull()) {
+		} else if (v.isNull()) {
 			SetNetworkBoost(0);
-		} else if ((*settingsNetSpeedIt).isDouble()) {
-			SetNetworkBoost((*settingsNetSpeedIt).toInt());
+		} else if (v.isDouble()) {
+			SetNetworkBoost(v.toInt());
 		}
-	}
+	});
 
-	const auto settingsShowDrawerPhoneIt = settings.constFind(qsl("show_phone_in_drawer"));
-	if (settingsShowDrawerPhoneIt != settings.constEnd() && (*settingsShowDrawerPhoneIt).isBool()) {
-		cSetShowPhoneInDrawer((*settingsShowDrawerPhoneIt).toBool());
-	}
+	ReadBoolOption(settings, "show_phone_in_drawer", [&](auto v) {
+		cSetShowPhoneInDrawer(v);
+	});
 
-	const auto settingsScalesIt = settings.constFind(qsl("scales"));
-	if (settingsScalesIt != settings.constEnd() && (*settingsScalesIt).isArray()) {
-		const auto settingsScalesArray = (*settingsScalesIt).toArray();
+	ReadArrayOption(settings, "scales", [&](auto v) {
 		ClearCustomScales();
-		for (auto i = settingsScalesArray.constBegin(), e = settingsScalesArray.constEnd(); i != e; ++i) {
+		for (auto i = v.constBegin(), e = v.constEnd(); i != e; ++i) {
 			if (!(*i).isDouble()) {
 				continue;
 			}
 
 			AddCustomScale((*i).toInt());
 		}
+	});
 
-	}
-
-	const auto settingsChatListLinesIt = settings.constFind(qsl("chat_list_lines"));
-	if (settingsChatListLinesIt != settings.constEnd()) {
-		const auto settingsChatListLines = (*settingsChatListLinesIt).toInt();
-		if (settingsChatListLines >= 1 || settingsChatListLines <= 2) {
-			SetDialogListLines(settingsChatListLines);
+	ReadIntOption(settings, "chat_list_lines", [&](auto v) {
+		if (v >= 1 || v <= 2) {
+			SetDialogListLines(v);
 		}
-	}
+	});
 
-	const auto settingsDisableUpEditIt = settings.constFind(qsl("disable_up_edit"));
-	if (settingsDisableUpEditIt != settings.constEnd() && (*settingsDisableUpEditIt).isBool()) {
-		cSetDisableUpEdit((*settingsDisableUpEditIt).toBool());
-	}
+	ReadBoolOption(settings, "disable_up_edit", [&](auto v) {
+		cSetDisableUpEdit(v);
+	});
 
-	const auto settingsReplacesIt = settings.constFind(qsl("replaces"));
-	if (settingsReplacesIt != settings.constEnd() && (*settingsReplacesIt).isArray()) {
-		const auto settingsReplacesArray = (*settingsReplacesIt).toArray();
-		for (auto i = settingsReplacesArray.constBegin(), e = settingsReplacesArray.constEnd(); i != e; ++i) {
+	ReadArrayOption(settings, "scales", [&](auto v) {
+		for (auto i = v.constBegin(), e = v.constEnd(); i != e; ++i) {
 			if (!(*i).isArray()) {
 				continue;
 			}
@@ -263,26 +302,21 @@ bool Manager::readCustomFile() {
 			AddCustomReplace(from, to);
 			Ui::AddCustomReplacement(from, to);
 		}
+	});
 
-	}
+	ReadBoolOption(settings, "confirm_before_calls", [&](auto v) {
+		cSetConfirmBeforeCall(v);
+	});
 
-	const auto settingsCallConfirmIt = settings.constFind(qsl("confirm_before_calls"));
-	if (settingsCallConfirmIt != settings.constEnd() && (*settingsCallConfirmIt).isBool()) {
-		cSetConfirmBeforeCall((*settingsCallConfirmIt).toBool());
-	}
+	ReadBoolOption(settings, "no_taskbar_flash", [&](auto v) {
+		cSetNoTaskbarFlashing(v);
+	});
 
-	const auto settingsNoTaskbarFlashing = settings.constFind(qsl("no_taskbar_flash"));
-	if (settingsNoTaskbarFlashing != settings.constEnd() && (*settingsNoTaskbarFlashing).isBool()) {
-		cSetNoTaskbarFlashing((*settingsNoTaskbarFlashing).toBool());
-	}
-
-	const auto settingsRecentStickersLimitIt = settings.constFind(qsl("recent_stickers_limit"));
-	if (settingsRecentStickersLimitIt != settings.constEnd()) {
-		const auto settingsRecentStickersLimit = (*settingsRecentStickersLimitIt).toInt();
-		if (settingsRecentStickersLimit >= 0 || settingsRecentStickersLimit <= 200) {
-			SetRecentStickersLimit(settingsRecentStickersLimit);
+	ReadIntOption(settings, "recent_stickers_limit", [&](auto v) {
+		if (v >= 0 || v <= 200) {
+			SetRecentStickersLimit(v);
 		}
-	}
+	});
 	return true;
 }
 
