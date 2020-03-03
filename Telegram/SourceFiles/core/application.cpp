@@ -164,22 +164,22 @@ Application::~Application() {
 void Application::run() {
 	KotatoSettings::Start();
 	if (!cMainFont().isEmpty()) {
-		style::internal::SetMainFont(cMainFont());
+		style::internal::CustomMainFont = cMainFont();
 	}
 	if (!cSemiboldFont().isEmpty()) {
-		style::internal::SetSemiboldFont(cSemiboldFont());
+		style::internal::CustomSemiboldFont = cSemiboldFont();
 	}
 	if (cSemiboldFontIsBold()) {
-		style::internal::SetSemiboldIsBold(cSemiboldFontIsBold());
+		style::internal::CustomSemiboldIsBold = cSemiboldFontIsBold();
 	}
 	if (!cMonospaceFont().isEmpty()) {
-		style::internal::SetMonospaceFont(cMonospaceFont());
+		style::internal::CustomMonospaceFont = cMonospaceFont();
 	}
 	if (cUseSystemFont()) {
-		style::internal::SetUseSystemFont(cUseSystemFont());
+		style::internal::UseSystemFont = cUseSystemFont();
 	}
 	if (cUseOriginalMetrics()) {
-		style::internal::SetUseOriginalMetrics(cUseOriginalMetrics());
+		style::internal::UseOriginalMetrics = cUseOriginalMetrics();
 	}
 	style::internal::StartFonts();
 
