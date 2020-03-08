@@ -682,11 +682,32 @@ void UserpicButton::paintEvent(QPaintEvent *e) {
 			p.setBrush(_userpicHasImage
 				? st::msgDateImgBg
 				: _st.changeButton.textBgOver);
-			p.drawEllipse(
-				photoLeft,
-				photoTop,
-				_st.photoSize,
-				_st.photoSize);
+			switch (cUserpicCornersType()) {
+				case 0:
+					p.drawRoundedRect(
+						QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+						0, 0);
+					break;
+
+				case 1:
+					p.drawRoundedRect(
+						QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+						st::buttonRadius, st::buttonRadius);
+					break;
+
+				case 2:
+					p.drawRoundedRect(
+						QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+						st::dateRadius, st::dateRadius);
+					break;
+
+				default:
+					p.drawEllipse(
+						photoLeft,
+						photoTop,
+						_st.photoSize,
+						_st.photoSize);
+			}
 		}
 		paintRipple(
 			p,
@@ -728,11 +749,32 @@ void UserpicButton::paintEvent(QPaintEvent *e) {
 				PainterHighQualityEnabler hq(p);
 				p.setPen(Qt::NoPen);
 				p.setBrush(_st.uploadBg);
-				p.drawEllipse(
-					photoLeft,
-					photoTop,
-					_st.photoSize,
-					_st.photoSize);
+				switch (cUserpicCornersType()) {
+					case 0:
+						p.drawRoundedRect(
+							QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+							0, 0);
+						break;
+
+					case 1:
+						p.drawRoundedRect(
+							QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+							st::buttonRadius, st::buttonRadius);
+						break;
+
+					case 2:
+						p.drawRoundedRect(
+							QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+							st::dateRadius, st::dateRadius);
+						break;
+
+					default:
+						p.drawEllipse(
+							photoLeft,
+							photoTop,
+							_st.photoSize,
+							_st.photoSize);
+				}
 			}
 			auto iconLeft = (_st.uploadIconPosition.x() < 0)
 				? (_st.photoSize - _st.uploadIcon.width()) / 2

@@ -794,7 +794,28 @@ void Poll::paintRecentVoters(
 		p.setPen(pen);
 		p.setBrush(Qt::NoBrush);
 		PainterHighQualityEnabler hq(p);
-		p.drawEllipse(x, y, size, size);
+		switch (cUserpicCornersType()) {
+			case 0:
+				p.drawRoundedRect(
+					QRect{ x, y, size, size },
+					0, 0);
+				break;
+
+			case 1:
+				p.drawRoundedRect(
+					QRect{ x, y, size, size },
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case 2:
+				p.drawRoundedRect(
+					QRect{ x, y, size, size },
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(x, y, size, size);
+		}
 		x -= st::historyPollRecentVoterSkip;
 	}
 }

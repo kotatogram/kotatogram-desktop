@@ -248,7 +248,29 @@ void Folder::paintUserpic(
 	p.setBrush(overrideBg ? *overrideBg : st::historyPeerArchiveUserpicBg);
 	{
 		PainterHighQualityEnabler hq(p);
-		p.drawEllipse(x, y, size, size);
+		switch (cUserpicCornersType()) {
+			case 0:
+				p.drawRoundedRect(
+					QRect{ x, y, size, size },
+					0, 0);
+				break;
+
+			case 1:
+				p.drawRoundedRect(
+					QRect{ x, y, size, size },
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case 2:
+				p.drawRoundedRect(
+					QRect{ x, y, size, size },
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(x, y, size, size);
+		}
+		
 	}
 	if (size == st::dialogsPhotoSize) {
 		const auto rect = QRect{ x, y, size, size };

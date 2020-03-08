@@ -163,9 +163,18 @@ void BasicRow::PaintOnlineFrame(
 	q.setBrush(data->active
 		? st::dialogsOnlineBadgeFgActive
 		: st::dialogsOnlineBadgeFg);
+	auto onlineTop = edge - size;
+	auto onlineLeft = edge - size;
+	if (cUserpicCornersType() == 3) {
+		onlineTop = onlineTop - skip.x();
+		onlineLeft = onlineLeft - skip.y();
+	} else {
+		onlineTop = onlineTop - size;
+		onlineLeft = onlineLeft - size;
+	}
 	q.drawEllipse(QRectF(
-		edge - skip.x() - size,
-		edge - skip.y() - size,
+		onlineTop,
+		onlineLeft,
 		size,
 		size
 	).marginsRemoved({ shrink, shrink, shrink, shrink }));

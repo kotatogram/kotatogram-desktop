@@ -142,8 +142,29 @@ void EmptyUserpic::paint(
 		int y,
 		int outerWidth,
 		int size) const {
+	switch (cUserpicCornersType()) {
+		case 0:
+			paintSquare(p, x, y, outerWidth, size);
+			break;
+
+		case 1:
+			paintRounded(p, x, y, outerWidth, size);
+			break;
+
+		case 2:
+			paintRoundedLarge(p, x, y, outerWidth, size);
+			break;
+
+		default:
+			paint(p, x, y, outerWidth, size, [&p, x, y, size] {
+				p.drawEllipse(x, y, size, size);
+			});
+	}
+}
+
+void EmptyUserpic::paintRoundedLarge(Painter &p, int x, int y, int outerWidth, int size) const {
 	paint(p, x, y, outerWidth, size, [&p, x, y, size] {
-		p.drawEllipse(x, y, size, size);
+		p.drawRoundedRect(x, y, size, size, st::dateRadius, st::dateRadius);
 	});
 }
 
@@ -165,9 +186,35 @@ void EmptyUserpic::PaintSavedMessages(
 		int y,
 		int outerWidth,
 		int size) {
+	switch (cUserpicCornersType()) {
+		case 0:
+			PaintSavedMessagesSquared(p, x, y, outerWidth, size);
+			break;
+
+		case 1:
+			PaintSavedMessagesRounded(p, x, y, outerWidth, size);
+			break;
+
+		case 2:
+			PaintSavedMessagesRoundedLarge(p, x, y, outerWidth, size);
+			break;
+
+		default:
+			const auto &bg = st::historyPeerSavedMessagesBg;
+			const auto &fg = st::historyPeerUserpicFg;
+			PaintSavedMessages(p, x, y, outerWidth, size, bg, fg);
+	}
+}
+
+void EmptyUserpic::PaintSavedMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) {
 	const auto &bg = st::historyPeerSavedMessagesBg;
 	const auto &fg = st::historyPeerUserpicFg;
-	PaintSavedMessages(p, x, y, outerWidth, size, bg, fg);
+	PaintSavedMessagesRoundedLarge(p, x, y, outerWidth, size, bg, fg);
 }
 
 void EmptyUserpic::PaintSavedMessagesRounded(
@@ -181,7 +228,51 @@ void EmptyUserpic::PaintSavedMessagesRounded(
 	PaintSavedMessagesRounded(p, x, y, outerWidth, size, bg, fg);
 }
 
+void EmptyUserpic::PaintSavedMessagesSquared(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) {
+	const auto &bg = st::historyPeerSavedMessagesBg;
+	const auto &fg = st::historyPeerUserpicFg;
+	PaintSavedMessagesSquared(p, x, y, outerWidth, size, bg, fg);
+}
+
 void EmptyUserpic::PaintSavedMessages(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg) {
+	switch (cUserpicCornersType()) {
+		case 0:
+			PaintSavedMessagesSquared(p, x, y, outerWidth, size, bg, fg);
+			break;
+
+		case 1:
+			PaintSavedMessagesRounded(p, x, y, outerWidth, size, bg, fg);
+			break;
+
+		case 2:
+			PaintSavedMessagesRoundedLarge(p, x, y, outerWidth, size, bg, fg);
+			break;
+
+		default:
+			x = rtl() ? (outerWidth - x - size) : x;
+
+			PainterHighQualityEnabler hq(p);
+			p.setBrush(bg);
+			p.setPen(Qt::NoPen);
+			p.drawEllipse(x, y, size, size);
+
+			PaintSavedMessagesInner(p, x, y, size, bg, fg);
+	}
+}
+
+void EmptyUserpic::PaintSavedMessagesRoundedLarge(
 		Painter &p,
 		int x,
 		int y,
@@ -194,7 +285,7 @@ void EmptyUserpic::PaintSavedMessages(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	p.drawRoundedRect(x, y, size, size, st::dateRadius, st::dateRadius);
 
 	PaintSavedMessagesInner(p, x, y, size, bg, fg);
 }
@@ -213,6 +304,24 @@ void EmptyUserpic::PaintSavedMessagesRounded(
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
 	p.drawRoundedRect(x, y, size, size, st::buttonRadius, st::buttonRadius);
+
+	PaintSavedMessagesInner(p, x, y, size, bg, fg);
+}
+
+void EmptyUserpic::PaintSavedMessagesSquared(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg) {
+	x = rtl() ? (outerWidth - x - size) : x;
+
+	PainterHighQualityEnabler hq(p);
+	p.setBrush(bg);
+	p.setPen(Qt::NoPen);
+	p.drawRoundedRect(x, y, size, size, 0, 0);
 
 	PaintSavedMessagesInner(p, x, y, size, bg, fg);
 }

@@ -317,6 +317,12 @@ bool Manager::readCustomFile() {
 			SetRecentStickersLimit(v);
 		}
 	});
+
+	ReadIntOption(settings, "userpic_corner_type", [&](auto v) {
+		if (v >= 0 || v <= 3) {
+			cSetUserpicCornersType(v);
+		}
+	});
 	return true;
 }
 
@@ -358,6 +364,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
 	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
+	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -420,6 +427,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
 	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
+	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();

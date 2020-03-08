@@ -546,7 +546,28 @@ void PeerListRow::paintDisabledCheckUserpic(
 
 		p.setPen(userpicBorderPen);
 		p.setBrush(Qt::NoBrush);
-		p.drawEllipse(userpicEllipse);
+		switch (cUserpicCornersType()) {
+			case 0:
+				p.drawRoundedRect(
+					userpicEllipse,
+					0, 0);
+				break;
+
+			case 1:
+				p.drawRoundedRect(
+					userpicEllipse,
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case 2:
+				p.drawRoundedRect(
+					userpicEllipse,
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(userpicEllipse);
+		}
 
 		p.setPen(iconBorderPen);
 		p.setBrush(st::contactsPhotoDisabledCheckFg);

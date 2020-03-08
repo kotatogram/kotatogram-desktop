@@ -72,6 +72,20 @@ void MultiSelect::Item::paintOnce(Painter &p, int x, int y, int outerWidth) {
 	}
 
 	auto radius = _st.height / 2;
+	switch (cUserpicCornersType()) {
+		case 0:
+			radius = 0;
+			break;
+
+		case 1:
+			radius = st::buttonRadius;
+			break;
+
+		case 2:
+			radius = st::dateRadius;
+			break;
+	}
+
 	auto inner = style::rtlrect(x + radius, y, _width - radius, _st.height, outerWidth);
 
 	auto clipEnabled = p.hasClipping();
@@ -112,7 +126,28 @@ void MultiSelect::Item::paintDeleteButton(Painter &p, int x, int y, int outerWid
 	p.setBrush(_color);
 	{
 		PainterHighQualityEnabler hq(p);
-		p.drawEllipse(style::rtlrect(x, y, _st.height, _st.height, outerWidth));
+		switch (cUserpicCornersType()) {
+			case 0:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.height, _st.height, outerWidth),
+					0, 0);
+				break;
+
+			case 1:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.height, _st.height, outerWidth),
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case 2:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.height, _st.height, outerWidth),
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(style::rtlrect(x, y, _st.height, _st.height, outerWidth));
+		}
 	}
 
 	CrossAnimation::paint(p, _st.deleteCross, _st.deleteFg, x, y, outerWidth, overOpacity);

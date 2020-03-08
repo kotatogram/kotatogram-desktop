@@ -19,6 +19,12 @@ public:
 		int y,
 		int outerWidth,
 		int size) const;
+	void paintRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) const;
 	void paintRounded(
 		Painter &p,
 		int x,
@@ -40,7 +46,19 @@ public:
 		int y,
 		int outerWidth,
 		int size);
+	static void PaintSavedMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size);
 	static void PaintSavedMessagesRounded(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size);
+	static void PaintSavedMessagesSquared(
 		Painter &p,
 		int x,
 		int y,
@@ -54,7 +72,23 @@ public:
 		int size,
 		const style::color &bg,
 		const style::color &fg);
+	static void PaintSavedMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg);
 	static void PaintSavedMessagesRounded(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg);
+	static void PaintSavedMessagesSquared(
 		Painter &p,
 		int x,
 		int y,

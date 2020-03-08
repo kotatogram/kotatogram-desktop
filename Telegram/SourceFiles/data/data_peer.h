@@ -252,6 +252,16 @@ public:
 			int size) const {
 		paintUserpic(p, rtl() ? (w - x - size) : x, y, size);
 	}
+	void paintUserpicCircled(
+		Painter &p,
+		int x,
+		int y,
+		int size) const;
+	void paintUserpicRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int size) const;
 	void paintUserpicRounded(
 		Painter &p,
 		int x,

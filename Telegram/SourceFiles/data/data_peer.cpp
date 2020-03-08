@@ -230,10 +230,37 @@ ImagePtr PeerData::currentUserpic() const {
 }
 
 void PeerData::paintUserpic(Painter &p, int x, int y, int size) const {
+	switch (cUserpicCornersType()) {
+		case 0:
+			paintUserpicSquare(p, x, y, size);
+			break;
+
+		case 1:
+			paintUserpicRounded(p, x, y, size);
+			break;
+
+		case 2:
+			paintUserpicRoundedLarge(p, x, y, size);
+			break;
+
+		default:
+			paintUserpicCircled(p, x, y, size);
+	}
+}
+
+void PeerData::paintUserpicCircled(Painter &p, int x, int y, int size) const {
 	if (auto userpic = currentUserpic()) {
 		p.drawPixmap(x, y, userpic->pixCircled(userpicOrigin(), size, size));
 	} else {
 		_userpicEmpty->paint(p, x, y, x + size + x, size);
+	}
+}
+
+void PeerData::paintUserpicRoundedLarge(Painter &p, int x, int y, int size) const {
+	if (auto userpic = currentUserpic()) {
+		p.drawPixmap(x, y, userpic->pixRounded(userpicOrigin(), size, size, ImageRoundRadius::Large));
+	} else {
+		_userpicEmpty->paintRoundedLarge(p, x, y, x + size + x, size);
 	}
 }
 

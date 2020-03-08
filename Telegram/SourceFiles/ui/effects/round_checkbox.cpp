@@ -428,7 +428,28 @@ void RoundImageCheckbox::paint(Painter &p, int x, int y, int outerWidth) {
 		auto pen = _st.selectFg->p;
 		pen.setWidth(_st.selectWidth);
 		p.setPen(pen);
-		p.drawEllipse(style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth));
+		switch (cUserpicCornersType()) {
+			case 0:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth),
+					0, 0);
+				break;
+
+			case 1:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth),
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case 2:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth),
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth));
+		}
 		p.setOpacity(1.);
 	}
 

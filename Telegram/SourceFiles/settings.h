@@ -245,3 +245,5 @@ DeclareSetting(bool, NoTaskbarFlashing);
 void SetRecentStickersLimit(int limit);
 [[nodiscard]] int RecentStickersLimit();
 [[nodiscard]] rpl::producer<int> RecentStickersLimitChanges();
+
+DeclareSetting(int, UserpicCornersType);

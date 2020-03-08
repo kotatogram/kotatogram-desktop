@@ -315,3 +315,5 @@ int RecentStickersLimit() {
 rpl::producer<int> RecentStickersLimitChanges() {
 	return gRecentStickersLimit.changes();
 }
+
+int gUserpicCornersType = 3;

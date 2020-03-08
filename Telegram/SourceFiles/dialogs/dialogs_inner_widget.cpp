@@ -2892,9 +2892,18 @@ void InnerWidget::userOnlineUpdated(const Notify::PeerUpdate &update) {
 	const auto stroke = st::dialogsOnlineBadgeStroke;
 	const auto skip = st::dialogsOnlineBadgeSkip;
 	const auto edge = st::dialogsPadding.x() + DialogsPhotoSize();
+	auto onlineTop = edge - size;
+	auto onlineLeft = edge - size;
+	if (cUserpicCornersType() == 3) {
+		onlineTop = onlineTop - skip.x();
+		onlineLeft = onlineLeft - skip.y();
+	} else {
+		onlineTop = onlineTop - size;
+		onlineLeft = onlineLeft - size;
+	}
 	const auto updateRect = QRect(
-		edge - skip.x() - size,
-		edge - skip.y() - size,
+		onlineTop,
+		onlineLeft,
 		size,
 		size
 	).marginsAdded(

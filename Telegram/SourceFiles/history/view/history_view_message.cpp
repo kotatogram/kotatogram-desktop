@@ -137,15 +137,31 @@ void PaintBubble(Painter &p, QRect rect, int outerWidth, bool selected, bool out
 	if (tailSide == RectPart::Right) {
 		parts |= RectPart::BottomLeft;
 		p.fillRect(rect.x() + rect.width() - st::historyMessageRadius, rect.y() + rect.height() - st::historyMessageRadius, st::historyMessageRadius, st::historyMessageRadius, bg);
-		auto &tail = selected ? st::historyBubbleTailOutRightSelected : st::historyBubbleTailOutRight;
-		tail.paint(p, rect.x() + rect.width(), rect.y() + rect.height() - tail.height(), outerWidth);
-		p.fillRect(rect.x() + rect.width() - st::historyMessageRadius, rect.y() + rect.height(), st::historyMessageRadius + tail.width(), st::msgShadow, sh);
+		if (cUserpicCornersType() != 0) {
+			auto &tail = (cUserpicCornersType() == 1)
+				? (selected ? st::historyBubbleTail1OutRightSelected : st::historyBubbleTail1OutRight)
+				: (cUserpicCornersType() == 2)
+				? (selected ? st::historyBubbleTail2OutRightSelected : st::historyBubbleTail2OutRight)
+				: (selected ? st::historyBubbleTailOutRightSelected : st::historyBubbleTailOutRight);
+			tail.paint(p, rect.x() + rect.width(), rect.y() + rect.height() - tail.height(), outerWidth);
+			p.fillRect(rect.x() + rect.width() - st::historyMessageRadius, rect.y() + rect.height(), st::historyMessageRadius + tail.width(), st::msgShadow, sh);
+		} else {
+			p.fillRect(rect.x() + rect.width() - st::historyMessageRadius, rect.y() + rect.height(), st::historyMessageRadius, st::msgShadow, sh);
+		}
 	} else if (tailSide == RectPart::Left) {
 		parts |= RectPart::BottomRight;
 		p.fillRect(rect.x(), rect.y() + rect.height() - st::historyMessageRadius, st::historyMessageRadius, st::historyMessageRadius, bg);
-		auto &tail = selected ? (outbg ? st::historyBubbleTailOutLeftSelected : st::historyBubbleTailInLeftSelected) : (outbg ? st::historyBubbleTailOutLeft : st::historyBubbleTailInLeft);
-		tail.paint(p, rect.x() - tail.width(), rect.y() + rect.height() - tail.height(), outerWidth);
-		p.fillRect(rect.x() - tail.width(), rect.y() + rect.height(), st::historyMessageRadius + tail.width(), st::msgShadow, sh);
+		if (cUserpicCornersType() != 0) {
+			auto &tail = (cUserpicCornersType() == 1)
+				? (selected ? (outbg ? st::historyBubbleTail1OutLeftSelected : st::historyBubbleTail1InLeftSelected) : (outbg ? st::historyBubbleTail1OutLeft : st::historyBubbleTail1InLeft))
+				: (cUserpicCornersType() == 2)
+				? (selected ? (outbg ? st::historyBubbleTail2OutLeftSelected : st::historyBubbleTail2InLeftSelected) : (outbg ? st::historyBubbleTail2OutLeft : st::historyBubbleTail2InLeft))
+				: (selected ? (outbg ? st::historyBubbleTailOutLeftSelected : st::historyBubbleTailInLeftSelected) : (outbg ? st::historyBubbleTailOutLeft : st::historyBubbleTailInLeft));
+			tail.paint(p, rect.x() - tail.width(), rect.y() + rect.height() - tail.height(), outerWidth);
+			p.fillRect(rect.x() - tail.width(), rect.y() + rect.height(), st::historyMessageRadius + tail.width(), st::msgShadow, sh);
+		} else {
+			p.fillRect(rect.x(), rect.y() + rect.height(), st::historyMessageRadius, st::msgShadow, sh);
+		}
 	} else {
 		parts |= RectPart::FullBottom;
 	}
