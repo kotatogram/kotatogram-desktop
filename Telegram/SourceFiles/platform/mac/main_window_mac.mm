@@ -563,9 +563,25 @@ void MainWindow::psTrayMenuUpdated() {
 void MainWindow::psSetupTrayIcon() {
 	if (!trayIcon) {
 		trayIcon = new QSystemTrayIcon(this);
+		QIcon icon;
+		QString iconFilename(cWorkingDir() + "tdata/icon.png");
+		QString iconFilenameSelected(cWorkingDir() + "tdata/icon_selected.png");
 
-		QIcon icon(QPixmap::fromImage(psTrayIcon(), Qt::ColorOnly));
-		icon.addPixmap(QPixmap::fromImage(psTrayIcon(true), Qt::ColorOnly), QIcon::Selected);
+		auto iconImage = App::readImage(iconFilename, nullptr, false);
+
+		if (iconImage.isNull()) {
+			iconImage = psTrayIcon();
+		}
+
+		icon = QIcon(QPixmap::fromImage(iconImage, Qt::ColorOnly));
+
+		auto iconImageSelected = App::readImage(iconFilenameSelected, nullptr, false);
+
+		if (iconImageSelected.isNull()) {
+			iconImageSelected = psTrayIcon(true);
+		}
+
+		icon.addPixmap(QPixmap::fromImage(iconImageSelected, Qt::ColorOnly), QIcon::Selected);
 
 		trayIcon->setIcon(icon);
 		attachToTrayIcon(trayIcon);

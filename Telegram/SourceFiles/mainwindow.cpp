@@ -78,15 +78,28 @@ void FeedLangTestingKey(int key) {
 
 MainWindow::MainWindow(not_null<Window::Controller*> controller)
 : Platform::MainWindow(controller) {
-	auto logo = Core::App().logo();
-	icon16 = logo.scaledToWidth(16, Qt::SmoothTransformation);
-	icon32 = logo.scaledToWidth(32, Qt::SmoothTransformation);
-	icon64 = logo.scaledToWidth(64, Qt::SmoothTransformation);
+	QString iconFilename(cWorkingDir() + "tdata/icon.png");
+	auto iconImage = App::readImage(iconFilename, nullptr, false);
 
-	auto logoNoMargin = Core::App().logoNoMargin();
-	iconbig16 = logoNoMargin.scaledToWidth(16, Qt::SmoothTransformation);
-	iconbig32 = logoNoMargin.scaledToWidth(32, Qt::SmoothTransformation);
-	iconbig64 = logoNoMargin.scaledToWidth(64, Qt::SmoothTransformation);
+	if (iconImage.isNull()) {
+		auto logo = Core::App().logo();
+		icon16 = logo.scaledToWidth(16, Qt::SmoothTransformation);
+		icon32 = logo.scaledToWidth(32, Qt::SmoothTransformation);
+		icon64 = logo.scaledToWidth(64, Qt::SmoothTransformation);
+
+		auto logoNoMargin = Core::App().logoNoMargin();
+		iconbig16 = logoNoMargin.scaledToWidth(16, Qt::SmoothTransformation);
+		iconbig32 = logoNoMargin.scaledToWidth(32, Qt::SmoothTransformation);
+		iconbig64 = logoNoMargin.scaledToWidth(64, Qt::SmoothTransformation);
+	} else {
+		icon16 = iconImage.scaledToWidth(16, Qt::SmoothTransformation);
+		icon32 = iconImage.scaledToWidth(32, Qt::SmoothTransformation);
+		icon64 = iconImage.scaledToWidth(64, Qt::SmoothTransformation);
+
+		iconbig16 = iconImage.scaledToWidth(16, Qt::SmoothTransformation);
+		iconbig32 = iconImage.scaledToWidth(32, Qt::SmoothTransformation);
+		iconbig64 = iconImage.scaledToWidth(64, Qt::SmoothTransformation);
+	}
 
 	resize(st::windowDefaultWidth, st::windowDefaultHeight);
 
