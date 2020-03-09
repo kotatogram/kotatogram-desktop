@@ -317,3 +317,4 @@ rpl::producer<int> RecentStickersLimitChanges() {
 }
 
 int gUserpicCornersType = 3;
+bool gShowTopBarUserpic = false;

@@ -569,13 +569,20 @@ void TopBarWidget::updateControlsGeometry() {
 	_clear->moveToRight(st::topBarActionSkip, selectedButtonsTop);
 
 	if (_back->isHidden()) {
-		_leftTaken = st::topBarArrowPadding.right();
+		if (cShowTopBarUserpic()) {
+			_leftTaken = st::topBarActionSkip;
+		} else {
+			_leftTaken = st::topBarArrowPadding.right();
+		}
 	} else {
 		const auto smallDialogsColumn = _activeChat.folder()
 			&& (width() < _back->width() + _search->width());
 		_leftTaken = smallDialogsColumn ? (width() - _back->width()) / 2 : 0;
 		_back->moveToLeft(_leftTaken, otherButtonsTop);
 		_leftTaken += _back->width();
+	}
+
+	if (!_back->isHidden() || cShowTopBarUserpic()) {
 		if (_info && !_info->isHidden()) {
 			_info->moveToLeft(_leftTaken, otherButtonsTop);
 			_leftTaken += _info->width();
@@ -630,7 +637,7 @@ void TopBarWidget::updateControlsVisibility() {
 		|| _activeChat.folder();
 	_back->setVisible(backVisible);
 	if (_info) {
-		_info->setVisible(Adaptive::OneColumn());
+		_info->setVisible(cShowTopBarUserpic() || Adaptive::OneColumn());
 	}
 	if (_unreadBadge) {
 		_unreadBadge->show();

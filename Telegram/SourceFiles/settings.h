@@ -247,3 +247,4 @@ void SetRecentStickersLimit(int limit);
 [[nodiscard]] rpl::producer<int> RecentStickersLimitChanges();
 
 DeclareSetting(int, UserpicCornersType);
+DeclareSetting(bool, ShowTopBarUserpic);

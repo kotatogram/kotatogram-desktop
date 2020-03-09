@@ -323,6 +323,10 @@ bool Manager::readCustomFile() {
 			cSetUserpicCornersType(v);
 		}
 	});
+
+	ReadBoolOption(settings, "always_show_top_userpic", [&](auto v) {
+		cSetShowTopBarUserpic(v);
+	});
 	return true;
 }
 
@@ -365,6 +369,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
+	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -428,6 +433,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
+	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();
