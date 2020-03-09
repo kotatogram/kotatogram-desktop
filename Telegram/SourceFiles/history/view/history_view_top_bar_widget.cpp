@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/dropdown_menu.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/special_buttons.h"
+#include "ui/text_options.h"
 #include "ui/unread_badge.h"
 #include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
@@ -327,9 +328,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 
 	const auto history = _activeChat.history();
 	const auto folder = _activeChat.folder();
-	if (folder
-		|| history->peer->isSelf()
-		|| (_section == Section::Scheduled)) {
+	if (folder || history->peer->isSelf()) {
 		// #TODO feed name emoji.
 		auto text = (_section == Section::Scheduled)
 			? ((history && history->peer->isSelf())
@@ -349,6 +348,41 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			(height() - st::historySavedFont->height) / 2,
 			width(),
 			text);
+	} else if (_section == Section::Scheduled) {
+		auto text = tr::lng_scheduled_messages(tr::now);
+		
+		p.setPen(st::dialogsNameFg);
+		
+		if (history) {
+			const auto textWidth = st::msgNameFont->width(text);
+			if (availableWidth < textWidth) {
+				text = st::msgNameFont->elided(text, availableWidth);
+			}
+			p.setFont(st::msgNameFont);
+			p.drawTextLeft(
+				nameleft,
+				nametop,
+				width(),
+				text);
+
+			auto nameText = history->peer->topBarNameText().toString();
+			p.setPen(st::historyStatusFg);
+
+			Ui::Text::String nameTextStr;
+			nameTextStr.setText(st::dialogsTextStyle, nameText, Ui::NameTextOptions());
+			nameTextStr.drawElided(p, nameleft, statustop, availableWidth);
+		} else {
+			const auto textWidth = st::historySavedFont->width(text);
+			if (availableWidth < textWidth) {
+				text = st::historySavedFont->elided(text, availableWidth);
+			}
+			p.setFont(st::historySavedFont);
+			p.drawTextLeft(
+				nameleft,
+				(height() - st::historySavedFont->height) / 2,
+				width(),
+				text);
+		}
 	} else if (const auto history = _activeChat.history()) {
 		const auto peer = history->peer;
 		const auto &text = peer->topBarNameText();
