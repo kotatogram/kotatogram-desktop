@@ -6,12 +6,12 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/notifications_manager_linux.h"
+#include "mainwindow.h"
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 #include "platform/linux/specific_linux.h"
 #include "history/history.h"
 #include "lang/lang_keys.h"
-#include "mainwindow.h"
 #include "facades.h"
 
 #include <QtCore/QVersionNumber>

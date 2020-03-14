@@ -220,8 +220,8 @@ public:
 	void markForbidden();
 
 	[[nodiscard]] bool isGroupAdmin(not_null<UserData*> user) const;
-	[[nodiscard]] bool lastParticipantsRequestNeeded() const;
 	[[nodiscard]] QString adminRank(not_null<UserData*> user) const;
+	[[nodiscard]] bool lastParticipantsRequestNeeded() const;
 	[[nodiscard]] bool isMegagroup() const {
 		return flags() & MTPDchannel::Flag::f_megagroup;
 	}

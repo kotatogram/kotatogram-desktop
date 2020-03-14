@@ -285,7 +285,7 @@ bool Manager::readCustomFile() {
 		cSetDisableUpEdit(v);
 	});
 
-	ReadArrayOption(settings, "scales", [&](auto v) {
+	ReadArrayOption(settings, "replaces", [&](auto v) {
 		for (auto i = v.constBegin(), e = v.constEnd(); i != e; ++i) {
 			if (!(*i).isArray()) {
 				continue;
