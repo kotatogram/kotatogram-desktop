@@ -20,7 +20,7 @@
     <url type="help">https://github.com/kotatogram/kotatogram-desktop/issues</url>
     <screenshots>
       <screenshot type="default">
-        <image>https://raw.githubusercontent.com/telegramdesktop/tdesktop/dev/docs/assets/preview.png</image>
+        <image>https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/assets/ktg_preview.png</image>
       </screenshot>
     </screenshots>
     <keywords>
@@ -98,6 +98,7 @@
         <content_attribute id="money-purchasing">none</content_attribute>
         <content_attribute id="money-gambling">none</content_attribute>
     </content_rating>
+    <launchable type="desktop-id">@TDESKTOP_LAUNCHER_BASENAME@.desktop</launchable>
     <provides>
         <binary>kotatogram-desktop</binary>
     </provides>

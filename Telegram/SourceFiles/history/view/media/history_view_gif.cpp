@@ -1180,7 +1180,7 @@ void Gif::validateGroupedCache(
 	const auto height = geometry.height();
 	const auto options = Option::Smooth
 		| Option::RoundedLarge
-		| (blur ? Option(0) : Option::Blurred)
+		| (blur ? Option::Blurred : Option(0))
 		| ((corners & RectPart::TopLeft) ? Option::RoundedTopLeft : Option::None)
 		| ((corners & RectPart::TopRight) ? Option::RoundedTopRight : Option::None)
 		| ((corners & RectPart::BottomLeft) ? Option::RoundedBottomLeft : Option::None)
@@ -1494,7 +1494,8 @@ bool Gif::dataLoaded() const {
 bool Gif::needInfoDisplay() const {
 	return _parent->data()->isSending()
 		|| _data->uploading()
-		|| _parent->isUnderCursor();
+		|| _parent->isUnderCursor()
+		|| _parent->isLastAndSelfMessage();
 }
 
 bool Gif::needCornerStatusDisplay() const {

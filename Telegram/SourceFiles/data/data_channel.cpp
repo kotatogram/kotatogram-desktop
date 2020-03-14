@@ -341,6 +341,20 @@ bool ChannelData::isGroupAdmin(not_null<UserData*> user) const {
 	return false;
 }
 
+bool ChannelData::lastParticipantsRequestNeeded() const {
+	if (!mgInfo) {
+		return false;
+	} else if (mgInfo->lastParticipantsCount == membersCount()) {
+		mgInfo->lastParticipantsStatus
+			&= ~MegagroupInfo::LastParticipantsCountOutdated;
+	}
+	return mgInfo->lastParticipants.empty()
+		|| !(mgInfo->lastParticipantsStatus
+			& MegagroupInfo::LastParticipantsOnceReceived)
+		|| (mgInfo->lastParticipantsStatus
+			& MegagroupInfo::LastParticipantsCountOutdated);
+}
+
 QString ChannelData::adminRank(not_null<UserData*> user) const {
 	if (!isGroupAdmin(user)) {
 		return QString();

@@ -12,20 +12,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/weak_ptr.h"
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
-#include <QtDBus/QDBusInterface>
+#include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusArgument>
-#endif
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 
 namespace Platform {
 namespace Notifications {
-
-inline bool SkipAudio() {
-	return false;
-}
-
-inline bool SkipToast() {
-	return false;
-}
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 class NotificationData : public QObject {
@@ -33,7 +25,6 @@ class NotificationData : public QObject {
 
 public:
 	NotificationData(
-		const std::shared_ptr<QDBusInterface> &notificationInterface,
 		const base::weak_ptr<Manager> &manager,
 		const QString &title,
 		const QString &subtitle,
@@ -47,8 +38,8 @@ public:
 	NotificationData(NotificationData &&other) = delete;
 	NotificationData &operator=(NotificationData &&other) = delete;
 
-	bool show(bool hideNameAndPhoto);
-	bool close();
+	bool show();
+	void close();
 	void setImage(const QString &imagePath);
 
 	struct ImageData {
@@ -59,13 +50,14 @@ public:
 	};
 
 private:
-	std::shared_ptr<QDBusInterface> _notificationInterface;
+	QDBusConnection _dbusConnection;
 	base::weak_ptr<Manager> _manager;
 
 	QString _title;
 	QString _body;
 	QStringList _actions;
 	QVariantMap _hints;
+	QString _imageKey;
 
 	uint _notificationId;
 	PeerId _peerId;
@@ -73,7 +65,7 @@ private:
 
 private slots:
 	void notificationClosed(uint id);
-	void notificationClicked(uint id, const QString &actionId);
+	void actionInvoked(uint id, const QString &actionName);
 	void notificationReplied(uint id, const QString &text);
 };
 
@@ -91,7 +83,7 @@ class Manager
 	: public Window::Notifications::NativeManager
 	, public base::has_weak_ptr {
 public:
-	Manager(Window::Notifications::System *system);
+	Manager(not_null<Window::Notifications::System*> system);
 	void clearNotification(PeerId peerId, MsgId msgId);
 	~Manager();
 
@@ -116,7 +108,7 @@ private:
 class Manager::Private {
 public:
 	using Type = Window::Notifications::CachedUserpics::Type;
-	explicit Private(Manager *manager, Type type);
+	explicit Private(not_null<Manager*> manager, Type type);
 
 	void showNotification(
 		not_null<PeerData*> peer,
@@ -138,13 +130,12 @@ private:
 
 	Window::Notifications::CachedUserpics _cachedUserpics;
 	base::weak_ptr<Manager> _manager;
-	std::shared_ptr<QDBusInterface> _notificationInterface;
 };
-#endif
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 
 } // namespace Notifications
 } // namespace Platform
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 Q_DECLARE_METATYPE(Platform::Notifications::NotificationData::ImageData)
-#endif
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION

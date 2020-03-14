@@ -7,18 +7,20 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/notifications_manager_linux.h"
 
+#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 #include "platform/linux/specific_linux.h"
 #include "history/history.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
 #include "facades.h"
 
-#include <QtWidgets/QApplication>
-#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 #include <QtCore/QVersionNumber>
+#include <QtDBus/QDBusMessage>
 #include <QtDBus/QDBusReply>
+#include <QtDBus/QDBusError>
 #include <QtDBus/QDBusMetaType>
-#endif
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
+#include <QtWidgets/QApplication>
 
 namespace Platform {
 namespace Notifications {
@@ -38,48 +40,99 @@ namespace {
 constexpr auto kService = "org.freedesktop.Notifications"_cs;
 constexpr auto kObjectPath = "/org/freedesktop/Notifications"_cs;
 constexpr auto kInterface = kService;
+constexpr auto kPropertiesInterface = "org.freedesktop.DBus.Properties"_cs;
 
-std::vector<QString> GetServerInformation(
-		const std::shared_ptr<QDBusInterface> &notificationInterface) {
+bool InhibitedNotSupported = false;
+
+std::vector<QString> ComputeServerInformation() {
 	std::vector<QString> serverInformation;
-	const auto serverInformationReply = notificationInterface
-		->call(qsl("GetServerInformation"));
 
-	if (serverInformationReply.type() == QDBusMessage::ReplyMessage) {
-		for (const auto &arg : serverInformationReply.arguments()) {
-			if (static_cast<QMetaType::Type>(arg.type())
-				== QMetaType::QString) {
-				serverInformation.push_back(arg.toString());
-			} else {
-				LOG(("Native notification error: "
-					"all elements in GetServerInformation "
-					"should be strings"));
-			}
-		}
-	} else if (serverInformationReply.type() == QDBusMessage::ErrorMessage) {
-		LOG(("Native notification error: %1")
-			.arg(serverInformationReply.errorMessage()));
+	const auto message = QDBusMessage::createMethodCall(
+		kService.utf16(),
+		kObjectPath.utf16(),
+		kInterface.utf16(),
+		qsl("GetServerInformation"));
+
+	const auto reply = QDBusConnection::sessionBus().call(message);
+
+	if (reply.type() == QDBusMessage::ReplyMessage) {
+		ranges::transform(
+			reply.arguments(),
+			ranges::back_inserter(serverInformation),
+			&QVariant::toString
+		);
+	} else if (reply.type() == QDBusMessage::ErrorMessage) {
+		LOG(("Native notification error: %1").arg(reply.errorMessage()));
 	} else {
 		LOG(("Native notification error: "
-			"error while getting information about notification daemon"));
+			"invalid reply from GetServerInformation"));
 	}
 
 	return serverInformation;
 }
 
-QStringList GetCapabilities(
-		const std::shared_ptr<QDBusInterface> &notificationInterface) {
-	const QDBusReply<QStringList> capabilitiesReply = notificationInterface
-		->call(qsl("GetCapabilities"));
+std::vector<QString> GetServerInformation() {
+	static const auto ServerInformation = ComputeServerInformation();
+	return ServerInformation;
+}
 
-	if (capabilitiesReply.isValid()) {
-		return capabilitiesReply.value();
+QStringList ComputeCapabilities() {
+	const auto message = QDBusMessage::createMethodCall(
+		kService.utf16(),
+		kObjectPath.utf16(),
+		kInterface.utf16(),
+		qsl("GetCapabilities"));
+
+	const QDBusReply<QStringList> reply = QDBusConnection::sessionBus().call(
+		message);
+
+	if (reply.isValid()) {
+		return reply.value();
 	} else {
-		LOG(("Native notification error: %1")
-			.arg(capabilitiesReply.error().message()));
+		LOG(("Native notification error: %1").arg(reply.error().message()));
 	}
 
 	return {};
+}
+
+QStringList GetCapabilities() {
+	static const auto Capabilities = ComputeCapabilities();
+	return Capabilities;
+}
+
+bool Inhibited() {
+	auto message = QDBusMessage::createMethodCall(
+		kService.utf16(),
+		kObjectPath.utf16(),
+		kPropertiesInterface.utf16(),
+		qsl("Get"));
+
+	message.setArguments({
+		qsl("org.freedesktop.Notifications"),
+		qsl("Inhibited")
+	});
+
+	const QDBusReply<QVariant> reply = QDBusConnection::sessionBus().call(
+		message);
+
+	constexpr auto notSupportedErrors = {
+		QDBusError::ServiceUnknown,
+		QDBusError::InvalidArgs,
+	};
+
+	if (reply.isValid()) {
+		return reply.value().toBool();
+	} else if (ranges::contains(notSupportedErrors, reply.error().type())) {
+		InhibitedNotSupported = true;
+	} else {
+		if (reply.error().type() == QDBusError::AccessDenied) {
+			InhibitedNotSupported = true;
+		}
+
+		LOG(("Native notification error: %1").arg(reply.error().message()));
+	}
+
+	return false;
 }
 
 QVersionNumber ParseSpecificationVersion(
@@ -94,10 +147,31 @@ QVersionNumber ParseSpecificationVersion(
 	return QVersionNumber();
 }
 
+QString GetImageKey(const QVersionNumber &specificationVersion) {
+	if (!specificationVersion.isNull()) {
+		const auto majorVersion = specificationVersion.majorVersion();
+		const auto minorVersion = specificationVersion.minorVersion();
+
+		if ((majorVersion == 1 && minorVersion >= 2) || majorVersion > 1) {
+			return qsl("image-data");
+		} else if (majorVersion == 1 && minorVersion == 1) {
+			return qsl("image_data");
+		} else if ((majorVersion == 1 && minorVersion < 1)
+			|| majorVersion < 1) {
+			return qsl("icon_data");
+		} else {
+			LOG(("Native notification error: unknown specification version"));
+		}
+	} else {
+		LOG(("Native notification error: specification version is null"));
+	}
+
+	return QString();
+}
+
 }
 
 NotificationData::NotificationData(
-		const std::shared_ptr<QDBusInterface> &notificationInterface,
 		const base::weak_ptr<Manager> &manager,
 		const QString &title,
 		const QString &subtitle,
@@ -105,12 +179,14 @@ NotificationData::NotificationData(
 		PeerId peerId,
 		MsgId msgId,
 		bool hideReplyButton)
-: _notificationInterface(notificationInterface)
+: _dbusConnection(QDBusConnection::sessionBus())
 , _manager(manager)
 , _title(title)
+, _imageKey(GetImageKey(ParseSpecificationVersion(
+	GetServerInformation())))
 , _peerId(peerId)
 , _msgId(msgId) {
-	const auto capabilities = GetCapabilities(_notificationInterface);
+	const auto capabilities = GetCapabilities();
 
 	if (capabilities.contains(qsl("body-markup"))) {
 		_body = subtitle.isEmpty()
@@ -127,19 +203,16 @@ NotificationData::NotificationData(
 	if (capabilities.contains(qsl("actions"))) {
 		_actions << qsl("default") << QString();
 
-		_notificationInterface->connection().connect(
-			kService.utf16(),
-			kObjectPath.utf16(),
-			kInterface.utf16(),
-			qsl("ActionInvoked"),
-			this,
-			SLOT(notificationClicked(uint,QString)));
+		_actions
+			<< qsl("mail-mark-read")
+			<< tr::lng_context_mark_read(tr::now);
 
 		if (capabilities.contains(qsl("inline-reply")) && !hideReplyButton) {
-			_actions << qsl("inline-reply")
+			_actions
+				<< qsl("inline-reply")
 				<< tr::lng_notification_reply(tr::now);
 
-			_notificationInterface->connection().connect(
+			_dbusConnection.connect(
 				kService.utf16(),
 				kObjectPath.utf16(),
 				kInterface.utf16(),
@@ -148,9 +221,18 @@ NotificationData::NotificationData(
 				SLOT(notificationReplied(uint,QString)));
 		} else {
 			// icon name according to https://specifications.freedesktop.org/icon-naming-spec/icon-naming-spec-latest.html
-			_actions << qsl("mail-reply-sender")
+			_actions
+				<< qsl("mail-reply-sender")
 				<< tr::lng_notification_reply(tr::now);
 		}
+
+		_dbusConnection.connect(
+			kService.utf16(),
+			kObjectPath.utf16(),
+			kInterface.utf16(),
+			qsl("ActionInvoked"),
+			this,
+			SLOT(actionInvoked(uint,QString)));
 	}
 
 	if (capabilities.contains(qsl("action-icons"))) {
@@ -172,10 +254,9 @@ NotificationData::NotificationData(
 	}
 
 	_hints["category"] = qsl("im.received");
-
 	_hints["desktop-entry"] = GetLauncherBasename();
 
-	_notificationInterface->connection().connect(
+	_dbusConnection.connect(
 		kService.utf16(),
 		kObjectPath.utf16(),
 		kInterface.utf16(),
@@ -184,65 +265,56 @@ NotificationData::NotificationData(
 		SLOT(notificationClosed(uint)));
 }
 
-bool NotificationData::show(bool hideNameAndPhoto) {
-	const QDBusReply<uint> notifyReply = _notificationInterface->call(
-		qsl("Notify"),
+bool NotificationData::show() {
+	const auto iconName = _imageKey.isEmpty() || !_hints.contains(_imageKey)
+		? GetIconName()
+		: QString();
+
+	auto message = QDBusMessage::createMethodCall(
+		kService.utf16(),
+		kObjectPath.utf16(),
+		kInterface.utf16(),
+		qsl("Notify"));
+
+	message.setArguments({
 		AppName.utf16(),
 		uint(0),
-		hideNameAndPhoto
-			? qsl("telegram")
-			: QString(),
+		iconName,
 		_title,
 		_body,
 		_actions,
 		_hints,
-		-1);
+		-1
+	});
 
-	if (notifyReply.isValid()) {
-		_notificationId = notifyReply.value();
+	const QDBusReply<uint> reply = _dbusConnection.call(
+		message);
+
+	if (reply.isValid()) {
+		_notificationId = reply.value();
 	} else {
-		LOG(("Native notification error: %1")
-			.arg(notifyReply.error().message()));
+		LOG(("Native notification error: %1").arg(reply.error().message()));
 	}
 
-	return notifyReply.isValid();
+	return reply.isValid();
 }
 
-bool NotificationData::close() {
-	const QDBusReply<void> closeReply = _notificationInterface
-		->call(qsl("CloseNotification"), _notificationId);
+void NotificationData::close() {
+	auto message = QDBusMessage::createMethodCall(
+		kService.utf16(),
+		kObjectPath.utf16(),
+		kInterface.utf16(),
+		qsl("CloseNotification"));
 
-	if (!closeReply.isValid()) {
-		LOG(("Native notification error: %1")
-			.arg(closeReply.error().message()));
-	}
+	message.setArguments({
+		_notificationId
+	});
 
-	return closeReply.isValid();
+	_dbusConnection.send(message);
 }
 
 void NotificationData::setImage(const QString &imagePath) {
-	const auto specificationVersion = ParseSpecificationVersion(
-		GetServerInformation(_notificationInterface));
-
-	QString imageKey;
-
-	if (!specificationVersion.isNull()) {
-		const auto majorVersion = specificationVersion.majorVersion();
-		const auto minorVersion = specificationVersion.minorVersion();
-
-		if ((majorVersion == 1 && minorVersion >= 2) || majorVersion > 1) {
-			imageKey = qsl("image-data");
-		} else if (majorVersion == 1 && minorVersion == 1) {
-			imageKey = qsl("image_data");
-		} else if ((majorVersion == 1 && minorVersion < 1)
-			|| majorVersion < 1) {
-			imageKey = qsl("icon_data");
-		} else {
-			LOG(("Native notification error: unknown specification version"));
-			return;
-		}
-	} else {
-		LOG(("Native notification error: specification version is null"));
+	if (_imageKey.isEmpty()) {
 		return;
 	}
 
@@ -253,20 +325,21 @@ void NotificationData::setImage(const QString &imagePath) {
 		(const char*)image.constBits(),
 #if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
 		image.byteCount());
-#else
+#else // Qt < 5.10.0
 		image.sizeInBytes());
-#endif
+#endif // Qt >= 5.10.0
 
-	ImageData imageData;
-	imageData.width = image.width();
-	imageData.height = image.height();
-	imageData.rowStride = image.bytesPerLine();
-	imageData.hasAlpha = true;
-	imageData.bitsPerSample = 8;
-	imageData.channels = 4;
-	imageData.data = imageBytes;
+	const auto imageData = ImageData{
+		image.width(),
+		image.height(),
+		image.bytesPerLine(),
+		true,
+		8,
+		4,
+		imageBytes
+	};
 
-	_hints[imageKey] = QVariant::fromValue(imageData);
+	_hints[_imageKey] = QVariant::fromValue(imageData);
 }
 
 void NotificationData::notificationClosed(uint id) {
@@ -278,19 +351,23 @@ void NotificationData::notificationClosed(uint id) {
 	}
 }
 
-void NotificationData::notificationClicked(uint id, const QString &actionId) {
+void NotificationData::actionInvoked(uint id, const QString &actionName) {
 	if (id != _notificationId) {
 		return;
 	}
 
-	if (actionId != qsl("default") && actionId != qsl("mail-reply-sender")) {
-		return;
+	if (actionName == qsl("default")
+		|| actionName == qsl("mail-reply-sender")) {
+		const auto manager = _manager;
+		crl::on_main(manager, [=] {
+			manager->notificationActivated(_peerId, _msgId);
+		});
+	} else if (actionName == qsl("mail-mark-read")) {
+		const auto manager = _manager;
+		crl::on_main(manager, [=] {
+			manager->notificationReplied(_peerId, _msgId, {});
+		});
 	}
-
-	const auto manager = _manager;
-	crl::on_main(manager, [=] {
-		manager->notificationActivated(_peerId, _msgId);
-	});
 }
 
 void NotificationData::notificationReplied(uint id, const QString &text) {
@@ -306,7 +383,8 @@ QDBusArgument &operator<<(
 		QDBusArgument &argument,
 		const NotificationData::ImageData &imageData) {
 	argument.beginStructure();
-	argument << imageData.width
+	argument
+		<< imageData.width
 		<< imageData.height
 		<< imageData.rowStride
 		<< imageData.hasAlpha
@@ -321,7 +399,8 @@ const QDBusArgument &operator>>(
 		const QDBusArgument &argument,
 		NotificationData::ImageData &imageData) {
 	argument.beginStructure();
-	argument >> imageData.width
+	argument
+		>> imageData.width
 		>> imageData.height
 		>> imageData.rowStride
 		>> imageData.hasAlpha
@@ -331,20 +410,39 @@ const QDBusArgument &operator>>(
 	argument.endStructure();
 	return argument;
 }
-#endif
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
+
+bool SkipAudio() {
+#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
+	if (Supported()
+		&& GetCapabilities().contains(qsl("inhibitions"))
+		&& !InhibitedNotSupported) {
+		return Inhibited();
+	}
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
+
+	return false;
+}
+
+bool SkipToast() {
+#ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
+	if (Supported()
+		&& GetCapabilities().contains(qsl("inhibitions"))
+		&& !InhibitedNotSupported) {
+		return Inhibited();
+	}
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
+
+	return false;
+}
 
 bool Supported() {
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
-	static const auto Available = QDBusInterface(
-		kService.utf16(),
-		kObjectPath.utf16(),
-		kInterface.utf16()
-	).isValid();
-
+	static const auto Available = !GetServerInformation().empty();
 	return Available;
-#else
+#else // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 	return false;
-#endif
+#endif // TDESKTOP_DISABLE_DBUS_INTEGRATION
 }
 
 std::unique_ptr<Window::Notifications::Manager> Create(
@@ -353,34 +451,36 @@ std::unique_ptr<Window::Notifications::Manager> Create(
 	if (Global::NativeNotifications() && Supported()) {
 		return std::make_unique<Manager>(system);
 	}
-#endif
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 	return nullptr;
 }
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
-Manager::Private::Private(Manager *manager, Type type)
+Manager::Private::Private(not_null<Manager*> manager, Type type)
 : _cachedUserpics(type)
-, _manager(manager)
-, _notificationInterface(
-	std::make_shared<QDBusInterface>(
-		kService.utf16(),
-		kObjectPath.utf16(),
-		kInterface.utf16())) {
+, _manager(manager) {
 	qDBusRegisterMetaType<NotificationData::ImageData>();
 
-	const auto specificationVersion = ParseSpecificationVersion(
-		GetServerInformation(_notificationInterface));
+	const auto serverInformation = GetServerInformation();
+	const auto capabilities = GetCapabilities();
 
-	const auto capabilities = GetCapabilities(_notificationInterface);
+	if (!serverInformation.empty()) {
+		LOG(("Notification daemon product name: %1")
+			.arg(serverInformation[0]));
 
-	if (!specificationVersion.isNull()) {
+		LOG(("Notification daemon vendor name: %1")
+			.arg(serverInformation[1]));
+
+		LOG(("Notification daemon version: %1")
+			.arg(serverInformation[2]));
+
 		LOG(("Notification daemon specification version: %1")
-			.arg(specificationVersion.toString()));
+			.arg(serverInformation[3]));
 	}
 
-	if (!capabilities.empty()) {
-		const auto capabilitiesString = capabilities.join(", ");
-		LOG(("Notification daemon capabilities: %1").arg(capabilitiesString));
+	if (!capabilities.isEmpty()) {
+		LOG(("Notification daemon capabilities: %1")
+			.arg(capabilities.join(", ")));
 	}
 }
 
@@ -393,7 +493,6 @@ void Manager::Private::showNotification(
 		bool hideNameAndPhoto,
 		bool hideReplyButton) {
 	auto notification = std::make_shared<NotificationData>(
-		_notificationInterface,
 		_manager,
 		title,
 		subtitle,
@@ -421,7 +520,7 @@ void Manager::Private::showNotification(
 		i = _notifications.insert(peer->id, QMap<MsgId, Notification>());
 	}
 	_notifications[peer->id].insert(msgId, notification);
-	if (!notification->show(hideNameAndPhoto)) {
+	if (!notification->show()) {
 		i = _notifications.find(peer->id);
 		if (i != _notifications.cend()) {
 			i->remove(msgId);
@@ -465,7 +564,7 @@ Manager::Private::~Private() {
 	clearAll();
 }
 
-Manager::Manager(Window::Notifications::System *system)
+Manager::Manager(not_null<Window::Notifications::System*> system)
 : NativeManager(system)
 , _private(std::make_unique<Private>(this, Private::Type::Rounded)) {
 }
@@ -501,7 +600,7 @@ void Manager::doClearAllFast() {
 void Manager::doClearFromHistory(not_null<History*> history) {
 	_private->clearFromHistory(history);
 }
-#endif
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 
 } // namespace Notifications
 } // namespace Platform

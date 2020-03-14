@@ -35,9 +35,7 @@ QString SingleInstanceLocalServerName(const QString &hash);
 QString GetLauncherBasename();
 QString GetLauncherFilename();
 
-inline std::optional<crl::time> LastUserInputTime() {
-	return std::nullopt;
-}
+QString GetIconName();
 
 inline void IgnoreApplicationActivationRightNow() {
 }

@@ -464,7 +464,9 @@ bool GroupedMedia::computeNeedBubble() const {
 }
 
 bool GroupedMedia::needInfoDisplay() const {
-	return (_parent->data()->id < 0 || _parent->isUnderCursor());
+	return (_parent->data()->id < 0
+		|| _parent->isUnderCursor()
+		|| _parent->isLastAndSelfMessage());
 }
 
 } // namespace HistoryView

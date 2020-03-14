@@ -3167,7 +3167,7 @@ void writeFileLocation(MediaKey location, const FileLocation &local) {
 				return;
 			}
 			if (i.value().first != location) {
-				for (FileLocations::iterator j = _fileLocations.find(i.value().first), e = _fileLocations.end(); (j != e) && (j.key() == i.value().first);) {
+				for (FileLocations::iterator j = _fileLocations.find(i.value().first), e = _fileLocations.end(); (j != e) && (j.key() == i.value().first); ++j) {
 					if (j.value() == i.value().second) {
 						_fileLocations.erase(j);
 						break;
@@ -3682,7 +3682,21 @@ void _readStickerSets(FileKey &stickersKey, Stickers::Order *outOrder = nullptr,
 
 	// Read orders of installed and featured stickers.
 	if (outOrder) {
-		stickers.stream >> *outOrder;
+		auto outOrderCount = quint32();
+		stickers.stream >> outOrderCount;
+		if (!_checkStreamStatus(stickers.stream) || outOrderCount > 1000) {
+			return failed();
+		}
+		outOrder->reserve(outOrderCount);
+		for (auto i = 0; i != outOrderCount; ++i) {
+			auto value = uint64();
+			stickers.stream >> value;
+			if (!_checkStreamStatus(stickers.stream)) {
+				outOrder->clear();
+				return failed();
+			}
+			outOrder->push_back(value);
+		}
 	}
 	if (!_checkStreamStatus(stickers.stream)) {
 		return failed();
