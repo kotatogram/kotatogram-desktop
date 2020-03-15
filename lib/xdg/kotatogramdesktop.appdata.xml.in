@@ -35,6 +35,21 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.1.9" date="2020-03-15">
+            <description>
+                <p>TDesktop sources were updated to 1.9.20 beta.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Support for taskbar flashing alert.</li>
+                    <li>Bot privacy status in members list.</li>
+                    <li>Custom tray and taskbar icon.</li>
+                    <li>Show working dir in tray icon tooltip.</li>
+                    <li>Option to change rounding of profile pictures.</li>
+                    <li>Option to always show profile picture in top bar.</li>
+                    <li>Ban members option in Recent Actions.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.1.8" date="2020-02-26">
             <description>
                 <p>TDesktop sources were updated to 1.9.19 beta.</p>

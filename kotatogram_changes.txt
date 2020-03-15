@@ -1,3 +1,13 @@
+1.1.9 (15.03.2020)
+- Updated TDesktop sources to 1.9.20 beta.
+- Support for taskbar flashing alert on Linux.
+- Bot privacy status in members list.
+- Custom tray and taskbar icon.
+- Show working dir in tray icon tooltip.
+- Option to change rounding of profile pictures.
+- Option to always show profile picture in top bar.
+- Ban members option in Recent Actions.
+
 1.1.8 (27.02.2020)
 - Updated TDesktop sources to 1.9.19 beta.
 - Option to disable taskbar icon flashing.
