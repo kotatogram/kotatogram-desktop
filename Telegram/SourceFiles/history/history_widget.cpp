@@ -6187,21 +6187,7 @@ void HistoryWidget::unpinMessage(FullMsgId itemId) {
 		return;
 	}
 
-	Ui::show(Box<ConfirmBox>(tr::lng_pinned_unpin_sure(tr::now), tr::lng_pinned_unpin(tr::now), crl::guard(this, [=] {
-		peer->clearPinnedMessage();
-
-		Ui::hideLayer();
-		MTP::send(
-			MTPmessages_UpdatePinnedMessage(
-				MTP_flags(0),
-				peer->input,
-				MTP_int(0)),
-			rpcDone(&HistoryWidget::unpinDone));
-	})));
-}
-
-void HistoryWidget::unpinDone(const MTPUpdates &updates) {
-	session().api().applyUpdates(updates);
+	Ui::show(Box<UnpinMessageBox>(peer));
 }
 
 void HistoryWidget::hidePinnedMessage(bool force) {

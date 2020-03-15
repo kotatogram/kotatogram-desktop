@@ -2481,4 +2481,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_settings_messages" = "Messages";
 
+"ktg_hide_pinned_message" = "Hide";
+
 // Keys finished

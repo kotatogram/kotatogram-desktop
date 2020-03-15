@@ -108,5 +108,6 @@
 	"ktg_settings_filters_hide_folder_names": "Компактные папки",
 	"ktg_settings_top_bar_mute": "Уведомления вверху профиля",
 	"ktg_settings_messages": "Сообщения",
-	"ktg_settings_filters_hide_all": "Скрыть папку «Все чаты»"
+	"ktg_settings_filters_hide_all": "Скрыть папку «Все чаты»",
+	"ktg_hide_pinned_message": "Скрыть"
 }

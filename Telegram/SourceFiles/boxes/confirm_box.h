@@ -149,6 +149,30 @@ private:
 
 };
 
+class UnpinMessageBox : public Ui::BoxContent, public RPCSender {
+public:
+	UnpinMessageBox(QWidget*, not_null<PeerData*> peer);
+
+protected:
+	void prepare() override;
+
+	void resizeEvent(QResizeEvent *e) override;
+	void keyPressEvent(QKeyEvent *e) override;
+
+private:
+	void unpinMessage();
+	void hideMessage();
+	void unpinDone(const MTPUpdates &updates);
+	bool unpinFail(const RPCError &error);
+
+	not_null<PeerData*> _peer;
+
+	object_ptr<Ui::FlatLabel> _text;
+
+	mtpRequestId _requestId = 0;
+
+};
+
 class DeleteMessagesBox : public Ui::BoxContent, public RPCSender {
 public:
 	DeleteMessagesBox(

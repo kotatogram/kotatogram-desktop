@@ -540,7 +540,6 @@ private:
 	void updatePinnedBar(bool force = false);
 	bool pinnedMsgVisibilityUpdated();
 	void destroyPinnedBar();
-	void unpinDone(const MTPUpdates &updates);
 
 	void sendInlineResult(
 		not_null<InlineBots::Result*> result,
