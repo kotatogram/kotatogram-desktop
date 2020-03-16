@@ -684,14 +684,10 @@ void MainWindow::psTrayMenuUpdated() {
 void MainWindow::psSetupTrayIcon() {
 	if (!trayIcon) {
 		trayIcon = new QSystemTrayIcon(this);
-		QString iconFilename(cWorkingDir() + "tdata/icon.png");
-		auto iconImage = App::readImage(iconFilename, nullptr, false);
-
-		if (iconImage.isNull()) {
-			iconImage = Core::App().logoNoMargin();
+		auto icon = QIcon(cWorkingDir() + "tdata/icon.png");
+		if (icon.isNull()) {
+			icon = QIcon(App::pixmapFromImageInPlace(Core::App().logoNoMargin()));
 		}
-
-		auto icon = QIcon(App::pixmapFromImageInPlace(std::move(iconImage)));
 
 		trayIcon->setIcon(icon);
 		connect(trayIcon, SIGNAL(messageClicked()), this, SLOT(showFromTray()));

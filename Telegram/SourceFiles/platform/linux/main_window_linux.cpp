@@ -180,8 +180,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 						.toImage();
 				}
 			} else {
-				QString iconFilename(cWorkingDir() + "tdata/icon.png");
-				currentImageBack = App::readImage(iconFilename, nullptr, false);
+				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
 				if (currentImageBack.isNull()) {
 					currentImageBack = Core::App().logo();
 				}
