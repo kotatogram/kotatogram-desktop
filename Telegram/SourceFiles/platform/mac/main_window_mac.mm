@@ -564,24 +564,20 @@ void MainWindow::psSetupTrayIcon() {
 	if (!trayIcon) {
 		trayIcon = new QSystemTrayIcon(this);
 		QIcon icon;
-		QString iconFilename(cWorkingDir() + "tdata/icon.png");
-		QString iconFilenameSelected(cWorkingDir() + "tdata/icon_selected.png");
+		QPixmap iconPixmap(cWorkingDir() + "tdata/icon.png");
+		QPixmap iconPixmapSelected(cWorkingDir() + "tdata/icon_selected.png");
 
-		auto iconImage = App::readImage(iconFilename, nullptr, false);
-
-		if (iconImage.isNull()) {
-			iconImage = psTrayIcon();
+		if (!iconPixmap.isNull()) {
+			icon.addPixmap(iconPixmap);
+		} else {
+			icon.addPixmap(QPixmap::fromImage(psTrayIcon(), Qt::ColorOnly));
 		}
 
-		icon = QIcon(QPixmap::fromImage(iconImage, Qt::ColorOnly));
-
-		auto iconImageSelected = App::readImage(iconFilenameSelected, nullptr, false);
-
-		if (iconImageSelected.isNull()) {
-			iconImageSelected = psTrayIcon(true);
+		if (!iconPixmapSelected.isNull()) {
+			icon.addPixmap(iconPixmapSelected, QIcon::Selected);
+		} else {
+			icon.addPixmap(QPixmap::fromImage(psTrayIcon(true), Qt::ColorOnly), QIcon::Selected);
 		}
-
-		icon.addPixmap(QPixmap::fromImage(iconImageSelected, Qt::ColorOnly), QIcon::Selected);
 
 		trayIcon->setIcon(icon);
 		attachToTrayIcon(trayIcon);
