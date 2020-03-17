@@ -47,12 +47,16 @@ namespace {
 
 constexpr auto kDisableTrayCounter = "TDESKTOP_DISABLE_TRAY_COUNTER"_cs;
 constexpr auto kForcePanelIcon = "TDESKTOP_FORCE_PANEL_ICON"_cs;
+constexpr auto kUseTelegramPanelIcon = "KTGDESKTOP_USE_TELEGRAM_PANEL_ICON"_cs;
 constexpr auto kPanelTrayIconName = "kotatogram-panel"_cs;
 constexpr auto kMutePanelTrayIconName = "kotatogram-mute-panel"_cs;
 constexpr auto kAttentionPanelTrayIconName = "kotatogram-attention-panel"_cs;
+constexpr auto kTelegramPanelTrayIconName = "telegram-panel"_cs;
+constexpr auto kTelegramMutePanelTrayIconName = "telegram-mute-panel"_cs;
+constexpr auto kTelegramAttentionPanelTrayIconName = "telegram-attention-panel"_cs;
 constexpr auto kSNIWatcherService = "org.kde.StatusNotifierWatcher"_cs;
 constexpr auto kPropertiesInterface = "org.freedesktop.DBus.Properties"_cs;
-constexpr auto kTrayIconFilename = "kdesktop-trayicon-XXXXXX.png"_cs;
+constexpr auto kTrayIconFilename = "ktgdesktop-trayicon-XXXXXX.png"_cs;
 
 constexpr auto kAppMenuService = "com.canonical.AppMenu.Registrar"_cs;
 constexpr auto kAppMenuObjectPath = "/com/canonical/AppMenu/Registrar"_cs;
@@ -67,11 +71,26 @@ QString TrayIconThemeName, TrayIconName;
 bool SNIAvailable = false;
 
 QString GetPanelIconName(int counter, bool muted) {
+	const auto useTelegramIcon = qEnvironmentVariableIsSet(
+		kUseTelegramPanelIcon.utf8());
+
+	const auto iconName = useTelegramIcon
+		? kTelegramPanelTrayIconName.utf16()
+		: kPanelTrayIconName.utf16();
+
+	const auto muteIconName = useTelegramIcon
+		? kTelegramMutePanelTrayIconName.utf16()
+		: kMutePanelTrayIconName.utf16();
+
+	const auto attentionIconName = useTelegramIcon
+		? kTelegramAttentionPanelTrayIconName.utf16()
+		: kAttentionPanelTrayIconName.utf16();
+
 	return (counter > 0)
 		? (muted
-			? kMutePanelTrayIconName.utf16()
-			: kAttentionPanelTrayIconName.utf16())
-		: kPanelTrayIconName.utf16();
+			? muteIconName
+			: attentionIconName)
+		: iconName;
 }
 
 QString GetTrayIconName(int counter, bool muted) {
