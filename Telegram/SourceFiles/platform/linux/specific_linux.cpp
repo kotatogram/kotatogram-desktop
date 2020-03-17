@@ -280,8 +280,16 @@ QString AppRuntimeDirectory() {
 			QStandardPaths::RuntimeLocation);
 
 		if (InSandbox()) {
+			const auto flatpakId = [&] {
+				if (!qEnvironmentVariableIsEmpty("FLATPAK_ID")) {
+					return QString::fromLatin1(qgetenv("FLATPAK_ID"));
+				} else {
+					return GetLauncherBasename();
+				}
+			}();
+
 			runtimeDir += qsl("/app/")
-				+ QString::fromLatin1(qgetenv("FLATPAK_ID"));
+				+ flatpakId;
 		}
 
 		if (!QFileInfo::exists(runtimeDir)) { // non-systemd distros
@@ -374,7 +382,7 @@ std::optional<crl::time> LastUserInputTime() {
 	const QDBusReply<uint> reply = QDBusConnection::sessionBus().call(
 		message);
 
-	constexpr auto notSupportedErrors = {
+	const auto notSupportedErrors = {
 		QDBusError::ServiceUnknown,
 		QDBusError::NotSupported,
 	};

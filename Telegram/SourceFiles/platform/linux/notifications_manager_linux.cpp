@@ -115,7 +115,7 @@ bool Inhibited() {
 	const QDBusReply<QVariant> reply = QDBusConnection::sessionBus().call(
 		message);
 
-	constexpr auto notSupportedErrors = {
+	const auto notSupportedErrors = {
 		QDBusError::ServiceUnknown,
 		QDBusError::InvalidArgs,
 	};
