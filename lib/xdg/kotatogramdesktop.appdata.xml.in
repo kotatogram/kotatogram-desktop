@@ -35,6 +35,29 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.2" date="2020-03-19">
+            <description>
+                <p>TDesktop sources were updated to 1.9.21.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>New logo and option to choose alternative icons.</li>
+                    <li>Support for taskbar flashing alert.</li>
+                    <li>Bot privacy status in members list.</li>
+                    <li>Custom tray and taskbar icon.</li>
+                    <li>Show working dir in tray icon tooltip.</li>
+                    <li>Option to change rounding of profile pictures.</li>
+                    <li>Option to always show profile picture in top bar.</li>
+                    <li>Ban members option in Recent Actions.</li>
+                    <li>Control notification sound from tray menu.</li>
+                    <li>Option to change recent stickers show limit (up to 200 or disable at all).</li>
+                    <li>Show video playback controls for GIFs.</li>
+                    <li>Allow up to 64px as minimal sticker size.</li>
+                    <li>Optional confirmation before calling.</li>
+                    <li>"Disable Up to edit" now in options menu.</li>
+                    <li>Option to use original font height.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.1.9" date="2020-03-15">
             <description>
                 <p>TDesktop sources were updated to 1.9.20 beta.</p>
