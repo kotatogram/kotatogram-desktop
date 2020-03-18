@@ -49,12 +49,24 @@ constexpr auto kSaveWindowPositionTimeout = crl::time(1000);
 
 } // namespace
 
-QImage LoadLogo() {
-	return QImage(qsl(":/gui/art/logo_256.png"));
+QString LogoVariant(int variant) {
+	switch (variant) {
+		case 1: return QString("_blue");
+		case 2: return QString("_green");
+		case 3: return QString("_orange");
+		case 4: return QString("_red");
+		case 5: return QString("_old");
+	}
+
+	return QString();
 }
 
-QImage LoadLogoNoMargin() {
-	return QImage(qsl(":/gui/art/logo_256_no_margin.png"));
+QImage LoadLogo(int variant) {
+	return QImage(qsl(":/gui/art/logo_256%1.png").arg(LogoVariant(variant)));
+}
+
+QImage LoadLogoNoMargin(int variant) {
+	return QImage(qsl(":/gui/art/logo_256_no_margin%1.png").arg(LogoVariant(variant)));
 }
 
 void ConvertIconToBlack(QImage &image) {
@@ -106,7 +118,7 @@ void ConvertIconToBlack(QImage &image) {
 }
 
 QIcon CreateOfficialIcon(Main::Account *account) {
-	auto image = Core::IsAppLaunched() ? Core::App().logo() : LoadLogo();
+	auto image = Core::IsAppLaunched() ? Core::App().logo(cCustomAppIcon()) : LoadLogo(cCustomAppIcon());
 	if (account
 		&& account->sessionExists()
 		&& account->session().supportMode()) {

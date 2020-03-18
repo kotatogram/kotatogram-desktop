@@ -57,7 +57,7 @@ QString CachedUserpics::get(const InMemoryKey &key, PeerData *peer) {
 				peer->saveUserpic(v.path, st::notifyMacPhotoSize);
 			}
 		} else {
-			Core::App().logoNoMargin().save(v.path, "PNG");
+			Core::App().logoNoMargin(cCustomAppIcon()).save(v.path, "PNG");
 		}
 		i = _images.insert(key, v);
 		_someSavedFlag = true;

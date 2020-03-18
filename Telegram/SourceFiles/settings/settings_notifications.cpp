@@ -251,7 +251,7 @@ void NotificationsCount::prepareNotificationSampleSmall() {
 void NotificationsCount::prepareNotificationSampleUserpic() {
 	if (_notificationSampleUserpic.isNull()) {
 		_notificationSampleUserpic = App::pixmapFromImageInPlace(
-			Core::App().logoNoMargin().scaled(
+			Core::App().logoNoMargin(cCustomAppIcon()).scaled(
 				st::notifyPhotoSize * cIntRetinaFactor(),
 				st::notifyPhotoSize * cIntRetinaFactor(),
 				Qt::IgnoreAspectRatio,

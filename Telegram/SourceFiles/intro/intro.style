@@ -21,6 +21,10 @@ introCoverIcon: icon {
 	{ "intro_plane_outer", introCoverPlaneOuter },
 	{ "intro_plane_top", introCoverPlaneTop },
 };
+introKotatoCoverIcon: icon {
+	{ "intro_kotato_trace", introCoverPlaneTrace },
+	{ "intro_kotato_top", introCoverPlaneTop },
+};
 introCoverIconLeft: 50px;
 introCoverIconTop: 46px;
 

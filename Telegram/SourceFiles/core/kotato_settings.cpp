@@ -327,6 +327,12 @@ bool Manager::readCustomFile() {
 	ReadBoolOption(settings, "always_show_top_userpic", [&](auto v) {
 		cSetShowTopBarUserpic(v);
 	});
+
+	ReadIntOption(settings, "custom_app_icon", [&](auto v) {
+		if (v >= 0 || v <= 5) {
+			cSetCustomAppIcon(v);
+		}
+	});
 	return true;
 }
 
@@ -370,6 +376,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
+	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -434,6 +441,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
+	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();

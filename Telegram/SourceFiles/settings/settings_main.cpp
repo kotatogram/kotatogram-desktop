@@ -108,7 +108,9 @@ void SetupSections(
 	addSection(
 		tr::ktg_settings_kotato(),
 		Type::Kotato,
-		&st::settingsIconKotato);
+		(cCustomAppIcon() == 5
+			? &st::settingsIconKotatoOld
+			: &st::settingsIconKotato));
 
 	SetupLanguageButton(container);
 

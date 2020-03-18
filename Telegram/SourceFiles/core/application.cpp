@@ -98,9 +98,29 @@ Application::Application(not_null<Launcher*> launcher)
 , _emojiKeywords(std::make_unique<ChatHelpers::EmojiKeywords>())
 , _audio(std::make_unique<Media::Audio::Instance>())
 , _logo(Window::LoadLogo())
-, _logoNoMargin(Window::LoadLogoNoMargin()) {
+, _logoBlue(Window::LoadLogo(1))
+, _logoGreen(Window::LoadLogo(2))
+, _logoOrange(Window::LoadLogo(3))
+, _logoRed(Window::LoadLogo(4))
+, _logoOld(Window::LoadLogo(5))
+, _logoNoMargin(Window::LoadLogoNoMargin())
+, _logoNoMarginBlue(Window::LoadLogoNoMargin(1))
+, _logoNoMarginGreen(Window::LoadLogoNoMargin(2))
+, _logoNoMarginOrange(Window::LoadLogoNoMargin(3))
+, _logoNoMarginRed(Window::LoadLogoNoMargin(4))
+, _logoNoMarginOld(Window::LoadLogoNoMargin(5)) {
 	Expects(!_logo.isNull());
+	Expects(!_logoBlue.isNull());
+	Expects(!_logoGreen.isNull());
+	Expects(!_logoOrange.isNull());
+	Expects(!_logoRed.isNull());
+	Expects(!_logoOld.isNull());
 	Expects(!_logoNoMargin.isNull());
+	Expects(!_logoNoMarginBlue.isNull());
+	Expects(!_logoNoMarginGreen.isNull());
+	Expects(!_logoNoMarginOrange.isNull());
+	Expects(!_logoNoMarginRed.isNull());
+	Expects(!_logoNoMarginOld.isNull());
 
 	Ui::Integration::Set(&_private->uiIntegration);
 

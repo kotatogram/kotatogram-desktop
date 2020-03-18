@@ -29,8 +29,9 @@ class SessionController;
 class TitleWidget;
 struct TermsLock;
 
-QImage LoadLogo();
-QImage LoadLogoNoMargin();
+QString LogoVariant(int variant = 0);
+QImage LoadLogo(int variant = 0);
+QImage LoadLogoNoMargin(int variant = 0);
 QIcon CreateIcon(Main::Account *account = nullptr);
 void ConvertIconToBlack(QImage &image);
 

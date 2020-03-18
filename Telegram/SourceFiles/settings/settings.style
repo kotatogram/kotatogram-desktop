@@ -61,6 +61,7 @@ settingsIconStickers: icon {{ "settings_stickers", menuIconFg }};
 settingsIconEmoji: icon {{ "settings_emoji", menuIconFg }};
 settingsIconThemes: icon {{ "settings_themes", menuIconFg }};
 settingsIconKotato: icon {{ "settings_kotato", menuIconFg }};
+settingsIconKotatoOld: icon {{ "settings_kotato_old", menuIconFg }};
 
 settingsSetPhotoSkip: 7px;
 

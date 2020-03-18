@@ -115,10 +115,26 @@ public:
 	PeerData *ui_getPeerForMouseAction();
 
 	QPoint getPointForCallPanelCenter() const;
-	QImage logo() const {
+	QImage logo(int variant = 0) const {
+		switch (variant) {
+			case 1: return _logoBlue;
+			case 2: return _logoGreen;
+			case 3: return _logoOrange;
+			case 4: return _logoRed;
+			case 5: return _logoOld;
+		}
+
 		return _logo;
 	}
-	QImage logoNoMargin() const {
+	QImage logoNoMargin(int variant = 0) const {
+		switch (variant) {
+			case 1: return _logoNoMarginBlue;
+			case 2: return _logoNoMarginGreen;
+			case 3: return _logoNoMarginOrange;
+			case 4: return _logoNoMarginRed;
+			case 5: return _logoNoMarginOld;
+		}
+
 		return _logoNoMargin;
 	}
 
@@ -281,7 +297,17 @@ private:
 
 	const std::unique_ptr<Media::Audio::Instance> _audio;
 	const QImage _logo;
+	const QImage _logoBlue;
+	const QImage _logoGreen;
+	const QImage _logoOrange;
+	const QImage _logoRed;
+	const QImage _logoOld;
 	const QImage _logoNoMargin;
+	const QImage _logoNoMarginBlue;
+	const QImage _logoNoMarginGreen;
+	const QImage _logoNoMarginOrange;
+	const QImage _logoNoMarginRed;
+	const QImage _logoNoMarginOld;
 
 	rpl::variable<bool> _passcodeLock;
 	rpl::event_stream<bool> _termsLockChanges;

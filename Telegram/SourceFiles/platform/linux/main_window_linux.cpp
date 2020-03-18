@@ -200,7 +200,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 			} else {
 				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
 				if (currentImageBack.isNull()) {
-					currentImageBack = Core::App().logo();
+					currentImageBack = Core::App().logo(cCustomAppIcon());
 				}
 			}
 

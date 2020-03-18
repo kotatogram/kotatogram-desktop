@@ -377,7 +377,7 @@ void PeerData::clearUserpic() {
 	const auto loc = StorageImageLocation();
 	const auto photo = [&] {
 		if (isNotificationsUser()) {
-			auto image = Core::App().logoNoMargin().scaledToWidth(
+			auto image = Core::App().logoNoMargin(cCustomAppIcon()).scaledToWidth(
 				kUserpicSize,
 				Qt::SmoothTransformation);
 			return _userpic

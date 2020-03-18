@@ -81,7 +81,7 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	QImage iconImage(cWorkingDir() + "tdata/icon.png");
 
 	auto logo = iconImage.isNull()
-		? Core::App().logo()
+		? Core::App().logo(cCustomAppIcon())
 		: iconImage;
 
 	icon16 = logo.scaledToWidth(16, Qt::SmoothTransformation);
@@ -89,7 +89,7 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	icon64 = logo.scaledToWidth(64, Qt::SmoothTransformation);
 
 	auto logoNoMargin = iconImage.isNull()
-		? Core::App().logoNoMargin()
+		? Core::App().logoNoMargin(cCustomAppIcon())
 		: iconImage;
 
 	iconbig16 = logoNoMargin.scaledToWidth(16, Qt::SmoothTransformation);
