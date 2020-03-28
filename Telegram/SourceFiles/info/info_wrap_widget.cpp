@@ -410,7 +410,8 @@ void WrapWidget::createTopBar() {
 //		addProfileNotificationsButton();
 	} else if (section.type() == Section::Type::Settings
 		&& (section.settingsType() == Section::SettingsType::Main
-			|| section.settingsType() == Section::SettingsType::Chat)) {
+			|| section.settingsType() == Section::SettingsType::Chat
+			|| section.settingsType() == Section::SettingsType::Kotato)) {
 		addTopBarMenuButton();
 	} else if (section.type() == Section::Type::Settings
 		&& section.settingsType() == Section::SettingsType::Information) {

@@ -201,7 +201,7 @@ void FillMenu(
 			[=] { window->show(Box(Window::Theme::CreateBox, window)); });
 	} else {
 		const auto customSettingsFile = cWorkingDir() + "tdata/kotato-settings-custom.json";
-		if (!controller->session().supportMode()) {
+		if (type != Type::Kotato && !controller->session().supportMode()) {
 			addAction(
 				tr::lng_settings_information(tr::now),
 				[=] { showOther(Type::Information); });
@@ -212,9 +212,11 @@ void FillMenu(
 		addAction(
 			tr::ktg_settings_restart(tr::now),
 			[=] { App::restart(); });
-		addAction(
-			tr::lng_settings_logout(tr::now),
-			[=] { window->widget()->onLogout(); });
+		if (type != Type::Kotato) {
+			addAction(
+				tr::lng_settings_logout(tr::now),
+				[=] { window->widget()->onLogout(); });
+		}
 	}
 }
 
