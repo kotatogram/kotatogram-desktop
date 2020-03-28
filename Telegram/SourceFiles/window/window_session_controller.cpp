@@ -230,7 +230,8 @@ void SessionController::checkOpenedFilter() {
 		const auto &list = session().data().chatsFilters().list();
 		const auto i = ranges::find(list, filterId, &Data::ChatFilter::id);
 		if (i == end(list)) {
-			setActiveChatsFilter(0);
+			const auto j = ranges::find(list, FilterId(cDefaultFilterId()), &Data::ChatFilter::id);
+			setActiveChatsFilter(j == end(list) ? 0 : cDefaultFilterId());
 		}
 	}
 }
@@ -246,8 +247,13 @@ void SessionController::openFolder(not_null<Data::Folder*> folder) {
 	_openedFolder = folder.get();
 }
 
-void SessionController::closeFolder() {
-	_openedFolder = nullptr;
+void SessionController::closeFolder(bool force) {
+	if (cDefaultFilterId() == 0 || force) {
+		_openedFolder = nullptr;
+	} else {
+		setActiveChatsFilter(cDefaultFilterId());
+		checkOpenedFilter();
+	}
 }
 
 const rpl::variable<Data::Folder*> &SessionController::openedFolder() const {
@@ -783,7 +789,7 @@ FilterId SessionController::activeChatsFilterCurrent() const {
 void SessionController::setActiveChatsFilter(FilterId id) {
 	_activeChatsFilter.force_assign(id);
 	if (id) {
-		closeFolder();
+		closeFolder(true);
 	}
 	if (Adaptive::OneColumn()) {
 		Ui::showChatsList();

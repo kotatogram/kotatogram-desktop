@@ -104,7 +104,7 @@ void FiltersMenu::setup() {
 	) | rpl::then(
 		filters->changed()
 	) | rpl::start_with_next([=] {
-		refresh();
+		refresh(true);
 	}, _outer.lifetime());
 
 	_activeFilterId = _session->activeChatsFilterCurrent();
@@ -132,7 +132,7 @@ void FiltersMenu::setup() {
 	});
 }
 
-void FiltersMenu::refresh() {
+void FiltersMenu::refresh(bool firstLoad) {
 	const auto filters = &_session->session().data().chatsFilters();
 	if (filters->list().empty() || _ignoreRefresh) {
 		return;
@@ -156,6 +156,10 @@ void FiltersMenu::refresh() {
 	_reorder->start();
 
 	_container->resizeToWidth(_outer.width());
+
+	if (firstLoad) {
+		_session->setActiveChatsFilter(cDefaultFilterId());
+	}
 }
 
 void FiltersMenu::setupList() {

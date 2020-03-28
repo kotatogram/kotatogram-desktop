@@ -249,3 +249,5 @@ void SetRecentStickersLimit(int limit);
 DeclareSetting(int, UserpicCornersType);
 DeclareSetting(bool, ShowTopBarUserpic);
 DeclareSetting(int, CustomAppIcon);
+
+DeclareSetting(int, DefaultFilterId);

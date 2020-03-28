@@ -687,8 +687,8 @@ void Widget::escape() {
 	} else if (!onCancelSearch()) {
 		if (controller()->activeChatEntryCurrent().key) {
 			emit cancelled();
-		} else if (controller()->activeChatsFilterCurrent()) {
-			controller()->setActiveChatsFilter(FilterId(0));
+		} else if (controller()->activeChatsFilterCurrent() != cDefaultFilterId()) {
+			controller()->setActiveChatsFilter(cDefaultFilterId());
 		}
 	} else if (!_searchInChat && !App::main()->selectingPeer()) {
 		if (controller()->activeChatEntryCurrent().key) {
