@@ -457,7 +457,7 @@ void ShareBox::addPeerToMultiSelect(PeerData *peer, bool skipAnimation) {
 void ShareBox::innerSelectedChanged(PeerData *peer, bool checked) {
 	if (checked) {
 		addPeerToMultiSelect(peer);
-		_select->clearQuery();
+		//_select->clearQuery();
 	} else {
 		_select->removeItem(peer->id);
 	}

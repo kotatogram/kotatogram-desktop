@@ -194,7 +194,7 @@ void PeerListBox::peerListSetRowChecked(
 		peerListUpdateRow(row);
 
 		// This call deletes row from _searchRows.
-		_select->entity()->clearQuery();
+		//_select->entity()->clearQuery();
 	} else {
 		// The itemRemovedCallback will call changeCheckState() here.
 		_select->entity()->removeItem(row->id());
@@ -210,7 +210,7 @@ void PeerListBox::peerListSetForeignRowChecked(
 		addSelectItem(row, animated);
 
 		// This call deletes row from _searchRows.
-		_select->entity()->clearQuery();
+		//_select->entity()->clearQuery();
 	} else {
 		// The itemRemovedCallback will call changeCheckState() here.
 		_select->entity()->removeItem(row->id());
