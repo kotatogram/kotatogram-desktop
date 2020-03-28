@@ -385,6 +385,19 @@ HitTestResult MainWindow::hitTest(const QPoint &p) const {
 	return Window::HitTestResult::None;
 }
 
+int MainWindow::computeMinWidth() const {
+	auto result = st::windowMinWidth;
+	if (const auto session = _controller->sessionController()) {
+		if (const auto add = session->filtersWidth()) {
+			result += add;
+		}
+	}
+	if (_rightColumn) {
+		result += _rightColumn->width();
+	}
+	return result;
+}
+
 int MainWindow::computeMinHeight() const {
 	const auto title = _title ? _title->height() : 0;
 	const auto outdated = [&] {
@@ -398,7 +411,7 @@ int MainWindow::computeMinHeight() const {
 }
 
 void MainWindow::initSize() {
-	setMinimumWidth(st::windowMinWidth);
+	setMinimumWidth(computeMinWidth());
 	setMinimumHeight(computeMinHeight());
 
 	auto position = cWindowPos();
@@ -506,6 +519,7 @@ void MainWindow::leaveEventHook(QEvent *e) {
 }
 
 void MainWindow::updateControlsGeometry() {
+	auto bodyLeft = 0;
 	auto bodyTop = 0;
 	auto bodyWidth = width();
 	if (_title && !_title->isHidden()) {
@@ -522,7 +536,7 @@ void MainWindow::updateControlsGeometry() {
 		bodyWidth -= _rightColumn->width();
 		_rightColumn->setGeometry(bodyWidth, bodyTop, width() - bodyWidth, height() - bodyTop);
 	}
-	_body->setGeometry(0, bodyTop, bodyWidth, height() - bodyTop);
+	_body->setGeometry(bodyLeft, bodyTop, bodyWidth, height() - bodyTop);
 }
 
 void MainWindow::updateUnreadCounter() {
@@ -635,7 +649,7 @@ void MainWindow::showRightColumn(object_ptr<TWidget> widget) {
 	const auto nowRightWidth = _rightColumn ? _rightColumn->width() : 0;
 	const auto wasMaximized = isMaximized();
 	const auto wasMinimumWidth = minimumWidth();
-	const auto nowMinimumWidth = st::windowMinWidth + nowRightWidth;
+	const auto nowMinimumWidth = computeMinWidth();
 	const auto firstResize = (nowMinimumWidth < wasMinimumWidth);
 	if (firstResize) {
 		setMinimumWidth(nowMinimumWidth);

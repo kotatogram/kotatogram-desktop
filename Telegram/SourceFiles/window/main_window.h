@@ -81,7 +81,7 @@ public:
 
 	virtual ~MainWindow();
 
-	TWidget *bodyWidget() {
+	Ui::RpWidget *bodyWidget() {
 		return _body.data();
 	}
 
@@ -95,6 +95,11 @@ public:
 	virtual void updateWindowIcon();
 
 	void clearWidgets();
+
+	int computeMinWidth() const;
+	int computeMinHeight() const;
+
+	virtual void updateControlsGeometry();
 
 public slots:
 	bool minimizeToTray();
@@ -149,8 +154,6 @@ protected:
 	virtual void workmodeUpdated(DBIWorkMode mode) {
 	}
 
-	virtual void updateControlsGeometry();
-
 	virtual void createGlobalMenu() {
 	}
 	virtual void initShadows() {
@@ -176,8 +179,6 @@ private:
 	void showTermsDecline();
 	void showTermsDelete();
 
-	int computeMinHeight() const;
-
 	not_null<Window::Controller*> _controller;
 
 	base::Timer _positionUpdatedTimer;
@@ -185,7 +186,7 @@ private:
 
 	object_ptr<TitleWidget> _title = { nullptr };
 	object_ptr<Ui::RpWidget> _outdated;
-	object_ptr<TWidget> _body;
+	object_ptr<Ui::RpWidget> _body;
 	object_ptr<TWidget> _rightColumn = { nullptr };
 	QPointer<Ui::BoxContent> _termsBox;
 
