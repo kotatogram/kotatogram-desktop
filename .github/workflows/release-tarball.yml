@@ -1,0 +1,38 @@
+name: Release Tarball
+
+on:
+  release:
+    types: [created]
+
+jobs:
+
+  linux:
+    name: Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          submodules: recursive
+
+      - name: Create tarball
+        run: |
+          tag_name=${GITHUB_REF##*/}
+          version=${tag_name#k}
+          artifact_name="kotatogram-desktop-$version-full.tar.gz"
+          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+
+          rm -rf .git
+          tar -caf "../$artifact_name" .
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ../${{ env.ARTIFACT_NAME }}
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/octet-stream
