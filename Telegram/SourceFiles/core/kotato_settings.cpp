@@ -341,6 +341,10 @@ bool Manager::readCustomFile() {
 	ReadBoolOption(settings, "folder_counter_unmuted_only", [&](auto v) {
 		cSetUnmutedFilterCounterOnly(v);
 	});
+
+	ReadBoolOption(settings, "folder_hide_edit", [&](auto v) {
+		cSetHideFilterEditButton(v);
+	});
 	return true;
 }
 
@@ -387,6 +391,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 	settings.insert(qsl("default_folder_id"), cDefaultFilterId());
 	settings.insert(qsl("folder_counter_unmuted_only"), cUnmutedFilterCounterOnly());
+	settings.insert(qsl("folder_hide_edit"), cHideFilterEditButton());
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -454,6 +459,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 	settings.insert(qsl("default_folder_id"), cDefaultFilterId());
 	settings.insert(qsl("folder_counter_unmuted_only"), cUnmutedFilterCounterOnly());
+	settings.insert(qsl("folder_hide_edit"), cHideFilterEditButton());
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();

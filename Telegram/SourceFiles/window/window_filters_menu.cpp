@@ -170,11 +170,13 @@ void FiltersMenu::setupList() {
 		tr::lng_filters_all(tr::now),
 		Ui::FilterIcon::All);
 	_list = _container->add(object_ptr<Ui::VerticalLayout>(_container));
-	_setup = prepareButton(
-		_container,
-		-1,
-		tr::lng_filters_setup(tr::now),
-		Ui::FilterIcon::Setup);
+	if (!cHideFilterEditButton()) {
+		_setup = prepareButton(
+			_container,
+			-1,
+			tr::lng_filters_setup(tr::now),
+			Ui::FilterIcon::Setup);
+	}
 	_reorder = std::make_unique<Ui::VerticalLayoutReorder>(_list);
 
 	_reorder->updates(
