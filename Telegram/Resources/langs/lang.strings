@@ -2460,4 +2460,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_recent_stickers_limit#other" = "Recent stickers: show {count} stickers";
 "ktg_settings_recent_stickers_limit_none" = "Recent stickers: hide all";
 
+"ktg_filters_default" = "Default folder";
+
 // Keys finished

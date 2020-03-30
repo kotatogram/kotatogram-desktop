@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/painter.h"
 #include "ui/filter_icons.h"
+#include "core/kotato_settings.h"
 #include "settings/settings_common.h"
 #include "lang/lang_keys.h"
 #include "apiwrap.h"
@@ -39,6 +40,8 @@ namespace {
 
 constexpr auto kRefreshSuggestedTimeout = 7200 * crl::time(1000);
 constexpr auto kFiltersLimit = 10;
+auto currentDefaultRemoved = false;
+auto localNewFilterId = kFiltersLimit;
 
 using Flag = Data::ChatFilter::Flag;
 using Flags = Data::ChatFilter::Flags;
@@ -309,6 +312,9 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 		not_null<Window::SessionController*> controller,
 		not_null<Ui::VerticalLayout*> container) {
 	auto &lifetime = container->lifetime();
+	const auto currentDefaultId = cDefaultFilterId();
+	localNewFilterId = kFiltersLimit;
+	currentDefaultRemoved = false;
 
 	const auto session = &controller->session();
 	AddSkip(container, st::settingsSectionSkip);
@@ -337,12 +343,18 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 		button->removeRequests(
 		) | rpl::start_with_next([=] {
 			button->setRemoved(true);
+			if (find(button)->filter.id() == cDefaultFilterId()) {
+				currentDefaultRemoved = true;
+			}
 			find(button)->removed = true;
 		}, button->lifetime());
 		button->restoreRequests(
 		) | rpl::start_with_next([=] {
 			if (showLimitReached()) {
 				return;
+			}
+			if (find(button)->filter.id() == cDefaultFilterId()) {
+				currentDefaultRemoved = false;
 			}
 			button->setRemoved(false);
 			find(button)->removed = false;
@@ -354,6 +366,11 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			}
 			const auto doneCallback = [=](const Data::ChatFilter &result) {
 				find(button)->filter = result;
+				const auto isCurrentDefault = result.id() == cDefaultFilterId();
+				if ((isCurrentDefault && !result.isDefault())
+					|| (!isCurrentDefault && result.isDefault())) {
+					cSetDefaultFilterId(result.isDefault() ? result.id() : 0);
+				}
 				button->updateData(result);
 			};
 			controller->window().show(Box(
@@ -414,12 +431,15 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			return;
 		}
 		const auto doneCallback = [=](const Data::ChatFilter &result) {
+			if (result.isDefault()) {
+				cSetDefaultFilterId(result.id());
+			}
 			addFilter(result);
 		};
 		controller->window().show(Box(
 			EditFilterBox,
 			controller,
-			Data::ChatFilter(),
+			Data::ChatFilter(++localNewFilterId),
 			crl::guard(container, doneCallback)));
 	});
 	AddSkip(container);
@@ -508,6 +528,9 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 				continue;
 			} else if (!ranges::contains(list, id, &Data::ChatFilter::id)) {
 				result.emplace(row.button, chooseNextId());
+				if (cDefaultFilterId() == id) {
+					cSetDefaultFilterId(localId);
+				}
 			}
 		}
 		return result;
@@ -564,6 +587,13 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 		}
 		if (!order.empty() && !addRequests.empty()) {
 			realFilters.saveOrder(order, previousId);
+		}
+		if (currentDefaultRemoved) {
+			cSetDefaultFilterId(0);
+			controller->setActiveChatsFilter(0);
+		}
+		if (currentDefaultId != cDefaultFilterId()) {
+			KotatoSettings::Write();
 		}
 	};
 }

@@ -38,6 +38,7 @@ public:
 	static constexpr int kPinnedLimit = 100;
 
 	ChatFilter() = default;
+	ChatFilter(FilterId id);
 	ChatFilter(
 		FilterId id,
 		const QString &title,
@@ -45,7 +46,8 @@ public:
 		Flags flags,
 		base::flat_set<not_null<History*>> always,
 		std::vector<not_null<History*>> pinned,
-		base::flat_set<not_null<History*>> never);
+		base::flat_set<not_null<History*>> never,
+		bool isDefault = false);
 
 	[[nodiscard]] static ChatFilter FromTL(
 		const MTPDialogFilter &data,
@@ -54,6 +56,7 @@ public:
 
 	[[nodiscard]] FilterId id() const;
 	[[nodiscard]] QString title() const;
+	[[nodiscard]] bool isDefault() const;
 	[[nodiscard]] QString iconEmoji() const;
 	[[nodiscard]] Flags flags() const;
 	[[nodiscard]] const base::flat_set<not_null<History*>> &always() const;
@@ -70,6 +73,7 @@ private:
 	std::vector<not_null<History*>> _pinned;
 	base::flat_set<not_null<History*>> _never;
 	Flags _flags;
+	bool _isDefault = false;
 
 };
 

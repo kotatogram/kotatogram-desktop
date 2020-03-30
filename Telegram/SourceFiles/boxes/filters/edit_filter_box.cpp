@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "ui/layers/generic_box.h"
 #include "ui/text/text_utilities.h"
+#include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/effects/panel_animation.h"
@@ -19,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat_filters.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
+#include "core/kotato_settings.h"
 #include "settings/settings_common.h"
 #include "base/event_filter.h"
 #include "lang/lang_keys.h"
@@ -539,6 +541,19 @@ void EditFilterBox(
 		name->setFocusFast();
 	});
 
+	const auto isCurrent = filter.id() == cDefaultFilterId();
+	const auto checkboxDefault = content->add(
+		object_ptr<Ui::Checkbox>(
+			box,
+			tr::ktg_filters_default(tr::now),
+			(creating ? false : isCurrent),
+			st::defaultBoxCheckbox),
+		style::margins(
+			st::boxPadding.left(),
+			st::boxPadding.bottom(),
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+
 	AddSkip(content);
 	AddDivider(content);
 	AddSkip(content);
@@ -618,6 +633,7 @@ void EditFilterBox(
 	const auto save = [=] {
 		const auto title = name->getLastText().trimmed();
 		const auto rules = data->current();
+		const auto checked = checkboxDefault && checkboxDefault->checked();
 		const auto result = Data::ChatFilter(
 			rules.id(),
 			title,
@@ -625,7 +641,8 @@ void EditFilterBox(
 			rules.flags(),
 			rules.always(),
 			rules.pinned(),
-			rules.never());
+			rules.never(),
+			checked);
 		if (title.isEmpty()) {
 			name->showError();
 			return;
@@ -670,6 +687,12 @@ void EditExistingFilter(
 			MTP_int(id),
 			tl
 		)).send();
+		const auto isCurrentDefault = result.id() == cDefaultFilterId();
+		if ((isCurrentDefault && !result.isDefault())
+			|| (!isCurrentDefault && result.isDefault())) {
+			cSetDefaultFilterId(result.isDefault() ? result.id() : 0);
+			KotatoSettings::Write();
+		}
 	};
 	window->window().show(Box(
 		EditFilterBox,

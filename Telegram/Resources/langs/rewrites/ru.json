@@ -97,5 +97,6 @@
 		"many": "Недавние стикеры: показывать {count} стикеров",
 		"other": "Недавние стикеры: показывать {count} стикеров"
 	},
-	"ktg_settings_recent_stickers_limit_none": "Недавние стикеры: скрыть все"
+	"ktg_settings_recent_stickers_limit_none": "Недавние стикеры: скрыть все",
+	"ktg_filters_default": "Папка по умолчанию"
 }

@@ -29,6 +29,9 @@ constexpr auto kLoadExceptionsPerRequest = 100;
 
 } // namespace
 
+ChatFilter::ChatFilter(FilterId id) : _id(id) {
+}
+
 ChatFilter::ChatFilter(
 	FilterId id,
 	const QString &title,
@@ -36,14 +39,16 @@ ChatFilter::ChatFilter(
 	Flags flags,
 	base::flat_set<not_null<History*>> always,
 	std::vector<not_null<History*>> pinned,
-	base::flat_set<not_null<History*>> never)
+	base::flat_set<not_null<History*>> never,
+	bool isDefault)
 : _id(id)
 , _title(title)
 , _iconEmoji(iconEmoji)
 , _always(std::move(always))
 , _pinned(std::move(pinned))
 , _never(std::move(never))
-, _flags(flags) {
+, _flags(flags)
+, _isDefault(isDefault) {
 }
 
 ChatFilter ChatFilter::FromTL(
@@ -102,7 +107,8 @@ ChatFilter ChatFilter::FromTL(
 			flags,
 			std::move(list),
 			std::move(pinned),
-			{ never.begin(), never.end() });
+			{ never.begin(), never.end() },
+			(data.vid().v == cDefaultFilterId()));
 	});
 }
 
@@ -152,6 +158,10 @@ FilterId ChatFilter::id() const {
 
 QString ChatFilter::title() const {
 	return _title;
+}
+
+bool ChatFilter::isDefault() const {
+	return _isDefault;
 }
 
 QString ChatFilter::iconEmoji() const {
@@ -465,7 +475,8 @@ const ChatFilter &ChatFilters::applyUpdatedPinned(
 		i->flags(),
 		std::move(always),
 		std::move(pinned),
-		i->never()));
+		i->never(),
+		(id == cDefaultFilterId())));
 	return *i;
 }
 
