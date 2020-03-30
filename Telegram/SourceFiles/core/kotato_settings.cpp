@@ -334,16 +334,18 @@ bool Manager::readCustomFile() {
 		}
 	});
 
-	ReadIntOption(settings, "default_folder_id", [&](auto v) {
-		cSetDefaultFilterId(v);
-	});
+	ReadObjectOption(settings, "folders", [&](auto o) {
+		ReadIntOption(o, "default", [&](auto v) {
+			cSetDefaultFilterId(v);
+		});
 
-	ReadBoolOption(settings, "folder_counter_unmuted_only", [&](auto v) {
-		cSetUnmutedFilterCounterOnly(v);
-	});
+		ReadBoolOption(o, "count_unmuted_only", [&](auto v) {
+			cSetUnmutedFilterCounterOnly(v);
+		});
 
-	ReadBoolOption(settings, "folder_hide_edit", [&](auto v) {
-		cSetHideFilterEditButton(v);
+		ReadBoolOption(o, "hide_edit_button", [&](auto v) {
+			cSetHideFilterEditButton(v);
+		});
 	});
 	return true;
 }
@@ -389,9 +391,13 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
-	settings.insert(qsl("default_folder_id"), cDefaultFilterId());
-	settings.insert(qsl("folder_counter_unmuted_only"), cUnmutedFilterCounterOnly());
-	settings.insert(qsl("folder_hide_edit"), cHideFilterEditButton());
+
+	auto settingsFolders = QJsonObject();
+	settingsFolders.insert(qsl("default"), cDefaultFilterId());
+	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
+	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
+
+	settings.insert(qsl("folders"), settingsFolders);
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -457,9 +463,13 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
-	settings.insert(qsl("default_folder_id"), cDefaultFilterId());
-	settings.insert(qsl("folder_counter_unmuted_only"), cUnmutedFilterCounterOnly());
-	settings.insert(qsl("folder_hide_edit"), cHideFilterEditButton());
+	
+	auto settingsFolders = QJsonObject();
+	settingsFolders.insert(qsl("default"), cDefaultFilterId());
+	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
+	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
+
+	settings.insert(qsl("folders"), settingsFolders);
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();
