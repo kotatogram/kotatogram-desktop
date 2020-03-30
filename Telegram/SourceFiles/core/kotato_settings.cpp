@@ -351,6 +351,10 @@ bool Manager::readCustomFile() {
 			cSetHideFilterNames(v);
 		});
 	});
+
+	ReadBoolOption(settings, "profile_top_mute", [&](auto v) {
+		cSetProfileTopBarNotifications(v);
+	});
 	return true;
 }
 
@@ -395,6 +399,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
+	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
 
 	auto settingsFolders = QJsonObject();
 	settingsFolders.insert(qsl("default"), cDefaultFilterId());
@@ -468,6 +473,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
+	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
 	
 	auto settingsFolders = QJsonObject();
 	settingsFolders.insert(qsl("default"), cDefaultFilterId());

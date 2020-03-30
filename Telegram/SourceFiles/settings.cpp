@@ -324,3 +324,5 @@ int gDefaultFilterId = 0;
 bool gUnmutedFilterCounterOnly = false;
 bool gHideFilterEditButton = false;
 bool gHideFilterNames = false;
+
+bool gProfileTopBarNotifications = false;

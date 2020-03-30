@@ -407,7 +407,6 @@ void WrapWidget::createTopBar() {
 		&& (wrapValue != Wrap::Side || hasStackHistory())) {
 		addTopBarMenuButton();
 		addProfileCallsButton();
-//		addProfileNotificationsButton();
 	} else if (section.type() == Section::Type::Settings
 		&& (section.settingsType() == Section::SettingsType::Main
 			|| section.settingsType() == Section::SettingsType::Chat
@@ -416,6 +415,11 @@ void WrapWidget::createTopBar() {
 	} else if (section.type() == Section::Type::Settings
 		&& section.settingsType() == Section::SettingsType::Information) {
 		addContentSaveButton();
+	}
+
+	if (section.type() == Section::Type::Profile
+		&& cProfileTopBarNotifications()) {
+		addProfileNotificationsButton();
 	}
 
 	_topBar->lower();

@@ -148,7 +148,7 @@ infoTopBarNotifications: IconButton(infoTopBarMenu) {
 	rippleAreaPosition: point(0px, 6px);
 }
 infoNotificationsActive: icon {{
-	"info_notifications",
+	"info_notifications_active",
 	windowBgActive
 }};
 infoTopBarCall: IconButton(infoTopBarNotifications) {
