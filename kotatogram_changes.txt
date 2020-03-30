@@ -1,3 +1,12 @@
+1.2.1 (31.03.2020)
+- Updated TDesktop sources to 2.0.
+- Option to set default folder. Also added context menu to All chats filter.
+- Option to show only unmuted chats in folder counter.
+- Option to hide Edit button in folder sidebar.
+- Compact folder sidebar option.
+- Restored unreleased notification toggle as option.
+- tg://settings/kotato link to open Kotatogram Settings. Also added three-dots menu there.
+
 1.2 (19.03.2020)
 - Updated TDesktop sources to 1.9.21.
 - New logo and option to choose alternative icons.

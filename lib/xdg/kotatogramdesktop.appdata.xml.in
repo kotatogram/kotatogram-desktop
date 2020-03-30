@@ -35,6 +35,20 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.2.1" date="2020-03-31">
+            <description>
+                <p>TDesktop sources were updated to 2.0.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Option to set default folder. Also added context menu to All chats filter.</li>
+                    <li>Option to show only unmuted chats in folder counter.</li>
+                    <li>Option to hide Edit button in folder sidebar.</li>
+                    <li>Compact folder sidebar option.</li>
+                    <li>Restored unreleased notification toggle as option.</li>
+                    <li>tg://settings/kotato link to open Kotatogram Settings. Also added three-dots menu there.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.2" date="2020-03-19">
             <description>
                 <p>TDesktop sources were updated to 1.9.21.</p>
