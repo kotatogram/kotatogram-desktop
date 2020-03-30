@@ -1,0 +1,45 @@
+name: Release Snap
+
+on:
+  release:
+    types: [created]
+
+jobs:
+
+  linux:
+    name: Ubuntu 18.04
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          submodules: recursive
+
+      - name: First set up
+        run: |
+          sudo apt-get update
+          sudo snap install --classic snapcraft
+
+          # Workaround for snapcraft
+          # See https://forum.snapcraft.io/t/permissions-problem-using-snapcraft-in-azure-pipelines/13258
+          sudo chown root:root /
+
+      - name: Kotatogram Desktop snap build
+        run: sudo snapcraft --destructive-mode
+
+      - name: Get artifact name
+        run: |
+          artifact_name=$(echo kotatogram-desktop_*.snap)
+          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./${{ env.ARTIFACT_NAME }}
+          asset_name: ${{ env.ARTIFACT_NAME }}
+          asset_content_type: application/octet-stream
