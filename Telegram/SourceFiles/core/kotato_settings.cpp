@@ -346,6 +346,10 @@ bool Manager::readCustomFile() {
 		ReadBoolOption(o, "hide_edit_button", [&](auto v) {
 			cSetHideFilterEditButton(v);
 		});
+
+		ReadBoolOption(o, "hide_names", [&](auto v) {
+			cSetHideFilterNames(v);
+		});
 	});
 	return true;
 }
@@ -396,6 +400,7 @@ void Manager::writeDefaultFile() {
 	settingsFolders.insert(qsl("default"), cDefaultFilterId());
 	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
 	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
+	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
 
 	settings.insert(qsl("folders"), settingsFolders);
 
@@ -468,6 +473,7 @@ void Manager::writeCurrentSettings() {
 	settingsFolders.insert(qsl("default"), cDefaultFilterId());
 	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
 	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
+	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
 
 	settings.insert(qsl("folders"), settingsFolders);
 

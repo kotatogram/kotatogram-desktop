@@ -253,3 +253,4 @@ DeclareSetting(int, CustomAppIcon);
 DeclareSetting(int, DefaultFilterId);
 DeclareSetting(bool, UnmutedFilterCounterOnly);
 DeclareSetting(bool, HideFilterEditButton);
+DeclareSetting(bool, HideFilterNames);

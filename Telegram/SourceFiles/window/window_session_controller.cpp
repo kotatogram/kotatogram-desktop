@@ -775,7 +775,7 @@ rpl::producer<FullMsgId> SessionController::floatPlayerClosed() const {
 }
 
 int SessionController::filtersWidth() const {
-	return _filters ? st::windowFiltersWidth : 0;
+	return _filters ? (cHideFilterNames() ? st::windowFiltersWidthNoText : st::windowFiltersWidth) : 0;
 }
 
 rpl::producer<FilterId> SessionController::activeChatsFilter() const {
