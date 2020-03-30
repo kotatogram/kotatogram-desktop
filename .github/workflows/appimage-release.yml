@@ -15,6 +15,7 @@ jobs:
 
     env:
       GIT: "https://github.com"
+      OPENSSL_VER: "1_1_1"
       CMAKE_VER: "3.17.0"
       DOC_PATH: "docs/building-cmake.md"
 
@@ -42,7 +43,7 @@ jobs:
           sudo add-apt-repository ppa:git-core/ppa -y && \
           sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y && \
           sudo apt-get update && \
-          sudo apt-get install liblzma-dev zlib1g-dev libssl-dev \
+          sudo apt-get install liblzma-dev zlib1g-dev \
           git wget autoconf automake build-essential libtool pkg-config \
           libopus-dev libasound2-dev libpulse-dev portaudio19-dev \
           qt510base qt510imageformats qt510svg libfuse2 libgl1-mesa-dev \
@@ -284,6 +285,20 @@ jobs:
           cmake --install .
           cd -
           rm -rf openal-soft
+
+      - name: OpenSSL.
+        run: |
+          cd $LibrariesPath
+
+          opensslDir=openssl_${OPENSSL_VER}
+          git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
+            $GIT/openssl/openssl $opensslDir
+          cd $opensslDir
+          ./config --prefix=/usr
+          make -j$(nproc)
+          sudo make install_sw
+          cd ..
+          rm -rf $opensslDir
 
       - name: Hunspell.
         run: |
