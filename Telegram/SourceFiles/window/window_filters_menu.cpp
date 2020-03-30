@@ -213,12 +213,22 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 		) | rpl::start_with_next([=](const Dialogs::UnreadState &state) {
 			const auto count = (state.chats + state.marks);
 			const auto muted = (state.chatsMuted + state.marksMuted);
-			const auto string = !count
-				? QString()
-				: (count > 99)
-				? "99+"
-				: QString::number(count);
-			raw->setBadge(string, count == muted);
+			if (cUnmutedFilterCounterOnly()) {
+				const auto unmuted = count - muted;
+				const auto string = !unmuted
+					? QString()
+					: (unmuted > 99)
+					? "99+"
+					: QString::number(unmuted);
+				raw->setBadge(string, false);
+			} else {
+				const auto string = !count
+					? QString()
+					: (count > 99)
+					? "99+"
+					: QString::number(count);
+				raw->setBadge(string, count == muted);
+			}
 		}, raw->lifetime());
 	}
 	raw->setActive(_session->activeChatsFilterCurrent() == id);

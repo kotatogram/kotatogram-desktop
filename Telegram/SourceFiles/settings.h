@@ -251,3 +251,4 @@ DeclareSetting(bool, ShowTopBarUserpic);
 DeclareSetting(int, CustomAppIcon);
 
 DeclareSetting(int, DefaultFilterId);
+DeclareSetting(bool, UnmutedFilterCounterOnly);

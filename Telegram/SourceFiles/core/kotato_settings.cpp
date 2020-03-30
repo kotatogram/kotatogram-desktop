@@ -337,6 +337,10 @@ bool Manager::readCustomFile() {
 	ReadIntOption(settings, "default_folder_id", [&](auto v) {
 		cSetDefaultFilterId(v);
 	});
+
+	ReadBoolOption(settings, "folder_counter_unmuted_only", [&](auto v) {
+		cSetUnmutedFilterCounterOnly(v);
+	});
 	return true;
 }
 
@@ -382,6 +386,7 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 	settings.insert(qsl("default_folder_id"), cDefaultFilterId());
+	settings.insert(qsl("folder_counter_unmuted_only"), cUnmutedFilterCounterOnly());
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -448,6 +453,7 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 	settings.insert(qsl("default_folder_id"), cDefaultFilterId());
+	settings.insert(qsl("folder_counter_unmuted_only"), cUnmutedFilterCounterOnly());
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();

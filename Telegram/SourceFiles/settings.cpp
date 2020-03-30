@@ -321,4 +321,4 @@ bool gShowTopBarUserpic = false;
 int gCustomAppIcon = 0;
 
 int gDefaultFilterId = 0;
-
+bool gUnmutedFilterCounterOnly = false;
