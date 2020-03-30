@@ -100,5 +100,9 @@
 	"ktg_settings_recent_stickers_limit_none": "Недавние стикеры: скрыть все",
 	"ktg_filters_default": "Папка по умолчанию",
 	"ktg_filters_context_edit_all": "Изменить папки",
-	"ktg_filters_context_make_default": "Сделать папкой по умолчанию"
+	"ktg_filters_context_make_default": "Сделать папкой по умолчанию",
+	"ktg_settings_filters": "Папки",
+	"ktg_settings_filters_only_unmuted_counter": "Не считать чаты без уведомлений",
+	"ktg_settings_filters_hide_edit": "Скрыть кнопку изменения",
+	"ktg_settings_filters_hide_folder_names": "Компактные папки"
 }

@@ -299,6 +299,7 @@ public:
 	void setActiveChatsFilter(FilterId id);
 
 	void toggleFiltersMenu(bool enabled);
+	void reloadFiltersMenu();
 	[[nodiscard]] rpl::producer<> filtersMenuChanged() const;
 
 	rpl::lifetime &lifetime() {

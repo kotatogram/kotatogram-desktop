@@ -31,6 +31,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "data/data_session.h"
 #include "main/main_session.h"
 #include "layout.h"
+#include "mainwindow.h"
 #include "facades.h"
 #include "app.h"
 #include "styles/style_settings.h"
@@ -201,6 +202,64 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 }
 
+void SetupKotatoFolders(
+	not_null<Window::SessionController*> controller,
+	not_null<Ui::VerticalLayout*> container) {
+	AddDivider(container);
+	AddSkip(container);
+	AddSubsectionTitle(container, tr::ktg_settings_filters());
+
+	AddButton(
+		container,
+		tr::ktg_settings_filters_only_unmuted_counter(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cUnmutedFilterCounterOnly())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cUnmutedFilterCounterOnly());
+	}) | rpl::start_with_next([=](bool enabled) {
+		cSetUnmutedFilterCounterOnly(enabled);
+		KotatoSettings::Write();
+		controller->reloadFiltersMenu();
+		App::wnd()->fixOrder();
+	}, container->lifetime());
+
+	AddButton(
+		container,
+		tr::ktg_settings_filters_hide_edit(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cHideFilterEditButton())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cHideFilterEditButton());
+	}) | rpl::start_with_next([=](bool enabled) {
+		cSetHideFilterEditButton(enabled);
+		KotatoSettings::Write();
+		controller->reloadFiltersMenu();
+		App::wnd()->fixOrder();
+	}, container->lifetime());
+
+	AddButton(
+		container,
+		tr::ktg_settings_filters_hide_folder_names(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cHideFilterNames())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cHideFilterNames());
+	}) | rpl::start_with_next([=](bool enabled) {
+		cSetHideFilterNames(enabled);
+		KotatoSettings::Write();
+		controller->reloadFiltersMenu();
+		App::wnd()->fixOrder();
+	}, container->lifetime());
+
+	AddSkip(container);
+}
+
 void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
@@ -285,6 +344,7 @@ void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 
 	SetupKotatoChats(content);
 	SetupKotatoNetwork(content);
+	SetupKotatoFolders(controller, content);
 	SetupKotatoSystem(content);
 	SetupKotatoOther(content);
 

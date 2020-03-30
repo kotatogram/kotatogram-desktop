@@ -2464,4 +2464,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_filters_context_edit_all" = "Edit folders";
 "ktg_filters_context_make_default" = "Make folder default";
 
+"ktg_settings_filters" = "Folders";
+"ktg_settings_filters_only_unmuted_counter" = "Do not count muted chats";
+"ktg_settings_filters_hide_edit" = "Hide Edit button";
+"ktg_settings_filters_hide_folder_names" = "Compact folders";
+
 // Keys finished

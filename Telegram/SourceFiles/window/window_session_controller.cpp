@@ -212,6 +212,14 @@ void SessionController::toggleFiltersMenu(bool enabled) {
 	_filtersMenuChanged.fire({});
 }
 
+void SessionController::reloadFiltersMenu() {
+	const auto enabled = !session().data().chatsFilters().list().empty();
+	if (enabled) {
+		toggleFiltersMenu(false);
+		toggleFiltersMenu(true);
+	}
+}
+
 void SessionController::refreshFiltersMenu() {
 	const auto enabled = !session().data().chatsFilters().list().empty();
 	if (enabled != Global::DialogsFiltersEnabled()) {
