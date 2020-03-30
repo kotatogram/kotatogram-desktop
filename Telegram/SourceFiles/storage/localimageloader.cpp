@@ -968,6 +968,10 @@ void FileLoadTask::finish() {
 	}
 }
 
+FileLoadResult *FileLoadTask::peekResult() const {
+	return _result.get();
+}
+
 void FileLoadTask::removeFromAlbum() {
 	if (!_album) {
 		return;

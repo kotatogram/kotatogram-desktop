@@ -333,6 +333,24 @@ bool Manager::readCustomFile() {
 			cSetCustomAppIcon(v);
 		}
 	});
+
+	ReadObjectOption(settings, "folders", [&](auto o) {
+		ReadIntOption(o, "default", [&](auto v) {
+			cSetDefaultFilterId(v);
+		});
+
+		ReadBoolOption(o, "count_unmuted_only", [&](auto v) {
+			cSetUnmutedFilterCounterOnly(v);
+		});
+
+		ReadBoolOption(o, "hide_edit_button", [&](auto v) {
+			cSetHideFilterEditButton(v);
+		});
+
+		ReadBoolOption(o, "hide_names", [&](auto v) {
+			cSetHideFilterNames(v);
+		});
+	});
 	return true;
 }
 
@@ -377,6 +395,14 @@ void Manager::writeDefaultFile() {
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
+
+	auto settingsFolders = QJsonObject();
+	settingsFolders.insert(qsl("default"), cDefaultFilterId());
+	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
+	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
+	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
+
+	settings.insert(qsl("folders"), settingsFolders);
 
 	auto settingsScales = QJsonArray();
 	settings.insert(qsl("scales"), settingsScales);
@@ -442,6 +468,14 @@ void Manager::writeCurrentSettings() {
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
+	
+	auto settingsFolders = QJsonObject();
+	settingsFolders.insert(qsl("default"), cDefaultFilterId());
+	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
+	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
+	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
+
+	settings.insert(qsl("folders"), settingsFolders);
 
 	auto settingsScales = QJsonArray();
 	auto currentScales = cInterfaceScales();

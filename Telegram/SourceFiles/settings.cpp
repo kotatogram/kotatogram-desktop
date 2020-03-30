@@ -319,3 +319,8 @@ rpl::producer<int> RecentStickersLimitChanges() {
 int gUserpicCornersType = 3;
 bool gShowTopBarUserpic = false;
 int gCustomAppIcon = 0;
+
+int gDefaultFilterId = 0;
+bool gUnmutedFilterCounterOnly = false;
+bool gHideFilterEditButton = false;
+bool gHideFilterNames = false;
