@@ -48,7 +48,7 @@ namespace {
 
 constexpr auto kDesktopFile = ":/misc/kotatogramdesktop.desktop"_cs;
 constexpr auto kSnapLauncherDir = "/var/lib/snapd/desktop/applications/"_cs;
-constexpr auto kIconName = "telegram"_cs;
+constexpr auto kIconName = "kotatogram"_cs;
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 void SandboxAutostart(bool autostart, bool silent = false) {
@@ -332,8 +332,7 @@ QString GetLauncherBasename() {
 		}
 
 		const auto possibleBasenames = std::vector<QString>{
-			qsl(MACRO_TO_STRING(TDESKTOP_LAUNCHER_BASENAME)),
-			qsl("Telegram")
+			qsl(MACRO_TO_STRING(TDESKTOP_LAUNCHER_BASENAME))
 		};
 
 		for (const auto &it : possibleBasenames) {
