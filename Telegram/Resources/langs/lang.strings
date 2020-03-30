@@ -2469,4 +2469,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_filters_hide_edit" = "Hide Edit button";
 "ktg_settings_filters_hide_folder_names" = "Compact folders";
 
+"ktg_settings_top_bar_mute" = "Mute in profile top bar";
+
 // Keys finished

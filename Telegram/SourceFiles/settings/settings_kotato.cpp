@@ -175,6 +175,20 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 
 	AddButton(
 		container,
+		tr::ktg_settings_top_bar_mute(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cProfileTopBarNotifications())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cProfileTopBarNotifications());
+	}) | rpl::start_with_next([](bool enabled) {
+		cSetProfileTopBarNotifications(enabled);
+		KotatoSettings::Write();
+	}, container->lifetime());
+
+	AddButton(
+		container,
 		tr::ktg_settings_fonts(),
 		st::settingsButton
 	)->addClickHandler([=] {
