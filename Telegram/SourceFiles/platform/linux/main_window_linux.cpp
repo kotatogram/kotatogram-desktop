@@ -313,6 +313,14 @@ std::unique_ptr<QTemporaryFile> TrayIconFile(
 
 	return ret;
 }
+
+bool UseUnityCounter() {
+	static const auto UnityCounter = QDBusInterface(
+		"com.canonical.Unity",
+		"/").isValid();
+
+	return UnityCounter;
+}
 #endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 
 bool IsSNIAvailable() {
@@ -339,18 +347,6 @@ bool IsSNIAvailable() {
 #endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 
 	return false;
-}
-
-bool UseUnityCounter() {
-#ifdef TDESKTOP_DISABLE_DBUS_INTEGRATION
-	static const auto UnityCounter = false;
-#else // TDESKTOP_DISABLE_DBUS_INTEGRATION
-	static const auto UnityCounter = QDBusInterface(
-		"com.canonical.Unity",
-		"/").isValid();
-#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
-
-	return UnityCounter;
 }
 
 quint32 djbStringHash(QString string) {
@@ -460,13 +456,19 @@ void MainWindow::initHook() {
 		&QWindow::visibleChanged,
 		this,
 		&MainWindow::onVisibleChanged);
-#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
+
+	if (AppMenuSupported()) {
+		LOG(("Using D-Bus global menu."));
+	} else {
+		LOG(("Not using D-Bus global menu."));
+	}
 
 	if (UseUnityCounter()) {
 		LOG(("Using Unity launcher counter."));
 	} else {
 		LOG(("Not using Unity launcher counter."));
 	}
+#endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
 }
 
 bool MainWindow::hasTrayIcon() const {

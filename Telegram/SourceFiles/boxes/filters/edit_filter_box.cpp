@@ -314,6 +314,7 @@ void EditExceptions(
 		include ? rules.always() : rules.never());
 	const auto rawController = controller.get();
 	auto initBox = [=](not_null<PeerListBox*> box) {
+		box->setCloseByOutsideClick(false);
 		box->addButton(tr::lng_settings_save(), crl::guard(context, [=] {
 			const auto peers = box->peerListCollectSelectedRows();
 			const auto rules = data->current();
@@ -469,6 +470,10 @@ void CreateIconSelector(
 	return QString();
 }
 
+[[nodiscard]] QString TrimDefaultTitle(const QString &title) {
+	return (title.size() <= kMaxFilterTitleLength) ? title : QString();
+}
+
 } // namespace
 
 void EditFilterBox(
@@ -512,7 +517,7 @@ void EditFilterBox(
 		if (nameEditing->custom) {
 			return;
 		}
-		const auto title = DefaultTitle(filter);
+		const auto title = TrimDefaultTitle(DefaultTitle(filter));
 		if (nameEditing->field->getLastText() != title) {
 			nameEditing->settingDefault = true;
 			nameEditing->field->setText(title);
@@ -559,17 +564,17 @@ void EditFilterBox(
 	AddSkip(content);
 	AddSubsectionTitle(content, tr::lng_filters_include());
 
+	const auto includeAdd = AddButton(
+		content,
+		tr::lng_filters_add_chats() | Ui::Text::ToUpper(),
+		st::settingsUpdate);
+
 	const auto include = SetupChatsPreview(
 		content,
 		data,
 		updateDefaultTitle,
 		kTypes,
 		&Data::ChatFilter::always);
-
-	const auto includeAdd = AddButton(
-		content,
-		tr::lng_filters_add_chats() | Ui::Text::ToUpper(),
-		st::settingsUpdate);
 
 	AddSkip(content);
 	content->add(
@@ -583,17 +588,17 @@ void EditFilterBox(
 
 	AddSubsectionTitle(content, tr::lng_filters_exclude());
 
+	const auto excludeAdd = AddButton(
+		content,
+		tr::lng_filters_remove_chats() | Ui::Text::ToUpper(),
+		st::settingsUpdate);
+
 	const auto exclude = SetupChatsPreview(
 		content,
 		data,
 		updateDefaultTitle,
 		kExcludeTypes,
 		&Data::ChatFilter::never);
-
-	const auto excludeAdd = AddButton(
-		content,
-		tr::lng_filters_remove_chats() | Ui::Text::ToUpper(),
-		st::settingsUpdate);
 
 	AddSkip(content);
 	content->add(
