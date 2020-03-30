@@ -241,12 +241,16 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 			}
 		}
 	});
-	if (id > 0) {
+	if (id >= 0) {
 		raw->events(
 		) | rpl::filter([=](not_null<QEvent*> e) {
 			return e->type() == QEvent::ContextMenu;
 		}) | rpl::start_with_next([=] {
-			showMenu(QCursor::pos(), id);
+			if (id){
+				showMenu(QCursor::pos(), id);
+			} else {
+				showAllMenu(QCursor::pos());
+			}
 		}, raw->lifetime());
 	}
 	return button;
@@ -265,10 +269,40 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 	_popupMenu->addAction(
 		tr::lng_filters_context_edit(tr::now),
 		crl::guard(&_outer, [=] { showEditBox(id); }));
+	if (cDefaultFilterId() != id) {
+		_popupMenu->addAction(
+			tr::ktg_filters_context_make_default(tr::now),
+			crl::guard(&_outer, [=] { setDefaultFilter(id); }));
+	}
 	_popupMenu->addAction(
 		tr::lng_filters_context_remove(tr::now),
 		crl::guard(&_outer, [=] { showRemoveBox(id); }));
 	_popupMenu->popup(position);
+}
+
+void FiltersMenu::showAllMenu(QPoint position) {
+	if (_popupMenu) {
+		_popupMenu = nullptr;
+		return;
+	}
+	_popupMenu = base::make_unique_q<Ui::PopupMenu>(_all);
+	_popupMenu->addAction(
+		tr::ktg_filters_context_edit_all(tr::now),
+		crl::guard(&_outer, [=] { _session->showSettings(Settings::Type::Folders); }));
+	if (cDefaultFilterId() != 0) {
+		_popupMenu->addAction(
+			tr::ktg_filters_context_make_default(tr::now),
+			crl::guard(&_outer, [=] { setDefaultFilter(0); }));
+	}
+	
+	_popupMenu->popup(position);
+}
+
+void FiltersMenu::setDefaultFilter(FilterId id) {
+	if (cDefaultFilterId() != id) {
+		cSetDefaultFilterId(id);
+		KotatoSettings::Write();
+	}
 }
 
 void FiltersMenu::showEditBox(FilterId id) {

@@ -2461,5 +2461,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_recent_stickers_limit_none" = "Recent stickers: hide all";
 
 "ktg_filters_default" = "Default folder";
+"ktg_filters_context_edit_all" = "Edit folders";
+"ktg_filters_context_make_default" = "Make folder default";
 
 // Keys finished

@@ -46,6 +46,8 @@ private:
 		const QString &title,
 		Ui::FilterIcon icon);
 	void showMenu(QPoint position, FilterId id);
+	void showAllMenu(QPoint position);
+	void setDefaultFilter(FilterId id);
 	void showEditBox(FilterId id);
 	void showRemoveBox(FilterId id);
 	void remove(FilterId id);

@@ -98,5 +98,7 @@
 		"other": "Недавние стикеры: показывать {count} стикеров"
 	},
 	"ktg_settings_recent_stickers_limit_none": "Недавние стикеры: скрыть все",
-	"ktg_filters_default": "Папка по умолчанию"
+	"ktg_filters_default": "Папка по умолчанию",
+	"ktg_filters_context_edit_all": "Изменить папки",
+	"ktg_filters_context_make_default": "Сделать папкой по умолчанию"
 }
