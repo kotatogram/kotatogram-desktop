@@ -215,8 +215,13 @@ void SessionController::toggleFiltersMenu(bool enabled) {
 void SessionController::reloadFiltersMenu() {
 	const auto enabled = !session().data().chatsFilters().list().empty();
 	if (enabled) {
+		const auto previousFilter = activeChatsFilterCurrent();
+		setActiveChatsFilter(0);
 		toggleFiltersMenu(false);
 		toggleFiltersMenu(true);
+		if (previousFilter) {
+			setActiveChatsFilter(previousFilter);
+		}
 	}
 }
 
