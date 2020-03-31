@@ -335,6 +335,9 @@ jobs:
 
       - name: Kotatogram Desktop.
         shell: bash --noprofile --norc -o pipefail {0}
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
         run: |
           cd $REPO_NAME
 
@@ -345,7 +348,8 @@ jobs:
           cmake . \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DCMAKE_BUILD_TYPE=Release \
-          -DTDESKTOP_API_TEST=ON \
+          -DTDESKTOP_API_ID=${API_ID} \
+          -DTDESKTOP_API_HASH=${API_HASH} \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
           -DDESKTOP_APP_USE_PACKAGED_GSL=OFF \
           -DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF \
