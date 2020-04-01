@@ -371,7 +371,7 @@ jobs:
           ./linuxdeployqt-continuous-x86_64.AppImage \
           $REPO_NAME/AppDir/usr/share/applications/*.desktop \
           -appimage \
-          -extra-plugins=iconengines,imageformats,platformthemes/libqgtk3.so
+          -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platformthemes/libqgtk3.so
 
       - name: Get artifact name
         run: |
