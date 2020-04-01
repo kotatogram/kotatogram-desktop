@@ -2473,4 +2473,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_settings_top_bar_mute" = "Mute in profile top bar";
 
+"ktg_settings_messages" = "Messages";
+
 // Keys finished

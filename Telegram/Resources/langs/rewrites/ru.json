@@ -105,5 +105,6 @@
 	"ktg_settings_filters_only_unmuted_counter": "Не считать чаты без уведомлений",
 	"ktg_settings_filters_hide_edit": "Скрыть кнопку изменения",
 	"ktg_settings_filters_hide_folder_names": "Компактные папки",
-	"ktg_settings_top_bar_mute": "Уведомления вверху профиля"
+	"ktg_settings_top_bar_mute": "Уведомления вверху профиля",
+	"ktg_settings_messages": "Сообщения"
 }

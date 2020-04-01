@@ -14,6 +14,7 @@ class BoxContent;
 namespace Settings {
 
 void SetupKotatoChats(not_null<Ui::VerticalLayout*> container);
+void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container);
 void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container);
 void SetupKotatoFolders(
 	not_null<Window::SessionController*> controller,

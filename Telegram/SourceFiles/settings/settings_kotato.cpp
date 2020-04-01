@@ -42,34 +42,6 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_chats());
 
-	const auto stickerHeightLabel = container->add(
-		object_ptr<Ui::LabelSimple>(
-			container,
-			st::settingsAudioVolumeLabel),
-		st::settingsAudioVolumeLabelPadding);
-	const auto stickerHeightSlider = container->add(
-		object_ptr<Ui::MediaSlider>(
-			container,
-			st::settingsAudioVolumeSlider),
-		st::settingsAudioVolumeSliderPadding);
-	const auto updateStickerHeightLabel = [=](int value) {
-		const auto pixels = QString::number(value);
-		stickerHeightLabel->setText(
-			tr::ktg_settings_sticker_height(tr::now, lt_pixels, pixels));
-	};
-	const auto updateStickerHeight = [=](int value) {
-		updateStickerHeightLabel(value);
-		SetStickerHeight(value);
-		KotatoSettings::Write();
-	};
-	stickerHeightSlider->resize(st::settingsAudioVolumeSlider.seekSize);
-	stickerHeightSlider->setPseudoDiscrete(
-		193,
-		[](int val) { return val + 64; },
-		StickerHeight(),
-		updateStickerHeight);
-	updateStickerHeightLabel(StickerHeight());
-
 	const auto recentStickersLimitLabel = container->add(
 		object_ptr<Ui::LabelSimple>(
 			container,
@@ -104,29 +76,29 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 
 	AddButton(
 		container,
-		tr::ktg_settings_adaptive_bubbles(),
+		tr::ktg_settings_top_bar_mute(),
 		st::settingsButton
 	)->toggleOn(
-		rpl::single(AdaptiveBubbles())
+		rpl::single(cProfileTopBarNotifications())
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != AdaptiveBubbles());
+		return (enabled != cProfileTopBarNotifications());
 	}) | rpl::start_with_next([](bool enabled) {
-		SetAdaptiveBubbles(enabled);
+		cSetProfileTopBarNotifications(enabled);
 		KotatoSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
 		container,
-		tr::ktg_settings_emoji_outline(),
+		tr::ktg_settings_disable_up_edit(),
 		st::settingsButton
 	)->toggleOn(
-		rpl::single(BigEmojiOutline())
+		rpl::single(cDisableUpEdit())
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != BigEmojiOutline());
+		return (enabled != cDisableUpEdit());
 	}) | rpl::start_with_next([](bool enabled) {
-		SetBigEmojiOutline(enabled);
+		cSetDisableUpEdit(enabled);
 		KotatoSettings::Write();
 	}, container->lifetime());
 
@@ -161,40 +133,75 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 
 	AddButton(
 		container,
-		tr::ktg_settings_disable_up_edit(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cDisableUpEdit())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cDisableUpEdit());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetDisableUpEdit(enabled);
-		KotatoSettings::Write();
-	}, container->lifetime());
-
-	AddButton(
-		container,
-		tr::ktg_settings_top_bar_mute(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cProfileTopBarNotifications())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cProfileTopBarNotifications());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetProfileTopBarNotifications(enabled);
-		KotatoSettings::Write();
-	}, container->lifetime());
-
-	AddButton(
-		container,
 		tr::ktg_settings_fonts(),
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<FontsBox>());
 	});
 
+	AddSkip(container);
+}
+
+void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
+	AddDivider(container);
+	AddSkip(container);
+	AddSubsectionTitle(container, tr::ktg_settings_messages());
+
+	const auto stickerHeightLabel = container->add(
+		object_ptr<Ui::LabelSimple>(
+			container,
+			st::settingsAudioVolumeLabel),
+		st::settingsAudioVolumeLabelPadding);
+	const auto stickerHeightSlider = container->add(
+		object_ptr<Ui::MediaSlider>(
+			container,
+			st::settingsAudioVolumeSlider),
+		st::settingsAudioVolumeSliderPadding);
+	const auto updateStickerHeightLabel = [=](int value) {
+		const auto pixels = QString::number(value);
+		stickerHeightLabel->setText(
+			tr::ktg_settings_sticker_height(tr::now, lt_pixels, pixels));
+	};
+	const auto updateStickerHeight = [=](int value) {
+		updateStickerHeightLabel(value);
+		SetStickerHeight(value);
+		KotatoSettings::Write();
+	};
+	stickerHeightSlider->resize(st::settingsAudioVolumeSlider.seekSize);
+	stickerHeightSlider->setPseudoDiscrete(
+		193,
+		[](int val) { return val + 64; },
+		StickerHeight(),
+		updateStickerHeight);
+	updateStickerHeightLabel(StickerHeight());
+
+	AddButton(
+		container,
+		tr::ktg_settings_adaptive_bubbles(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(AdaptiveBubbles())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != AdaptiveBubbles());
+	}) | rpl::start_with_next([](bool enabled) {
+		SetAdaptiveBubbles(enabled);
+		KotatoSettings::Write();
+	}, container->lifetime());
+
+	AddButton(
+		container,
+		tr::ktg_settings_emoji_outline(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(BigEmojiOutline())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != BigEmojiOutline());
+	}) | rpl::start_with_next([](bool enabled) {
+		SetBigEmojiOutline(enabled);
+		KotatoSettings::Write();
+	}, container->lifetime());
 
 	AddSkip(container);
 }
@@ -357,6 +364,7 @@ void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 
 	SetupKotatoChats(content);
+	SetupKotatoMessages(content);
 	SetupKotatoNetwork(content);
 	SetupKotatoFolders(controller, content);
 	SetupKotatoSystem(content);
