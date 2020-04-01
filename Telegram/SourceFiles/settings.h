@@ -254,5 +254,6 @@ DeclareSetting(int, DefaultFilterId);
 DeclareSetting(bool, UnmutedFilterCounterOnly);
 DeclareSetting(bool, HideFilterEditButton);
 DeclareSetting(bool, HideFilterNames);
+DeclareSetting(bool, HideFilterAllChats);
 
 DeclareSetting(bool, ProfileTopBarNotifications);

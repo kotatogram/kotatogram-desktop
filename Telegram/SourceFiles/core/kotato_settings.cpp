@@ -350,6 +350,10 @@ bool Manager::readCustomFile() {
 		ReadBoolOption(o, "hide_names", [&](auto v) {
 			cSetHideFilterNames(v);
 		});
+
+		ReadBoolOption(o, "hide_all_chats", [&](auto v) {
+			cSetHideFilterAllChats(v);
+		});
 	});
 
 	ReadBoolOption(settings, "profile_top_mute", [&](auto v) {
@@ -406,6 +410,7 @@ void Manager::writeDefaultFile() {
 	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
 	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
 	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
+	settingsFolders.insert(qsl("hide_all_chats"), cHideFilterAllChats());
 
 	settings.insert(qsl("folders"), settingsFolders);
 
@@ -480,6 +485,7 @@ void Manager::writeCurrentSettings() {
 	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
 	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
 	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
+	settingsFolders.insert(qsl("hide_all_chats"), cHideFilterAllChats());
 
 	settings.insert(qsl("folders"), settingsFolders);
 

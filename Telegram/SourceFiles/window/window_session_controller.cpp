@@ -215,13 +215,20 @@ void SessionController::toggleFiltersMenu(bool enabled) {
 void SessionController::reloadFiltersMenu() {
 	const auto enabled = !session().data().chatsFilters().list().empty();
 	if (enabled) {
-		const auto previousFilter = activeChatsFilterCurrent();
+		auto previousFilter = activeChatsFilterCurrent();
+		rpl::single(
+			rpl::empty_value()
+		) | rpl::then(
+			filtersMenuChanged()
+		) | rpl::start_with_next([=] {
+			toggleFiltersMenu(true);
+			if (previousFilter) {
+				setActiveChatsFilter(previousFilter);
+			}
+		}, lifetime());
+
 		setActiveChatsFilter(0);
 		toggleFiltersMenu(false);
-		toggleFiltersMenu(true);
-		if (previousFilter) {
-			setActiveChatsFilter(previousFilter);
-		}
 	}
 }
 

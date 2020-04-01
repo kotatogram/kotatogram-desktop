@@ -248,6 +248,22 @@ void SetupKotatoFolders(
 
 	AddButton(
 		container,
+		tr::ktg_settings_filters_hide_all(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cHideFilterAllChats())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cHideFilterAllChats());
+	}) | rpl::start_with_next([=](bool enabled) {
+		cSetHideFilterAllChats(enabled);
+		KotatoSettings::Write();
+		controller->reloadFiltersMenu();
+		App::wnd()->fixOrder();
+	}, container->lifetime());
+
+	AddButton(
+		container,
 		tr::ktg_settings_filters_hide_edit(),
 		st::settingsButton
 	)->toggleOn(
