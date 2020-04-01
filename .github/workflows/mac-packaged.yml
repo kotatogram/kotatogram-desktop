@@ -1,0 +1,275 @@
+name: Packaged MacOS.
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'kotatogram_changes.txt'
+      - 'changelog.txt'
+      - 'LEGAL'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/mac-packaged.yml'
+      - 'lib/xdg/**'
+      - 'snap/**'
+      - 'Telegram/build/**'
+      - 'Telegram/Patches/**'
+      - 'Telegram/Resources/uwp/**'
+      - 'Telegram/Resources/winrc/**'
+      - 'Telegram/SourceFiles/platform/win/**'
+      - 'Telegram/SourceFiles/platform/linux/**'
+      - 'Telegram/configure.bat'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'kotatogram_changes.txt'
+      - 'changelog.txt'
+      - 'LEGAL'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/mac-packaged.yml'
+      - 'lib/xdg/**'
+      - 'snap/**'
+      - 'Telegram/build/**'
+      - 'Telegram/Patches/**'
+      - 'Telegram/Resources/uwp/**'
+      - 'Telegram/Resources/winrc/**'
+      - 'Telegram/SourceFiles/platform/win/**'
+      - 'Telegram/SourceFiles/platform/linux/**'
+      - 'Telegram/configure.bat'
+
+jobs:
+
+  macos:
+    name: MacOS
+    if: >
+      !(github.event_name == 'push'
+        && contains(github.event.head_commit.message, '[skip ci]'))
+      && !(github.event_name == 'pull_request'
+        && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name) 
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        defines:
+          - ""
+
+    env:
+      GIT: "https://github.com"
+      UPLOAD_ARTIFACT: "false"
+      ONLY_CACHE: "false"
+      MANUAL_CACHING: "1"
+      AUTO_CACHING: "1"
+
+    steps:
+      - name: Get repository name.
+        run: echo ::set-env name=REPO_NAME::${GITHUB_REPOSITORY##*/}
+
+      - name: Clone.
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - name: First set up.
+        run: |
+          brew install cmake dav1d meson openal-soft openssl opus nasm ninja pkg-config python qt xz
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+          xcodebuild -version > CACHE_KEY.txt
+          echo $MANUAL_CACHING >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" == "1" ]; then
+            thisFile=$REPO_NAME/.github/workflows/mac-packaged.yml
+            echo `md5 -q $thisFile` >> CACHE_KEY.txt
+          fi
+          echo ::set-env name=CACHE_KEY::`md5 -q CACHE_KEY.txt`
+
+          echo ::add-path::$PWD/Libraries/depot_tools
+
+          mkdir -p Libraries/macos
+          cd Libraries/macos
+          echo ::set-env name=LibrariesPath::`pwd`
+
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg-cache
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
+      - name: FFmpeg build.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone --branch release/4.2 $GIT/FFmpeg/FFmpeg ffmpeg
+          cd ffmpeg
+          ./configure \
+          --prefix=/usr/local/ffmpeg \
+          --disable-debug \
+          --disable-programs \
+          --disable-doc \
+          --disable-network \
+          --disable-autodetect \
+          --disable-everything \
+          --disable-iconv \
+          --enable-audiotoolbox \
+          --enable-videotoolbox \
+          --enable-libdav1d \
+          --enable-libopus \
+          --enable-protocol=file \
+          --enable-hwaccel=h264_videotoolbox \
+          --enable-hwaccel=hevc_videotoolbox \
+          --enable-hwaccel=mpeg1_videotoolbox \
+          --enable-hwaccel=mpeg2_videotoolbox \
+          --enable-hwaccel=mpeg4_videotoolbox \
+          --enable-decoder=aac \
+          --enable-decoder=aac_at \
+          --enable-decoder=aac_fixed \
+          --enable-decoder=aac_latm \
+          --enable-decoder=aasc \
+          --enable-decoder=alac \
+          --enable-decoder=alac_at \
+          --enable-decoder=flac \
+          --enable-decoder=gif \
+          --enable-decoder=h264 \
+          --enable-decoder=hevc \
+          --enable-decoder=libdav1d \
+          --enable-decoder=mp1 \
+          --enable-decoder=mp1float \
+          --enable-decoder=mp2 \
+          --enable-decoder=mp2float \
+          --enable-decoder=mp3 \
+          --enable-decoder=mp3adu \
+          --enable-decoder=mp3adufloat \
+          --enable-decoder=mp3float \
+          --enable-decoder=mp3on4 \
+          --enable-decoder=mp3on4float \
+          --enable-decoder=mpeg4 \
+          --enable-decoder=msmpeg4v2 \
+          --enable-decoder=msmpeg4v3 \
+          --enable-decoder=opus \
+          --enable-decoder=pcm_alaw \
+          --enable-decoder=pcm_alaw_at \
+          --enable-decoder=pcm_f32be \
+          --enable-decoder=pcm_f32le \
+          --enable-decoder=pcm_f64be \
+          --enable-decoder=pcm_f64le \
+          --enable-decoder=pcm_lxf \
+          --enable-decoder=pcm_mulaw \
+          --enable-decoder=pcm_mulaw_at \
+          --enable-decoder=pcm_s16be \
+          --enable-decoder=pcm_s16be_planar \
+          --enable-decoder=pcm_s16le \
+          --enable-decoder=pcm_s16le_planar \
+          --enable-decoder=pcm_s24be \
+          --enable-decoder=pcm_s24daud \
+          --enable-decoder=pcm_s24le \
+          --enable-decoder=pcm_s24le_planar \
+          --enable-decoder=pcm_s32be \
+          --enable-decoder=pcm_s32le \
+          --enable-decoder=pcm_s32le_planar \
+          --enable-decoder=pcm_s64be \
+          --enable-decoder=pcm_s64le \
+          --enable-decoder=pcm_s8 \
+          --enable-decoder=pcm_s8_planar \
+          --enable-decoder=pcm_u16be \
+          --enable-decoder=pcm_u16le \
+          --enable-decoder=pcm_u24be \
+          --enable-decoder=pcm_u24le \
+          --enable-decoder=pcm_u32be \
+          --enable-decoder=pcm_u32le \
+          --enable-decoder=pcm_u8 \
+          --enable-decoder=pcm_zork \
+          --enable-decoder=vorbis \
+          --enable-decoder=wavpack \
+          --enable-decoder=wmalossless \
+          --enable-decoder=wmapro \
+          --enable-decoder=wmav1 \
+          --enable-decoder=wmav2 \
+          --enable-decoder=wmavoice \
+          --enable-encoder=libopus \
+          --enable-parser=aac \
+          --enable-parser=aac_latm \
+          --enable-parser=flac \
+          --enable-parser=h264 \
+          --enable-parser=hevc \
+          --enable-parser=mpeg4video \
+          --enable-parser=mpegaudio \
+          --enable-parser=opus \
+          --enable-parser=vorbis \
+          --enable-demuxer=aac \
+          --enable-demuxer=flac \
+          --enable-demuxer=gif \
+          --enable-demuxer=h264 \
+          --enable-demuxer=hevc \
+          --enable-demuxer=m4v \
+          --enable-demuxer=mov \
+          --enable-demuxer=mp3 \
+          --enable-demuxer=ogg \
+          --enable-demuxer=wav \
+          --enable-muxer=ogg \
+          --enable-muxer=opus
+
+          make -j$(sysctl -n hw.logicalcpu)
+          sudo make DESTDIR="$LibrariesPath/ffmpeg-cache" install
+          cd ..
+          rm -rf ffmpeg
+      - name: FFmpeg install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R ffmpeg-cache/. /
+
+      - name: Kotatogram Desktop build.
+        if: env.ONLY_CACHE == 'false'
+        env:
+          PKG_CONFIG_PATH: /usr/local/ffmpeg/lib/pkgconfig
+          OPENALDIR: /usr/local/opt/openal-soft
+          OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
+          Qt5_DIR: /usr/local/opt/qt/lib/cmake/Qt5
+        run: |
+          cd $REPO_NAME/Telegram
+          export PATH="/usr/local/opt/qt/bin:$PATH"
+
+          DEFINE=""
+          if [ -n "${{ matrix.defines }}" ]; then
+            DEFINE="-D ${{ matrix.defines }}=ON"
+            echo Define from matrix: $DEFINE
+            echo ::set-env name=ARTIFACT_NAME::Kotatogram_${{ matrix.defines }}
+          else
+            echo ::set-env name=ARTIFACT_NAME::Kotatogram
+          fi
+
+          ./configure.sh \
+          -DCMAKE_FIND_FRAMEWORK=LAST \
+          -DCMAKE_LIBRARY_PATH=/usr/local/ffmpeg/lib \
+          -DTDESKTOP_API_TEST=ON \
+          -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
+          -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
+          -DDESKTOP_APP_USE_PACKAGED_FFMPEG_STATIC=ON \
+          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF \
+          $DEFINE
+
+          cmake --build ../out --config Debug
+
+          cd ../out/Debug
+          macdeployqt Kotatogram.app
+          codesign --remove-signature Kotatogram.app
+
+          mkdir dmgsrc
+          mv Kotatogram.app dmgsrc
+          hdiutil create -volname Kotatogram -srcfolder dmgsrc -ov -format UDZO Kotatogram.dmg
+
+      - name: Move artifact.
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          cd $REPO_NAME/out/Debug
+          mkdir artifact
+          mv Kotatogram.dmg artifact/
+      - uses: actions/upload-artifact@master
+        if: env.UPLOAD_ARTIFACT == 'true'
+        name: Upload artifact.
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.REPO_NAME }}/out/Debug/artifact/
