@@ -316,6 +316,10 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 		_popupMenu->addAction(
 			tr::ktg_filters_context_make_default(tr::now),
 			crl::guard(&_outer, [=] { setDefaultFilter(id); }));
+	} else if (id) {
+		_popupMenu->addAction(
+			tr::ktg_filters_context_reset_default(tr::now),
+			crl::guard(&_outer, [=] { setDefaultFilter(0); }));
 	}
 	_popupMenu->addAction(
 		tr::lng_filters_context_remove(tr::now),
