@@ -1,3 +1,7 @@
+1.2.2 (2.04.2020)
+- Updated TDesktop sources to 2.0.1.
+- Option to hide All chats folder.
+
 1.2.1 (31.03.2020)
 - Updated TDesktop sources to 2.0.
 - Option to set default folder. Also added context menu to All chats filter.

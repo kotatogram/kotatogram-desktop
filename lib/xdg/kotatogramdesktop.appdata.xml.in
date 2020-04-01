@@ -35,6 +35,15 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.2.2" date="2020-04-02">
+            <description>
+                <p>TDesktop sources were updated to 2.0.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Option to hide All chats folder.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.2.1" date="2020-03-31">
             <description>
                 <p>TDesktop sources were updated to 2.0.</p>
