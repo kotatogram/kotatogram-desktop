@@ -84,6 +84,24 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	//
 
 	{ qsl("save_draft")       , Command::SaveDraft },
+
+	{ qsl("pinned_1")         , Command::ChatPinned1 },
+	{ qsl("pinned_2")         , Command::ChatPinned2 },
+	{ qsl("pinned_3")         , Command::ChatPinned3 },
+	{ qsl("pinned_4")         , Command::ChatPinned4 },
+	{ qsl("pinned_5")         , Command::ChatPinned5 },
+
+	{ qsl("folder_all")       , Command::ShowAllChats },
+	{ qsl("folder_1")         , Command::ShowFolder1 },
+	{ qsl("folder_2")         , Command::ShowFolder2 },
+	{ qsl("folder_3")         , Command::ShowFolder3 },
+	{ qsl("folder_4")         , Command::ShowFolder4 },
+	{ qsl("folder_5")         , Command::ShowFolder5 },
+	{ qsl("folder_6")         , Command::ShowFolder6 },
+	{ qsl("folder_last")      , Command::ShowFolderLast },
+
+	{ qsl("folder_next")      , Command::FolderNext },
+	{ qsl("folder_previous")  , Command::FolderPrevious },
 };
 
 const auto CommandNames = base::flat_map<Command, QString>{
@@ -110,6 +128,24 @@ const auto CommandNames = base::flat_map<Command, QString>{
 	{ Command::ShowArchive   , qsl("show_archive") },
 
 	{ Command::SaveDraft     , qsl("save_draft") },
+
+	{ Command::ChatPinned1   , qsl("pinned_1") },
+	{ Command::ChatPinned2   , qsl("pinned_2") },
+	{ Command::ChatPinned3   , qsl("pinned_3") },
+	{ Command::ChatPinned4   , qsl("pinned_4") },
+	{ Command::ChatPinned5   , qsl("pinned_5") },
+
+	{ Command::ShowAllChats  , qsl("folder_all") },
+	{ Command::ShowFolder1   , qsl("folder_1") },
+	{ Command::ShowFolder2   , qsl("folder_2") },
+	{ Command::ShowFolder3   , qsl("folder_3") },
+	{ Command::ShowFolder4   , qsl("folder_4") },
+	{ Command::ShowFolder5   , qsl("folder_5") },
+	{ Command::ShowFolder6   , qsl("folder_6") },
+	{ Command::ShowFolderLast, qsl("folder_last") },
+
+	{ Command::FolderNext    , qsl("folder_next") },
+	{ Command::FolderPrevious, qsl("folder_previous") },
 };
 
 class Manager {
