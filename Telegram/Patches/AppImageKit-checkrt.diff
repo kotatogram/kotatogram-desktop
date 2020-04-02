@@ -1,0 +1,25 @@
+diff --git a/Makefile b/Makefile
+index cd8fe34..dab0cff 100644
+--- a/Makefile
++++ b/Makefile
+@@ -38,6 +38,6 @@ AppRun_patched.c: AppRun.c
+ 	patch -p1 --output $@  < AppRun.c.patch
+ 
+ AppRun.c:
+-	wget -c "https://raw.githubusercontent.com/AppImage/AppImageKit/appimagetool/master/src/AppRun.c"
++	wget -c "https://raw.githubusercontent.com/AppImage/AppImageKit/master/src/AppRun.c"
+ 
+ .PHONY: checkrt test run_tests all clean
+diff --git a/checkrt.c b/checkrt.c
+index 7607d61..f5a187f 100644
+--- a/checkrt.c
++++ b/checkrt.c
+@@ -72,7 +72,7 @@ void checkrt(char *usr_in_appdir)
+             SCANLIB(stdcxx_sys_lib, stdcxx_sys_sym, "^GLIBCXX_3\\.4");
+             SCANLIB(stdcxx_bundle_lib, stdcxx_bundle_sym, "^GLIBCXX_3\\.4");
+             stdcxx_sys_ver = atoi(stdcxx_sys_sym+12);
+-            stdcxx_bundle_ver = atoi(stdcxx_bundle_sym+12);
++            stdcxx_bundle_ver = 21;
+             DEBUG("%s ==> %s (%d)\n", stdcxx_sys_lib, stdcxx_sys_sym, stdcxx_sys_ver);
+             DEBUG("%s ==> %s (%d)\n\n", stdcxx_bundle_lib, stdcxx_bundle_sym, stdcxx_bundle_ver);
+         }
