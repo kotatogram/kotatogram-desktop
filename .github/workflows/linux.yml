@@ -32,7 +32,7 @@ jobs:
       CMAKE_VER: "3.17.0"
       UPLOAD_ARTIFACT: "false"
       ONLY_CACHE: "false"
-      MANUAL_CACHING: "6"
+      MANUAL_CACHING: "7"
       DOC_PATH: "docs/building-cmake.md"
       AUTO_CACHING: "1"
 
