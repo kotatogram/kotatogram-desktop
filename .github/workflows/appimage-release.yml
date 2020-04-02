@@ -370,8 +370,25 @@ jobs:
 
           ./linuxdeployqt-continuous-x86_64.AppImage \
           $REPO_NAME/AppDir/usr/share/applications/*.desktop \
-          -appimage \
+          -bundle-non-qt-libs \
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platformthemes/libqgtk3.so
+
+          # Workaround to increase compatibility with older systems; see https://github.com/darealshinji/AppImageKit-checkrt for details
+          mkdir -p $REPO_NAME/AppDir/usr/optional
+          wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/exec-x86_64.so -O $REPO_NAME/AppDir/usr/optional/exec.so
+
+          mkdir -p $REPO_NAME/AppDir/usr/optional/libstdc++
+          cp /usr/lib/x86_64-linux-gnu/libstdc++.so.6 $REPO_NAME/AppDir/usr/optional/libstdc++
+
+          pushd $REPO_NAME/AppDir
+          rm AppRun
+          wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/AppRun-patched-x86_64 -O AppRun
+          chmod a+x AppRun
+          popd
+
+          ./linuxdeployqt-continuous-x86_64.AppImage \
+          $REPO_NAME/AppDir/usr/share/applications/*.desktop \
+          -appimage
 
       - name: Get artifact name
         run: |
