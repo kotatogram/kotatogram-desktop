@@ -1,8 +1,14 @@
-name: Release AppImage
+name: AppImage.
 
 on:
-  release:
-    types: [created]
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
 
 jobs:
 
@@ -18,6 +24,7 @@ jobs:
       QT: "5_12_5"
       OPENSSL_VER: "1_1_1"
       CMAKE_VER: "3.17.0"
+      UPLOAD_ARTIFACT: "false"
       ONLY_CACHE: "false"
       MANUAL_CACHING: "1"
       DOC_PATH: "docs/building-cmake.md"
@@ -517,14 +524,29 @@ jobs:
           artifact_name=$(echo Kotatogram_Desktop*.AppImage)
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
-      - name: Upload release asset.
-        id: upload-release-asset
+      - name: Check.
         if: env.ONLY_CACHE == 'false'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          filePath="$REPO_NAME/$ARTIFACT_NAME"
+          if test -f "$filePath"; then
+            echo "Build successfully done! :)"
+
+            size=$(stat -c %s "$filePath")
+            echo "File size of ${filePath}: ${size} Bytes."
+          else
+            echo "Build error, output file does not exist."
+            exit 1
+          fi
+
+      - name: Move artifact.
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          cd $REPO_NAME
+          mkdir artifact
+          mv $ARTIFACT_NAME artifact/
+      - uses: actions/upload-artifact@master
+        if: env.UPLOAD_ARTIFACT == 'true'
+        name: Upload artifact.
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ env.REPO_NAME }}/${{ env.ARTIFACT_NAME }}
-          asset_name: ${{ env.ARTIFACT_NAME }}
-          asset_content_type: application/octet-stream
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.REPO_NAME }}/artifact/
