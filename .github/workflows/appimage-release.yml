@@ -15,9 +15,13 @@ jobs:
 
     env:
       GIT: "https://github.com"
+      QT: "5_12_5"
       OPENSSL_VER: "1_1_1"
       CMAKE_VER: "3.17.0"
+      ONLY_CACHE: "false"
+      MANUAL_CACHING: "1"
       DOC_PATH: "docs/building-cmake.md"
+      AUTO_CACHING: "1"
 
     steps:
       - name: Get repository name.
@@ -41,13 +45,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install software-properties-common -y && \
           sudo add-apt-repository ppa:git-core/ppa -y && \
-          sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y && \
           sudo apt-get update && \
-          sudo apt-get install liblzma-dev zlib1g-dev \
-          git wget autoconf automake build-essential libtool pkg-config \
-          libopus-dev libasound2-dev libpulse-dev portaudio19-dev \
-          qt510base qt510imageformats qt510svg libfuse2 libgl1-mesa-dev \
-          libva-dev libvdpau-dev python3 python3-pip unzip -y --force-yes && \
+          sudo apt-get install libice-dev libsm-dev libicu-dev liblzma-dev zlib1g-dev \
+          git wget autoconf automake build-essential libtool pkg-config bison \
+          libopus-dev libasound2-dev libpulse-dev portaudio19-dev libdrm-dev libfuse2 \
+          libgtk-3-dev libgtk2.0-dev libatspi2.0-dev libgl1-mesa-dev libegl1-mesa-dev \
+          libffi-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev \
+          libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev \
+          libxcb-xkb-dev libxcb-sync0-dev libxcb-randr0-dev libx11-xcb-dev libxrender-dev \
+          xutils-dev libva-dev libvdpau-dev python3 python3-pip unzip -y --force-yes && \
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update && \
           sudo apt-get install gcc-8 g++-8 -y && \
@@ -70,6 +76,15 @@ jobs:
 
           ./linuxdeployqt-continuous-x86_64.AppImage -version
           gcc --version
+
+          gcc --version > CACHE_KEY.txt
+          echo $MANUAL_CACHING >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" == "1" ]; then
+            thisFile=$REPO_NAME/.github/workflows/linux.yml
+            echo `md5sum $thisFile | cut -c -32` >> CACHE_KEY.txt
+          fi
+          md5cache=$(md5sum CACHE_KEY.txt | cut -c -32)
+          echo ::set-env name=CACHE_KEY::$md5cache
 
           mkdir -p Libraries
           cd Libraries
@@ -191,7 +206,14 @@ jobs:
       #     cd ../..
       #     rm -rf dav1d
 
-      - name: FFmpeg.
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg-cache
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
+      - name: FFmpeg build.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -263,9 +285,13 @@ jobs:
           --enable-muxer=opus
 
           make -j$(nproc)
-          sudo make install
+          sudo make DESTDIR="$LibrariesPath/ffmpeg-cache" install
           cd ..
           rm -rf ffmpeg
+      - name: FFmpeg install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R ffmpeg-cache/. /
 
       - name: OpenAL Soft.
         run: |
@@ -286,7 +312,14 @@ jobs:
           cd -
           rm -rf openal-soft
 
-      - name: OpenSSL.
+      - name: OpenSSL cache.
+        id: cache-openssl
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/openssl-cache
+          key: ${{ runner.OS }}-${{ env.OPENSSL_VER }}-${{ env.CACHE_KEY }}
+      - name: OpenSSL build.
+        if: steps.cache-openssl.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -296,9 +329,13 @@ jobs:
           cd $opensslDir
           ./config --prefix=/usr
           make -j$(nproc)
-          sudo make install_sw
+          sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
           cd ..
           rm -rf $opensslDir
+      - name: OpenSSL install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R openssl-cache/. /
 
       - name: Hunspell.
         run: |
@@ -313,13 +350,91 @@ jobs:
           cd ..
           rm -rf hunspell
 
-      - name: libdbusmenu-qt.
-        shell: bash --noprofile --norc -o pipefail {0}
+      - name: Libxkbcommon.
         run: |
           cd $LibrariesPath
 
-          source /opt/qt*/bin/qt*-env.sh
-          export CMAKE_PREFIX_PATH=$QTDIR
+          git clone -b xkbcommon-0.8.4 --depth=1 $GIT/xkbcommon/libxkbcommon.git
+          cd libxkbcommon
+          ./autogen.sh
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          rm -rf libxkbcommon
+
+      - name: Libwayland.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 1.16 https://gitlab.freedesktop.org/wayland/wayland
+          cd wayland
+          ./autogen.sh --disable-documentation --disable-dtd-validation
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          rm -rf wayland
+
+      - name: Qt 5.12.5 cache.
+        id: cache-qt
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/qt-cache
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_5.diff') }}
+      - name: Qt 5.12.5 build.
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v5.12.5 --depth=1 git://code.qt.io/qt/qt5.git qt_${QT}
+          cd qt_${QT}
+          perl init-repository --module-subset=qtbase,qtwayland,qtimageformats,qtsvg
+          git submodule update qtbase qtwayland qtimageformats qtsvg
+          cd qtbase
+          git apply ../../../$REPO_NAME/Telegram/Patches/qtbase_${QT}_appimage.diff
+          cd ..
+
+          ./configure -prefix /usr \
+          -release \
+          -opensource \
+          -confirm-license \
+          -qt-zlib \
+          -qt-libpng \
+          -qt-libjpeg \
+          -qt-harfbuzz \
+          -qt-pcre \
+          -qt-xcb \
+          -system-freetype \
+          -fontconfig \
+          -dbus-linked \
+          -openssl-linked \
+          -nomake examples \
+          -nomake tests
+
+          make -j$(nproc)
+          sudo make INSTALL_ROOT="$LibrariesPath/qt-cache" install
+          cd ..
+          rm -rf qt_${QT}
+      - name: Qt 5.12.5 install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R qt-cache/. /
+
+      - name: Qtstyleplugins.
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 git://code.qt.io/qt/qtstyleplugins.git
+          cd qtstyleplugins
+          qmake PREFIX='/usr'
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          rm -rf qtstyleplugins
+
+      - name: Libdbusmenu-qt.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          cd $LibrariesPath
 
           git clone -b 0.9.3+16.04.20160218-0ubuntu1 --depth=1 $GIT/unity8-team/libdbusmenu-qt.git
           cd libdbusmenu-qt
@@ -333,17 +448,13 @@ jobs:
           cd ..
           rm -rf libdbusmenu-qt
 
-      - name: Kotatogram Desktop.
-        shell: bash --noprofile --norc -o pipefail {0}
+      - name: Kotatogram Desktop build.
+        if: env.ONLY_CACHE == 'false'
         env:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
         run: |
           cd $REPO_NAME
-
-          mkdir AppDir
-          source /opt/qt*/bin/qt*-env.sh
-          export CMAKE_PREFIX_PATH=$QTDIR
 
           cmake . \
           -DCMAKE_INSTALL_PREFIX=/usr \
@@ -358,50 +469,57 @@ jobs:
           -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
 
           cmake --build .
+
+          mkdir AppDir
           DESTDIR=AppDir cmake --install .
 
       - name: Update linker cache.
+        if: env.ONLY_CACHE == 'false'
         run: sudo ldconfig
 
-      - name: AppImage build.
-        shell: bash --noprofile --norc -o pipefail {0}
+      - name: AppImageKit-checkrt build.
+        if: env.ONLY_CACHE == 'false'
         run: |
-          source /opt/qt*/bin/qt*-env.sh
+          cd $LibrariesPath
 
-          ./linuxdeployqt-continuous-x86_64.AppImage \
-          $REPO_NAME/AppDir/usr/share/applications/*.desktop \
-          -bundle-non-qt-libs \
-          -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platformthemes/libqgtk3.so
+          git clone --depth=1 $GIT/darealshinji/AppImageKit-checkrt
+          cd AppImageKit-checkrt
+          git apply ../../$REPO_NAME/Telegram/Patches/AppImageKit-checkrt.diff
+          make -j$(nproc)
+
+      - name: AppImage build.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          # Let appimagetool determine the repository
+          cd $REPO_NAME
 
           # Workaround to increase compatibility with older systems; see https://github.com/darealshinji/AppImageKit-checkrt for details
-          mkdir -p $REPO_NAME/AppDir/usr/optional
-          wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/exec-x86_64.so -O $REPO_NAME/AppDir/usr/optional/exec.so
+          install -D $LibrariesPath/AppImageKit-checkrt/exec.so AppDir/usr/optional/exec.so
+          install -D $LibrariesPath/AppImageKit-checkrt/AppRun_patched AppDir/AppRun
+          install -D /usr/lib/x86_64-linux-gnu/libstdc++.so.6 AppDir/usr/optional/libstdc++/libstdc++.so.6
 
-          mkdir -p $REPO_NAME/AppDir/usr/optional/libstdc++
-          cp /usr/lib/x86_64-linux-gnu/libstdc++.so.6 $REPO_NAME/AppDir/usr/optional/libstdc++
+          ../linuxdeployqt-continuous-x86_64.AppImage \
+          AppDir/usr/share/applications/*.desktop \
+          -appimage \
+          -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
+          -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
-          pushd $REPO_NAME/AppDir
-          rm AppRun
-          wget -c https://github.com/darealshinji/AppImageKit-checkrt/releases/download/continuous/AppRun-patched-x86_64 -O AppRun
-          chmod a+x AppRun
-          popd
-
-          ./linuxdeployqt-continuous-x86_64.AppImage \
-          $REPO_NAME/AppDir/usr/share/applications/*.desktop \
-          -appimage
-
-      - name: Get artifact name
+      - name: Get artifact name.
+        if: env.ONLY_CACHE == 'false'
         run: |
+          cd $REPO_NAME
+
           artifact_name=$(echo Kotatogram_Desktop*.AppImage)
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
-      - name: Upload Release Asset
+      - name: Upload release asset.
         id: upload-release-asset
+        if: env.ONLY_CACHE == 'false'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ env.ARTIFACT_NAME }}
+          asset_path: ./${{ env.REPO_NAME }}/${{ env.ARTIFACT_NAME }}
           asset_name: ${{ env.ARTIFACT_NAME }}
           asset_content_type: application/octet-stream
