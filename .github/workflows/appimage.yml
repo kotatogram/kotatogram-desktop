@@ -1,0 +1,552 @@
+name: AppImage.
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+
+jobs:
+
+  linux:
+    name: Ubuntu 14.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:trusty
+      options: --privileged --device /dev/fuse
+
+    env:
+      GIT: "https://github.com"
+      QT: "5_12_5"
+      OPENSSL_VER: "1_1_1"
+      CMAKE_VER: "3.17.0"
+      UPLOAD_ARTIFACT: "false"
+      ONLY_CACHE: "false"
+      MANUAL_CACHING: "1"
+      DOC_PATH: "docs/building-cmake.md"
+      AUTO_CACHING: "1"
+
+    steps:
+      - name: Get repository name.
+        run: echo ::set-env name=REPO_NAME::${GITHUB_REPOSITORY##*/}
+
+      - name: Disable man for further package installs.
+        run: |
+          cfgFile="/etc/dpkg/dpkg.cfg.d/no_man"
+          sudo touch $cfgFile
+          p() {
+            sudo echo "path-exclude=/usr/share/$1/*" >> $cfgFile
+          }
+
+          p man
+          p locale
+          p doc
+
+      - name: Apt install.
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install software-properties-common -y && \
+          sudo add-apt-repository ppa:git-core/ppa -y && \
+          sudo apt-get update && \
+          sudo apt-get install libice-dev libsm-dev libicu-dev liblzma-dev zlib1g-dev \
+          git wget autoconf automake build-essential libtool pkg-config bison \
+          libopus-dev libasound2-dev libpulse-dev portaudio19-dev libdrm-dev libfuse2 \
+          libgtk-3-dev libgtk2.0-dev libatspi2.0-dev libgl1-mesa-dev libegl1-mesa-dev \
+          libffi-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev \
+          libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev \
+          libxcb-xkb-dev libxcb-sync0-dev libxcb-randr0-dev libx11-xcb-dev libxrender-dev \
+          xutils-dev libva-dev libvdpau-dev python3 python3-pip unzip -y --force-yes && \
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+          sudo apt-get update && \
+          sudo apt-get install gcc-8 g++-8 -y && \
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 && \
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60 && \
+          sudo update-alternatives --config gcc && \
+          sudo add-apt-repository --remove ppa:ubuntu-toolchain-r/test -y
+
+      - name: Clone.
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - name: First set up.
+        shell: bash
+        run: |
+          wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+
+          ./linuxdeployqt-continuous-x86_64.AppImage -version
+          gcc --version
+
+          gcc --version > CACHE_KEY.txt
+          echo $MANUAL_CACHING >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" == "1" ]; then
+            thisFile=$REPO_NAME/.github/workflows/linux.yml
+            echo `md5sum $thisFile | cut -c -32` >> CACHE_KEY.txt
+          fi
+          md5cache=$(md5sum CACHE_KEY.txt | cut -c -32)
+          echo ::set-env name=CACHE_KEY::$md5cache
+
+          mkdir -p Libraries
+          cd Libraries
+          echo ::set-env name=LibrariesPath::`pwd`
+
+      - name: CMake.
+        run: |
+          cd $LibrariesPath
+
+          file=cmake-$CMAKE_VER-Linux-x86_64.sh
+          wget $GIT/Kitware/CMake/releases/download/v$CMAKE_VER/$file
+          sudo mkdir /opt/cmake
+          sudo sh $file --prefix=/opt/cmake --skip-license
+          sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+          rm $file
+
+          cmake --version
+
+      # TODO: AV1 support
+      # - name: Meson.
+      #   run: |
+      #     sudo python3 -m pip install meson==0.44.1
+      #     meson --version
+
+      # TODO: AV1 support
+      # - name: Ninja.
+      #   run: |
+      #     cd $LibrariesPath
+
+      #     wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip
+      #     unzip ninja-linux.zip
+      #     chmod +x ninja
+      #     mv ninja /usr/local/bin
+
+      #     ninja --version
+
+      - name: NASM.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b nasm-2.14.02 --depth=1 https://repo.or.cz/nasm.git
+          cd nasm
+          ./autogen.sh
+          ./configure --prefix=/usr
+          make -j$(nproc)
+          sudo install nasm /usr/bin/nasm
+          sudo install ndisasm /usr/bin/ndisasm
+          cd ..
+          rm -rf nasm
+
+      - name: Range-v3.
+        run: |
+          echo "Find necessary branch from doc."
+          cloneRange=$(grep -A 1 "range-v3" $REPO_NAME/$DOC_PATH | sed -n 1p)
+          cd $LibrariesPath
+          echo $cloneRange
+          eval $cloneRange
+          cd range-v3
+
+          cmake . \
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DRANGE_V3_TESTS=OFF \
+          -DRANGE_V3_EXAMPLES=OFF \
+          -DRANGE_V3_DOCS=OFF
+
+          cmake --build .
+          cmake --install .
+
+          cd ..
+          rm -rf range-v3
+
+      - name: MiniZip.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v1.2.11 --depth=1 $GIT/madler/zlib.git
+          cd zlib/contrib/minizip
+          autoreconf -i
+          ./configure --prefix=/usr
+          make
+          sudo make install
+          cd ../../..
+          rm -rf zlib
+
+      - name: LZ4.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v1.9.2 --depth=1 $GIT/lz4/lz4.git
+          cd lz4
+          make -j$(nproc)
+          PREFIX=/usr sudo make install
+          cd ..
+          rm -rf lz4
+
+      - name: xxHash.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v0.7.2 --depth=1 $GIT/Cyan4973/xxHash.git
+          cd xxHash
+          make -j$(nproc)
+          PREFIX=/usr sudo make install
+          cd ..
+          rm -rf xxHash
+
+      # TODO: AV1 support
+      # - name: dav1d.
+      #   run: |
+      #     cd $LibrariesPath
+
+      #     git clone -b 0.6.0 --depth=1 $GIT/videolan/dav1d.git
+      #     cd dav1d
+      #     mkdir build && cd build
+      #     meson --prefix=/usr ..
+      #     ninja
+      #     ninja install
+      #     cd ../..
+      #     rm -rf dav1d
+
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg-cache
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
+      - name: FFmpeg build.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone --branch release/4.2 $GIT/FFmpeg/FFmpeg ffmpeg
+          cd ffmpeg
+          ./configure \
+          --prefix=/usr \
+          --disable-debug \
+          --disable-programs \
+          --disable-doc \
+          --disable-autodetect \
+          --disable-everything \
+          --disable-neon \
+          --disable-iconv \
+          --enable-gpl \
+          --enable-version3 \
+          --enable-libopus \
+          --enable-vaapi \
+          --enable-vdpau \
+          --enable-decoder=aac \
+          --enable-decoder=aac_latm \
+          --enable-decoder=aasc \
+          --enable-decoder=flac \
+          --enable-decoder=gif \
+          --enable-decoder=h264 \
+          --enable-decoder=mp1 \
+          --enable-decoder=mp1float \
+          --enable-decoder=mp2 \
+          --enable-decoder=mp2float \
+          --enable-decoder=mp3 \
+          --enable-decoder=mp3adu \
+          --enable-decoder=mp3adufloat \
+          --enable-decoder=mp3float \
+          --enable-decoder=mp3on4 \
+          --enable-decoder=mp3on4float \
+          --enable-decoder=mpeg4 \
+          --enable-decoder=msmpeg4v2 \
+          --enable-decoder=msmpeg4v3 \
+          --enable-decoder=opus \
+          --enable-decoder=vorbis \
+          --enable-decoder=wavpack \
+          --enable-decoder=wmalossless \
+          --enable-decoder=wmapro \
+          --enable-decoder=wmav1 \
+          --enable-decoder=wmav2 \
+          --enable-decoder=wmavoice \
+          --enable-encoder=libopus \
+          --enable-hwaccel=h264_vaapi \
+          --enable-hwaccel=h264_vdpau \
+          --enable-hwaccel=mpeg4_vaapi \
+          --enable-hwaccel=mpeg4_vdpau \
+          --enable-parser=aac \
+          --enable-parser=aac_latm \
+          --enable-parser=flac \
+          --enable-parser=h264 \
+          --enable-parser=mpeg4video \
+          --enable-parser=mpegaudio \
+          --enable-parser=opus \
+          --enable-parser=vorbis \
+          --enable-demuxer=aac \
+          --enable-demuxer=flac \
+          --enable-demuxer=gif \
+          --enable-demuxer=h264 \
+          --enable-demuxer=mov \
+          --enable-demuxer=mp3 \
+          --enable-demuxer=ogg \
+          --enable-demuxer=wav \
+          --enable-muxer=ogg \
+          --enable-muxer=opus
+
+          make -j$(nproc)
+          sudo make DESTDIR="$LibrariesPath/ffmpeg-cache" install
+          cd ..
+          rm -rf ffmpeg
+      - name: FFmpeg install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R ffmpeg-cache/. /
+
+      - name: OpenAL Soft.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b openal-soft-1.20.1 --depth=1 $GIT/kcat/openal-soft.git
+          cd openal-soft/build
+          cmake .. \
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DALSOFT_EXAMPLES=OFF \
+          -DALSOFT_TESTS=OFF \
+          -DALSOFT_UTILS=OFF \
+          -DALSOFT_CONFIG=OFF
+
+          cmake --build .
+          cmake --install .
+          cd -
+          rm -rf openal-soft
+
+      - name: OpenSSL cache.
+        id: cache-openssl
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/openssl-cache
+          key: ${{ runner.OS }}-${{ env.OPENSSL_VER }}-${{ env.CACHE_KEY }}
+      - name: OpenSSL build.
+        if: steps.cache-openssl.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          opensslDir=openssl_${OPENSSL_VER}
+          git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
+            $GIT/openssl/openssl $opensslDir
+          cd $opensslDir
+          ./config --prefix=/usr
+          make -j$(nproc)
+          sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
+          cd ..
+          rm -rf $opensslDir
+      - name: OpenSSL install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R openssl-cache/. /
+
+      - name: Hunspell.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v1.7.0 --depth=1 $GIT/hunspell/hunspell.git
+          cd hunspell
+          autoreconf -vfi
+          ./configure --prefix=/usr
+          make
+          sudo make install
+          cd ..
+          rm -rf hunspell
+
+      - name: Libxkbcommon.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b xkbcommon-0.8.4 --depth=1 $GIT/xkbcommon/libxkbcommon.git
+          cd libxkbcommon
+          ./autogen.sh
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          rm -rf libxkbcommon
+
+      - name: Libwayland.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 1.16 https://gitlab.freedesktop.org/wayland/wayland
+          cd wayland
+          ./autogen.sh --disable-documentation --disable-dtd-validation
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          rm -rf wayland
+
+      - name: Qt 5.12.5 cache.
+        id: cache-qt
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/qt-cache
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_5.diff') }}
+      - name: Qt 5.12.5 build.
+        if: steps.cache-qt.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v5.12.5 --depth=1 git://code.qt.io/qt/qt5.git qt_${QT}
+          cd qt_${QT}
+          perl init-repository --module-subset=qtbase,qtwayland,qtimageformats,qtsvg
+          git submodule update qtbase qtwayland qtimageformats qtsvg
+          cd qtbase
+          git apply ../../../$REPO_NAME/Telegram/Patches/qtbase_${QT}_appimage.diff
+          cd ..
+
+          ./configure -prefix /usr \
+          -release \
+          -opensource \
+          -confirm-license \
+          -qt-zlib \
+          -qt-libpng \
+          -qt-libjpeg \
+          -qt-harfbuzz \
+          -qt-pcre \
+          -qt-xcb \
+          -system-freetype \
+          -fontconfig \
+          -dbus-linked \
+          -openssl-linked \
+          -nomake examples \
+          -nomake tests
+
+          make -j$(nproc)
+          sudo make INSTALL_ROOT="$LibrariesPath/qt-cache" install
+          cd ..
+          rm -rf qt_${QT}
+      - name: Qt 5.12.5 install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R qt-cache/. /
+
+      - name: Qtstyleplugins.
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 git://code.qt.io/qt/qtstyleplugins.git
+          cd qtstyleplugins
+          qmake PREFIX='/usr'
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          rm -rf qtstyleplugins
+
+      - name: Libdbusmenu-qt.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 0.9.3+16.04.20160218-0ubuntu1 --depth=1 $GIT/unity8-team/libdbusmenu-qt.git
+          cd libdbusmenu-qt
+          cmake . \
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DWITH_DOC=OFF
+
+          cmake --build .
+          cmake --install .
+          cd ..
+          rm -rf libdbusmenu-qt
+
+      - name: Kotatogram Desktop build.
+        if: env.ONLY_CACHE == 'false'
+        env:
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+        run: |
+          cd $REPO_NAME
+
+          cmake . \
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DTDESKTOP_API_ID=${API_ID} \
+          -DTDESKTOP_API_HASH=${API_HASH} \
+          -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
+          -DDESKTOP_APP_USE_PACKAGED_GSL=OFF \
+          -DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF \
+          -DDESKTOP_APP_USE_PACKAGED_VARIANT=OFF \
+          -DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF \
+          -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
+
+          cmake --build .
+
+          mkdir AppDir
+          DESTDIR=AppDir cmake --install .
+
+      - name: Update linker cache.
+        if: env.ONLY_CACHE == 'false'
+        run: sudo ldconfig
+
+      - name: AppImageKit-checkrt build.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 $GIT/darealshinji/AppImageKit-checkrt
+          cd AppImageKit-checkrt
+          git apply ../../$REPO_NAME/Telegram/Patches/AppImageKit-checkrt.diff
+
+          # We don't need arguments from the desktop file
+          make AppRun.c
+          git apply ../../$REPO_NAME/Telegram/Patches/AppRun.c.diff
+
+          make -j$(nproc)
+
+      - name: AppImage build.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          # Let appimagetool determine the repository
+          cd $REPO_NAME
+
+          # Workaround to increase compatibility with older systems; see https://github.com/darealshinji/AppImageKit-checkrt for details
+          install -D $LibrariesPath/AppImageKit-checkrt/exec.so AppDir/usr/optional/exec.so
+          install -D $LibrariesPath/AppImageKit-checkrt/AppRun_patched AppDir/AppRun
+          install -D /usr/lib/x86_64-linux-gnu/libstdc++.so.6 AppDir/usr/optional/libstdc++/libstdc++.so.6
+
+          ../linuxdeployqt-continuous-x86_64.AppImage \
+          AppDir/usr/share/applications/*.desktop \
+          -appimage \
+          -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
+          -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
+
+      - name: Get artifact name.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          cd $REPO_NAME
+
+          artifact_name=$(echo Kotatogram_Desktop*.AppImage)
+          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+
+      - name: Check.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          filePath="$REPO_NAME/$ARTIFACT_NAME"
+          if test -f "$filePath"; then
+            echo "Build successfully done! :)"
+
+            size=$(stat -c %s "$filePath")
+            echo "File size of ${filePath}: ${size} Bytes."
+          else
+            echo "Build error, output file does not exist."
+            exit 1
+          fi
+
+      - name: Move artifact.
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          cd $REPO_NAME
+          mkdir artifact
+          mv $ARTIFACT_NAME artifact/
+      - uses: actions/upload-artifact@master
+        if: env.UPLOAD_ARTIFACT == 'true'
+        name: Upload artifact.
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.REPO_NAME }}/artifact/
