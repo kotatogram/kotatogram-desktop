@@ -183,30 +183,31 @@ bool GenerateDesktopFile(
 
 	QFile target(targetFile);
 	if (target.open(QIODevice::WriteOnly)) {
-#ifdef DESKTOP_APP_USE_PACKAGED
-		fileText = fileText.replace(
-			QRegularExpression(
-				qsl("^Exec=(.*) -- %u$"),
-				QRegularExpression::MultilineOption),
-			qsl("Exec=\\1")
-				+ (args.isEmpty() ? QString() : ' ' + args));
-#else // DESKTOP_APP_USE_PACKAGED
-		fileText = fileText.replace(
-			QRegularExpression(
-				qsl("^TryExec=.*$"),
-				QRegularExpression::MultilineOption),
-			qsl("TryExec=")
-				+ QFile::encodeName(cExeDir() + cExeName())
-					.replace('\\', qsl("\\\\")));
-		fileText = fileText.replace(
-			QRegularExpression(
-				qsl("^Exec=.*$"),
-				QRegularExpression::MultilineOption),
-			qsl("Exec=")
-				+ EscapeShell(QFile::encodeName(cExeDir() + cExeName()))
-					.replace('\\', qsl("\\\\"))
-				+ (args.isEmpty() ? QString() : ' ' + args));
-#endif // !DESKTOP_APP_USE_PACKAGED
+		if (IsStaticBinary() || InAppImage()) {
+			fileText = fileText.replace(
+				QRegularExpression(
+					qsl("^TryExec=.*$"),
+					QRegularExpression::MultilineOption),
+				qsl("TryExec=")
+					+ QFile::encodeName(cExeDir() + cExeName())
+						.replace('\\', qsl("\\\\")));
+			fileText = fileText.replace(
+				QRegularExpression(
+					qsl("^Exec=.*$"),
+					QRegularExpression::MultilineOption),
+				qsl("Exec=")
+					+ EscapeShell(QFile::encodeName(cExeDir() + cExeName()))
+						.replace('\\', qsl("\\\\"))
+					+ (args.isEmpty() ? QString() : ' ' + args));
+		} else {
+			fileText = fileText.replace(
+				QRegularExpression(
+					qsl("^Exec=(.*) -- %u$"),
+					QRegularExpression::MultilineOption),
+				qsl("Exec=\\1")
+					+ (args.isEmpty() ? QString() : ' ' + args));
+		}
+
 		target.write(fileText.toUtf8());
 		target.close();
 
@@ -236,6 +237,19 @@ bool InSandbox() {
 bool InSnap() {
 	static const auto Snap = qEnvironmentVariableIsSet("SNAP");
 	return Snap;
+}
+
+bool InAppImage() {
+	static const auto AppImage = qEnvironmentVariableIsSet("APPIMAGE");
+	return AppImage;
+}
+
+bool IsStaticBinary() {
+#ifdef DESKTOP_APP_USE_PACKAGED
+		return false;
+#else // DESKTOP_APP_USE_PACKAGED
+		return true;
+#endif // !DESKTOP_APP_USE_PACKAGED
 }
 
 bool IsXDGDesktopPortalPresent() {
@@ -277,7 +291,7 @@ QString ProcessNameByPID(const QString &pid) {
 	return QString();
 }
 
-QString CurrentExecutablePath(int argc, char *argv[]) {
+QString RealExecutablePath(int argc, char *argv[]) {
 	const auto processName = ProcessNameByPID(qsl("self"));
 
 	// Fallback to the first command line argument.
@@ -286,6 +300,25 @@ QString CurrentExecutablePath(int argc, char *argv[]) {
 		: argc
 			? QFile::decodeName(argv[0])
 			: QString();
+}
+
+QString CurrentExecutablePath(int argc, char *argv[]) {
+	if (InAppImage()) {
+		const auto appimagePath = QString::fromUtf8(qgetenv("APPIMAGE"));
+		const auto appimagePathList = appimagePath.split('/');
+
+		if (qEnvironmentVariableIsSet("ARGV0")
+			&& appimagePathList.size() >= 5
+			&& appimagePathList[1] == qstr("run")
+			&& appimagePathList[2] == qstr("user")
+			&& appimagePathList[4] == qstr("appimagelauncherfs")) {
+			return QString::fromUtf8(qgetenv("ARGV0"));
+		}
+
+		return appimagePath;
+	}
+
+	return RealExecutablePath(argc, argv);
 }
 
 QString AppRuntimeDirectory() {
@@ -343,6 +376,20 @@ QString GetLauncherBasename() {
 			return qsl("%1_%2")
 				.arg(QString::fromLatin1(qgetenv(snapNameKey)))
 				.arg(cExeName());
+		}
+
+		if (InAppImage()) {
+			const auto appimagePath = qsl("file://%1%2")
+				.arg(cExeDir())
+				.arg(cExeName())
+				.toUtf8();
+
+			char md5Hash[33] = { 0 };
+			hashMd5Hex(appimagePath.constData(), appimagePath.size(), md5Hash);
+
+			return qsl("appimagekit_%1-%2")
+				.arg(md5Hash)
+				.arg(AppName.utf16().replace(' ', '_'));
 		}
 
 		const auto possibleBasenames = std::vector<QString>{

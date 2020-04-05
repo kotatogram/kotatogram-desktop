@@ -1,0 +1,43 @@
+--- a/AppRun.c
++++ b/AppRun.c
+@@ -112,40 +112,8 @@
+     char*   outargptrs[argcount + argc + 1];
+     outargptrs[0] = exe;
+     int     outargindex = 1;
+-    arg                 = exe;
+     int     argc_       = argc - 1;     // argv[0] is the filename
+     char**  argv_       = argv + 1;
+-    while ((arg += (strlen(arg)+1)) && *arg) {
+-        if (arg[0] == '%' || (arg[0] == '"' && arg[1] == '%')) {         // handle desktop file field codes
+-            char code = arg[arg[0] == '%' ? 1 : 2];
+-            switch(code) {
+-                case 'f':
+-                case 'u':
+-                    if (argc_ > 0) {
+-                        outargptrs[outargindex++] = *argv_++;
+-                        argc_--;
+-                    }
+-                    break;
+-                case 'F':
+-                case 'U':
+-                    while (argc_ > 0) {
+-                        outargptrs[outargindex++] = *argv_++;
+-                        argc_--;
+-                    }
+-                    break;
+-                case 'i':
+-                case 'c':
+-                case 'k':
+-                    fprintf(stderr, "WARNING: Desktop file field code %%%c is not currently supported\n", code);
+-                    break;
+-                default:
+-                    fprintf(stderr, "WARNING: Invalid desktop file field code %%%c\n", code);
+-                    break;
+-            }
+-        } else {
+-            outargptrs[outargindex++] = arg;
+-        }
+-    }
+     while (argc_ > 0) {
+         outargptrs[outargindex++] = *argv_++;
+         argc_--;
