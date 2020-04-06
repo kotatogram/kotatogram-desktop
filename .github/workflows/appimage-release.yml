@@ -461,6 +461,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DTDESKTOP_API_ID=${API_ID} \
           -DTDESKTOP_API_HASH=${API_HASH} \
+          -DDESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
           -DDESKTOP_APP_USE_PACKAGED_GSL=OFF \
           -DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF \
@@ -485,11 +486,6 @@ jobs:
           git clone --depth=1 $GIT/darealshinji/AppImageKit-checkrt
           cd AppImageKit-checkrt
           git apply ../../$REPO_NAME/Telegram/Patches/AppImageKit-checkrt.diff
-
-          # We don't need arguments from the desktop file
-          make AppRun.c
-          git apply ../../$REPO_NAME/Telegram/Patches/AppRun.c.diff
-
           make -j$(nproc)
 
       - name: AppImage build.
@@ -509,13 +505,23 @@ jobs:
           -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
-      - name: Get artifact name.
+      - name: Move artifact.
         if: env.ONLY_CACHE == 'false'
         run: |
           cd $REPO_NAME
 
-          artifact_name=$(echo Kotatogram_Desktop*.AppImage)
+          tag_name=${GITHUB_REF##*/}
+          version=${tag_name#k}
+          appimage_name=$(echo Kotatogram_Desktop*.AppImage)
+          artifact_name=KtgAppImage.$version.tar.xz
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
+
+          mkdir -p artifact/Kotatogram
+          mv $appimage_name artifact/Kotatogram/Kotatogram.AppImage
+          mv bin/Updater artifact/Kotatogram
+
+          cd artifact
+          tar -caf $artifact_name Kotatogram
 
       - name: Upload release asset.
         id: upload-release-asset
@@ -525,6 +531,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ env.REPO_NAME }}/${{ env.ARTIFACT_NAME }}
+          asset_path: ./${{ env.REPO_NAME }}/artifact/${{ env.ARTIFACT_NAME }}
           asset_name: ${{ env.ARTIFACT_NAME }}
           asset_content_type: application/octet-stream
