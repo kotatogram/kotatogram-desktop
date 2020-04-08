@@ -492,11 +492,6 @@ jobs:
           git clone --depth=1 $GIT/darealshinji/AppImageKit-checkrt
           cd AppImageKit-checkrt
           git apply ../../$REPO_NAME/Telegram/Patches/AppImageKit-checkrt.diff
-
-          # We don't need arguments from the desktop file
-          make AppRun.c
-          git apply ../../$REPO_NAME/Telegram/Patches/AppRun.c.diff
-
           make -j$(nproc)
 
       - name: AppImage build.
