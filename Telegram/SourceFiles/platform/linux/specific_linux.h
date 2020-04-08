@@ -24,6 +24,7 @@ bool InSandbox();
 bool InSnap();
 bool InAppImage();
 bool IsStaticBinary();
+bool IsGtkFileDialogForced();
 
 bool IsXDGDesktopPortalPresent();
 bool UseXDGDesktopPortal();

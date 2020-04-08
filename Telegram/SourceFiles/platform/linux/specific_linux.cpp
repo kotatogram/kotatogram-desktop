@@ -252,6 +252,14 @@ bool IsStaticBinary() {
 #endif // !DESKTOP_APP_USE_PACKAGED
 }
 
+bool IsGtkFileDialogForced() {
+#ifdef TDESKTOP_FORCE_GTK_FILE_DIALOG
+	return true;
+#else // TDESKTOP_FORCE_GTK_FILE_DIALOG
+	return false;
+#endif // !TDESKTOP_FORCE_GTK_FILE_DIALOG
+}
+
 bool IsXDGDesktopPortalPresent() {
 #ifdef TDESKTOP_DISABLE_DBUS_INTEGRATION
 	static const auto XDGDesktopPortalPresent = false;
@@ -607,21 +615,21 @@ void start() {
 	qputenv("PULSE_PROP_application.name", AppName.utf8());
 	qputenv("PULSE_PROP_application.icon_name", GetIconName().toLatin1());
 
-#ifdef TDESKTOP_FORCE_GTK_FILE_DIALOG
-	LOG(("Checking for XDG Desktop Portal..."));
-	// this can give us a chance to use a proper file dialog for current session
-	if (IsXDGDesktopPortalPresent()) {
-		LOG(("XDG Desktop Portal is present!"));
-		if (UseXDGDesktopPortal()) {
-			LOG(("Usage of XDG Desktop Portal is enabled."));
-			qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
+	if(IsStaticBinary() || InAppImage() || IsGtkFileDialogForced()) {
+		LOG(("Checking for XDG Desktop Portal..."));
+		// this can give us a chance to use a proper file dialog for current session
+		if (IsXDGDesktopPortalPresent()) {
+			LOG(("XDG Desktop Portal is present!"));
+			if (UseXDGDesktopPortal()) {
+				LOG(("Usage of XDG Desktop Portal is enabled."));
+				qputenv("QT_QPA_PLATFORMTHEME", "xdgdesktopportal");
+			} else {
+				LOG(("Usage of XDG Desktop Portal is disabled."));
+			}
 		} else {
-			LOG(("Usage of XDG Desktop Portal is disabled."));
+			LOG(("XDG Desktop Portal is not present :("));
 		}
-	} else {
-		LOG(("XDG Desktop Portal is not present :("));
 	}
-#endif // TDESKTOP_FORCE_GTK_FILE_DIALOG
 }
 
 void finish() {
