@@ -12,6 +12,32 @@ index 266faca0ed..cf9dafb6d8 100644
      void *poolFrame = nullptr;
      if (__builtin_available(macOS 10.14, iOS 12.0, tvOS 12.0, watchOS 5.0, *)) {
          void *frame;
+diff --git a/src/gui/kernel/qguiapplication.cpp b/src/gui/kernel/qguiapplication.cpp
+index 5014878bd2..0e05e0f5b9 100644
+--- a/src/gui/kernel/qguiapplication.cpp
++++ b/src/gui/kernel/qguiapplication.cpp
+@@ -50,6 +50,7 @@
+ #include <qpa/qplatformnativeinterface.h>
+ #include <qpa/qplatformtheme.h>
+ #include <qpa/qplatformintegration.h>
++#include <qpa/qplatformservices.h>
+ 
+ #include <QtCore/QAbstractEventDispatcher>
+ #include <QtCore/QStandardPaths>
+@@ -268,7 +269,12 @@ static void initThemeHints()
+ static bool checkNeedPortalSupport()
+ {
+ #if QT_CONFIG(dbus)
+-    return !QStandardPaths::locate(QStandardPaths::RuntimeLocation, QLatin1String("flatpak-info")).isEmpty() || qEnvironmentVariableIsSet("SNAP");
++    bool neededByDesktopEnvironment = false;
++    if (QGuiApplication::desktopSettingsAware()) {
++        const QByteArray desktopEnvironment = QGuiApplicationPrivate::platformIntegration()->services()->desktopEnvironment();
++        neededByDesktopEnvironment = (desktopEnvironment == "KDE");
++    }
++    return !QStandardPaths::locate(QStandardPaths::RuntimeLocation, QLatin1String("flatpak-info")).isEmpty() || qEnvironmentVariableIsSet("SNAP") || neededByDesktopEnvironment;
+ #else
+     return false;
+ #endif // QT_CONFIG(dbus)
 diff --git a/src/gui/kernel/qstylehints.cpp b/src/gui/kernel/qstylehints.cpp
 index 48060a2c37..fff3271ec9 100644
 --- a/src/gui/kernel/qstylehints.cpp
@@ -882,6 +908,115 @@ index ce67e46df3..a60edc151f 100644
      void destroyWindow();
      inline bool isDropSiteEnabled() const { return m_dropTarget != 0; }
      void setDropSiteEnabled(bool enabled);
+diff --git a/src/plugins/platformthemes/gtk3/qgtk3dialoghelpers.cpp b/src/plugins/platformthemes/gtk3/qgtk3dialoghelpers.cpp
+index c64a02fa0c..8207762022 100644
+--- a/src/plugins/platformthemes/gtk3/qgtk3dialoghelpers.cpp
++++ b/src/plugins/platformthemes/gtk3/qgtk3dialoghelpers.cpp
+@@ -45,6 +45,7 @@
+ #include <qcolor.h>
+ #include <qdebug.h>
+ #include <qfont.h>
++#include <qfileinfo.h>
+ 
+ #include <private/qguiapplication_p.h>
+ #include <qpa/qplatformfontdatabase.h>
+@@ -57,6 +58,16 @@
+ 
+ QT_BEGIN_NAMESPACE
+ 
++// GTK file chooser image preview: thanks to Chromium
++
++// The size of the preview we display for selected image files. We set height
++// larger than width because generally there is more free space vertically
++// than horiztonally (setting the preview image will alway expand the width of
++// the dialog, but usually not the height). The image's aspect ratio will always
++// be preserved.
++#define PREVIEW_WIDTH 256
++#define PREVIEW_HEIGHT 512
++
+ class QGtk3Dialog : public QWindow
+ {
+     Q_OBJECT
+@@ -77,18 +88,24 @@ Q_SIGNALS:
+ 
+ protected:
+     static void onResponse(QGtk3Dialog *dialog, int response);
++    static void onUpdatePreview(QGtk3Dialog *dialog);
+ 
+ private slots:
+     void onParentWindowDestroyed();
+ 
+ private:
+     GtkWidget *gtkWidget;
++    GtkWidget *previewWidget;
+ };
+ 
+ QGtk3Dialog::QGtk3Dialog(GtkWidget *gtkWidget) : gtkWidget(gtkWidget)
+ {
+     g_signal_connect_swapped(G_OBJECT(gtkWidget), "response", G_CALLBACK(onResponse), this);
+     g_signal_connect(G_OBJECT(gtkWidget), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
++
++    previewWidget = gtk_image_new();
++    g_signal_connect_swapped(G_OBJECT(gtkWidget), "update-preview", G_CALLBACK(onUpdatePreview), this);
++    gtk_file_chooser_set_preview_widget(GTK_FILE_CHOOSER(gtkWidget), previewWidget);
+ }
+ 
+ QGtk3Dialog::~QGtk3Dialog()
+@@ -162,6 +179,32 @@ void QGtk3Dialog::onResponse(QGtk3Dialog *dialog, int response)
+         emit dialog->reject();
+ }
+ 
++void QGtk3Dialog::onUpdatePreview(QGtk3Dialog *dialog) {
++    gchar *filename = gtk_file_chooser_get_preview_filename(GTK_FILE_CHOOSER(dialog->gtkWidget));
++    if (!filename) {
++        gtk_file_chooser_set_preview_widget_active(GTK_FILE_CHOOSER(dialog->gtkWidget), false);
++        return;
++    }
++
++    // Don't attempt to open anything which isn't a regular file. If a named pipe,
++    // this may hang. See https://crbug.com/534754.
++    QFileInfo fileinfo(filename);
++    if (!fileinfo.exists() || !fileinfo.isFile()) {
++        g_free(filename);
++        gtk_file_chooser_set_preview_widget_active(GTK_FILE_CHOOSER(dialog->gtkWidget), false);
++        return;
++    }
++
++    // This will preserve the image's aspect ratio.
++    GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_size(filename, PREVIEW_WIDTH, PREVIEW_HEIGHT, 0);
++    g_free(filename);
++    if (pixbuf) {
++        gtk_image_set_from_pixbuf(GTK_IMAGE(dialog->previewWidget), pixbuf);
++        g_object_unref(pixbuf);
++    }
++    gtk_file_chooser_set_preview_widget_active(GTK_FILE_CHOOSER(dialog->gtkWidget), pixbuf ? true : false);
++}
++
+ void QGtk3Dialog::onParentWindowDestroyed()
+ {
+     // The QGtk3*DialogHelper classes own this object. Make sure the parent doesn't delete it.
+diff --git a/src/plugins/platformthemes/gtk3/qgtk3theme.cpp b/src/plugins/platformthemes/gtk3/qgtk3theme.cpp
+index 077955eb4e..5c8a3dddf7 100644
+--- a/src/plugins/platformthemes/gtk3/qgtk3theme.cpp
++++ b/src/plugins/platformthemes/gtk3/qgtk3theme.cpp
+@@ -153,7 +153,7 @@ bool QGtk3Theme::usePlatformNativeDialog(DialogType type) const
+     case ColorDialog:
+         return true;
+     case FileDialog:
+-        return useNativeFileDialog();
++        return true;
+     case FontDialog:
+         return true;
+     default:
+@@ -167,8 +167,6 @@ QPlatformDialogHelper *QGtk3Theme::createPlatformDialogHelper(DialogType type) c
+     case ColorDialog:
+         return new QGtk3ColorDialogHelper;
+     case FileDialog:
+-        if (!useNativeFileDialog())
+-            return nullptr;
+         return new QGtk3FileDialogHelper;
+     case FontDialog:
+         return new QGtk3FontDialogHelper;
 diff --git a/src/widgets/kernel/qwidget.cpp b/src/widgets/kernel/qwidget.cpp
 index bf339ca5c5..4cdf9189ad 100644
 --- a/src/widgets/kernel/qwidget.cpp

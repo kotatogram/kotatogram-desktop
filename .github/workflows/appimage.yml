@@ -432,6 +432,7 @@ jobs:
 
           git clone --depth=1 git://code.qt.io/qt/qtstyleplugins.git
           cd qtstyleplugins
+          git apply ../../$REPO_NAME/Telegram/Patches/qtstyleplugins.diff
           qmake PREFIX='/usr'
           make -j$(nproc)
           sudo make install
