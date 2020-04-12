@@ -485,11 +485,10 @@ jobs:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
         run: |
-          cd $REPO_NAME
+          cd $REPO_NAME/Telegram
 
-          cmake . \
+          ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
-          -DCMAKE_BUILD_TYPE=Release \
           -DTDESKTOP_API_ID=${API_ID} \
           -DTDESKTOP_API_HASH=${API_HASH} \
           -DDESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
@@ -500,10 +499,9 @@ jobs:
           -DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF \
           -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
 
+          cd ../out/Release
           cmake --build .
-
-          mkdir AppDir
-          DESTDIR=AppDir cmake --install .
+          DESTDIR=../../AppDir cmake --install .
 
       - name: Update linker cache.
         if: env.ONLY_CACHE == 'false'
@@ -555,7 +553,7 @@ jobs:
 
           mkdir -p artifact/Kotatogram
           mv $APPIMAGE_NAME artifact/Kotatogram/Kotatogram.AppImage
-          mv bin/Updater artifact/Kotatogram
+          mv out/Release/bin/Updater artifact/Kotatogram
 
           cd artifact
           tar -caf $ARTIFACT_NAME Kotatogram

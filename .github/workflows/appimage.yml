@@ -492,11 +492,10 @@ jobs:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
         run: |
-          cd $REPO_NAME
+          cd $REPO_NAME/Telegram
 
-          cmake . \
+          ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
-          -DCMAKE_BUILD_TYPE=Release \
           -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
           -DDESKTOP_APP_USE_PACKAGED_GSL=OFF \
@@ -505,10 +504,9 @@ jobs:
           -DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF \
           -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
 
+          cd ../out/Release
           cmake --build .
-
-          mkdir AppDir
-          DESTDIR=AppDir cmake --install .
+          DESTDIR=../../AppDir cmake --install .
 
       - name: Update linker cache.
         if: env.ONLY_CACHE == 'false'
