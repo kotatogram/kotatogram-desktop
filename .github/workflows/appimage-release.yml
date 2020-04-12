@@ -128,10 +128,10 @@ jobs:
           git clone -b nasm-2.14.02 --depth=1 https://repo.or.cz/nasm.git
           cd nasm
           ./autogen.sh
-          ./configure --prefix=/usr
+          ./configure
           make -j$(nproc)
-          sudo install nasm /usr/bin/nasm
-          sudo install ndisasm /usr/bin/ndisasm
+          sudo install nasm /usr/local/bin/nasm
+          sudo install ndisasm /usr/local/bin/ndisasm
           cd ..
           rm -rf nasm
 
@@ -145,7 +145,6 @@ jobs:
           cd range-v3
 
           cmake . \
-          -DCMAKE_INSTALL_PREFIX=/usr \
           -DCMAKE_BUILD_TYPE=Release \
           -DRANGE_V3_TESTS=OFF \
           -DRANGE_V3_EXAMPLES=OFF \
@@ -164,7 +163,7 @@ jobs:
           git clone -b v1.2.11 --depth=1 $GIT/madler/zlib.git
           cd zlib/contrib/minizip
           autoreconf -i
-          ./configure --prefix=/usr
+          ./configure
           make
           sudo make install
           cd ../../..
@@ -177,7 +176,7 @@ jobs:
           git clone -b v1.9.2 --depth=1 $GIT/lz4/lz4.git
           cd lz4
           make -j$(nproc)
-          PREFIX=/usr sudo make install
+          sudo make install
           cd ..
           rm -rf lz4
 
@@ -188,7 +187,7 @@ jobs:
           git clone -b v0.7.2 --depth=1 $GIT/Cyan4973/xxHash.git
           cd xxHash
           make -j$(nproc)
-          PREFIX=/usr sudo make install
+          sudo make install
           cd ..
           rm -rf xxHash
 
@@ -200,7 +199,7 @@ jobs:
       #     git clone -b 0.6.0 --depth=1 $GIT/videolan/dav1d.git
       #     cd dav1d
       #     mkdir build && cd build
-      #     meson --prefix=/usr ..
+      #     meson ..
       #     ninja
       #     ninja install
       #     cd ../..
@@ -220,7 +219,6 @@ jobs:
           git clone --branch release/4.2 $GIT/FFmpeg/FFmpeg ffmpeg
           cd ffmpeg
           ./configure \
-          --prefix=/usr \
           --disable-debug \
           --disable-programs \
           --disable-doc \
@@ -336,7 +334,6 @@ jobs:
           git clone -b openal-soft-1.20.1 --depth=1 $GIT/kcat/openal-soft.git
           cd openal-soft/build
           cmake .. \
-          -DCMAKE_INSTALL_PREFIX=/usr \
           -DCMAKE_BUILD_TYPE=Release \
           -DALSOFT_EXAMPLES=OFF \
           -DALSOFT_TESTS=OFF \
@@ -363,7 +360,7 @@ jobs:
           git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
             $GIT/openssl/openssl $opensslDir
           cd $opensslDir
-          ./config --prefix=/usr
+          ./config
           make -j$(nproc)
           sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
           cd ..
@@ -380,7 +377,7 @@ jobs:
           git clone -b v1.7.0 --depth=1 $GIT/hunspell/hunspell.git
           cd hunspell
           autoreconf -vfi
-          ./configure --prefix=/usr
+          ./configure
           make
           sudo make install
           cd ..
@@ -429,7 +426,7 @@ jobs:
           git apply ../../../$REPO_NAME/Telegram/Patches/qtbase_${QT}_appimage.diff
           cd ..
 
-          ./configure -prefix /usr \
+          ./configure -prefix /usr/local \
           -release \
           -opensource \
           -confirm-license \
@@ -440,6 +437,7 @@ jobs:
           -qt-pcre \
           -qt-xcb \
           -openssl-linked \
+          OPENSSL_LIBS="-L/usr/local/lib -lssl -lcrypto" \
           -nomake examples \
           -nomake tests
 
@@ -459,7 +457,7 @@ jobs:
           git clone --depth=1 git://code.qt.io/qt/qtstyleplugins.git
           cd qtstyleplugins
           git apply ../../$REPO_NAME/Telegram/Patches/qtstyleplugins.diff
-          qmake PREFIX='/usr'
+          qmake
           make -j$(nproc)
           sudo make install
           cd ..
@@ -473,7 +471,6 @@ jobs:
           git clone -b 0.9.3+16.04.20160218-0ubuntu1 --depth=1 $GIT/unity8-team/libdbusmenu-qt.git
           cd libdbusmenu-qt
           cmake . \
-          -DCMAKE_INSTALL_PREFIX=/usr \
           -DCMAKE_BUILD_TYPE=Release \
           -DWITH_DOC=OFF
 
