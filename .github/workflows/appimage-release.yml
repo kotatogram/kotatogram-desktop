@@ -539,7 +539,7 @@ jobs:
           -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
-      - name: Move artifact.
+      - name: Get artifact name.
         if: env.ONLY_CACHE == 'false'
         run: |
           cd $REPO_NAME
@@ -548,14 +548,20 @@ jobs:
           version=${tag_name#k}
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
           artifact_name=KtgAppImage.$version.tar.xz
+          echo ::set-env name=APPIMAGE_NAME::$appimage_name
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
+      - name: Move artifact.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          cd $REPO_NAME
+
           mkdir -p artifact/Kotatogram
-          mv $appimage_name artifact/Kotatogram/Kotatogram.AppImage
+          mv $APPIMAGE_NAME artifact/Kotatogram/Kotatogram.AppImage
           mv bin/Updater artifact/Kotatogram
 
           cd artifact
-          tar -caf $artifact_name Kotatogram
+          tar -caf $ARTIFACT_NAME Kotatogram
 
       - name: Upload release asset.
         id: upload-release-asset
