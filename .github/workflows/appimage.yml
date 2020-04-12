@@ -467,8 +467,7 @@ jobs:
           cmake . \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DCMAKE_BUILD_TYPE=Release \
-          -DTDESKTOP_API_ID=${API_ID} \
-          -DTDESKTOP_API_HASH=${API_HASH} \
+          -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
           -DDESKTOP_APP_USE_PACKAGED_GSL=OFF \
           -DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF \
