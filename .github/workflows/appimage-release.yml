@@ -103,6 +103,18 @@ jobs:
 
           cmake --version
 
+      - name: Extra CMake Modules.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v5.69.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
+          cd extra-cmake-modules
+          cmake . -DCMAKE_BUILD_TYPE=Release
+          cmake --build .
+          cmake --install .
+          cd ..
+          rm -rf extra-cmake-modules
+
       # TODO: AV1 support
       # - name: Meson.
       #   run: |
@@ -463,6 +475,20 @@ jobs:
           cd ..
           rm -rf qtstyleplugins
 
+      - name: Fcitx-qt5.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 1.2.4 --depth=1 $GIT/fcitx/fcitx-qt5.git
+          cd fcitx-qt5
+          cmake . \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_LIBRARY=OFF
+          cmake --build .
+          sudo install -D platforminputcontext/libfcitxplatforminputcontextplugin.so /usr/local/plugins/platforminputcontexts/libfcitxplatforminputcontextplugin.so
+          cd ..
+          rm -rf fcitx-qt5
+
       - name: Libdbusmenu-qt.
         if: env.ONLY_CACHE == 'false'
         run: |
@@ -473,7 +499,6 @@ jobs:
           cmake . \
           -DCMAKE_BUILD_TYPE=Release \
           -DWITH_DOC=OFF
-
           cmake --build .
           cmake --install .
           cd ..
