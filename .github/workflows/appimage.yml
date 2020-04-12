@@ -410,9 +410,6 @@ jobs:
           -qt-harfbuzz \
           -qt-pcre \
           -qt-xcb \
-          -system-freetype \
-          -fontconfig \
-          -dbus-linked \
           -openssl-linked \
           -nomake examples \
           -nomake tests
