@@ -80,7 +80,7 @@ jobs:
           gcc --version > CACHE_KEY.txt
           echo $MANUAL_CACHING >> CACHE_KEY.txt
           if [ "$AUTO_CACHING" == "1" ]; then
-            thisFile=$REPO_NAME/.github/workflows/linux.yml
+            thisFile=$REPO_NAME/.github/workflows/appimage-release.yml
             echo `md5sum $thisFile | cut -c -32` >> CACHE_KEY.txt
           fi
           md5cache=$(md5sum CACHE_KEY.txt | cut -c -32)
@@ -89,228 +89,6 @@ jobs:
           mkdir -p Libraries
           cd Libraries
           echo ::set-env name=LibrariesPath::`pwd`
-
-      - name: CMake.
-        run: |
-          cd $LibrariesPath
-
-          file=cmake-$CMAKE_VER-Linux-x86_64.sh
-          wget $GIT/Kitware/CMake/releases/download/v$CMAKE_VER/$file
-          sudo mkdir /opt/cmake
-          sudo sh $file --prefix=/opt/cmake --skip-license
-          sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
-          rm $file
-
-          cmake --version
-
-      # TODO: AV1 support
-      # - name: Meson.
-      #   run: |
-      #     sudo python3 -m pip install meson==0.44.1
-      #     meson --version
-
-      # TODO: AV1 support
-      # - name: Ninja.
-      #   run: |
-      #     cd $LibrariesPath
-
-      #     wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip
-      #     unzip ninja-linux.zip
-      #     chmod +x ninja
-      #     mv ninja /usr/local/bin
-
-      #     ninja --version
-
-      - name: NASM.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b nasm-2.14.02 --depth=1 https://repo.or.cz/nasm.git
-          cd nasm
-          ./autogen.sh
-          ./configure --prefix=/usr
-          make -j$(nproc)
-          sudo install nasm /usr/bin/nasm
-          sudo install ndisasm /usr/bin/ndisasm
-          cd ..
-          rm -rf nasm
-
-      - name: Range-v3.
-        run: |
-          echo "Find necessary branch from doc."
-          cloneRange=$(grep -A 1 "range-v3" $REPO_NAME/$DOC_PATH | sed -n 1p)
-          cd $LibrariesPath
-          echo $cloneRange
-          eval $cloneRange
-          cd range-v3
-
-          cmake . \
-          -DCMAKE_INSTALL_PREFIX=/usr \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DRANGE_V3_TESTS=OFF \
-          -DRANGE_V3_EXAMPLES=OFF \
-          -DRANGE_V3_DOCS=OFF
-
-          cmake --build .
-          cmake --install .
-
-          cd ..
-          rm -rf range-v3
-
-      - name: MiniZip.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v1.2.11 --depth=1 $GIT/madler/zlib.git
-          cd zlib/contrib/minizip
-          autoreconf -i
-          ./configure --prefix=/usr
-          make
-          sudo make install
-          cd ../../..
-          rm -rf zlib
-
-      - name: LZ4.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v1.9.2 --depth=1 $GIT/lz4/lz4.git
-          cd lz4
-          make -j$(nproc)
-          PREFIX=/usr sudo make install
-          cd ..
-          rm -rf lz4
-
-      - name: xxHash.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v0.7.2 --depth=1 $GIT/Cyan4973/xxHash.git
-          cd xxHash
-          make -j$(nproc)
-          PREFIX=/usr sudo make install
-          cd ..
-          rm -rf xxHash
-
-      # TODO: AV1 support
-      # - name: dav1d.
-      #   run: |
-      #     cd $LibrariesPath
-
-      #     git clone -b 0.6.0 --depth=1 $GIT/videolan/dav1d.git
-      #     cd dav1d
-      #     mkdir build && cd build
-      #     meson --prefix=/usr ..
-      #     ninja
-      #     ninja install
-      #     cd ../..
-      #     rm -rf dav1d
-
-      - name: FFmpeg cache.
-        id: cache-ffmpeg
-        uses: actions/cache@v1
-        with:
-          path: ${{ env.LibrariesPath }}/ffmpeg-cache
-          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
-      - name: FFmpeg build.
-        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
-        run: |
-          cd $LibrariesPath
-
-          git clone --branch release/4.2 $GIT/FFmpeg/FFmpeg ffmpeg
-          cd ffmpeg
-          ./configure \
-          --prefix=/usr \
-          --disable-debug \
-          --disable-programs \
-          --disable-doc \
-          --disable-autodetect \
-          --disable-everything \
-          --disable-neon \
-          --disable-iconv \
-          --enable-gpl \
-          --enable-version3 \
-          --enable-libopus \
-          --enable-vaapi \
-          --enable-vdpau \
-          --enable-decoder=aac \
-          --enable-decoder=aac_latm \
-          --enable-decoder=aasc \
-          --enable-decoder=flac \
-          --enable-decoder=gif \
-          --enable-decoder=h264 \
-          --enable-decoder=mp1 \
-          --enable-decoder=mp1float \
-          --enable-decoder=mp2 \
-          --enable-decoder=mp2float \
-          --enable-decoder=mp3 \
-          --enable-decoder=mp3adu \
-          --enable-decoder=mp3adufloat \
-          --enable-decoder=mp3float \
-          --enable-decoder=mp3on4 \
-          --enable-decoder=mp3on4float \
-          --enable-decoder=mpeg4 \
-          --enable-decoder=msmpeg4v2 \
-          --enable-decoder=msmpeg4v3 \
-          --enable-decoder=opus \
-          --enable-decoder=vorbis \
-          --enable-decoder=wavpack \
-          --enable-decoder=wmalossless \
-          --enable-decoder=wmapro \
-          --enable-decoder=wmav1 \
-          --enable-decoder=wmav2 \
-          --enable-decoder=wmavoice \
-          --enable-encoder=libopus \
-          --enable-hwaccel=h264_vaapi \
-          --enable-hwaccel=h264_vdpau \
-          --enable-hwaccel=mpeg4_vaapi \
-          --enable-hwaccel=mpeg4_vdpau \
-          --enable-parser=aac \
-          --enable-parser=aac_latm \
-          --enable-parser=flac \
-          --enable-parser=h264 \
-          --enable-parser=mpeg4video \
-          --enable-parser=mpegaudio \
-          --enable-parser=opus \
-          --enable-parser=vorbis \
-          --enable-demuxer=aac \
-          --enable-demuxer=flac \
-          --enable-demuxer=gif \
-          --enable-demuxer=h264 \
-          --enable-demuxer=mov \
-          --enable-demuxer=mp3 \
-          --enable-demuxer=ogg \
-          --enable-demuxer=wav \
-          --enable-muxer=ogg \
-          --enable-muxer=opus
-
-          make -j$(nproc)
-          sudo make DESTDIR="$LibrariesPath/ffmpeg-cache" install
-          cd ..
-          rm -rf ffmpeg
-      - name: FFmpeg install.
-        run: |
-          cd $LibrariesPath
-          sudo cp -R ffmpeg-cache/. /
-
-      - name: OpenAL Soft.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b openal-soft-1.20.1 --depth=1 $GIT/kcat/openal-soft.git
-          cd openal-soft/build
-          cmake .. \
-          -DCMAKE_INSTALL_PREFIX=/usr \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DALSOFT_EXAMPLES=OFF \
-          -DALSOFT_TESTS=OFF \
-          -DALSOFT_UTILS=OFF \
-          -DALSOFT_CONFIG=OFF
-
-          cmake --build .
-          cmake --install .
-          cd -
-          rm -rf openal-soft
 
       - name: OpenSSL cache.
         id: cache-openssl
@@ -327,7 +105,7 @@ jobs:
           git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
             $GIT/openssl/openssl $opensslDir
           cd $opensslDir
-          ./config --prefix=/usr
+          ./config
           make -j$(nproc)
           sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
           cd ..
@@ -336,6 +114,305 @@ jobs:
         run: |
           cd $LibrariesPath
           sudo cp -R openssl-cache/. /
+          sudo ldconfig
+
+      - name: Python 3.8 cache.
+        id: cache-python
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/python-cache
+          key: ${{ runner.OS }}-python-${{ env.CACHE_KEY }}
+      - name: Python 3.8 build.
+        if: steps.python-openssl.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v3.8.2 --depth=1 $GIT/python/cpython.git
+          cd cpython
+          ./configure --enable-optimizations
+          make -j$(nproc)
+          sudo make DESTDIR="$LibrariesPath/python-cache" install
+          cd ..
+          rm -rf cpython
+      - name: Python 3.8 install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R python-cache/. /
+
+      - name: CMake.
+        run: |
+          cd $LibrariesPath
+
+          file=cmake-$CMAKE_VER-Linux-x86_64.sh
+          wget $GIT/Kitware/CMake/releases/download/v$CMAKE_VER/$file
+          sudo mkdir /opt/cmake
+          sudo sh $file --prefix=/opt/cmake --skip-license
+          sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+          rm $file
+
+          cmake --version
+
+      - name: Extra CMake Modules.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v5.69.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
+          cd extra-cmake-modules
+          cmake . -DCMAKE_BUILD_TYPE=Release
+          cmake --build .
+          sudo cmake --install .
+          cd ..
+          rm -rf extra-cmake-modules
+
+      - name: Meson.
+        run: |
+          sudo python3 -m pip install meson==0.54.0
+          meson --version
+
+      - name: Ninja.
+        run: |
+          cd $LibrariesPath
+
+          wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip
+          unzip ninja-linux.zip
+          chmod +x ninja
+          mv ninja /usr/local/bin
+
+          ninja --version
+
+      - name: NASM.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b nasm-2.14.02 --depth=1 https://repo.or.cz/nasm.git
+          cd nasm
+          ./autogen.sh
+          ./configure
+          make -j$(nproc)
+          sudo install nasm /usr/local/bin/nasm
+          sudo install ndisasm /usr/local/bin/ndisasm
+          cd ..
+          rm -rf nasm
+
+      - name: Range-v3.
+        run: |
+          echo "Find necessary branch from doc."
+          cloneRange=$(grep -A 1 "range-v3" $REPO_NAME/$DOC_PATH | sed -n 1p)
+          cd $LibrariesPath
+          echo $cloneRange
+          eval $cloneRange
+          cd range-v3
+
+          cmake . \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DRANGE_V3_TESTS=OFF \
+          -DRANGE_V3_EXAMPLES=OFF \
+          -DRANGE_V3_DOCS=OFF
+
+          cmake --build .
+          sudo cmake --install .
+
+          cd ..
+          rm -rf range-v3
+
+      - name: MiniZip.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v1.2.11 --depth=1 $GIT/madler/zlib.git
+          cd zlib/contrib/minizip
+          autoreconf -i
+          ./configure
+          make
+          sudo make install
+          cd ../../..
+          rm -rf zlib
+
+      - name: LZ4.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v1.9.2 --depth=1 $GIT/lz4/lz4.git
+          cd lz4
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          cd ..
+          rm -rf lz4
+
+      - name: xxHash.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v0.7.2 --depth=1 $GIT/Cyan4973/xxHash.git
+          cd xxHash
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          cd ..
+          rm -rf xxHash
+
+      - name: Dav1d.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 0.6.0 --depth=1 $GIT/videolan/dav1d.git
+          cd dav1d
+          mkdir build && cd build
+          meson .. \
+          --libdir=/usr/local/lib \
+          -Denable_tools=false \
+          -Denable_tests=false
+          ninja
+          sudo ninja install
+          sudo ldconfig
+          cd ../..
+          rm -rf dav1d
+
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg-cache
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
+      - name: FFmpeg build.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone --branch release/4.2 $GIT/FFmpeg/FFmpeg ffmpeg
+          cd ffmpeg
+          ./configure \
+          --disable-debug \
+          --disable-programs \
+          --disable-doc \
+          --disable-network \
+          --disable-autodetect \
+          --disable-everything \
+          --disable-neon \
+          --disable-iconv \
+          --enable-libdav1d \
+          --enable-libopus \
+          --enable-vaapi \
+          --enable-vdpau \
+          --enable-protocol=file \
+          --enable-hwaccel=h264_vaapi \
+          --enable-hwaccel=h264_vdpau \
+          --enable-hwaccel=mpeg4_vaapi \
+          --enable-hwaccel=mpeg4_vdpau \
+          --enable-decoder=aac \
+          --enable-decoder=aac_fixed \
+          --enable-decoder=aac_latm \
+          --enable-decoder=aasc \
+          --enable-decoder=alac \
+          --enable-decoder=flac \
+          --enable-decoder=gif \
+          --enable-decoder=h264 \
+          --enable-decoder=hevc \
+          --enable-decoder=libdav1d \
+          --enable-decoder=mp1 \
+          --enable-decoder=mp1float \
+          --enable-decoder=mp2 \
+          --enable-decoder=mp2float \
+          --enable-decoder=mp3 \
+          --enable-decoder=mp3adu \
+          --enable-decoder=mp3adufloat \
+          --enable-decoder=mp3float \
+          --enable-decoder=mp3on4 \
+          --enable-decoder=mp3on4float \
+          --enable-decoder=mpeg4 \
+          --enable-decoder=msmpeg4v2 \
+          --enable-decoder=msmpeg4v3 \
+          --enable-decoder=opus \
+          --enable-decoder=pcm_alaw \
+          --enable-decoder=pcm_f32be \
+          --enable-decoder=pcm_f32le \
+          --enable-decoder=pcm_f64be \
+          --enable-decoder=pcm_f64le \
+          --enable-decoder=pcm_lxf \
+          --enable-decoder=pcm_mulaw \
+          --enable-decoder=pcm_s16be \
+          --enable-decoder=pcm_s16be_planar \
+          --enable-decoder=pcm_s16le \
+          --enable-decoder=pcm_s16le_planar \
+          --enable-decoder=pcm_s24be \
+          --enable-decoder=pcm_s24daud \
+          --enable-decoder=pcm_s24le \
+          --enable-decoder=pcm_s24le_planar \
+          --enable-decoder=pcm_s32be \
+          --enable-decoder=pcm_s32le \
+          --enable-decoder=pcm_s32le_planar \
+          --enable-decoder=pcm_s64be \
+          --enable-decoder=pcm_s64le \
+          --enable-decoder=pcm_s8 \
+          --enable-decoder=pcm_s8_planar \
+          --enable-decoder=pcm_u16be \
+          --enable-decoder=pcm_u16le \
+          --enable-decoder=pcm_u24be \
+          --enable-decoder=pcm_u24le \
+          --enable-decoder=pcm_u32be \
+          --enable-decoder=pcm_u32le \
+          --enable-decoder=pcm_u8 \
+          --enable-decoder=pcm_zork \
+          --enable-decoder=vorbis \
+          --enable-decoder=wavpack \
+          --enable-decoder=wmalossless \
+          --enable-decoder=wmapro \
+          --enable-decoder=wmav1 \
+          --enable-decoder=wmav2 \
+          --enable-decoder=wmavoice \
+          --enable-encoder=libopus \
+          --enable-parser=aac \
+          --enable-parser=aac_latm \
+          --enable-parser=flac \
+          --enable-parser=h264 \
+          --enable-parser=hevc \
+          --enable-parser=mpeg4video \
+          --enable-parser=mpegaudio \
+          --enable-parser=opus \
+          --enable-parser=vorbis \
+          --enable-demuxer=aac \
+          --enable-demuxer=flac \
+          --enable-demuxer=gif \
+          --enable-demuxer=h264 \
+          --enable-demuxer=hevc \
+          --enable-demuxer=m4v \
+          --enable-demuxer=mov \
+          --enable-demuxer=mp3 \
+          --enable-demuxer=ogg \
+          --enable-demuxer=wav \
+          --enable-muxer=ogg \
+          --enable-muxer=opus
+
+          make -j$(nproc)
+          sudo make DESTDIR="$LibrariesPath/ffmpeg-cache" install
+          cd ..
+          rm -rf ffmpeg
+      - name: FFmpeg install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R ffmpeg-cache/. /
+          sudo ldconfig
+
+      - name: OpenAL Soft.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b openal-soft-1.20.1 --depth=1 $GIT/kcat/openal-soft.git
+          cd openal-soft/build
+          cmake .. \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DALSOFT_EXAMPLES=OFF \
+          -DALSOFT_TESTS=OFF \
+          -DALSOFT_UTILS=OFF \
+          -DALSOFT_CONFIG=OFF
+
+          cmake --build .
+          sudo cmake --install .
+          sudo ldconfig
+
+          cd -
+          rm -rf openal-soft
 
       - name: Hunspell.
         run: |
@@ -344,9 +421,10 @@ jobs:
           git clone -b v1.7.0 --depth=1 $GIT/hunspell/hunspell.git
           cd hunspell
           autoreconf -vfi
-          ./configure --prefix=/usr
+          ./configure
           make
           sudo make install
+          sudo ldconfig
           cd ..
           rm -rf hunspell
 
@@ -359,6 +437,7 @@ jobs:
           ./autogen.sh
           make -j$(nproc)
           sudo make install
+          sudo ldconfig
           cd ..
           rm -rf libxkbcommon
 
@@ -371,6 +450,7 @@ jobs:
           ./autogen.sh --disable-documentation --disable-dtd-validation
           make -j$(nproc)
           sudo make install
+          sudo ldconfig
           cd ..
           rm -rf wayland
 
@@ -379,7 +459,7 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ${{ env.LibrariesPath }}/qt-cache
-          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_5.diff') }}
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_5_appimage.diff') }}
       - name: Qt 5.12.5 build.
         if: steps.cache-qt.outputs.cache-hit != 'true'
         run: |
@@ -393,7 +473,7 @@ jobs:
           git apply ../../../$REPO_NAME/Telegram/Patches/qtbase_${QT}_appimage.diff
           cd ..
 
-          ./configure -prefix /usr \
+          ./configure -prefix /usr/local \
           -release \
           -opensource \
           -confirm-license \
@@ -403,10 +483,8 @@ jobs:
           -qt-harfbuzz \
           -qt-pcre \
           -qt-xcb \
-          -system-freetype \
-          -fontconfig \
-          -dbus-linked \
           -openssl-linked \
+          OPENSSL_LIBS="-L/usr/local/lib -lssl -lcrypto" \
           -nomake examples \
           -nomake tests
 
@@ -418,20 +496,36 @@ jobs:
         run: |
           cd $LibrariesPath
           sudo cp -R qt-cache/. /
+          sudo ldconfig
 
-      - name: Qtstyleplugins.
+      - name: Qt Style Plugins.
         run: |
           cd $LibrariesPath
 
           git clone --depth=1 git://code.qt.io/qt/qtstyleplugins.git
           cd qtstyleplugins
-          qmake PREFIX='/usr'
+          git apply ../../$REPO_NAME/Telegram/Patches/qtstyleplugins.diff
+          qmake
           make -j$(nproc)
           sudo make install
           cd ..
           rm -rf qtstyleplugins
 
-      - name: Libdbusmenu-qt.
+      - name: Fcitx Qt5.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 1.2.4 --depth=1 $GIT/fcitx/fcitx-qt5.git
+          cd fcitx-qt5
+          cmake . \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_LIBRARY=OFF
+          cmake --build .
+          sudo install -D platforminputcontext/libfcitxplatforminputcontextplugin.so /usr/local/plugins/platforminputcontexts/libfcitxplatforminputcontextplugin.so
+          cd ..
+          rm -rf fcitx-qt5
+
+      - name: LibDBusMenu Qt.
         if: env.ONLY_CACHE == 'false'
         run: |
           cd $LibrariesPath
@@ -439,12 +533,11 @@ jobs:
           git clone -b 0.9.3+16.04.20160218-0ubuntu1 --depth=1 $GIT/unity8-team/libdbusmenu-qt.git
           cd libdbusmenu-qt
           cmake . \
-          -DCMAKE_INSTALL_PREFIX=/usr \
           -DCMAKE_BUILD_TYPE=Release \
           -DWITH_DOC=OFF
-
           cmake --build .
-          cmake --install .
+          sudo cmake --install .
+          sudo ldconfig
           cd ..
           rm -rf libdbusmenu-qt
 
@@ -454,11 +547,10 @@ jobs:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
         run: |
-          cd $REPO_NAME
+          cd $REPO_NAME/Telegram
 
-          cmake . \
+          ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
-          -DCMAKE_BUILD_TYPE=Release \
           -DTDESKTOP_API_ID=${API_ID} \
           -DTDESKTOP_API_HASH=${API_HASH} \
           -DDESKTOP_APP_DISABLE_AUTOUPDATE=OFF \
@@ -469,14 +561,9 @@ jobs:
           -DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF \
           -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
 
+          cd ../out/Release
           cmake --build .
-
-          mkdir AppDir
-          DESTDIR=AppDir cmake --install .
-
-      - name: Update linker cache.
-        if: env.ONLY_CACHE == 'false'
-        run: sudo ldconfig
+          DESTDIR=../../AppDir cmake --install .
 
       - name: AppImageKit-checkrt build.
         if: env.ONLY_CACHE == 'false'
@@ -505,7 +592,7 @@ jobs:
           -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
-      - name: Move artifact.
+      - name: Get artifact name.
         if: env.ONLY_CACHE == 'false'
         run: |
           cd $REPO_NAME
@@ -514,14 +601,20 @@ jobs:
           version=${tag_name#k}
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
           artifact_name=KtgAppImage.$version.tar.xz
+          echo ::set-env name=APPIMAGE_NAME::$appimage_name
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
 
+      - name: Move artifact.
+        if: env.ONLY_CACHE == 'false'
+        run: |
+          cd $REPO_NAME
+
           mkdir -p artifact/Kotatogram
-          mv $appimage_name artifact/Kotatogram/Kotatogram.AppImage
-          mv bin/Updater artifact/Kotatogram
+          mv $APPIMAGE_NAME artifact/Kotatogram/Kotatogram.AppImage
+          mv out/Release/bin/Updater artifact/Kotatogram
 
           cd artifact
-          tar -caf $artifact_name Kotatogram
+          tar -caf $ARTIFACT_NAME Kotatogram
 
       - name: Upload release asset.
         id: upload-release-asset
