@@ -160,7 +160,7 @@ jobs:
           cd extra-cmake-modules
           cmake . -DCMAKE_BUILD_TYPE=Release
           cmake --build .
-          cmake --install .
+          sudo cmake --install .
           cd ..
           rm -rf extra-cmake-modules
 
@@ -210,7 +210,7 @@ jobs:
           -DRANGE_V3_DOCS=OFF
 
           cmake --build .
-          cmake --install .
+          sudo cmake --install .
 
           cd ..
           rm -rf range-v3
@@ -408,7 +408,7 @@ jobs:
           -DALSOFT_CONFIG=OFF
 
           cmake --build .
-          cmake --install .
+          sudo cmake --install .
           sudo ldconfig
 
           cd -
@@ -536,7 +536,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DWITH_DOC=OFF
           cmake --build .
-          cmake --install .
+          sudo cmake --install .
           sudo ldconfig
           cd ..
           rm -rf libdbusmenu-qt
