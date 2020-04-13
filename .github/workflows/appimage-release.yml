@@ -90,6 +90,55 @@ jobs:
           cd Libraries
           echo ::set-env name=LibrariesPath::`pwd`
 
+      - name: OpenSSL cache.
+        id: cache-openssl
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/openssl-cache
+          key: ${{ runner.OS }}-${{ env.OPENSSL_VER }}-${{ env.CACHE_KEY }}
+      - name: OpenSSL build.
+        if: steps.cache-openssl.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          opensslDir=openssl_${OPENSSL_VER}
+          git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
+            $GIT/openssl/openssl $opensslDir
+          cd $opensslDir
+          ./config
+          make -j$(nproc)
+          sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
+          cd ..
+          rm -rf $opensslDir
+      - name: OpenSSL install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R openssl-cache/. /
+          sudo ldconfig
+
+      - name: Python 3.8 cache.
+        id: cache-python
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.LibrariesPath }}/python-cache
+          key: ${{ runner.OS }}-python-${{ env.CACHE_KEY }}
+      - name: Python 3.8 build.
+        if: steps.python-openssl.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v3.8.2 --depth=1 $GIT/python/cpython.git
+          cd cpython
+          ./configure --enable-optimizations
+          make -j$(nproc)
+          sudo make DESTDIR="$LibrariesPath/python-cache" install
+          cd ..
+          rm -rf cpython
+      - name: Python 3.8 install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R python-cache/. /
+
       - name: CMake.
         run: |
           cd $LibrariesPath
@@ -115,23 +164,21 @@ jobs:
           cd ..
           rm -rf extra-cmake-modules
 
-      # TODO: AV1 support
-      # - name: Meson.
-      #   run: |
-      #     sudo python3 -m pip install meson==0.44.1
-      #     meson --version
+      - name: Meson.
+        run: |
+          sudo python3 -m pip install meson==0.54.0
+          meson --version
 
-      # TODO: AV1 support
-      # - name: Ninja.
-      #   run: |
-      #     cd $LibrariesPath
+      - name: Ninja.
+        run: |
+          cd $LibrariesPath
 
-      #     wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip
-      #     unzip ninja-linux.zip
-      #     chmod +x ninja
-      #     mv ninja /usr/local/bin
+          wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip
+          unzip ninja-linux.zip
+          chmod +x ninja
+          mv ninja /usr/local/bin
 
-      #     ninja --version
+          ninja --version
 
       - name: NASM.
         run: |
@@ -189,6 +236,7 @@ jobs:
           cd lz4
           make -j$(nproc)
           sudo make install
+          sudo ldconfig
           cd ..
           rm -rf lz4
 
@@ -200,22 +248,26 @@ jobs:
           cd xxHash
           make -j$(nproc)
           sudo make install
+          sudo ldconfig
           cd ..
           rm -rf xxHash
 
-      # TODO: AV1 support
-      # - name: dav1d.
-      #   run: |
-      #     cd $LibrariesPath
+      - name: dav1d.
+        run: |
+          cd $LibrariesPath
 
-      #     git clone -b 0.6.0 --depth=1 $GIT/videolan/dav1d.git
-      #     cd dav1d
-      #     mkdir build && cd build
-      #     meson ..
-      #     ninja
-      #     ninja install
-      #     cd ../..
-      #     rm -rf dav1d
+          git clone -b 0.6.0 --depth=1 $GIT/videolan/dav1d.git
+          cd dav1d
+          mkdir build && cd build
+          meson .. \
+          --libdir=/usr/local/lib \
+          -Denable_tools=false \
+          -Denable_tests=false
+          ninja
+          sudo ninja install
+          sudo ldconfig
+          cd ../..
+          rm -rf dav1d
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
@@ -239,6 +291,7 @@ jobs:
           --disable-everything \
           --disable-neon \
           --disable-iconv \
+          --enable-libdav1d \
           --enable-libopus \
           --enable-vaapi \
           --enable-vdpau \
@@ -256,6 +309,7 @@ jobs:
           --enable-decoder=gif \
           --enable-decoder=h264 \
           --enable-decoder=hevc \
+          --enable-decoder=libdav1d \
           --enable-decoder=mp1 \
           --enable-decoder=mp1float \
           --enable-decoder=mp2 \
@@ -338,6 +392,7 @@ jobs:
         run: |
           cd $LibrariesPath
           sudo cp -R ffmpeg-cache/. /
+          sudo ldconfig
 
       - name: OpenAL Soft.
         run: |
@@ -354,33 +409,10 @@ jobs:
 
           cmake --build .
           cmake --install .
+          sudo ldconfig
+
           cd -
           rm -rf openal-soft
-
-      - name: OpenSSL cache.
-        id: cache-openssl
-        uses: actions/cache@v1
-        with:
-          path: ${{ env.LibrariesPath }}/openssl-cache
-          key: ${{ runner.OS }}-${{ env.OPENSSL_VER }}-${{ env.CACHE_KEY }}
-      - name: OpenSSL build.
-        if: steps.cache-openssl.outputs.cache-hit != 'true'
-        run: |
-          cd $LibrariesPath
-
-          opensslDir=openssl_${OPENSSL_VER}
-          git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
-            $GIT/openssl/openssl $opensslDir
-          cd $opensslDir
-          ./config
-          make -j$(nproc)
-          sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
-          cd ..
-          rm -rf $opensslDir
-      - name: OpenSSL install.
-        run: |
-          cd $LibrariesPath
-          sudo cp -R openssl-cache/. /
 
       - name: Hunspell.
         run: |
@@ -392,6 +424,7 @@ jobs:
           ./configure
           make
           sudo make install
+          sudo ldconfig
           cd ..
           rm -rf hunspell
 
@@ -404,6 +437,7 @@ jobs:
           ./autogen.sh
           make -j$(nproc)
           sudo make install
+          sudo ldconfig
           cd ..
           rm -rf libxkbcommon
 
@@ -416,6 +450,7 @@ jobs:
           ./autogen.sh --disable-documentation --disable-dtd-validation
           make -j$(nproc)
           sudo make install
+          sudo ldconfig
           cd ..
           rm -rf wayland
 
@@ -461,6 +496,7 @@ jobs:
         run: |
           cd $LibrariesPath
           sudo cp -R qt-cache/. /
+          sudo ldconfig
 
       - name: Qtstyleplugins.
         run: |
@@ -501,6 +537,7 @@ jobs:
           -DWITH_DOC=OFF
           cmake --build .
           cmake --install .
+          sudo ldconfig
           cd ..
           rm -rf libdbusmenu-qt
 
@@ -527,10 +564,6 @@ jobs:
           cd ../out/Release
           cmake --build .
           DESTDIR=../../AppDir cmake --install .
-
-      - name: Update linker cache.
-        if: env.ONLY_CACHE == 'false'
-        run: sudo ldconfig
 
       - name: AppImageKit-checkrt build.
         if: env.ONLY_CACHE == 'false'
