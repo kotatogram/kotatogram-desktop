@@ -252,7 +252,7 @@ jobs:
           cd ..
           rm -rf xxHash
 
-      - name: dav1d.
+      - name: Dav1d.
         run: |
           cd $LibrariesPath
 
@@ -498,7 +498,7 @@ jobs:
           sudo cp -R qt-cache/. /
           sudo ldconfig
 
-      - name: Qtstyleplugins.
+      - name: Qt Style Plugins.
         run: |
           cd $LibrariesPath
 
@@ -511,7 +511,7 @@ jobs:
           cd ..
           rm -rf qtstyleplugins
 
-      - name: Fcitx-qt5.
+      - name: Fcitx Qt5.
         run: |
           cd $LibrariesPath
 
@@ -525,7 +525,7 @@ jobs:
           cd ..
           rm -rf fcitx-qt5
 
-      - name: Libdbusmenu-qt.
+      - name: LibDBusMenu Qt.
         if: env.ONLY_CACHE == 'false'
         run: |
           cd $LibrariesPath
