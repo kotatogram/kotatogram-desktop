@@ -603,8 +603,9 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone --depth=1 $GIT/darealshinji/AppImageKit-checkrt
+          git clone $GIT/darealshinji/AppImageKit-checkrt.git
           cd AppImageKit-checkrt
+          git checkout a2866fd
           git apply ../../$REPO_NAME/Telegram/Patches/AppImageKit-checkrt.diff
           make -j$(nproc)
 
