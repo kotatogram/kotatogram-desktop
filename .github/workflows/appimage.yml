@@ -61,7 +61,7 @@ jobs:
           libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev \
           libxcb-xkb-dev libxcb-sync0-dev libxcb-randr0-dev libx11-xcb-dev libxrender-dev \
           xutils-dev libva-dev libvdpau-dev libhangul-dev libxklavier-dev libappindicator3-dev \
-          librsvg2-bin unzip -y --force-yes && \
+          libxtst-dev librsvg2-bin unzip -y --force-yes && \
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update && \
           sudo apt-get install gcc-8 g++-8 -y && \
@@ -545,6 +545,31 @@ jobs:
           sudo install -D platforminputcontext/libfcitxplatforminputcontextplugin.so /usr/local/plugins/platforminputcontexts/libfcitxplatforminputcontextplugin.so
           cd ..
           rm -rf fcitx-qt5
+
+      - name: Hime.
+        run: |
+          cd $LibrariesPath
+
+          git clone $GIT/hime-ime/hime.git
+          cd hime
+          git checkout 7525645
+          # disable all but xim
+          ./configure \
+          --disable-nls \
+          --disable-system-tray \
+          --disable-tsin \
+          --disable-gtk2-im-module \
+          --disable-gtk3-im-module \
+          --disable-qt4-immodule \
+          --disable-anthy \
+          --disable-chewing \
+          --disable-appindicator \
+          --disable-lib64 \
+          --qt5-im-module-path=/usr/local/plugins/platforminputcontexts
+          make
+          sudo make install
+          cd ..
+          rm -rf hime
 
       - name: Nimf.
         run: |
