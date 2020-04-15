@@ -53,7 +53,8 @@ jobs:
           libffi-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev \
           libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev \
           libxcb-xkb-dev libxcb-sync0-dev libxcb-randr0-dev libx11-xcb-dev libxrender-dev \
-          xutils-dev libva-dev libvdpau-dev python3 python3-pip unzip -y --force-yes && \
+          xutils-dev libva-dev libvdpau-dev libhangul-dev libxklavier-dev libappindicator3-dev \
+          librsvg2-bin unzip -y --force-yes && \
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update && \
           sudo apt-get install gcc-8 g++-8 -y && \
@@ -454,6 +455,19 @@ jobs:
           cd ..
           rm -rf wayland
 
+      - name: Libwayland Protocols.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 1.16 https://gitlab.freedesktop.org/wayland/wayland-protocols
+          cd wayland-protocols
+          ./autogen.sh
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          cd ..
+          rm -rf wayland-protocols
+
       - name: Qt 5.12.5 cache.
         id: cache-qt
         uses: actions/cache@v1
@@ -524,6 +538,25 @@ jobs:
           sudo install -D platforminputcontext/libfcitxplatforminputcontextplugin.so /usr/local/plugins/platforminputcontexts/libfcitxplatforminputcontextplugin.so
           cd ..
           rm -rf fcitx-qt5
+
+      - name: Nimf.
+        run: |
+          cd $LibrariesPath
+
+          git clone $GIT/hamonikr/nimf.git
+          cd nimf
+          git checkout 01ae33c
+          git apply ../../$REPO_NAME/Telegram/Patches/nimf.diff
+          meson build . \
+          -Denable_gtk_doc=false \
+          -Dwith_nimf_anthy=false \
+          -Dwith_nimf_rime=false \
+          -Dwith_nimf_m17n=false \
+          -Dwith_nimf_qt4=false
+          ninja -C build modules/clients/qt5/libqt5im_nimf.so
+          sudo install -D build/modules/clients/qt5/libqt5im_nimf.so /usr/local/plugins/platforminputcontexts/libqt5im_nimf.so
+          cd ..
+          rm -rf nimf
 
       - name: LibDBusMenu Qt.
         if: env.ONLY_CACHE == 'false'
