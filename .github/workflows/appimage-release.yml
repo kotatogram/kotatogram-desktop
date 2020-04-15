@@ -15,7 +15,7 @@ jobs:
 
     env:
       GIT: "https://github.com"
-      QT: "5_12_5"
+      QT: "5_12_8"
       OPENSSL_VER: "1_1_1"
       CMAKE_VER: "3.17.0"
       ONLY_CACHE: "false"
@@ -53,7 +53,8 @@ jobs:
           libffi-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev \
           libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev \
           libxcb-xkb-dev libxcb-sync0-dev libxcb-randr0-dev libx11-xcb-dev libxrender-dev \
-          xutils-dev libva-dev libvdpau-dev python3 python3-pip unzip -y --force-yes && \
+          xutils-dev libva-dev libvdpau-dev libhangul-dev libxklavier-dev libappindicator3-dev \
+          libxtst-dev librsvg2-bin unzip -y --force-yes && \
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update && \
           sudo apt-get install gcc-8 g++-8 -y && \
@@ -454,18 +455,31 @@ jobs:
           cd ..
           rm -rf wayland
 
-      - name: Qt 5.12.5 cache.
+      - name: Libwayland Protocols.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 1.16 https://gitlab.freedesktop.org/wayland/wayland-protocols
+          cd wayland-protocols
+          ./autogen.sh
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          cd ..
+          rm -rf wayland-protocols
+
+      - name: Qt 5.12.8 cache.
         id: cache-qt
         uses: actions/cache@v1
         with:
           path: ${{ env.LibrariesPath }}/qt-cache
-          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_5_appimage.diff') }}
-      - name: Qt 5.12.5 build.
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_8_appimage.diff') }}
+      - name: Qt 5.12.8 build.
         if: steps.cache-qt.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
-          git clone -b v5.12.5 --depth=1 git://code.qt.io/qt/qt5.git qt_${QT}
+          git clone -b v5.12.8 --depth=1 git://code.qt.io/qt/qt5.git qt_${QT}
           cd qt_${QT}
           perl init-repository --module-subset=qtbase,qtwayland,qtimageformats,qtsvg
           git submodule update qtbase qtwayland qtimageformats qtsvg
@@ -492,7 +506,7 @@ jobs:
           sudo make INSTALL_ROOT="$LibrariesPath/qt-cache" install
           cd ..
           rm -rf qt_${QT}
-      - name: Qt 5.12.5 install.
+      - name: Qt 5.12.8 install.
         run: |
           cd $LibrariesPath
           sudo cp -R qt-cache/. /
@@ -524,6 +538,50 @@ jobs:
           sudo install -D platforminputcontext/libfcitxplatforminputcontextplugin.so /usr/local/plugins/platforminputcontexts/libfcitxplatforminputcontextplugin.so
           cd ..
           rm -rf fcitx-qt5
+
+      - name: Hime.
+        run: |
+          cd $LibrariesPath
+
+          git clone $GIT/hime-ime/hime.git
+          cd hime
+          git checkout 7525645
+          # disable all but xim
+          ./configure \
+          --disable-nls \
+          --disable-system-tray \
+          --disable-tsin \
+          --disable-gtk2-im-module \
+          --disable-gtk3-im-module \
+          --disable-qt4-immodule \
+          --disable-anthy \
+          --disable-chewing \
+          --disable-appindicator \
+          --disable-lib64 \
+          --qt5-im-module-path=/usr/local/plugins/platforminputcontexts
+          make
+          sudo make install
+          cd ..
+          rm -rf hime
+
+      - name: Nimf.
+        run: |
+          cd $LibrariesPath
+
+          git clone $GIT/hamonikr/nimf.git
+          cd nimf
+          git checkout 01ae33c
+          git apply ../../$REPO_NAME/Telegram/Patches/nimf.diff
+          meson build . \
+          -Denable_gtk_doc=false \
+          -Dwith_nimf_anthy=false \
+          -Dwith_nimf_rime=false \
+          -Dwith_nimf_m17n=false \
+          -Dwith_nimf_qt4=false
+          ninja -C build modules/clients/qt5/libqt5im_nimf.so
+          sudo install -D build/modules/clients/qt5/libqt5im_nimf.so /usr/local/plugins/platforminputcontexts/libqt5im_nimf.so
+          cd ..
+          rm -rf nimf
 
       - name: LibDBusMenu Qt.
         if: env.ONLY_CACHE == 'false'
@@ -570,8 +628,9 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone --depth=1 $GIT/darealshinji/AppImageKit-checkrt
+          git clone $GIT/darealshinji/AppImageKit-checkrt.git
           cd AppImageKit-checkrt
+          git checkout a2866fd
           git apply ../../$REPO_NAME/Telegram/Patches/AppImageKit-checkrt.diff
           make -j$(nproc)
 
