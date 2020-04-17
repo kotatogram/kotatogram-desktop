@@ -19,6 +19,7 @@ class SessionController;
 
 namespace Ui {
 class PlainShadow;
+class DropdownMenu;
 } // namespace Ui
 
 class StickerSetBox : public Ui::BoxContent, public RPCSender {
@@ -40,11 +41,14 @@ protected:
 private:
 	void updateTitleAndButtons();
 	void updateButtons();
+	bool showMenu(not_null<Ui::IconButton*> button);
 	void addStickers();
 	void shareStickers();
+	void copyTitle();
 
 	not_null<Window::SessionController*> _controller;
 	MTPInputStickerSet _set;
+	base::unique_qptr<Ui::DropdownMenu> _menu;
 
 	class Inner;
 	QPointer<Inner> _inner;

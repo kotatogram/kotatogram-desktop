@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "dialogs/dialogs_layout.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/scroll_area.h"
+#include "ui/widgets/dropdown_menu.h"
 #include "ui/image/image.h"
 #include "ui/text/text_utilities.h"
 #include "ui/emoji_config.h"
@@ -31,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "app.h"
+#include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_chat_helpers.h"
 
@@ -187,6 +189,15 @@ void StickerSetBox::shareStickers() {
 	Ui::show(Box<InformBox>(tr::lng_stickers_copied(tr::now)));
 }
 
+void StickerSetBox::copyTitle() {
+	std::move(
+		_inner->title()
+	) | rpl::start_with_next([this](const TextWithEntities &value) {
+		QGuiApplication::clipboard()->setText(value.text);
+		Ui::show(Box<InformBox>(tr::ktg_stickers_title_copied(tr::now)));
+	}, lifetime());
+}
+
 void StickerSetBox::updateTitleAndButtons() {
 	setTitle(_inner->title());
 	updateButtons();
@@ -195,6 +206,9 @@ void StickerSetBox::updateTitleAndButtons() {
 void StickerSetBox::updateButtons() {
 	clearButtons();
 	if (_inner->loaded()) {
+		const auto moreButton = addTopButton(st::infoTopBarMenu);
+		moreButton->setClickedCallback([=] { showMenu(moreButton.data()); });
+
 		if (_inner->notInstalled()) {
 			addButton(tr::lng_stickers_add_pack(), [=] { addStickers(); });
 			addButton(tr::lng_cancel(), [=] { closeBox(); });
@@ -208,6 +222,47 @@ void StickerSetBox::updateButtons() {
 		addButton(tr::lng_cancel(), [=] { closeBox(); });
 	}
 	update();
+}
+
+bool StickerSetBox::showMenu(not_null<Ui::IconButton*> button) {
+	if (_menu) {
+		_menu->hideAnimated(Ui::InnerDropdown::HideOption::IgnoreShow);
+		return true;
+	}
+
+	_menu = base::make_unique_q<Ui::DropdownMenu>(window());
+	const auto weak = _menu.get();
+	_menu->setHiddenCallback([=] {
+		weak->deleteLater();
+		if (_menu == weak) {
+			button->setForceRippled(false);
+		}
+	});
+	_menu->setShowStartCallback([=] {
+		if (_menu == weak) {
+			button->setForceRippled(true);
+		}
+	});
+	_menu->setHideStartCallback([=] {
+		if (_menu == weak) {
+			button->setForceRippled(false);
+		}
+	});
+	button->installEventFilter(_menu);
+
+	_menu->addAction(tr::ktg_stickers_copy_title(tr::now), [=] { copyTitle(); });
+	_menu->addAction(tr::lng_stickers_share_pack(tr::now), [=] { shareStickers(); });
+
+	const auto parentTopLeft = window()->mapToGlobal({ 0, 0 });
+	const auto buttonTopLeft = button->mapToGlobal({ 0, 0 });
+	const auto parentRect = QRect(parentTopLeft, window()->size());
+	const auto buttonRect = QRect(buttonTopLeft, button->size());
+	_menu->move(
+		buttonRect.x() + buttonRect.width() - _menu->width() - parentRect.x(),
+		buttonRect.y() + buttonRect.height() - parentRect.y() - style::ConvertScale(18));
+	_menu->showAnimated(Ui::PanelAnimation::Origin::TopRight);
+
+	return true;
 }
 
 void StickerSetBox::resizeEvent(QResizeEvent *e) {
