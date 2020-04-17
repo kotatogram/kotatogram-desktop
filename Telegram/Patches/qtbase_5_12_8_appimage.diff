@@ -1017,6 +1017,44 @@ index 077955eb4e..5c8a3dddf7 100644
          return new QGtk3FileDialogHelper;
      case FontDialog:
          return new QGtk3FontDialogHelper;
+diff --git a/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp b/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp
+index fb65f6d909..f2e53ed851 100644
+--- a/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp
++++ b/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp
+@@ -57,9 +57,11 @@ public:
+     ~QXdgDesktopPortalThemePrivate()
+     {
+         delete baseTheme;
++        delete gtkTheme;
+     }
+ 
+     QPlatformTheme *baseTheme;
++    QPlatformTheme *gtkTheme;
+ };
+ 
+ QXdgDesktopPortalTheme::QXdgDesktopPortalTheme()
+@@ -90,6 +92,12 @@ QXdgDesktopPortalTheme::QXdgDesktopPortalTheme()
+     // 3) Fall back on the built-in "null" platform theme.
+     if (!d->baseTheme)
+         d->baseTheme = new QPlatformTheme;
++
++    // Try to use gtk's open directory dialog if there are no fallback theme
++    d->gtkTheme = QPlatformThemeFactory::create(QLatin1String("gtk3"), nullptr);
++
++    if (!d->gtkTheme)
++        d->gtkTheme = new QPlatformTheme;
+ }
+ 
+ QPlatformMenuItem* QXdgDesktopPortalTheme::createPlatformMenuItem() const
+@@ -133,6 +141,8 @@ QPlatformDialogHelper* QXdgDesktopPortalTheme::createPlatformDialogHelper(Dialog
+     if (type == FileDialog) {
+         if (d->baseTheme->usePlatformNativeDialog(type))
+             return new QXdgDesktopPortalFileDialog(static_cast<QPlatformFileDialogHelper*>(d->baseTheme->createPlatformDialogHelper(type)));
++        else if (d->gtkTheme->usePlatformNativeDialog(type))
++            return new QXdgDesktopPortalFileDialog(static_cast<QPlatformFileDialogHelper*>(d->gtkTheme->createPlatformDialogHelper(type)));
+ 
+         return new QXdgDesktopPortalFileDialog;
+     }
 diff --git a/src/widgets/kernel/qwidget.cpp b/src/widgets/kernel/qwidget.cpp
 index bf339ca5c5..4cdf9189ad 100644
 --- a/src/widgets/kernel/qwidget.cpp
