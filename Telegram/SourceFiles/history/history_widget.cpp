@@ -2142,11 +2142,18 @@ void HistoryWidget::updateControlsVisibility() {
 		} else if (isJoinChannel()) {
 			_unblock->hide();
 			_muteUnmute->hide();
-			_discuss->hide();
 			_botStart->hide();
 			if (_joinChannel->isHidden()) {
 				_joinChannel->clearState();
 				_joinChannel->show();
+			}
+			if (hasDiscussionGroup()) {
+				if (_discuss->isHidden()) {
+					_discuss->clearState();
+					_discuss->show();
+				}
+			} else {
+				_discuss->hide();
 			}
 		} else if (isMuteUnmute()) {
 			_unblock->hide();
@@ -4236,9 +4243,13 @@ void HistoryWidget::moveFieldControls() {
 		_botStart->height());
 	_botStart->setGeometry(fullWidthButtonRect);
 	_unblock->setGeometry(fullWidthButtonRect);
-	_joinChannel->setGeometry(fullWidthButtonRect);
 
 	if (hasDiscussionGroup()) {
+		_joinChannel->setGeometry(myrtlrect(
+			0,
+			fullWidthButtonRect.y(),
+			width() / 2,
+			fullWidthButtonRect.height()));
 		_muteUnmute->setGeometry(myrtlrect(
 			0,
 			fullWidthButtonRect.y(),
@@ -4250,6 +4261,7 @@ void HistoryWidget::moveFieldControls() {
 			width() - (width() / 2),
 			fullWidthButtonRect.height()));
 	} else {
+		_joinChannel->setGeometry(fullWidthButtonRect);
 		_muteUnmute->setGeometry(fullWidthButtonRect);
 	}
 
@@ -4985,13 +4997,14 @@ void HistoryWidget::handleHistoryChange(not_null<const History*> history) {
 			const auto botStart = isBotStart();
 			const auto joinChannel = isJoinChannel();
 			const auto muteUnmute = isMuteUnmute();
-			const auto discuss = muteUnmute && hasDiscussionGroup();
+			const auto discuss = (muteUnmute || joinChannel) && hasDiscussionGroup();
 			const auto update = false
 				|| (_unblock->isHidden() == unblock)
 				|| (!unblock && _botStart->isHidden() == botStart)
 				|| (!unblock
 					&& !botStart
-					&& _joinChannel->isHidden() == joinChannel)
+					&& (_joinChannel->isHidden() == joinChannel
+						|| _discuss->isHidden() == discuss))
 				|| (!unblock
 					&& !botStart
 					&& !joinChannel
@@ -6538,7 +6551,9 @@ void HistoryWidget::handlePeerUpdate() {
 	}
 	if (!_a_show.animating()) {
 		if (_unblock->isHidden() == isBlocked()
-			|| (!isBlocked() && _joinChannel->isHidden() == isJoinChannel())
+			|| (!isBlocked()
+				&& _joinChannel->isHidden() == isJoinChannel()
+				&& _discuss->isHidden() == hasDiscussionGroup())
 			|| (isMuteUnmute() && _discuss->isHidden() == hasDiscussionGroup())) {
 			resize = true;
 		}
