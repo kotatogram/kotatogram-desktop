@@ -136,6 +136,12 @@ void FontsBox::resetToDefault() {
 		cSetSemiboldFont(QString());
 		cSetSemiboldFontIsBold(false);
 		cSetMonospaceFont(QString());
+#ifdef DESKTOP_APP_USE_PACKAGED_FONTS
+		cSetUseSystemFont(true);
+#else
+		cSetUseSystemFont(false);
+#endif
+		cSetUseOriginalMetrics(false);
 		KotatoSettings::Write();
 		App::restart();
 	};
