@@ -34,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
+#include "facades.h"
 #include "app.h"
 
 namespace Core {
@@ -257,6 +258,10 @@ bool ResolveUsername(
 	if (domain == qsl("telegrampassport")) {
 		return ShowPassportForm(params);
 	} else if (!valid(domain)) {
+		const auto searchParam = params.value(qsl("query"));
+		if (!searchParam.isEmpty()) {
+			App::searchByHashtag(searchParam, nullptr);
+		}
 		return false;
 	}
 	auto start = qsl("start");
@@ -281,11 +286,13 @@ bool ResolveUsername(
 		post = ShowAtGameShareMsgId;
 	}
 	const auto clickFromMessageId = context.value<FullMsgId>();
+	const auto searchParam = params.value(qsl("query"));
 	App::main()->openPeerByName(
 		domain,
 		post,
 		startToken,
-		clickFromMessageId);
+		clickFromMessageId,
+		searchParam);
 	return true;
 }
 

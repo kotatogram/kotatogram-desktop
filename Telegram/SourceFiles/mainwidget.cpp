@@ -3256,7 +3256,8 @@ void MainWidget::openPeerByName(
 		const QString &username,
 		MsgId msgId,
 		const QString &startToken,
-		FullMsgId clickFromMessageId) {
+		FullMsgId clickFromMessageId,
+		const QString &searchQuery) {
 	Core::App().hideMediaView();
 
 	if (const auto peer = session().data().peerByUsername(username)) {
@@ -3267,10 +3268,13 @@ void MainWidget::openPeerByName(
 					_controller,
 					peer->asUser());
 			} else {
-				InvokeQueued(this, [this, peer] {
+				InvokeQueued(this, [this, peer, searchQuery] {
 					_controller->showPeerHistory(
 						peer->id,
 						SectionShow::Way::Forward);
+					if (!searchQuery.isEmpty()) {
+						App::searchByHashtag(searchQuery, peer);
+					}
 				});
 			}
 		} else if (msgId == ShowAtProfileMsgId && !peer->isChannel()) {
@@ -3281,13 +3285,20 @@ void MainWidget::openPeerByName(
 					peer->asUser());
 			} else if (peer->isUser() && peer->asUser()->isBot()) {
 				// Always open bot chats, even from mention links.
-				InvokeQueued(this, [this, peer] {
+				InvokeQueued(this, [this, peer, searchQuery] {
 					_controller->showPeerHistory(
 						peer->id,
 						SectionShow::Way::Forward);
+					if (!searchQuery.isEmpty()) {
+						App::searchByHashtag(searchQuery, peer);
+					}
 				});
 			} else {
-				_controller->showPeerInfo(peer);
+				if (searchQuery.isEmpty()) {
+					_controller->showPeerInfo(peer);
+				} else {
+					App::searchByHashtag(searchQuery, peer);
+				}
 			}
 		} else {
 			if (msgId == ShowAtProfileMsgId || !peer->isChannel()) { // show specific posts only in channels / supergroups
@@ -3311,10 +3322,13 @@ void MainWidget::openPeerByName(
 					peer->id,
 					SectionShow::Way::Forward,
 					msgId);
+				if (!searchQuery.isEmpty()) {
+					App::searchByHashtag(searchQuery, peer);
+				}
 			});
 		}
 	} else {
-		MTP::send(MTPcontacts_ResolveUsername(MTP_string(username)), rpcDone(&MainWidget::usernameResolveDone, qMakePair(msgId, startToken)), rpcFail(&MainWidget::usernameResolveFail, username));
+		MTP::send(MTPcontacts_ResolveUsername(MTP_string(username)), rpcDone(&MainWidget::usernameResolveDone, qMakePair(msgId, qMakePair(startToken, searchQuery))), rpcFail(&MainWidget::usernameResolveFail, username));
 	}
 }
 
@@ -3324,7 +3338,7 @@ bool MainWidget::contentOverlapped(const QRect &globalRect) {
 			|| (_playerVolume && _playerVolume->overlaps(globalRect)));
 }
 
-void MainWidget::usernameResolveDone(QPair<MsgId, QString> msgIdAndStartToken, const MTPcontacts_ResolvedPeer &result) {
+void MainWidget::usernameResolveDone(QPair<MsgId, QPair<QString, QString>> msgIdAndStartToken, const MTPcontacts_ResolvedPeer &result) {
 	Ui::hideLayer();
 	if (result.type() != mtpc_contacts_resolvedPeer) return;
 
@@ -3336,7 +3350,8 @@ void MainWidget::usernameResolveDone(QPair<MsgId, QString> msgIdAndStartToken, c
 
 	PeerData *peer = session().data().peer(peerId);
 	MsgId msgId = msgIdAndStartToken.first;
-	QString startToken = msgIdAndStartToken.second;
+	QString startToken = msgIdAndStartToken.second.first;
+	QString searchQuery = msgIdAndStartToken.second.second;
 	if (msgId == ShowAtProfileMsgId && !peer->isChannel()) {
 		if (peer->isUser() && peer->asUser()->isBot() && !peer->asUser()->botInfo->cantJoinGroups && !startToken.isEmpty()) {
 			peer->asUser()->botInfo->startGroupToken = startToken;
@@ -3345,13 +3360,20 @@ void MainWidget::usernameResolveDone(QPair<MsgId, QString> msgIdAndStartToken, c
 				peer->asUser());
 		} else if (peer->isUser() && peer->asUser()->isBot()) {
 			// Always open bot chats, even from mention links.
-			InvokeQueued(this, [this, peer] {
+			InvokeQueued(this, [this, peer, searchQuery] {
 				_controller->showPeerHistory(
 					peer->id,
 					SectionShow::Way::Forward);
+				if (!searchQuery.isEmpty()) {
+					App::searchByHashtag(searchQuery, peer);
+				}
 			});
 		} else {
-			_controller->showPeerInfo(peer);
+			if (searchQuery.isEmpty()) {
+				_controller->showPeerInfo(peer);
+			} else {
+				App::searchByHashtag(searchQuery, peer);
+			}
 		}
 	} else {
 		if (msgId == ShowAtProfileMsgId || !peer->isChannel()) { // show specific posts only in channels / supergroups
@@ -3364,11 +3386,14 @@ void MainWidget::usernameResolveDone(QPair<MsgId, QString> msgIdAndStartToken, c
 				_history->updateControlsGeometry();
 			}
 		}
-		InvokeQueued(this, [this, peer, msgId] {
+		InvokeQueued(this, [this, peer, msgId, searchQuery] {
 			_controller->showPeerHistory(
 				peer->id,
 				SectionShow::Way::Forward,
 				msgId);
+			if (!searchQuery.isEmpty()) {
+				App::searchByHashtag(searchQuery, peer);
+			}
 		});
 	}
 }

@@ -125,7 +125,8 @@ public:
 		const QString &name,
 		MsgId msgId = ShowAtUnreadMsgId,
 		const QString &startToken = QString(),
-		FullMsgId clickFromMessageId = FullMsgId());
+		FullMsgId clickFromMessageId = FullMsgId(),
+		const QString &searchQuery = QString());
 
 	bool started();
 
@@ -403,7 +404,7 @@ private:
 	// Doesn't call sendHistoryChangeNotifications itself.
 	void feedUpdate(const MTPUpdate &update);
 
-	void usernameResolveDone(QPair<MsgId, QString> msgIdAndStartToken, const MTPcontacts_ResolvedPeer &result);
+	void usernameResolveDone(QPair<MsgId, QPair<QString, QString>> msgIdAndStartToken, const MTPcontacts_ResolvedPeer &result);
 	bool usernameResolveFail(QString name, const RPCError &error);
 
 	int getMainSectionTop() const;
