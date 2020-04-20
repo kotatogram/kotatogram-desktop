@@ -5,10 +5,14 @@ on:
     paths-ignore:
       - 'docs/**'
       - '*.md'
+      - '.github/**'
+      - '!.github/workflows/linux.yml'
   pull_request:
     paths-ignore:
       - 'docs/**'
       - '*.md'
+      - '.github/**'
+      - '!.github/workflows/linux.yml'
 
 jobs:
 
