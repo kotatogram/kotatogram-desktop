@@ -58,6 +58,8 @@ namespace {
 	});
 }
 
+bool FiltersFirstLoad = true;
+
 } // namespace
 
 FiltersMenu::FiltersMenu(
@@ -105,7 +107,7 @@ void FiltersMenu::setup() {
 	) | rpl::then(
 		filters->changed()
 	) | rpl::start_with_next([=] {
-		refresh(true);
+		refresh();
 	}, _outer.lifetime());
 
 	_activeFilterId = _session->activeChatsFilterCurrent();
@@ -162,7 +164,7 @@ void FiltersMenu::scrollToButton(not_null<Ui::RpWidget*> widget) {
 		anim::sineInOut);
 }
 
-void FiltersMenu::refresh(bool firstLoad) {
+void FiltersMenu::refresh() {
 	const auto filters = &_session->session().data().chatsFilters();
 	if (filters->list().empty() || _ignoreRefresh) {
 		return;
@@ -187,8 +189,9 @@ void FiltersMenu::refresh(bool firstLoad) {
 
 	_container->resizeToWidth(_outer.width());
 
-	if (firstLoad) {
+	if (FiltersFirstLoad) {
 		_session->setActiveChatsFilter(cDefaultFilterId());
+		FiltersFirstLoad = false;
 	}
 }
 

@@ -35,7 +35,7 @@ public:
 
 private:
 	void setup();
-	void refresh(bool firstLoad = false);
+	void refresh();
 	void setupList();
 	void applyReorder(
 		not_null<Ui::RpWidget*> widget,
