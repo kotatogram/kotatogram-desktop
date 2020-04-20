@@ -7,12 +7,16 @@ on:
       - '*.md'
       - '.github/**'
       - '!.github/workflows/mac.yml'
+      - 'Telegram/SourceFiles/platform/win/**'
+      - 'Telegram/SourceFiles/platform/linux/**'
   pull_request:
     paths-ignore:
       - 'docs/**'
       - '*.md'
       - '.github/**'
       - '!.github/workflows/mac.yml'
+      - 'Telegram/SourceFiles/platform/win/**'
+      - 'Telegram/SourceFiles/platform/linux/**'
 
 jobs:
 
