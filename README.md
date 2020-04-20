@@ -1,8 +1,9 @@
 # Kotatogram – experimental [Telegram Desktop][telegram_desktop] fork.
 
-[![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/kotatogram/kotatogram-desktop?include_prereleases&label=version&style=flat)][releases]
-[![GitHub Workflow Status: Windows](https://img.shields.io/github/workflow/status/kotatogram/kotatogram-desktop/Windows.?label=Windows&logo=windows)][actions]
-[![GitHub Workflow Status: Linux](https://img.shields.io/github/workflow/status/kotatogram/kotatogram-desktop/Linux.?label=Linux&logo=linux)][actions]
+[![GitHub release (latest by date including pre-releases)](https://badgen.net/github/release/kotatogram/kotatogram-desktop?label=Latest%20release)][releases]
+[![GitHub Workflow Status: Windows](https://github.com/kotatogram/kotatogram-desktop/workflows/Windows./badge.svg?event=push)][actions]
+[![GitHub Workflow Status: Linux](https://github.com/kotatogram/kotatogram-desktop/workflows/Linux./badge.svg?event=push)][actions]
+[![GitHub Workflow Status: AppImage](https://github.com/kotatogram/kotatogram-desktop/workflows/AppImage./badge.svg?event=push)][actions]
 
 [![Preview of Kotatogram Desktop][preview_image]][preview_image_url]
 
