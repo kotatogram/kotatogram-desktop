@@ -284,6 +284,7 @@ jobs:
           git clone --branch release/4.2 $GIT/FFmpeg/FFmpeg ffmpeg
           cd ffmpeg
           ./configure \
+          --disable-static \
           --disable-debug \
           --disable-programs \
           --disable-doc \
@@ -292,6 +293,7 @@ jobs:
           --disable-everything \
           --disable-neon \
           --disable-iconv \
+          --enable-shared \
           --enable-libdav1d \
           --enable-libopus \
           --enable-vaapi \
