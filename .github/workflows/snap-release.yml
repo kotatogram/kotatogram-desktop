@@ -26,7 +26,7 @@ jobs:
           sudo chown root:root /
 
       - name: Kotatogram Desktop snap build
-        run: sudo snapcraft --destructive-mode
+        run: sudo snap run snapcraft --destructive-mode
 
       - name: Get artifact name
         run: |
