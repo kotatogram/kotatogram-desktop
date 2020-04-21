@@ -329,6 +329,7 @@ PRIVATE
     core/utils.cpp
     core/utils.h
     core/version.h
+    kotato/version.h
     data/data_abstract_structure.cpp
     data/data_abstract_structure.h
     data/data_auto_download.cpp
