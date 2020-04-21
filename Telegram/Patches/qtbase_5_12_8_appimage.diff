@@ -12,32 +12,6 @@ index 266faca0ed..cf9dafb6d8 100644
      void *poolFrame = nullptr;
      if (__builtin_available(macOS 10.14, iOS 12.0, tvOS 12.0, watchOS 5.0, *)) {
          void *frame;
-diff --git a/src/gui/kernel/qguiapplication.cpp b/src/gui/kernel/qguiapplication.cpp
-index 5014878bd2..0e05e0f5b9 100644
---- a/src/gui/kernel/qguiapplication.cpp
-+++ b/src/gui/kernel/qguiapplication.cpp
-@@ -50,6 +50,7 @@
- #include <qpa/qplatformnativeinterface.h>
- #include <qpa/qplatformtheme.h>
- #include <qpa/qplatformintegration.h>
-+#include <qpa/qplatformservices.h>
- 
- #include <QtCore/QAbstractEventDispatcher>
- #include <QtCore/QStandardPaths>
-@@ -268,7 +269,12 @@ static void initThemeHints()
- static bool checkNeedPortalSupport()
- {
- #if QT_CONFIG(dbus)
--    return !QStandardPaths::locate(QStandardPaths::RuntimeLocation, QLatin1String("flatpak-info")).isEmpty() || qEnvironmentVariableIsSet("SNAP");
-+    bool neededByDesktopEnvironment = false;
-+    if (QGuiApplication::desktopSettingsAware()) {
-+        const QByteArray desktopEnvironment = QGuiApplicationPrivate::platformIntegration()->services()->desktopEnvironment();
-+        neededByDesktopEnvironment = (desktopEnvironment == "KDE");
-+    }
-+    return !QStandardPaths::locate(QStandardPaths::RuntimeLocation, QLatin1String("flatpak-info")).isEmpty() || qEnvironmentVariableIsSet("SNAP") || neededByDesktopEnvironment;
- #else
-     return false;
- #endif // QT_CONFIG(dbus)
 diff --git a/src/gui/kernel/qstylehints.cpp b/src/gui/kernel/qstylehints.cpp
 index 48060a2c37..fff3271ec9 100644
 --- a/src/gui/kernel/qstylehints.cpp
@@ -1018,7 +992,7 @@ index 077955eb4e..5c8a3dddf7 100644
      case FontDialog:
          return new QGtk3FontDialogHelper;
 diff --git a/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp b/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp
-index fb65f6d909..f2e53ed851 100644
+index fb65f6d909..66c3a54a07 100644
 --- a/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp
 +++ b/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp
 @@ -57,9 +57,11 @@ public:
@@ -1033,13 +1007,18 @@ index fb65f6d909..f2e53ed851 100644
  };
  
  QXdgDesktopPortalTheme::QXdgDesktopPortalTheme()
-@@ -90,6 +92,12 @@ QXdgDesktopPortalTheme::QXdgDesktopPortalTheme()
+@@ -85,11 +87,17 @@ QXdgDesktopPortalTheme::QXdgDesktopPortalTheme()
+                 break;
+         }
+         // No error message; not having a theme plugin is allowed.
++
++        // Try to use gtk's open directory dialog if there are no fallback theme
++        d->gtkTheme = QPlatformThemeFactory::create(QLatin1String("gtk3"), nullptr);
+     }
+ 
      // 3) Fall back on the built-in "null" platform theme.
      if (!d->baseTheme)
          d->baseTheme = new QPlatformTheme;
-+
-+    // Try to use gtk's open directory dialog if there are no fallback theme
-+    d->gtkTheme = QPlatformThemeFactory::create(QLatin1String("gtk3"), nullptr);
 +
 +    if (!d->gtkTheme)
 +        d->gtkTheme = new QPlatformTheme;

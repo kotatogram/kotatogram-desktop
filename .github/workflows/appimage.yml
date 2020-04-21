@@ -37,6 +37,7 @@ jobs:
       MANUAL_CACHING: "1"
       DOC_PATH: "docs/building-cmake.md"
       AUTO_CACHING: "1"
+      CXX: "g++ -static-libstdc++"
 
     steps:
       - name: Get repository name.
@@ -439,7 +440,8 @@ jobs:
           git clone -b v1.7.0 --depth=1 $GIT/hunspell/hunspell.git
           cd hunspell
           autoreconf -vfi
-          ./configure
+          # unable to link libstdc++ statically, thanks to autoconf
+          ./configure --disable-shared
           make
           sudo make install
           sudo ldconfig
@@ -519,6 +521,8 @@ jobs:
           -qt-xcb \
           -openssl-linked \
           OPENSSL_LIBS="-L/usr/local/lib -lssl -lcrypto" \
+          QMAKE_CXX="$CXX" \
+          QMAKE_LINK="$CXX" \
           -nomake examples \
           -nomake tests
 
@@ -661,7 +665,6 @@ jobs:
           # Workaround to increase compatibility with older systems; see https://github.com/darealshinji/AppImageKit-checkrt for details
           install -D $LibrariesPath/AppImageKit-checkrt/exec.so AppDir/usr/optional/exec.so
           install -D $LibrariesPath/AppImageKit-checkrt/AppRun_patched AppDir/AppRun
-          install -D /usr/lib/x86_64-linux-gnu/libstdc++.so.6 AppDir/usr/optional/libstdc++/libstdc++.so.6
 
           ../linuxdeployqt-continuous-x86_64.AppImage \
           AppDir/usr/share/applications/*.desktop \
