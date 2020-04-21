@@ -852,8 +852,8 @@ PRIVATE
     settings/settings_information.h
     settings/settings_intro.cpp
     settings/settings_intro.h
-    settings/settings_kotato.cpp
-    settings/settings_kotato.h
+    kotato/settings_menu.cpp
+    kotato/settings_menu.h
     settings/settings_main.cpp
     settings/settings_main.h
     settings/settings_notifications.cpp

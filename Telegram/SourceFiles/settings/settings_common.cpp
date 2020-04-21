@@ -15,7 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_privacy_security.h"
 #include "settings/settings_folders.h"
 #include "settings/settings_calls.h"
-#include "settings/settings_kotato.h"
+#include "kotato/settings_menu.h"
 #include "ui/wrap/padding_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/widgets/labels.h"
