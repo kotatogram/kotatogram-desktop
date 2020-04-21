@@ -132,6 +132,84 @@ bool ReadBoolOption(QJsonObject obj, QString key, std::function<void(bool)> call
 	return (readValueResult && readResult);
 }
 
+QByteArray GenerateSettingsJson(bool areDefault = false) {
+	auto settings = QJsonObject();
+
+	auto settingsFonts = QJsonObject();
+	auto settingsFolders = QJsonObject();
+	auto settingsScales = QJsonArray();
+	auto settingsReplaces = QJsonArray();
+
+	if (areDefault) {
+		settingsFonts.insert(qsl("main"), qsl("Open Sans"));
+		settingsFonts.insert(qsl("semibold"), qsl("Open Sans Semibold"));
+		settingsFonts.insert(qsl("monospaced"), qsl("Consolas"));
+		settingsFonts.insert(qsl("semibold_is_bold"), false);
+
+		settings.insert(qsl("version"), QString::number(AppKotatoVersion));
+		settings.insert(qsl("net_speed_boost"), QJsonValue(QJsonValue::Null));
+	} else {
+		settings.insert(qsl("net_speed_boost"), cNetSpeedBoost());
+
+		if (!cMainFont().isEmpty()) { 
+			settingsFonts.insert(qsl("main"), cMainFont());
+		}
+		if (!cSemiboldFont().isEmpty()) {
+			settingsFonts.insert(qsl("semibold"), cSemiboldFont());
+		}
+		if (!cMonospaceFont().isEmpty()) {
+			settingsFonts.insert(qsl("monospaced"), cMonospaceFont()); 
+		}
+		settingsFonts.insert(qsl("semibold_is_bold"), cSemiboldFontIsBold());
+
+		const auto currentScales = cInterfaceScales();
+		for (int i = 0; i < currentScales.size(); i++) {
+			settingsScales << currentScales[i];
+		}
+
+		const auto currentReplaces = cCustomReplaces();
+		for (auto i = currentReplaces.constBegin(), e = currentReplaces.constEnd(); i != e; ++i) {
+			auto a = QJsonArray();
+			a << i.key() << i.value();
+			settingsReplaces << a;
+		}
+	}
+
+	settings.insert(qsl("sticker_height"), StickerHeight());
+	settings.insert(qsl("adaptive_bubbles"), AdaptiveBubbles());
+	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
+	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
+	settings.insert(qsl("show_chat_id"), cShowChatId());
+	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
+	settings.insert(qsl("chat_list_lines"), DialogListLines());
+	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
+	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
+	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
+	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
+	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
+	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
+	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
+	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
+
+	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
+	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
+
+	settingsFolders.insert(qsl("default"), cDefaultFilterId());
+	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
+	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
+	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
+	settingsFolders.insert(qsl("hide_all_chats"), cHideFilterAllChats());
+
+	settings.insert(qsl("fonts"), settingsFonts);
+	settings.insert(qsl("folders"), settingsFolders);
+	settings.insert(qsl("scales"), settingsScales);
+	settings.insert(qsl("replaces"), settingsReplaces);
+
+	auto document = QJsonDocument();
+	document.setObject(settings);
+	return document.toJson(QJsonDocument::Indented);
+}
+
 std::unique_ptr<Manager> Data;
 
 } // namespace
@@ -375,55 +453,7 @@ void Manager::writeDefaultFile() {
 
 )HEADER";
 	file.write(defaultHeader);
-
-	auto settings = QJsonObject();
-	settings.insert(qsl("version"), QString::number(AppKotatoVersion));
-
-	auto settingsFonts = QJsonObject();
-	settingsFonts.insert(qsl("main"), qsl("Open Sans"));
-	settingsFonts.insert(qsl("semibold"), qsl("Open Sans Semibold"));
-	settingsFonts.insert(qsl("semibold_is_bold"), false);
-	settingsFonts.insert(qsl("monospaced"), qsl("Consolas"));
-	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
-	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
-
-	settings.insert(qsl("fonts"), settingsFonts);
-
-	settings.insert(qsl("sticker_height"), StickerHeight());
-	settings.insert(qsl("adaptive_bubbles"), AdaptiveBubbles());
-	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
-	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
-	settings.insert(qsl("show_chat_id"), cShowChatId());
-	settings.insert(qsl("net_speed_boost"), QJsonValue(QJsonValue::Null));
-	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
-	settings.insert(qsl("chat_list_lines"), DialogListLines());
-	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
-	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
-	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
-	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
-	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
-	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
-	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
-	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
-
-	auto settingsFolders = QJsonObject();
-	settingsFolders.insert(qsl("default"), cDefaultFilterId());
-	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
-	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
-	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
-	settingsFolders.insert(qsl("hide_all_chats"), cHideFilterAllChats());
-
-	settings.insert(qsl("folders"), settingsFolders);
-
-	auto settingsScales = QJsonArray();
-	settings.insert(qsl("scales"), settingsScales);
-
-	auto settingsReplaces = QJsonArray();
-	settings.insert(qsl("replaces"), settingsReplaces);
-
-	auto document = QJsonDocument();
-	document.setObject(settings);
-	file.write(document.toJson(QJsonDocument::Indented));
+	file.write(GenerateSettingsJson(true));
 }
 
 void Manager::writeCurrentSettings() {
@@ -441,78 +471,7 @@ void Manager::writeCurrentSettings() {
 
 )HEADER";
 	file.write(customHeader);
-
-	auto settings = QJsonObject();
-
-	auto settingsFonts = QJsonObject();
-
-	if (!cMainFont().isEmpty()) {
-		settingsFonts.insert(qsl("main"), cMainFont());
-	}
-
-	if (!cSemiboldFont().isEmpty()) {
-		settingsFonts.insert(qsl("semibold"), cSemiboldFont());
-	}
-
-	if (!cMonospaceFont().isEmpty()) {
-		settingsFonts.insert(qsl("monospaced"), cMonospaceFont());
-	}
-
-	settingsFonts.insert(qsl("semibold_is_bold"), cSemiboldFontIsBold());
-	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
-	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
-
-	settings.insert(qsl("fonts"), settingsFonts);
-
-	settings.insert(qsl("sticker_height"), StickerHeight());
-	settings.insert(qsl("adaptive_bubbles"), AdaptiveBubbles());
-	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
-	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
-	settings.insert(qsl("show_chat_id"), cShowChatId());
-	settings.insert(qsl("net_speed_boost"), cNetSpeedBoost());
-	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
-	settings.insert(qsl("chat_list_lines"), DialogListLines());
-	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
-	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
-	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
-	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
-	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
-	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
-	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
-	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
-	
-	auto settingsFolders = QJsonObject();
-	settingsFolders.insert(qsl("default"), cDefaultFilterId());
-	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
-	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
-	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
-	settingsFolders.insert(qsl("hide_all_chats"), cHideFilterAllChats());
-
-	settings.insert(qsl("folders"), settingsFolders);
-
-	auto settingsScales = QJsonArray();
-	auto currentScales = cInterfaceScales();
-
-	for (int i = 0; i < currentScales.size(); i++) {
-		settingsScales << currentScales[i];
-	}
-
-	settings.insert(qsl("scales"), settingsScales);
-
-	auto settingsReplaces = QJsonArray();
-	auto currentReplaces = cCustomReplaces();
-
-	for (auto i = currentReplaces.constBegin(), e = currentReplaces.constEnd(); i != e; ++i) {
-		auto a = QJsonArray();
-		a << i.key() << i.value();
-		settingsReplaces << a;
-	}
-
-	settings.insert(qsl("replaces"), settingsReplaces);
-
-	auto document = QJsonDocument();
-	document.setObject(settings);
-	file.write(document.toJson(QJsonDocument::Indented));
+	file.write(GenerateSettingsJson());
 }
 
 void Manager::writeTimeout() {
