@@ -207,16 +207,12 @@ PRIVATE
     boxes/edit_color_box.h
     boxes/edit_privacy_box.cpp
     boxes/edit_privacy_box.h
-    kotato/boxes/fonts_box.cpp
-    kotato/boxes/fonts_box.h
     boxes/language_box.cpp
     boxes/language_box.h
     boxes/local_storage_box.cpp
     boxes/local_storage_box.h
     boxes/mute_settings_box.cpp
     boxes/mute_settings_box.h
-    kotato/boxes/net_boost_box.cpp
-    kotato/boxes/net_boost_box.h
     boxes/peer_list_box.cpp
     boxes/peer_list_box.h
     boxes/peer_list_controllers.cpp
@@ -309,8 +305,6 @@ PRIVATE
     core/crash_reports.h
     core/file_utilities.cpp
     core/file_utilities.h
-    kotato/json_settings.cpp
-    kotato/json_settings.h
     core/launcher.cpp
     core/launcher.h
     core/local_url_handlers.cpp
@@ -329,7 +323,6 @@ PRIVATE
     core/utils.cpp
     core/utils.h
     core/version.h
-    kotato/version.h
     data/data_abstract_structure.cpp
     data/data_abstract_structure.h
     data/data_auto_download.cpp
@@ -620,6 +613,17 @@ PRIVATE
     intro/intro_step.h
     intro/intro_widget.cpp
     intro/intro_widget.h
+    kotato/boxes/fonts_box.cpp
+    kotato/boxes/fonts_box.h
+    kotato/boxes/net_boost_box.cpp
+    kotato/boxes/net_boost_box.h
+    kotato/json_settings.cpp
+    kotato/json_settings.h
+    kotato/settings_menu.cpp
+    kotato/settings_menu.h
+    kotato/settings.cpp
+    kotato/settings.h
+    kotato/version.h
     lang/lang_cloud_manager.cpp
     lang/lang_cloud_manager.h
     lang/lang_file_parser.cpp
@@ -853,8 +857,6 @@ PRIVATE
     settings/settings_information.h
     settings/settings_intro.cpp
     settings/settings_intro.h
-    kotato/settings_menu.cpp
-    kotato/settings_menu.h
     settings/settings_main.cpp
     settings/settings_main.h
     settings/settings_notifications.cpp
@@ -1021,8 +1023,6 @@ PRIVATE
     observer_peer.h
     settings.cpp
     settings.h
-    kotato/settings.cpp
-    kotato/settings.h
 )
 
 if (DESKTOP_APP_USE_PACKAGED)
