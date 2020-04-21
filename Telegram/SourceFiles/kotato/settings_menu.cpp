@@ -17,8 +17,8 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/continuous_sliders.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "boxes/connection_box.h"
-#include "boxes/fonts_box.h"
-#include "boxes/net_boost_box.h"
+#include "kotato/boxes/fonts_box.h"
+#include "kotato/boxes/net_boost_box.h"
 #include "boxes/about_box.h"
 #include "boxes/confirm_box.h"
 #include "platform/platform_specific.h"

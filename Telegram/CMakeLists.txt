@@ -207,16 +207,16 @@ PRIVATE
     boxes/edit_color_box.h
     boxes/edit_privacy_box.cpp
     boxes/edit_privacy_box.h
-    boxes/fonts_box.cpp
-    boxes/fonts_box.h
+    kotato/boxes/fonts_box.cpp
+    kotato/boxes/fonts_box.h
     boxes/language_box.cpp
     boxes/language_box.h
     boxes/local_storage_box.cpp
     boxes/local_storage_box.h
     boxes/mute_settings_box.cpp
     boxes/mute_settings_box.h
-    boxes/net_boost_box.cpp
-    boxes/net_boost_box.h
+    kotato/boxes/net_boost_box.cpp
+    kotato/boxes/net_boost_box.h
     boxes/peer_list_box.cpp
     boxes/peer_list_box.h
     boxes/peer_list_controllers.cpp
