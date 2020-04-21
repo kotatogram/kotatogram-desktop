@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "core/version.h"
 #include "settings.h"
+#include "kotato/settings.h"
 
 enum {
 	MaxSelectedItems = 100,

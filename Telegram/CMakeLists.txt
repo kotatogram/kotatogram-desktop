@@ -1021,6 +1021,8 @@ PRIVATE
     observer_peer.h
     settings.cpp
     settings.h
+    kotato/settings.cpp
+    kotato/settings.h
 )
 
 if (DESKTOP_APP_USE_PACKAGED)
