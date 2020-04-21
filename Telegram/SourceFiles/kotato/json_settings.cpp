@@ -5,7 +5,7 @@ the unofficial app based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
-#include "core/kotato_settings.h"
+#include "kotato/json_settings.h"
 
 #include "mainwindow.h"
 #include "mainwidget.h"
@@ -21,7 +21,8 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include <QtCore/QJsonValue>
 #include <QtCore/QTimer>
 
-namespace KotatoSettings {
+namespace Kotato {
+namespace JsonSettings {
 namespace {
 
 constexpr auto kWriteJsonTimeout = crl::time(5000);
@@ -541,4 +542,5 @@ void Finish() {
 	Data->write(true);
 }
 
-} // namespace KotatoSettings
+} // namespace JsonSettings
+} // namespace Kotato

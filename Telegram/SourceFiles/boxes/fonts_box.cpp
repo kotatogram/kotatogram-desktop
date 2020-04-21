@@ -13,7 +13,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "boxes/confirm_box.h"
-#include "core/kotato_settings.h"
+#include "kotato/json_settings.h"
 #include "lang/lang_keys.h"
 #include "app.h"
 
@@ -116,7 +116,7 @@ void FontsBox::save() {
 		cSetSemiboldFont(semiboldFont);
 		cSetSemiboldFontIsBold(semiboldIsBold);
 		cSetMonospaceFont(monospacedFont);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 		App::restart();
 	};
 
@@ -142,7 +142,7 @@ void FontsBox::resetToDefault() {
 		cSetUseSystemFont(false);
 #endif
 		cSetUseOriginalMetrics(false);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 		App::restart();
 	};
 

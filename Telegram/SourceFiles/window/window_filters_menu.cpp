@@ -20,7 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/popup_menu.h"
 #include "boxes/confirm_box.h"
 #include "boxes/filters/edit_filter_box.h"
-#include "core/kotato_settings.h"
+#include "kotato/json_settings.h"
 #include "settings/settings_common.h"
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
@@ -351,7 +351,7 @@ void FiltersMenu::showAllMenu(QPoint position) {
 void FiltersMenu::setDefaultFilter(FilterId id) {
 	if (cDefaultFilterId() != id) {
 		cSetDefaultFilterId(id);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}
 }
 
@@ -379,7 +379,7 @@ void FiltersMenu::remove(FilterId id) {
 	)).send();
 	if (id == cDefaultFilterId()) {
 		cSetDefaultFilterId(0);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 		if (id == _session->activeChatsFilterCurrent()) {
 			_session->setActiveChatsFilter(0);
 		}

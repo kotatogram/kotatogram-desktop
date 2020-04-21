@@ -9,7 +9,8 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 #include <QtCore/QTimer>
 
-namespace KotatoSettings {
+namespace Kotato {
+namespace JsonSettings {
 
 class Manager : public QObject {
 	Q_OBJECT
@@ -36,4 +37,5 @@ void Start();
 void Write();
 void Finish();
 
-} // namespace KotatoSettings
+} // namespace JsonSettings
+} // namespace Kotato

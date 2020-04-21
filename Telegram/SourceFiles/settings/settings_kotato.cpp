@@ -25,7 +25,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
 #include "core/update_checker.h"
-#include "core/kotato_settings.h"
+#include "kotato/json_settings.h"
 #include "core/application.h"
 #include "storage/localstorage.h"
 #include "data/data_session.h"
@@ -64,7 +64,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	const auto updateRecentStickersLimitHeight = [=](int value) {
 		updateRecentStickersLimitLabel(value);
 		SetRecentStickersLimit(value);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	};
 	recentStickersLimitSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 	recentStickersLimitSlider->setPseudoDiscrete(
@@ -85,7 +85,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != cProfileTopBarNotifications());
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetProfileTopBarNotifications(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
@@ -99,7 +99,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != cDisableUpEdit());
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetDisableUpEdit(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
@@ -113,7 +113,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != (DialogListLines() == 1));
 	}) | rpl::start_with_next([](bool enabled) {
 		SetDialogListLines(enabled ? 1 : 2);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
@@ -128,7 +128,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetAlwaysShowScheduled(enabled);
 		Notify::showScheduledButtonChanged();
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
@@ -165,7 +165,7 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	const auto updateStickerHeight = [=](int value) {
 		updateStickerHeightLabel(value);
 		SetStickerHeight(value);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	};
 	stickerHeightSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 	stickerHeightSlider->setPseudoDiscrete(
@@ -186,7 +186,7 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != AdaptiveBubbles());
 	}) | rpl::start_with_next([](bool enabled) {
 		SetAdaptiveBubbles(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
@@ -200,7 +200,7 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != BigEmojiOutline());
 	}) | rpl::start_with_next([](bool enabled) {
 		SetBigEmojiOutline(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddSkip(container);
@@ -241,7 +241,7 @@ void SetupKotatoFolders(
 		return (enabled != cUnmutedFilterCounterOnly());
 	}) | rpl::start_with_next([=](bool enabled) {
 		cSetUnmutedFilterCounterOnly(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 		controller->reloadFiltersMenu();
 		App::wnd()->fixOrder();
 	}, container->lifetime());
@@ -257,7 +257,7 @@ void SetupKotatoFolders(
 		return (enabled != cHideFilterAllChats());
 	}) | rpl::start_with_next([=](bool enabled) {
 		cSetHideFilterAllChats(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 		controller->reloadFiltersMenu();
 		App::wnd()->fixOrder();
 	}, container->lifetime());
@@ -273,7 +273,7 @@ void SetupKotatoFolders(
 		return (enabled != cHideFilterEditButton());
 	}) | rpl::start_with_next([=](bool enabled) {
 		cSetHideFilterEditButton(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 		controller->reloadFiltersMenu();
 		App::wnd()->fixOrder();
 	}, container->lifetime());
@@ -289,7 +289,7 @@ void SetupKotatoFolders(
 		return (enabled != cHideFilterNames());
 	}) | rpl::start_with_next([=](bool enabled) {
 		cSetHideFilterNames(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 		controller->reloadFiltersMenu();
 		App::wnd()->fixOrder();
 	}, container->lifetime());
@@ -313,7 +313,7 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != cNoTaskbarFlashing());
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetNoTaskbarFlashing(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddSkip(container);
@@ -335,7 +335,7 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != cShowPhoneInDrawer());
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetShowPhoneInDrawer(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
@@ -349,7 +349,7 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != cShowChatId());
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetShowChatId(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddButton(
@@ -363,7 +363,7 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != cConfirmBeforeCall());
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetConfirmBeforeCall(enabled);
-		KotatoSettings::Write();
+		Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	AddSkip(container);

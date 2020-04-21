@@ -20,7 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat_filters.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
-#include "core/kotato_settings.h"
+#include "kotato/json_settings.h"
 #include "settings/settings_common.h"
 #include "base/event_filter.h"
 #include "lang/lang_keys.h"
@@ -696,7 +696,7 @@ void EditExistingFilter(
 		if ((isCurrentDefault && !result.isDefault())
 			|| (!isCurrentDefault && result.isDefault())) {
 			cSetDefaultFilterId(result.isDefault() ? result.id() : 0);
-			KotatoSettings::Write();
+			Kotato::JsonSettings::Write();
 		}
 	};
 	window->window().show(Box(

@@ -24,7 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/painter.h"
 #include "ui/filter_icons.h"
-#include "core/kotato_settings.h"
+#include "kotato/json_settings.h"
 #include "settings/settings_common.h"
 #include "lang/lang_keys.h"
 #include "apiwrap.h"
@@ -593,7 +593,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			controller->setActiveChatsFilter(0);
 		}
 		if (currentDefaultId != cDefaultFilterId()) {
-			KotatoSettings::Write();
+			Kotato::JsonSettings::Write();
 		}
 	};
 }
