@@ -617,6 +617,8 @@ PRIVATE
     kotato/boxes/fonts_box.h
     kotato/boxes/net_boost_box.cpp
     kotato/boxes/net_boost_box.h
+    kotato/boxes/unpin_box.cpp
+    kotato/boxes/unpin_box.h
     kotato/json_settings.cpp
     kotato/json_settings.h
     kotato/settings_menu.cpp
