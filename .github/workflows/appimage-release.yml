@@ -161,7 +161,7 @@ jobs:
           git clone -b v5.69.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
           cd extra-cmake-modules
           cmake . -DCMAKE_BUILD_TYPE=Release
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo cmake --install .
           cd ..
           rm -rf extra-cmake-modules
@@ -211,7 +211,7 @@ jobs:
           -DRANGE_V3_EXAMPLES=OFF \
           -DRANGE_V3_DOCS=OFF
 
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo cmake --install .
 
           cd ..
@@ -225,7 +225,7 @@ jobs:
           cd zlib/contrib/minizip
           autoreconf -i
           ./configure
-          make
+          make -j$(nproc)
           sudo make install
           cd ../../..
           rm -rf zlib
@@ -411,7 +411,7 @@ jobs:
           -DALSOFT_UTILS=OFF \
           -DALSOFT_CONFIG=OFF
 
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo cmake --install .
           sudo ldconfig
 
@@ -427,7 +427,7 @@ jobs:
           autoreconf -vfi
           # unable to link libstdc++ statically, thanks to autoconf
           ./configure --disable-shared
-          make
+          make -j$(nproc)
           sudo make install
           sudo ldconfig
           cd ..
@@ -543,7 +543,7 @@ jobs:
           cmake . \
           -DCMAKE_BUILD_TYPE=Release \
           -DENABLE_LIBRARY=OFF
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo install -D platforminputcontext/libfcitxplatforminputcontextplugin.so /usr/local/plugins/platforminputcontexts/libfcitxplatforminputcontextplugin.so
           cd ..
           rm -rf fcitx-qt5
@@ -568,7 +568,7 @@ jobs:
           --disable-appindicator \
           --disable-lib64 \
           --qt5-im-module-path=/usr/local/plugins/platforminputcontexts
-          make
+          make -j$(nproc)
           sudo make install
           cd ..
           rm -rf hime
@@ -602,7 +602,7 @@ jobs:
           cmake . \
           -DCMAKE_BUILD_TYPE=Release \
           -DWITH_DOC=OFF
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo cmake --install .
           sudo ldconfig
           cd ..
@@ -629,7 +629,7 @@ jobs:
           -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
 
           cd ../out/Release
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           DESTDIR=../../AppDir cmake --install .
 
       - name: AppImageKit-checkrt build.
