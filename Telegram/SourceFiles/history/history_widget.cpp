@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/send_files_box.h"
 #include "boxes/share_box.h"
 #include "boxes/edit_caption_box.h"
+#include "kotato/boxes/confirm_box.h"
 #include "kotato/boxes/unpin_box.h"
 #include "core/file_utilities.h"
 #include "ui/toast/toast.h"
@@ -3709,7 +3710,7 @@ void HistoryWidget::botCallbackDone(
 	answer.match([&](const MTPDmessages_botCallbackAnswer &data) {
 		if (const auto message = data.vmessage()) {
 			if (data.is_alert()) {
-				Ui::show(Box<InformBox>(qs(*message)));
+				Ui::show(Box<Kotato::InformBox>(qs(*message)));
 			} else {
 				Ui::Toast::Show(qs(*message));
 			}

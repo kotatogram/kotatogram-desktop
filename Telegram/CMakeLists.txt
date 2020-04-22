@@ -613,6 +613,8 @@ PRIVATE
     intro/intro_step.h
     intro/intro_widget.cpp
     intro/intro_widget.h
+    kotato/boxes/confirm_box.cpp
+    kotato/boxes/confirm_box.h
     kotato/boxes/fonts_box.cpp
     kotato/boxes/fonts_box.h
     kotato/boxes/net_boost_box.cpp
