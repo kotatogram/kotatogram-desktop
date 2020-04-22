@@ -125,7 +125,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/python-cache
           key: ${{ runner.OS }}-python-${{ env.CACHE_KEY }}
       - name: Python 3.8 build.
-        if: steps.python-openssl.outputs.cache-hit != 'true'
+        if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
