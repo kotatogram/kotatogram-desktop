@@ -37,6 +37,7 @@ jobs:
       MANUAL_CACHING: "1"
       DOC_PATH: "docs/building-cmake.md"
       AUTO_CACHING: "1"
+      CXX: "g++ -static-libstdc++"
 
     steps:
       - name: Get repository name.
@@ -139,7 +140,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/python-cache
           key: ${{ runner.OS }}-python-${{ env.CACHE_KEY }}
       - name: Python 3.8 build.
-        if: steps.python-openssl.outputs.cache-hit != 'true'
+        if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -175,7 +176,7 @@ jobs:
           git clone -b v5.69.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
           cd extra-cmake-modules
           cmake . -DCMAKE_BUILD_TYPE=Release
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo cmake --install .
           cd ..
           rm -rf extra-cmake-modules
@@ -225,7 +226,7 @@ jobs:
           -DRANGE_V3_EXAMPLES=OFF \
           -DRANGE_V3_DOCS=OFF
 
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo cmake --install .
 
           cd ..
@@ -239,7 +240,7 @@ jobs:
           cd zlib/contrib/minizip
           autoreconf -i
           ./configure
-          make
+          make -j$(nproc)
           sudo make install
           cd ../../..
           rm -rf zlib
@@ -425,7 +426,7 @@ jobs:
           -DALSOFT_UTILS=OFF \
           -DALSOFT_CONFIG=OFF
 
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo cmake --install .
           sudo ldconfig
 
@@ -439,8 +440,9 @@ jobs:
           git clone -b v1.7.0 --depth=1 $GIT/hunspell/hunspell.git
           cd hunspell
           autoreconf -vfi
-          ./configure
-          make
+          # unable to link libstdc++ statically, thanks to autoconf
+          ./configure --disable-shared
+          make -j$(nproc)
           sudo make install
           sudo ldconfig
           cd ..
@@ -519,6 +521,8 @@ jobs:
           -qt-xcb \
           -openssl-linked \
           OPENSSL_LIBS="-L/usr/local/lib -lssl -lcrypto" \
+          QMAKE_CXX="$CXX" \
+          QMAKE_LINK="$CXX" \
           -nomake examples \
           -nomake tests
 
@@ -554,7 +558,7 @@ jobs:
           cmake . \
           -DCMAKE_BUILD_TYPE=Release \
           -DENABLE_LIBRARY=OFF
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo install -D platforminputcontext/libfcitxplatforminputcontextplugin.so /usr/local/plugins/platforminputcontexts/libfcitxplatforminputcontextplugin.so
           cd ..
           rm -rf fcitx-qt5
@@ -579,7 +583,7 @@ jobs:
           --disable-appindicator \
           --disable-lib64 \
           --qt5-im-module-path=/usr/local/plugins/platforminputcontexts
-          make
+          make -j$(nproc)
           sudo make install
           cd ..
           rm -rf hime
@@ -613,7 +617,7 @@ jobs:
           cmake . \
           -DCMAKE_BUILD_TYPE=Release \
           -DWITH_DOC=OFF
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           sudo cmake --install .
           sudo ldconfig
           cd ..
@@ -638,7 +642,7 @@ jobs:
           -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
 
           cd ../out/Release
-          cmake --build .
+          cmake --build . -- -j$(nproc)
           DESTDIR=../../AppDir cmake --install .
 
       - name: AppImageKit-checkrt build.
@@ -661,7 +665,6 @@ jobs:
           # Workaround to increase compatibility with older systems; see https://github.com/darealshinji/AppImageKit-checkrt for details
           install -D $LibrariesPath/AppImageKit-checkrt/exec.so AppDir/usr/optional/exec.so
           install -D $LibrariesPath/AppImageKit-checkrt/AppRun_patched AppDir/AppRun
-          install -D /usr/lib/x86_64-linux-gnu/libstdc++.so.6 AppDir/usr/optional/libstdc++/libstdc++.so.6
 
           ../linuxdeployqt-continuous-x86_64.AppImage \
           AppDir/usr/share/applications/*.desktop \
