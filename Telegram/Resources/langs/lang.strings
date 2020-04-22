@@ -2486,4 +2486,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_stickers_copy_title" = "Copy name";
 "ktg_stickers_title_copied" = "Sticker pack name copied to clipboard.";
 
+"ktg_context_show_messages_from" = "User messages";
+
 // Keys finished

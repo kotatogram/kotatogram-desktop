@@ -111,5 +111,6 @@
 	"ktg_settings_filters_hide_all": "Скрыть папку «Все чаты»",
 	"ktg_hide_pinned_message": "Скрыть",
 	"ktg_stickers_copy_title": "Копировать название",
-	"ktg_stickers_title_copied": "Название набора стикеров скопировано в буфер обмена."
+	"ktg_stickers_title_copied": "Название набора стикеров скопировано в буфер обмена.",
+	"ktg_context_show_messages_from": "Сообщения пользователя"
 }
