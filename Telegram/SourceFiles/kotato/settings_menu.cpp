@@ -18,7 +18,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "boxes/connection_box.h"
 #include "kotato/boxes/fonts_box.h"
-#include "kotato/boxes/net_boost_box.h"
+#include "kotato/boxes/radio_box.h"
 #include "boxes/about_box.h"
 #include "boxes/confirm_box.h"
 #include "platform/platform_specific.h"
@@ -37,6 +37,30 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "styles/style_settings.h"
 
 namespace Settings {
+
+namespace {
+
+QString NetBoostLabel(int boost) {
+	switch (boost) {
+		case 0:
+			return tr::ktg_net_speed_boost_default(tr::now);
+
+		case 1:
+			return tr::ktg_net_speed_boost_slight(tr::now);
+
+		case 2:
+			return tr::ktg_net_speed_boost_medium(tr::now);
+
+		case 3:
+			return tr::ktg_net_speed_boost_big(tr::now);
+
+		default:
+			Unexpected("Boost in Settings::NetBoostLabel.");
+	}
+	return QString();
+}
+
+} // namespace
 
 #define SettingsMenuСSwitch(LangKey, Option) AddButton( \
 	container, \
@@ -192,13 +216,29 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_network());
 
+	const QMap<int, QString> netBoostOptions = {
+		{ 0, NetBoostLabel(0) },
+		{ 1, NetBoostLabel(1) },
+		{ 2, NetBoostLabel(2) },
+		{ 3, NetBoostLabel(3) }
+	};
+
 	AddButtonWithLabel(
 		container,
 		tr::ktg_settings_net_speed_boost(),
-		rpl::single(NetBoostBox::BoostLabel(cNetSpeedBoost())),
+		rpl::single(NetBoostLabel(cNetSpeedBoost())),
 		st::settingsButton
 	)->addClickHandler([=] {
-		Ui::show(Box<NetBoostBox>());
+		Ui::show(Box<::Kotato::RadioBox>(
+			tr::ktg_net_speed_boost_title(tr::now),
+			tr::ktg_net_speed_boost_desc(tr::now),
+			cNetSpeedBoost(),
+			netBoostOptions,
+			[=] (int value) {
+				SetNetworkBoost(value);
+				::Kotato::JsonSettings::Write();
+				App::restart();
+			}, true));
 	});
 
 	AddSkip(container);

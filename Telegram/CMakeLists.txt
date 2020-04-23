@@ -617,8 +617,8 @@ PRIVATE
     kotato/boxes/confirm_box.h
     kotato/boxes/fonts_box.cpp
     kotato/boxes/fonts_box.h
-    kotato/boxes/net_boost_box.cpp
-    kotato/boxes/net_boost_box.h
+    kotato/boxes/radio_box.cpp
+    kotato/boxes/radio_box.h
     kotato/boxes/unpin_box.cpp
     kotato/boxes/unpin_box.h
     kotato/json_settings.cpp
