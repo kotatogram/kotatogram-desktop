@@ -1006,13 +1006,11 @@ QImage GeneratePreview(
 }
 
 QMap<QString, QString> CollectStrings() {
-	QMap<QString, QString> result;
-
-	result.insert(qsl("lng_message_ph"), tr::lng_message_ph(tr::now));
-	result.insert(qsl("lng_dlg_filter"), tr::lng_dlg_filter(tr::now));
-	result.insert(qsl("lng_status_online"), tr::lng_status_online(tr::now));
-
-	return result;
+	return {
+		{ "lng_message_ph", tr::lng_message_ph(tr::now) },
+		{ "lng_dlg_filter", tr::lng_dlg_filter(tr::now) },
+		{ "lng_status_online", tr::lng_status_online(tr::now) },
+	};
 }
 
 int DefaultPreviewTitleHeight() {
