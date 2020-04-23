@@ -124,7 +124,7 @@ void FontsBox::save() {
 
 	*box = getDelegate()->show(
 		Box<ConfirmBox>(
-			tr::ktg_fonts_restart_new_fonts(tr::now),
+			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
 			tr::lng_cancel(tr::now),
 			changeFonts));
@@ -150,7 +150,7 @@ void FontsBox::resetToDefault() {
 
 	*box = getDelegate()->show(
 		Box<ConfirmBox>(
-			tr::ktg_fonts_restart_reset(tr::now),
+			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
 			tr::lng_cancel(tr::now),
 			resetFonts));
