@@ -38,6 +38,50 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 namespace Settings {
 
+#define SettingsMenuСSwitch(LangKey, Option) AddButton( \
+	container, \
+	tr::LangKey(), \
+	st::settingsButton \
+)->toggleOn( \
+	rpl::single(c##Option()) \
+)->toggledValue( \
+) | rpl::filter([](bool enabled) { \
+	return (enabled != c##Option()); \
+}) | rpl::start_with_next([](bool enabled) { \
+	cSet##Option(enabled); \
+	::Kotato::JsonSettings::Write(); \
+}, container->lifetime());
+
+#define SettingsMenuСFilterSwitch(LangKey, Option) AddButton( \
+	container, \
+	tr::LangKey(), \
+	st::settingsButton \
+)->toggleOn( \
+	rpl::single(c##Option()) \
+)->toggledValue( \
+) | rpl::filter([](bool enabled) { \
+	return (enabled != c##Option()); \
+}) | rpl::start_with_next([controller](bool enabled) { \
+	cSet##Option(enabled); \
+	::Kotato::JsonSettings::Write(); \
+	controller->reloadFiltersMenu(); \
+	App::wnd()->fixOrder(); \
+}, container->lifetime());
+
+#define SettingsMenuSwitch(LangKey, Option) AddButton( \
+	container, \
+	tr::LangKey(), \
+	st::settingsButton \
+)->toggleOn( \
+	rpl::single(Option()) \
+)->toggledValue( \
+) | rpl::filter([](bool enabled) { \
+	return (enabled != Option()); \
+}) | rpl::start_with_next([](bool enabled) { \
+	Set##Option(enabled); \
+	::Kotato::JsonSettings::Write(); \
+}, container->lifetime());
+
 void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_chats());
@@ -74,33 +118,8 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		updateRecentStickersLimitHeight);
 	updateRecentStickersLimitLabel(RecentStickersLimit());
 
-	AddButton(
-		container,
-		tr::ktg_settings_top_bar_mute(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cProfileTopBarNotifications())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cProfileTopBarNotifications());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetProfileTopBarNotifications(enabled);
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
-
-	AddButton(
-		container,
-		tr::ktg_settings_disable_up_edit(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cDisableUpEdit())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cDisableUpEdit());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetDisableUpEdit(enabled);
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
+	SettingsMenuСSwitch(ktg_settings_top_bar_mute, ProfileTopBarNotifications);
+	SettingsMenuСSwitch(ktg_settings_disable_up_edit, DisableUpEdit);
 
 	AddButton(
 		container,
@@ -116,20 +135,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
-	AddButton(
-		container,
-		tr::ktg_settings_always_show_scheduled(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cAlwaysShowScheduled())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cAlwaysShowScheduled());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetAlwaysShowScheduled(enabled);
-		Notify::showScheduledButtonChanged();
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
+	SettingsMenuСSwitch(ktg_settings_disable_up_edit, AlwaysShowScheduled);
 
 	AddButton(
 		container,
@@ -175,33 +181,8 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 		updateStickerHeight);
 	updateStickerHeightLabel(StickerHeight());
 
-	AddButton(
-		container,
-		tr::ktg_settings_adaptive_bubbles(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(AdaptiveBubbles())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != AdaptiveBubbles());
-	}) | rpl::start_with_next([](bool enabled) {
-		SetAdaptiveBubbles(enabled);
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
-
-	AddButton(
-		container,
-		tr::ktg_settings_emoji_outline(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(BigEmojiOutline())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != BigEmojiOutline());
-	}) | rpl::start_with_next([](bool enabled) {
-		SetBigEmojiOutline(enabled);
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
+	SettingsMenuSwitch(ktg_settings_adaptive_bubbles, AdaptiveBubbles);
+	SettingsMenuSwitch(ktg_settings_emoji_outline, BigEmojiOutline);
 
 	AddSkip(container);
 }
@@ -230,69 +211,10 @@ void SetupKotatoFolders(
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_filters());
 
-	AddButton(
-		container,
-		tr::ktg_settings_filters_only_unmuted_counter(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cUnmutedFilterCounterOnly())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cUnmutedFilterCounterOnly());
-	}) | rpl::start_with_next([=](bool enabled) {
-		cSetUnmutedFilterCounterOnly(enabled);
-		::Kotato::JsonSettings::Write();
-		controller->reloadFiltersMenu();
-		App::wnd()->fixOrder();
-	}, container->lifetime());
-
-	AddButton(
-		container,
-		tr::ktg_settings_filters_hide_all(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cHideFilterAllChats())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cHideFilterAllChats());
-	}) | rpl::start_with_next([=](bool enabled) {
-		cSetHideFilterAllChats(enabled);
-		::Kotato::JsonSettings::Write();
-		controller->reloadFiltersMenu();
-		App::wnd()->fixOrder();
-	}, container->lifetime());
-
-	AddButton(
-		container,
-		tr::ktg_settings_filters_hide_edit(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cHideFilterEditButton())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cHideFilterEditButton());
-	}) | rpl::start_with_next([=](bool enabled) {
-		cSetHideFilterEditButton(enabled);
-		::Kotato::JsonSettings::Write();
-		controller->reloadFiltersMenu();
-		App::wnd()->fixOrder();
-	}, container->lifetime());
-
-	AddButton(
-		container,
-		tr::ktg_settings_filters_hide_folder_names(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cHideFilterNames())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cHideFilterNames());
-	}) | rpl::start_with_next([=](bool enabled) {
-		cSetHideFilterNames(enabled);
-		::Kotato::JsonSettings::Write();
-		controller->reloadFiltersMenu();
-		App::wnd()->fixOrder();
-	}, container->lifetime());
+	SettingsMenuСFilterSwitch(ktg_settings_filters_only_unmuted_counter, UnmutedFilterCounterOnly);
+	SettingsMenuСFilterSwitch(ktg_settings_filters_hide_all, HideFilterAllChats);
+	SettingsMenuСFilterSwitch(ktg_settings_filters_hide_edit, HideFilterEditButton);
+	SettingsMenuСFilterSwitch(ktg_settings_filters_hide_folder_names, HideFilterNames);
 
 	AddSkip(container);
 }
@@ -302,19 +224,7 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
-	AddButton(
-		container,
-		tr::ktg_settings_no_taskbar_flash(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cNoTaskbarFlashing())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cNoTaskbarFlashing());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetNoTaskbarFlashing(enabled);
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
+	SettingsMenuСSwitch(ktg_settings_no_taskbar_flash, NoTaskbarFlashing);
 
 	AddSkip(container);
 }
@@ -324,47 +234,9 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_other());
 
-	AddButton(
-		container,
-		tr::ktg_settings_show_phone_number(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cShowPhoneInDrawer())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cShowPhoneInDrawer());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetShowPhoneInDrawer(enabled);
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
-
-	AddButton(
-		container,
-		tr::ktg_settings_show_chat_id(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cShowChatId())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cShowChatId());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetShowChatId(enabled);
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
-
-	AddButton(
-		container,
-		tr::ktg_settings_call_confirm(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cConfirmBeforeCall())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cConfirmBeforeCall());
-	}) | rpl::start_with_next([](bool enabled) {
-		cSetConfirmBeforeCall(enabled);
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
+	SettingsMenuСSwitch(ktg_settings_show_phone_number, ShowPhoneInDrawer);
+	SettingsMenuСSwitch(ktg_settings_show_chat_id, ShowChatId);
+	SettingsMenuСSwitch(ktg_settings_call_confirm, ConfirmBeforeCall);
 
 	AddSkip(container);
 }
