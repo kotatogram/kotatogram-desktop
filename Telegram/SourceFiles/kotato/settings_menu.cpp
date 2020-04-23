@@ -60,6 +60,52 @@ QString NetBoostLabel(int boost) {
 	return QString();
 }
 
+QString UserpicRoundingLabel(int rounding) {
+	switch (rounding) {
+		case 0:
+			return tr::ktg_settings_userpic_rounding_none(tr::now);
+
+		case 1:
+			return tr::ktg_settings_userpic_rounding_small(tr::now);
+
+		case 2:
+			return tr::ktg_settings_userpic_rounding_big(tr::now);
+
+		case 3:
+			return tr::ktg_settings_userpic_rounding_full(tr::now);
+
+		default:
+			Unexpected("Rounding in Settings::UserpicRoundingLabel.");
+	}
+	return QString();
+}
+
+QString TrayIconLabel(int icon) {
+	switch (icon) {
+		case 0:
+			return tr::ktg_settings_tray_icon_default(tr::now);
+
+		case 1:
+			return tr::ktg_settings_tray_icon_blue(tr::now);
+
+		case 2:
+			return tr::ktg_settings_tray_icon_green(tr::now);
+
+		case 3:
+			return tr::ktg_settings_tray_icon_orange(tr::now);
+
+		case 4:
+			return tr::ktg_settings_tray_icon_red(tr::now);
+
+		case 5:
+			return tr::ktg_settings_tray_icon_legacy(tr::now);
+
+		default:
+			Unexpected("Icon in Settings::TrayIconLabel.");
+	}
+	return QString();
+}
+
 } // namespace
 
 #define SettingsMenuСSwitch(LangKey, Option) AddButton( \
@@ -169,6 +215,31 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		Ui::show(Box<FontsBox>());
 	});
 
+	const QMap<int, QString> userpicRoundOptions = {
+		{ 0, UserpicRoundingLabel(0) },
+		{ 1, UserpicRoundingLabel(1) },
+		{ 2, UserpicRoundingLabel(2) },
+		{ 3, UserpicRoundingLabel(3) }
+	};
+
+	AddButtonWithLabel(
+		container,
+		tr::ktg_settings_userpic_rounding(),
+		rpl::single(UserpicRoundingLabel(cUserpicCornersType())),
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			tr::ktg_settings_userpic_rounding(tr::now),
+			tr::ktg_settings_userpic_rounding_desc(tr::now),
+			cUserpicCornersType(),
+			userpicRoundOptions,
+			[=] (int value) {
+				cSetUserpicCornersType(value);
+				::Kotato::JsonSettings::Write();
+				App::restart();
+			}, true));
+	});
+
 	AddSkip(container);
 }
 
@@ -265,6 +336,33 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
 	SettingsMenuСSwitch(ktg_settings_no_taskbar_flash, NoTaskbarFlashing);
+
+	const QMap<int, QString> trayIconOptions = {
+		{ 0, TrayIconLabel(0) },
+		{ 1, TrayIconLabel(1) },
+		{ 2, TrayIconLabel(2) },
+		{ 3, TrayIconLabel(3) },
+		{ 4, TrayIconLabel(4) },
+		{ 5, TrayIconLabel(5) },
+	};
+
+	AddButtonWithLabel(
+		container,
+		tr::ktg_settings_tray_icon(),
+		rpl::single(TrayIconLabel(cCustomAppIcon())),
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			tr::ktg_settings_tray_icon(tr::now),
+			tr::ktg_settings_tray_icon_desc(tr::now),
+			cCustomAppIcon(),
+			trayIconOptions,
+			[=] (int value) {
+				cSetCustomAppIcon(value);
+				::Kotato::JsonSettings::Write();
+				App::restart();
+			}, true));
+	});
 
 	AddSkip(container);
 }

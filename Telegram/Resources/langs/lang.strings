@@ -2483,4 +2483,24 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_context_show_messages_from" = "User messages";
 
+"ktg_settings_userpic_rounding" = "Profile pictures rounding";
+
+"ktg_settings_userpic_rounding_none" = "Square";
+"ktg_settings_userpic_rounding_small" = "Small";
+"ktg_settings_userpic_rounding_big" = "Big";
+"ktg_settings_userpic_rounding_full" = "Circle";
+
+"ktg_settings_userpic_rounding_desc" = "You'll need to restart app to save changes.";
+
+"ktg_settings_tray_icon" = "Tray icon";
+
+"ktg_settings_tray_icon_default" = "Default";
+"ktg_settings_tray_icon_blue" = "Blue";
+"ktg_settings_tray_icon_green" = "Green";
+"ktg_settings_tray_icon_orange" = "Orange";
+"ktg_settings_tray_icon_red" = "Red";
+"ktg_settings_tray_icon_legacy" = "Legacy";
+
+"ktg_settings_tray_icon_desc" = "If you don't like any of these icons, you can place icon.png in your profile folder.\n\nYou'll need to restart app to save changes.";
+
 // Keys finished

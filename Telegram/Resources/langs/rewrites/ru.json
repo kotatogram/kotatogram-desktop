@@ -109,5 +109,19 @@
 	"ktg_hide_pinned_message": "Скрыть",
 	"ktg_stickers_copy_title": "Копировать название",
 	"ktg_stickers_title_copied": "Название набора стикеров скопировано в буфер обмена.",
-	"ktg_context_show_messages_from": "Сообщения пользователя"
+	"ktg_context_show_messages_from": "Сообщения пользователя",
+	"ktg_settings_userpic_rounding": "Скругление фото профиля",
+	"ktg_settings_userpic_rounding_none": "Квадрат",
+	"ktg_settings_userpic_rounding_small": "Слабое",
+	"ktg_settings_userpic_rounding_big": "Сильное",
+	"ktg_settings_userpic_rounding_full": "Круг",
+	"ktg_settings_userpic_rounding_desc": "Для применения и просмотра изменений требуется перезапуск.",
+	"ktg_settings_tray_icon": "Иконка в трее",
+	"ktg_settings_tray_icon_default": "Стандартная",
+	"ktg_settings_tray_icon_blue": "Синяя",
+	"ktg_settings_tray_icon_green": "Зелёная",
+	"ktg_settings_tray_icon_orange": "Оранжевая",
+	"ktg_settings_tray_icon_red": "Красная",
+	"ktg_settings_tray_icon_legacy": "Старая",
+	"ktg_settings_tray_icon_desc": "Если вам не нравится ни одна из этих иконок, вы можете положить icon.png в вашу папку профиля.\n\nДля применения и просмотра изменений требуется перезапуск."
 }
