@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/ripple_animation.h"
 #include "ui/effects/fireworks_animation.h"
 #include "ui/toast/toast.h"
+#include "kotato/boxes/confirm_box.h"
 #include "data/data_media_types.h"
 #include "data/data_poll.h"
 #include "data/data_user.h"
@@ -442,17 +443,21 @@ void Poll::checkQuizAnswered() {
 	}
 }
 
-void Poll::showSolution() const {
+void Poll::showSolution(bool inBox) const {
 	if (_poll->solution.text.isEmpty()) {
 		return;
 	}
-	auto config = Ui::Toast::Config();
-	config.multiline = config.dark = true;
-	config.minWidth = st::msgMinWidth;
-	config.maxWidth = st::windowMinWidth;
-	config.text = _poll->solution;
-	config.durationMs = CountToastDuration(config.text);
-	Ui::Toast::Show(config);
+	if (inBox) {
+		Ui::show(Box<Kotato::InformBox>(_poll->solution));
+	} else {
+		auto config = Ui::Toast::Config();
+		config.multiline = config.dark = true;
+		config.minWidth = st::msgMinWidth;
+		config.maxWidth = st::windowMinWidth;
+		config.text = _poll->solution;
+		config.durationMs = CountToastDuration(config.text);
+		Ui::Toast::Show(config);
+	}
 }
 
 void Poll::updateRecentVoters() {
@@ -953,7 +958,7 @@ void Poll::paintShowSolution(
 	}
 	if (!_showSolutionLink) {
 		_showSolutionLink = std::make_shared<LambdaClickHandler>(
-			crl::guard(this, [=] { showSolution(); }));
+			crl::guard(this, [=] { showSolution(true); }));
 	}
 	const auto outbg = _parent->hasOutLayout();
 	const auto &icon = (selection == FullSelection)

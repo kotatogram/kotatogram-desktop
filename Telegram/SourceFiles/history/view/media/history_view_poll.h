@@ -165,7 +165,7 @@ private:
 	void sendMultiOptions();
 	void showResults();
 	void checkQuizAnswered();
-	void showSolution() const;
+	void showSolution(bool inBox = false) const;
 
 	[[nodiscard]] bool canShowSolution() const;
 	[[nodiscard]] bool inShowSolution(
