@@ -1038,7 +1038,7 @@ PRIVATE
     qrc/emoji_preview.qrc
     qrc/telegram/telegram.qrc
     qrc/telegram/sounds.qrc
-    winrc/Telegram.rc
+    winrc/Kotatogram.rc
     winrc/Telegram.manifest
     langs/lang.strings
     numbers.txt
@@ -1207,6 +1207,11 @@ if ((NOT DESKTOP_APP_DISABLE_AUTOUPDATE OR NOT LINUX) AND NOT build_macstore AND
         _other/updater_linux.cpp
         _other/updater_osx.m
         _other/updater.h
+    )
+
+    nice_target_sources(Updater ${res_loc}
+    PRIVATE
+        winrc/KotatogramUpdater.rc
     )
 
     set_target_properties(Updater PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${output_folder})
