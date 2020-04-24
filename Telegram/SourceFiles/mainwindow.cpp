@@ -721,6 +721,7 @@ bool MainWindow::takeThirdSectionFromLayer() {
 }
 
 void MainWindow::fixOrder() {
+	if (_passcodeLock) _passcodeLock->raise();
 	if (_layer) _layer->raise();
 	if (_mediaPreview) _mediaPreview->raise();
 	if (_testingThemeWarning) _testingThemeWarning->raise();

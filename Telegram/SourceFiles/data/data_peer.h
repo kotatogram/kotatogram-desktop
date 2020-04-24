@@ -307,6 +307,7 @@ public:
 	[[nodiscard]] ImagePtr currentUserpic() const;
 
 	[[nodiscard]] bool canPinMessages() const;
+	[[nodiscard]] bool canEditMessagesIndefinitely() const;
 	[[nodiscard]] MsgId pinnedMessageId() const {
 		return _pinnedMessageId;
 	}
