@@ -62,7 +62,7 @@
 	"ktg_fonts_semibold_is_bold": "Жирное начертание",
 	"ktg_fonts_monospaced": "Моноширинный шрифт",
 	"ktg_fonts_use_system_font": "Использовать системный шрифт",
-	"ktg_fonts_use_original_metrics": "Оригинальная высота шрифта",
+	"ktg_fonts_use_original_metrics": "Высота Open Sans",
 	"ktg_fonts_restart_new_fonts": "Для применения новых шрифтов требуется перезапуск.\n\nПерезапустить сейчас?",
 	"ktg_fonts_restart_reset": "Для сброса шрифтов к стандартным требуется перезапуск.\n\nПерезапустить сейчас?",
 	"ktg_settings_network": "Сеть",
