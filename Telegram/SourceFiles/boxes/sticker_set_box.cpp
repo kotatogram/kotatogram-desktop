@@ -190,9 +190,8 @@ void StickerSetBox::shareStickers() {
 }
 
 void StickerSetBox::copyTitle() {
-	std::move(
-		_inner->title()
-	) | rpl::start_with_next([this](const TextWithEntities &value) {
+	_inner->title(
+	) | rpl::start_with_next([](const TextWithEntities &value) {
 		QGuiApplication::clipboard()->setText(value.text);
 		Ui::show(Box<InformBox>(tr::ktg_stickers_title_copied(tr::now)));
 	}, lifetime());
