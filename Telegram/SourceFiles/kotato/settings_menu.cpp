@@ -108,7 +108,7 @@ QString TrayIconLabel(int icon) {
 
 } // namespace
 
-#define SettingsMenuСSwitch(LangKey, Option) AddButton( \
+#define SettingsMenuCSwitch(LangKey, Option) AddButton( \
 	container, \
 	tr::LangKey(), \
 	st::settingsButton \
@@ -122,7 +122,7 @@ QString TrayIconLabel(int icon) {
 	::Kotato::JsonSettings::Write(); \
 }, container->lifetime());
 
-#define SettingsMenuСFilterSwitch(LangKey, Option) AddButton( \
+#define SettingsMenuCFilterSwitch(LangKey, Option) AddButton( \
 	container, \
 	tr::LangKey(), \
 	st::settingsButton \
@@ -188,8 +188,8 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		updateRecentStickersLimitHeight);
 	updateRecentStickersLimitLabel(RecentStickersLimit());
 
-	SettingsMenuСSwitch(ktg_settings_top_bar_mute, ProfileTopBarNotifications);
-	SettingsMenuСSwitch(ktg_settings_disable_up_edit, DisableUpEdit);
+	SettingsMenuCSwitch(ktg_settings_top_bar_mute, ProfileTopBarNotifications);
+	SettingsMenuCSwitch(ktg_settings_disable_up_edit, DisableUpEdit);
 
 	AddButton(
 		container,
@@ -205,7 +205,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
-	SettingsMenuСSwitch(ktg_settings_disable_up_edit, AlwaysShowScheduled);
+	SettingsMenuCSwitch(ktg_settings_disable_up_edit, AlwaysShowScheduled);
 
 	AddButton(
 		container,
@@ -322,10 +322,10 @@ void SetupKotatoFolders(
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_filters());
 
-	SettingsMenuСFilterSwitch(ktg_settings_filters_only_unmuted_counter, UnmutedFilterCounterOnly);
-	SettingsMenuСFilterSwitch(ktg_settings_filters_hide_all, HideFilterAllChats);
-	SettingsMenuСFilterSwitch(ktg_settings_filters_hide_edit, HideFilterEditButton);
-	SettingsMenuСFilterSwitch(ktg_settings_filters_hide_folder_names, HideFilterNames);
+	SettingsMenuCFilterSwitch(ktg_settings_filters_only_unmuted_counter, UnmutedFilterCounterOnly);
+	SettingsMenuCFilterSwitch(ktg_settings_filters_hide_all, HideFilterAllChats);
+	SettingsMenuCFilterSwitch(ktg_settings_filters_hide_edit, HideFilterEditButton);
+	SettingsMenuCFilterSwitch(ktg_settings_filters_hide_folder_names, HideFilterNames);
 
 	AddSkip(container);
 }
@@ -335,7 +335,7 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
-	SettingsMenuСSwitch(ktg_settings_no_taskbar_flash, NoTaskbarFlashing);
+	SettingsMenuCSwitch(ktg_settings_no_taskbar_flash, NoTaskbarFlashing);
 
 	const QMap<int, QString> trayIconOptions = {
 		{ 0, TrayIconLabel(0) },
@@ -372,9 +372,9 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_other());
 
-	SettingsMenuСSwitch(ktg_settings_show_phone_number, ShowPhoneInDrawer);
-	SettingsMenuСSwitch(ktg_settings_show_chat_id, ShowChatId);
-	SettingsMenuСSwitch(ktg_settings_call_confirm, ConfirmBeforeCall);
+	SettingsMenuCSwitch(ktg_settings_show_phone_number, ShowPhoneInDrawer);
+	SettingsMenuCSwitch(ktg_settings_show_chat_id, ShowChatId);
+	SettingsMenuCSwitch(ktg_settings_call_confirm, ConfirmBeforeCall);
 
 	AddSkip(container);
 }
