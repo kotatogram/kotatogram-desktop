@@ -1,3 +1,13 @@
+1.3 (25.04.2020)
+- Updated TDesktop sources to 2.1.
+- Search messages from user from context menu.
+- "query" parameter for tg://resolve and t.me links to set search query.
+- Select and copy text in link open box and bot button click.
+- Select and copy text of poll explanation, showing it in box.
+- Added two existed options to menu: tray icon and profile picture rounding.
+- Suggest to hide pinned message when unpinning.
+- Show Discuss button even if you haven't subscribed to channel.
+
 1.2.2 (2.04.2020)
 - Updated TDesktop sources to 2.0.1.
 - Option to hide All chats folder.
