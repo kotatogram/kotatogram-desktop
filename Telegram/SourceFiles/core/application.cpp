@@ -183,24 +183,6 @@ Application::~Application() {
 
 void Application::run() {
 	Kotato::JsonSettings::Start();
-	if (!cMainFont().isEmpty()) {
-		style::internal::CustomMainFont = cMainFont();
-	}
-	if (!cSemiboldFont().isEmpty()) {
-		style::internal::CustomSemiboldFont = cSemiboldFont();
-	}
-	if (cSemiboldFontIsBold()) {
-		style::internal::CustomSemiboldIsBold = cSemiboldFontIsBold();
-	}
-	if (!cMonospaceFont().isEmpty()) {
-		style::internal::CustomMonospaceFont = cMonospaceFont();
-	}
-	if (cUseSystemFont()) {
-		style::internal::UseSystemFont = cUseSystemFont();
-	}
-	if (cUseOriginalMetrics()) {
-		style::internal::UseOriginalMetrics = cUseOriginalMetrics();
-	}
 	style::internal::StartFonts();
 
 	ThirdParty::start();
