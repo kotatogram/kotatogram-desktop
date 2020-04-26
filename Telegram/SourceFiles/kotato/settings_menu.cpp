@@ -205,7 +205,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
-	SettingsMenuCSwitch(ktg_settings_disable_up_edit, AlwaysShowScheduled);
+	SettingsMenuCSwitch(ktg_settings_always_show_scheduled, AlwaysShowScheduled);
 
 	AddButton(
 		container,
