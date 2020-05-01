@@ -85,17 +85,6 @@ void MemberListRow::paintAdminRank(
 	p.drawTextLeft(x, y, outerWidth, _type.adminRank, adminRankWidth());
 }
 
-void MemberListRow::refreshStatus() {
-	if (user()->isBot()) {
-		auto seesAllMessages = (user()->botInfo->readsAllHistory || _type.rights != Rights::Normal);
-		setCustomStatus(seesAllMessages
-			? tr::lng_status_bot_reads_all(tr::now)
-			: tr::lng_status_bot_not_reads_all(tr::now));
-	} else {
-		PeerListRow::refreshStatus();
-	}
-}
-
 std::unique_ptr<PeerListController> CreateMembersController(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<PeerData*> peer) {
