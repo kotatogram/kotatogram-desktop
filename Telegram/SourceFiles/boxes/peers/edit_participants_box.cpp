@@ -1056,7 +1056,9 @@ void ParticipantsBoxController::prepare() {
 		switch (_role) {
 		case Role::Admins: return tr::lng_channel_admins();
 		case Role::Profile:
-		case Role::Members: return tr::lng_profile_participants_section();
+		case Role::Members: return (_peer->isChannel() && !_peer->isMegagroup()
+			? tr::lng_profile_subscribers_section()
+			: tr::lng_profile_participants_section());
 		case Role::Restricted: return tr::lng_exceptions_list_title();
 		case Role::Kicked: return tr::lng_removed_list_title();
 		}
@@ -1788,6 +1790,12 @@ std::unique_ptr<PeerListRow> ParticipantsBoxController::createRow(
 			&& (!_additional.adminRights(user)
 				|| _additional.canEditAdmin(user))) {
 			row->setActionLink(tr::lng_profile_kick(tr::now));
+		}
+		if (_role == Role::Members && user->isBot()) {
+			auto seesAllMessages = (user->botInfo->readsAllHistory || _additional.adminRights(user).has_value());
+			row->setCustomStatus(seesAllMessages
+				? tr::lng_status_bot_reads_all(tr::now)
+				: tr::lng_status_bot_not_reads_all(tr::now));
 		}
 	}
 	return row;

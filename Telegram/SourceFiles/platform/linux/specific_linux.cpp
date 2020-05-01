@@ -288,7 +288,11 @@ bool UseXDGDesktopPortal() {
 		const auto envVar = qEnvironmentVariableIsSet("TDESKTOP_USE_PORTAL");
 		const auto portalPresent = IsXDGDesktopPortalPresent();
 
-		return (DesktopEnvironment::IsKDE() || envVar) && portalPresent;
+		return (
+			DesktopEnvironment::IsKDE()
+				|| InSnap()
+				|| envVar
+			) && portalPresent;
 	}();
 
 	return UsePortal;
@@ -630,7 +634,17 @@ void start() {
 	qputenv("PULSE_PROP_application.name", AppName.utf8());
 	qputenv("PULSE_PROP_application.icon_name", GetIconName().toLatin1());
 
-	if(IsStaticBinary() || InAppImage() || IsGtkFileDialogForced()) {
+	if(IsStaticBinary()
+		|| InAppImage()
+		|| InSandbox()
+		|| InSnap()) {
+		qputenv("QT_WAYLAND_DECORATION", "material");
+	}
+
+	if(IsStaticBinary()
+		|| InAppImage()
+		|| InSnap()
+		|| IsGtkFileDialogForced()) {
 		LOG(("Checking for XDG Desktop Portal..."));
 		// this can give us a chance to use a proper file dialog for current session
 		if (IsXDGDesktopPortalPresent()) {

@@ -138,7 +138,7 @@ public:
 		LastSeen,
 		Custom,
 	};
-	void refreshStatus();
+	virtual void refreshStatus();
 	crl::time refreshStatusTime() const;
 
 	void setAbsoluteIndex(int index) {

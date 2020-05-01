@@ -161,7 +161,9 @@ bool UiIntegration::handleUrlClick(
 		Core::App().openInternalUrl(local, context);
 		return true;
 	}
-	return false;
+
+	File::OpenUrl(url);
+	return true;
 
 }
 

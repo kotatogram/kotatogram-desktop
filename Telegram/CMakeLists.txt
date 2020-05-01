@@ -1048,6 +1048,7 @@ PRIVATE
     winrc/Kotatogram.rc
     winrc/Telegram.manifest
     langs/lang.strings
+    langs/cloud_lang.strings
     numbers.txt
 )
 
