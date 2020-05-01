@@ -457,6 +457,81 @@ index f3f0caa379..081c5f03c0 100644
      }
  
      return oldPos;
+diff --git a/src/platformsupport/fontdatabases/windows/qwindowsfontdatabase.cpp b/src/platformsupport/fontdatabases/windows/qwindowsfontdatabase.cpp
+index 9e6e5d88c7..4f43ee7bab 100644
+--- a/src/platformsupport/fontdatabases/windows/qwindowsfontdatabase.cpp
++++ b/src/platformsupport/fontdatabases/windows/qwindowsfontdatabase.cpp
+@@ -1694,50 +1694,50 @@ HFONT QWindowsFontDatabase::systemFont()
+ 
+ static const char *other_tryFonts[] = {
+     "Arial",
+-    "MS UI Gothic",
+-    "Gulim",
+-    "SimSun",
+-    "PMingLiU",
++    "Yu Gothic UI",
++    "맑은 고딕",
++    "Microsoft YaHei",
++    "Microsoft JhengHei UI",
+     "Arial Unicode MS",
+     0
+ };
+ 
+ static const char *jp_tryFonts [] = {
+-    "MS UI Gothic",
++    "Yu Gothic UI",
+     "Arial",
+-    "Gulim",
+-    "SimSun",
+-    "PMingLiU",
++    "맑은 고딕",
++    "Microsoft YaHei",
++    "Microsoft JhengHei UI",
+     "Arial Unicode MS",
+     0
+ };
+ 
+ static const char *ch_CN_tryFonts [] = {
+-    "SimSun",
++    "Microsoft YaHei",
+     "Arial",
+-    "PMingLiU",
+-    "Gulim",
+-    "MS UI Gothic",
++    "Microsoft JhengHei UI",
++    "맑은 고딕",
++    "Yu Gothic UI",
+     "Arial Unicode MS",
+     0
+ };
+ 
+ static const char *ch_TW_tryFonts [] = {
+-    "PMingLiU",
++    "Microsoft JhengHei UI",
+     "Arial",
+-    "SimSun",
+-    "Gulim",
+-    "MS UI Gothic",
++    "Microsoft YaHei",
++    "맑은 고딕",
++    "Yu Gothic UI",
+     "Arial Unicode MS",
+     0
+ };
+ 
+ static const char *kr_tryFonts[] = {
+-    "Gulim",
++    "맑은 고딕",
+     "Arial",
+-    "PMingLiU",
+-    "SimSun",
+-    "MS UI Gothic",
++    "Microsoft JhengHei UI",
++    "Microsoft YaHei",
++    "Yu Gothic UI",
+     "Arial Unicode MS",
+     0
+ };
 diff --git a/src/platformsupport/linuxaccessibility/constant_mappings.cpp b/src/platformsupport/linuxaccessibility/constant_mappings.cpp
 index fce2919e73..4a7d0f7d92 100644
 --- a/src/platformsupport/linuxaccessibility/constant_mappings.cpp

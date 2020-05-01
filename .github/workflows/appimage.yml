@@ -641,6 +641,18 @@ jobs:
           cd ..
           rm -rf nimf
 
+      - name: Material Decoration.
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 $GIT/desktop-app/materialdecoration.git
+          cd materialdecoration
+          qmake
+          make -j$(nproc)
+          sudo make install
+          cd ..
+          rm -rf materialdecoration
+
       - name: LibDBusMenu Qt.
         if: env.ONLY_CACHE == 'false'
         run: |
