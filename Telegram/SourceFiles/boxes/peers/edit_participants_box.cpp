@@ -517,7 +517,6 @@ UserData *ParticipantsAdditionalData::applyParticipant(
 	return data.match([&](const MTPDchannelParticipantCreator &data) {
 		if (overrideRole != Role::Profile
 			&& overrideRole != Role::Members
-			&& overrideRole != Role::Subscribers
 			&& overrideRole != Role::Admins) {
 			return logBad();
 		}
@@ -525,29 +524,25 @@ UserData *ParticipantsAdditionalData::applyParticipant(
 	}, [&](const MTPDchannelParticipantAdmin &data) {
 		if (overrideRole != Role::Profile
 			&& overrideRole != Role::Members
-			&& overrideRole != Role::Subscribers
 			&& overrideRole != Role::Admins) {
 			return logBad();
 		}
 		return applyAdmin(data);
 	}, [&](const MTPDchannelParticipantSelf &data) {
 		if (overrideRole != Role::Profile
-			&& overrideRole != Role::Members
-			&& overrideRole != Role::Subscribers) {
+			&& overrideRole != Role::Members) {
 			return logBad();
 		}
 		return applyRegular(data.vuser_id());
 	}, [&](const MTPDchannelParticipant &data) {
 		if (overrideRole != Role::Profile
-			&& overrideRole != Role::Members
-			&& overrideRole != Role::Subscribers) {
+			&& overrideRole != Role::Members) {
 			return logBad();
 		}
 		return applyRegular(data.vuser_id());
 	}, [&](const MTPDchannelParticipantBanned &data) {
 		if (overrideRole != Role::Profile
 			&& overrideRole != Role::Members
-			&& overrideRole != Role::Subscribers
 			&& overrideRole != Role::Restricted
 			&& overrideRole != Role::Kicked) {
 			return logBad();
@@ -839,7 +834,6 @@ void ParticipantsBoxController::Start(
 
 			switch (role) {
 			case Role::Members:
-			case Role::Subscribers:
 				return chat
 					? chat->canAddMembers()
 					: (channel->canAddMembers()
@@ -861,7 +855,6 @@ void ParticipantsBoxController::Start(
 		auto addNewItemText = [&] {
 			switch (role) {
 			case Role::Members:
-			case Role::Subscribers:
 				return (chat || channel->isMegagroup())
 					? tr::lng_channel_add_members()
 					: tr::lng_channel_add_users();
@@ -888,7 +881,7 @@ void ParticipantsBoxController::Start(
 void ParticipantsBoxController::addNewItem() {
 	Expects(_role != Role::Profile);
 
-	if (_role == Role::Members || _role == Role::Subscribers) {
+	if (_role == Role::Members) {
 		addNewParticipants();
 		return;
 	}
@@ -1064,7 +1057,6 @@ void ParticipantsBoxController::prepare() {
 		case Role::Admins: return tr::lng_channel_admins();
 		case Role::Profile:
 		case Role::Members: return tr::lng_profile_participants_section();
-		case Role::Subscribers: return tr::ktg_profile_subscribers_section();
 		case Role::Restricted: return tr::lng_exceptions_list_title();
 		case Role::Kicked: return tr::lng_removed_list_title();
 		}
@@ -1089,7 +1081,7 @@ void ParticipantsBoxController::prepare() {
 }
 
 void ParticipantsBoxController::prepareChatRows(not_null<ChatData*> chat) {
-	if (_role == Role::Profile || _role == Role::Members || _role == Role::Subscribers) {
+	if (_role == Role::Profile || _role == Role::Members) {
 		_onlineSorter = std::make_unique<ParticipantsOnlineSorter>(
 			chat,
 			delegate());
@@ -1122,7 +1114,6 @@ void ParticipantsBoxController::prepareChatRows(not_null<ChatData*> chat) {
 void ParticipantsBoxController::rebuildChatRows(not_null<ChatData*> chat) {
 	switch (_role) {
 	case Role::Profile:
-	case Role::Subscribers:
 	case Role::Members: return rebuildChatParticipants(chat);
 	case Role::Admins: return rebuildChatAdmins(chat);
 	case Role::Restricted:
@@ -1245,7 +1236,7 @@ void ParticipantsBoxController::loadMoreRows() {
 	}
 
 	const auto filter = [&] {
-		if (_role == Role::Members || _role == Role::Subscribers || _role == Role::Profile) {
+		if (_role == Role::Members || _role == Role::Profile) {
 			return MTP_channelParticipantsRecent();
 		} else if (_role == Role::Admins) {
 			return MTP_channelParticipantsAdmins();
@@ -1272,7 +1263,7 @@ void ParticipantsBoxController::loadMoreRows() {
 		_loadRequestId = 0;
 
 		auto wasRecentRequest = firstLoad
-			&& (_role == Role::Members || _role == Role::Subscribers || _role == Role::Profile);
+			&& (_role == Role::Members || _role == Role::Profile);
 		auto parseParticipants = [&](auto &&result, auto &&callback) {
 			if (wasRecentRequest) {
 				channel->session().api().parseRecentChannelParticipants(
@@ -1326,7 +1317,7 @@ void ParticipantsBoxController::refreshDescription() {
 }
 
 bool ParticipantsBoxController::feedMegagroupLastParticipants() {
-	if ((_role != Role::Members && _role != Role::Subscribers && _role != Role::Profile)
+	if ((_role != Role::Members && _role != Role::Profile)
 		|| delegate()->peerListFullRowsCount() > 0) {
 		return false;
 	}
@@ -1387,7 +1378,7 @@ void ParticipantsBoxController::rowActionClicked(
 	Expects(row->peer()->isUser());
 
 	const auto user = row->peer()->asUser();
-	if (_role == Role::Members || _role == Role::Subscribers || _role == Role::Profile) {
+	if (_role == Role::Members || _role == Role::Profile) {
 		kickMember(user);
 	} else if (_role == Role::Admins) {
 		removeAdmin(user);
@@ -1602,8 +1593,7 @@ void ParticipantsBoxController::editRestrictedDone(
 				prependRow(user);
 			} else if (_role == Role::Admins
 				|| _role == Role::Restricted
-				|| _role == Role::Members
-				|| _role == Role::Subscribers) {
+				|| _role == Role::Members) {
 				removeRow(user);
 			}
 		} else {
@@ -1611,8 +1601,7 @@ void ParticipantsBoxController::editRestrictedDone(
 				prependRow(user);
 			} else if (_role == Role::Kicked
 				|| _role == Role::Admins
-				|| _role == Role::Members
-				|| _role == Role::Subscribers) {
+				|| _role == Role::Members) {
 				removeRow(user);
 			}
 		}
@@ -1793,7 +1782,7 @@ std::unique_ptr<PeerListRow> ParticipantsBoxController::createRow(
 		if (_additional.canRestrictUser(user)) {
 			row->setActionLink(tr::lng_profile_delete_removed(tr::now));
 		}
-	} else if (_role == Role::Members || _role == Role::Subscribers) {
+	} else if (_role == Role::Members) {
 		if ((chat ? chat->canBanMembers() : channel->canBanMembers())
 			&& !_additional.isCreator(user)
 			&& (!_additional.adminRights(user)
@@ -2005,7 +1994,6 @@ bool ParticipantsBoxSearchController::loadMoreRows() {
 		switch (_role) {
 		case Role::Admins: // Search for members, appoint as admin on found.
 		case Role::Profile:
-		case Role::Subscribers:
 		case Role::Members:
 			return MTP_channelParticipantsSearch(MTP_string(_query));
 		case Role::Restricted:
@@ -2084,7 +2072,7 @@ void ParticipantsBoxSearchController::searchDone(
 			_allLoaded = true;
 		}
 		const auto overrideRole = (_role == Role::Admins)
-			? (_channel->isMegagroup() ? Role::Members : Role::Subscribers)
+			? Role::Members
 			: _role;
 		for (const auto &data : list) {
 			const auto user = _additional->applyParticipant(

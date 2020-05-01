@@ -2438,12 +2438,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_user_status_unaccessible" = "account inaccessible";
 
-"ktg_chat_status_subscribers#one" = "{count} subscriber";
-"ktg_chat_status_subscribers#other" = "{count} subscribers";
-
-"ktg_profile_subscribers_section" = "Subscribers";
-"ktg_manage_peer_subscribers" = "Subscribers";
-
 "ktg_settings_show_json_settings" = "Show custom settings";
 "ktg_settings_restart" = "Restart Kotatogram";
 

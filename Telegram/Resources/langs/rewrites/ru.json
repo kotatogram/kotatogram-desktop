@@ -34,14 +34,6 @@
 	"ktg_mac_menu_show": "Показать Kotatogram",
 	"ktg_settings_kotato": "Настройки Kotatogram",
 	"ktg_user_status_unaccessible": "аккаунт недоступен",
-		"ktg_chat_status_subscribers": {
-		"one": "{count} подписчик",
-		"few": "{count} подписчика",
-		"many": "{count} подписчиков",
-		"other": "{count} подписчиков"
-	},
-	"ktg_profile_subscribers_section": "Подписчики",
-	"ktg_manage_peer_subscribers": "Подписчики",
 	"ktg_settings_show_json_settings": "Показать файл настроек",
 	"ktg_settings_restart": "Перезапустить Kotatogram",
 	"ktg_copy_btn_callback": "Копировать callback-данные",

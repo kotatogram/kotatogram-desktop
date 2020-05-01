@@ -921,9 +921,7 @@ void TopBarWidget::updateOnlineDisplay() {
 				text = tr::lng_group_status(tr::now);
 			}
 		} else if (channel->membersCount() > 0) {
-			text = channel->isMegagroup()
-				? tr::lng_chat_status_members(tr::now, lt_count_decimal, channel->membersCount())
-				: tr::ktg_chat_status_subscribers(tr::now, lt_count_decimal, channel->membersCount());
+			text = tr::lng_chat_status_members(tr::now, lt_count_decimal, channel->membersCount());
 
 		} else {
 			text = channel->isMegagroup() ? tr::lng_group_status(tr::now) : tr::lng_channel_status(tr::now);
