@@ -291,7 +291,7 @@ bool Manager::readCustomFile() {
 	});
 
 	ReadIntOption(settings, "sticker_height", [&](auto v) {
-		if (v >= 64 || v <= 256) {
+		if (v >= 64 && v <= 256) {
 			SetStickerHeight(v);
 		}
 	});
@@ -355,7 +355,7 @@ bool Manager::readCustomFile() {
 	});
 
 	ReadIntOption(settings, "chat_list_lines", [&](auto v) {
-		if (v >= 1 || v <= 2) {
+		if (v >= 1 && v <= 2) {
 			SetDialogListLines(v);
 		}
 	});
@@ -392,13 +392,13 @@ bool Manager::readCustomFile() {
 	});
 
 	ReadIntOption(settings, "recent_stickers_limit", [&](auto v) {
-		if (v >= 0 || v <= 200) {
+		if (v >= 0 && v <= 200) {
 			SetRecentStickersLimit(v);
 		}
 	});
 
 	ReadIntOption(settings, "userpic_corner_type", [&](auto v) {
-		if (v >= 0 || v <= 3) {
+		if (v >= 0 && v <= 3) {
 			cSetUserpicCornersType(v);
 		}
 	});
@@ -408,7 +408,7 @@ bool Manager::readCustomFile() {
 	});
 
 	ReadIntOption(settings, "custom_app_icon", [&](auto v) {
-		if (v >= 0 || v <= 5) {
+		if (v >= 0 && v <= 5) {
 			cSetCustomAppIcon(v);
 		}
 	});
