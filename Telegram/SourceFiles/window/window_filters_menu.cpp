@@ -194,7 +194,11 @@ void FiltersMenu::refresh() {
 	// so we have to restore it.
 	_scroll.scrollToY(oldTop);
 	const auto i = _filters.find(_activeFilterId);
-	scrollToButton((i != end(_filters)) ? i->second : _all);
+	if (i != end(_filters)) {
+		scrollToButton(i->second);
+	} else if (!cHideFilterAllChats()) {
+		scrollToButton(_all);
+	}
 
 	if (FiltersFirstLoad) {
 		_session->setActiveChatsFilter(cDefaultFilterId());
