@@ -1,3 +1,6 @@
+1.3.3 (3.05.2020)
+- Fixed crash from 1.3.2.
+
 1.3.2 (2.05.2020)
 - Updated TDesktop sources to 2.1.1.
 
