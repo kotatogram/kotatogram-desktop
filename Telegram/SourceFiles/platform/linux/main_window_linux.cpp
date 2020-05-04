@@ -177,7 +177,11 @@ QIcon TrayIconGen(int counter, bool muted) {
 		if (currentImageBack.isNull()
 			|| iconThemeName != TrayIconThemeName
 			|| iconName != TrayIconName) {
-			if (!iconName.isEmpty()) {
+			if (QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
+				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
+			} else if (cCustomAppIcon() != 0) {
+				currentImageBack = Core::App().logo(cCustomAppIcon());
+			} else if (!iconName.isEmpty()) {
 				if (systemIcon.isNull()) {
 					systemIcon = QIcon::fromTheme(iconName);
 				}
@@ -199,10 +203,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 						.toImage();
 				}
 			} else {
-				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
-				if (currentImageBack.isNull()) {
-					currentImageBack = Core::App().logo(cCustomAppIcon());
-				}
+				currentImageBack = Core::App().logo();
 			}
 
 			if (currentImageBack.size() != desiredSize) {
