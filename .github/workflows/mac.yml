@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - '!docs/building-xcode.md'
       - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
@@ -24,6 +25,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - '!docs/building-xcode.md'
       - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
@@ -99,14 +101,6 @@ jobs:
           mkdir -p Libraries/macos
           cd Libraries/macos
           echo ::set-env name=LibrariesPath::`pwd`
-
-      - name: Range-v3.
-        run: |
-          echo "Find necessary branch from doc."
-          cloneRange=$(grep -A 1 "range-v3" $REPO_NAME/$DOC_PATH | sed -n 1p)
-          cd $LibrariesPath
-          echo $cloneRange
-          eval $cloneRange
 
       - name: Patches.
         run: |

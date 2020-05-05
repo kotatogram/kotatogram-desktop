@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - '!docs/building-msvc.md'
       - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
@@ -26,6 +27,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - '!docs/building-msvc.md'
       - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
@@ -110,15 +112,6 @@ jobs:
       - name: Choco installs.
         run: |
           choco install --no-progress -y nasm yasm jom ninja
-
-      - name: Range-v3.
-        shell: bash
-        run: |
-          echo "Find necessary branch from doc."
-          cloneRange=$(grep -A 1 "range-v3" $REPO_NAME/$DOC_PATH | sed -n 1p)
-          cd $LibrariesPath
-          echo $cloneRange
-          eval $cloneRange
 
       - name: Patches.
         shell: bash

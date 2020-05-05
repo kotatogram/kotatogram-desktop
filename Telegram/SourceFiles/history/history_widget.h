@@ -254,7 +254,8 @@ public:
 	void hideInfoTooltip(anim::type animated);
 
 	// Tabbed selector management.
-	void pushTabbedSelectorToThirdSection(
+	bool pushTabbedSelectorToThirdSection(
+		not_null<PeerData*> peer,
 		const Window::SectionShow &params) override;
 	bool returnTabbedSelector() override;
 
