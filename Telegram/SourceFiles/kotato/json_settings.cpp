@@ -314,9 +314,17 @@ bool Manager::readCustomFile() {
 		cSetAlwaysShowScheduled(v);
 	});
 
-	ReadBoolOption(settings, "show_chat_id", [&](auto v) {
-		cSetShowChatId(v);
+	auto isShowChatIdSet = ReadIntOption(settings, "show_chat_id", [&](auto v) {
+		if (v >= 0 && v <= 2) {
+			cSetShowChatId(v);
+		}
 	});
+
+	if (!isShowChatIdSet) {
+		ReadBoolOption(settings, "show_chat_id", [&](auto v) {
+			cSetShowChatId(v ? 1 : 0);
+		});
+	}
 
 	ReadOption(settings, "net_speed_boost", [&](auto v) {
 		if (v.isString()) {

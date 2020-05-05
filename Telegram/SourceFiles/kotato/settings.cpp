@@ -54,7 +54,7 @@ rpl::producer<bool> AdaptiveBubblesChanges() {
 }
 
 bool gAlwaysShowScheduled = false;
-bool gShowChatId = false;
+int gShowChatId = 0;
 
 int gNetSpeedBoost = 0;
 int gNetRequestsCount = 2;

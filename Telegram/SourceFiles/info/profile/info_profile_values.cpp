@@ -27,6 +27,8 @@ namespace Info {
 namespace Profile {
 namespace {
 
+constexpr auto kMaxChannelId = -1000000000000;
+
 auto PlainBioValue(not_null<UserData*> user) {
 	return Notify::PeerUpdateValue(
 		user,
@@ -46,7 +48,17 @@ auto PlainUsernameValue(not_null<PeerData*> peer) {
 } // namespace
 
 rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer) {
-	return rpl::single(QString::number(peer->bareId())) | Ui::Text::ToWithEntities();
+	auto resultId = QString::number(peer->bareId());
+
+	if (cShowChatId() == 2) {
+		if (peer->isChannel()) {
+			resultId = QString::number(kMaxChannelId - peer->bareId());
+		} else if (peer->isChat()) {
+			resultId = QString::number(-peer->bareId());
+		}
+	}
+
+	return rpl::single(resultId) | Ui::Text::ToWithEntities();
 }
 
 rpl::producer<TextWithEntities> NameValue(not_null<PeerData*> peer) {

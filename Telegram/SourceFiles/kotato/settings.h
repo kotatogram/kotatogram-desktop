@@ -44,7 +44,7 @@ void SetAdaptiveBubbles(bool enabled);
 [[nodiscard]] rpl::producer<bool> AdaptiveBubblesChanges();
 
 DeclareSetting(bool, AlwaysShowScheduled);
-DeclareSetting(bool, ShowChatId);
+DeclareSetting(int, ShowChatId);
 
 DeclareSetting(int, NetSpeedBoost);
 DeclareSetting(int, NetRequestsCount);

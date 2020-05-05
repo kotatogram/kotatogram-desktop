@@ -240,6 +240,8 @@ DeclareVar(int, CallOutputVolume);
 DeclareVar(int, CallInputVolume);
 DeclareVar(bool, CallAudioDuckingEnabled);
 
+DeclareRefVar(base::Observable<void>, ChatIDFormatChanged);
+
 } // namespace Global
 
 namespace Adaptive {

@@ -256,7 +256,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		return result;
 	};
 	if (const auto user = _peer->asUser()) {
-		if (cShowChatId()) {
+		if (cShowChatId() != 0) {
 			if (user->isBot()) {
 				addInfoOneLine(
 					tr::ktg_profile_bot_id(),
@@ -298,7 +298,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			[=] { window->show(Box(EditContactBox, window, user)); },
 			tracker);
 	} else {
-		if (cShowChatId()) {
+		if (cShowChatId() != 0) {
 			if (_peer->isChat()) {
 				addInfoOneLine(
 					tr::ktg_profile_group_id(),

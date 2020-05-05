@@ -106,6 +106,23 @@ QString TrayIconLabel(int icon) {
 	return QString();
 }
 
+QString ChatIdLabel(int option) {
+	switch (option) {
+		case 0:
+			return tr::ktg_settings_chat_id_disable(tr::now);
+
+		case 1:
+			return tr::ktg_settings_chat_id_telegram(tr::now);
+
+		case 2:
+			return tr::ktg_settings_chat_id_bot(tr::now);
+
+		default:
+			Unexpected("Option in Settings::ChatIdLabel.");
+	}
+	return QString();
+}
+
 } // namespace
 
 #define SettingsMenuCSwitch(LangKey, Option) AddButton( \
@@ -373,7 +390,43 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	AddSubsectionTitle(container, tr::ktg_settings_other());
 
 	SettingsMenuCSwitch(ktg_settings_show_phone_number, ShowPhoneInDrawer);
-	SettingsMenuCSwitch(ktg_settings_show_chat_id, ShowChatId);
+
+	const QMap<int, QString> chatIdOptions = {
+		{ 0, ChatIdLabel(0) },
+		{ 1, ChatIdLabel(1) },
+		{ 2, ChatIdLabel(2) },
+	};
+
+	const auto chatIdButton = container->add(
+		object_ptr<Button>(
+			container,
+			tr::ktg_settings_chat_id(),
+			st::settingsButton));
+	auto chatIdText = rpl::single(
+		rpl::empty_value()
+	) | rpl::then(base::ObservableViewer(
+		Global::RefChatIDFormatChanged()
+	)) | rpl::map([] {
+		return ChatIdLabel(cShowChatId());
+	});
+	CreateRightLabel(
+		chatIdButton,
+		std::move(chatIdText),
+		st::settingsButton,
+		tr::ktg_settings_chat_id());
+	chatIdButton->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			tr::ktg_settings_chat_id(tr::now),
+			tr::ktg_settings_chat_id_desc(tr::now),
+			cShowChatId(),
+			chatIdOptions,
+			[=] (int value) {
+				cSetShowChatId(value);
+				::Kotato::JsonSettings::Write();
+				Global::RefChatIDFormatChanged().notify();
+			}));
+	});
+
 	SettingsMenuCSwitch(ktg_settings_call_confirm, ConfirmBeforeCall);
 
 	AddSkip(container);

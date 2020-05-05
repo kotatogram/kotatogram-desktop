@@ -414,6 +414,8 @@ struct Data {
 	int CallOutputVolume = 100;
 	int CallInputVolume = 100;
 	bool CallAudioDuckingEnabled = true;
+
+	base::Observable<void> ChatIDFormatChanged;
 };
 
 } // namespace internal
@@ -541,5 +543,7 @@ DefineVar(Global, QString, CallInputDeviceID);
 DefineVar(Global, int, CallOutputVolume);
 DefineVar(Global, int, CallInputVolume);
 DefineVar(Global, bool, CallAudioDuckingEnabled);
+
+DefineRefVar(Global, base::Observable<void>, ChatIDFormatChanged);
 
 } // namespace Global
