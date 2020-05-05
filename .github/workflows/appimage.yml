@@ -17,7 +17,6 @@ on:
       - '!Telegram/Patches/qtbase_5_12_8_appimage.diff'
       - '!Telegram/Patches/qtwayland_5_12_8.diff'
       - '!Telegram/Patches/qtstyleplugins.diff'
-      - '!Telegram/Patches/nimf.diff'
       - '!Telegram/Patches/AppImageKit-checkrt.diff'
       - 'Telegram/Resources/uwp/**'
       - 'Telegram/Resources/winrc/**'
@@ -103,8 +102,7 @@ jobs:
           libffi-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-xfixes0-dev \
           libxcb-keysyms1-dev libxcb-icccm4-dev libxcb-render-util0-dev libxcb-util0-dev \
           libxcb-xkb-dev libxcb-sync0-dev libxcb-randr0-dev libx11-xcb-dev libxrender-dev \
-          xutils-dev libva-dev libvdpau-dev libhangul-dev libxklavier-dev libappindicator3-dev \
-          libxtst-dev librsvg2-bin unzip -y --force-yes && \
+          xutils-dev libva-dev libvdpau-dev unzip -y --force-yes && \
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update && \
           sudo apt-get install gcc-8 g++-8 -y && \
@@ -203,18 +201,6 @@ jobs:
 
           cmake --version
 
-      - name: Extra CMake Modules.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v5.69.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
-          cd extra-cmake-modules
-          cmake . -DCMAKE_BUILD_TYPE=Release
-          cmake --build . -- -j$(nproc)
-          sudo cmake --install .
-          cd ..
-          rm -rf extra-cmake-modules
-
       - name: Meson.
         run: |
           sudo python3 -m pip install meson==0.54.0
@@ -244,64 +230,6 @@ jobs:
           sudo install ndisasm /usr/local/bin/ndisasm
           cd ..
           rm -rf nasm
-
-      - name: Range-v3.
-        run: |
-          echo "Find necessary branch from doc."
-          cloneRange=$(grep -A 1 "range-v3" $REPO_NAME/$DOC_PATH | sed -n 1p)
-          cd $LibrariesPath
-          echo $cloneRange
-          eval $cloneRange
-          cd range-v3
-
-          cmake . \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DRANGE_V3_TESTS=OFF \
-          -DRANGE_V3_EXAMPLES=OFF \
-          -DRANGE_V3_DOCS=OFF
-
-          cmake --build . -- -j$(nproc)
-          sudo cmake --install .
-
-          cd ..
-          rm -rf range-v3
-
-      - name: MiniZip.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v1.2.11 --depth=1 $GIT/madler/zlib.git
-          cd zlib/contrib/minizip
-          autoreconf -i
-          ./configure
-          make -j$(nproc)
-          sudo make install
-          cd ../../..
-          rm -rf zlib
-
-      - name: LZ4.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v1.9.2 --depth=1 $GIT/lz4/lz4.git
-          cd lz4
-          make -j$(nproc)
-          sudo make install
-          sudo ldconfig
-          cd ..
-          rm -rf lz4
-
-      - name: xxHash.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v0.7.2 --depth=1 $GIT/Cyan4973/xxHash.git
-          cd xxHash
-          make -j$(nproc)
-          sudo make install
-          sudo ldconfig
-          cd ..
-          rm -rf xxHash
 
       - name: Dav1d.
         run: |
@@ -467,21 +395,6 @@ jobs:
           cd -
           rm -rf openal-soft
 
-      - name: Hunspell.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v1.7.0 --depth=1 $GIT/hunspell/hunspell.git
-          cd hunspell
-          autoreconf -vfi
-          # unable to link libstdc++ statically, thanks to autoconf
-          ./configure --disable-shared
-          make -j$(nproc)
-          sudo make install
-          sudo ldconfig
-          cd ..
-          rm -rf hunspell
-
       - name: Libxkbcommon.
         run: |
           cd $LibrariesPath
@@ -507,19 +420,6 @@ jobs:
           sudo ldconfig
           cd ..
           rm -rf wayland
-
-      - name: Libwayland Protocols.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b 1.16 https://gitlab.freedesktop.org/wayland/wayland-protocols
-          cd wayland-protocols
-          ./autogen.sh
-          make -j$(nproc)
-          sudo make install
-          sudo ldconfig
-          cd ..
-          rm -rf wayland-protocols
 
       - name: Qt 5.12.8 cache.
         id: cache-qt
@@ -583,92 +483,6 @@ jobs:
           cd ..
           rm -rf qtstyleplugins
 
-      - name: Fcitx Qt5.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b 1.2.4 --depth=1 $GIT/fcitx/fcitx-qt5.git
-          cd fcitx-qt5
-          cmake . \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DENABLE_LIBRARY=OFF
-          cmake --build . -- -j$(nproc)
-          sudo install -D platforminputcontext/libfcitxplatforminputcontextplugin.so /usr/local/plugins/platforminputcontexts/libfcitxplatforminputcontextplugin.so
-          cd ..
-          rm -rf fcitx-qt5
-
-      - name: Hime.
-        run: |
-          cd $LibrariesPath
-
-          git clone $GIT/hime-ime/hime.git
-          cd hime
-          git checkout 7525645
-          # disable all but xim
-          ./configure \
-          --disable-nls \
-          --disable-system-tray \
-          --disable-tsin \
-          --disable-gtk2-im-module \
-          --disable-gtk3-im-module \
-          --disable-qt4-immodule \
-          --disable-anthy \
-          --disable-chewing \
-          --disable-appindicator \
-          --disable-lib64 \
-          --qt5-im-module-path=/usr/local/plugins/platforminputcontexts
-          make -j$(nproc)
-          sudo make install
-          cd ..
-          rm -rf hime
-
-      - name: Nimf.
-        run: |
-          cd $LibrariesPath
-
-          git clone $GIT/hamonikr/nimf.git
-          cd nimf
-          git checkout 01ae33c
-          git apply ../../$REPO_NAME/Telegram/Patches/nimf.diff
-          meson build . \
-          -Denable_gtk_doc=false \
-          -Dwith_nimf_anthy=false \
-          -Dwith_nimf_rime=false \
-          -Dwith_nimf_m17n=false \
-          -Dwith_nimf_qt4=false
-          ninja -C build modules/clients/qt5/libqt5im_nimf.so
-          sudo install -D build/modules/clients/qt5/libqt5im_nimf.so /usr/local/plugins/platforminputcontexts/libqt5im_nimf.so
-          cd ..
-          rm -rf nimf
-
-      - name: Material Decoration.
-        run: |
-          cd $LibrariesPath
-
-          git clone --depth=1 $GIT/desktop-app/materialdecoration.git
-          cd materialdecoration
-          qmake
-          make -j$(nproc)
-          sudo make install
-          cd ..
-          rm -rf materialdecoration
-
-      - name: LibDBusMenu Qt.
-        if: env.ONLY_CACHE == 'false'
-        run: |
-          cd $LibrariesPath
-
-          git clone -b 0.9.3+16.04.20160218-0ubuntu1 --depth=1 $GIT/unity8-team/libdbusmenu-qt.git
-          cd libdbusmenu-qt
-          cmake . \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DWITH_DOC=OFF
-          cmake --build . -- -j$(nproc)
-          sudo cmake --install .
-          sudo ldconfig
-          cd ..
-          rm -rf libdbusmenu-qt
-
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         env:
@@ -680,12 +494,9 @@ jobs:
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DTDESKTOP_API_TEST=ON \
+          -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
-          -DDESKTOP_APP_USE_PACKAGED_GSL=OFF \
-          -DDESKTOP_APP_USE_PACKAGED_EXPECTED=OFF \
-          -DDESKTOP_APP_USE_PACKAGED_VARIANT=OFF \
-          -DDESKTOP_APP_USE_PACKAGED_RLOTTIE=OFF \
-          -DTDESKTOP_USE_PACKAGED_TGVOIP=OFF
+          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
 
           cd ../out/Release
           cmake --build . -- -j$(nproc)
@@ -718,13 +529,11 @@ jobs:
           -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
-      - name: Get artifact name.
-        if: env.ONLY_CACHE == 'false'
-        run: |
-          cd $REPO_NAME
-
           artifact_name=$(echo Kotatogram_Desktop*.AppImage)
           echo ::set-env name=ARTIFACT_NAME::$artifact_name
+
+          # We don't need AppImagelauncher's desktop integration due to bad UX
+          dd if=/dev/zero of=$artifact_name bs=1 count=3 seek=8 conv=notrunc
 
       - name: Check.
         if: env.ONLY_CACHE == 'false'
