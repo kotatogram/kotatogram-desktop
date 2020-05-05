@@ -91,6 +91,7 @@ void RadioBox::save() {
 	if (_warnRestart) {
 		const auto saveAfterWarn = [=] {
 			_saveCallback(_group->value());
+			App::restart();
 		};
 
 		const auto box = std::make_shared<QPointer<BoxContent>>();
@@ -103,6 +104,7 @@ void RadioBox::save() {
 				saveAfterWarn));
 	} else {
 		_saveCallback(_group->value());
+		closeBox();
 	}
 }
 

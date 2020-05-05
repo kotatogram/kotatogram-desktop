@@ -253,7 +253,6 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 			[=] (int value) {
 				cSetUserpicCornersType(value);
 				::Kotato::JsonSettings::Write();
-				App::restart();
 			}, true));
 	});
 
@@ -325,7 +324,6 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 			[=] (int value) {
 				SetNetworkBoost(value);
 				::Kotato::JsonSettings::Write();
-				App::restart();
 			}, true));
 	});
 
@@ -377,7 +375,6 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 			[=] (int value) {
 				cSetCustomAppIcon(value);
 				::Kotato::JsonSettings::Write();
-				App::restart();
 			}, true));
 	});
 
