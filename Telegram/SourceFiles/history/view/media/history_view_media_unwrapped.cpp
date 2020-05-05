@@ -37,6 +37,11 @@ UnwrappedMedia::UnwrappedMedia(
 	) | rpl::start_with_next([=] {
 		history()->owner().requestItemViewRefresh(_parent->data());
 	}, _lifetime);
+
+	StickerScaleBothChanges(
+	) | rpl::start_with_next([=] {
+		history()->owner().requestItemViewRefresh(_parent->data());
+	}, _lifetime);
 }
 
 QSize UnwrappedMedia::countOptimalSize() {

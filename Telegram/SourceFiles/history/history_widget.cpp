@@ -522,6 +522,13 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
+	StickerScaleBothChanges(
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			updateHistoryGeometry();
+		});
+	}, lifetime());
+
 	AdaptiveBubblesChanges(
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {

@@ -39,6 +39,10 @@ void SetStickerHeight(int height);
 [[nodiscard]] int StickerHeight();
 [[nodiscard]] rpl::producer<int> StickerHeightChanges();
 
+void SetStickerScaleBoth(bool scale);
+[[nodiscard]] bool StickerScaleBoth();
+[[nodiscard]] rpl::producer<bool> StickerScaleBothChanges();
+
 void SetAdaptiveBubbles(bool enabled);
 [[nodiscard]] bool AdaptiveBubbles();
 [[nodiscard]] rpl::producer<bool> AdaptiveBubblesChanges();

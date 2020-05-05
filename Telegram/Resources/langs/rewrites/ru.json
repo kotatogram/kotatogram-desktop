@@ -41,6 +41,8 @@
 	"ktg_pinned_message_hide": "Скрыть закреплённое сообщение",
 	"ktg_settings_chats": "Чаты",
 	"ktg_settings_sticker_height": "Высота стикеров: {pixels} пикс.",
+	"ktg_settings_sticker_scale_both": "Применять к ширине стикера",
+	"ktg_settings_sticker_scale_both_about": "При включении максимальная ширина стикера будет изменяться вместе с высотой.",
 	"ktg_settings_emoji_outline": "Обводка у больших эмодзи",
 	"ktg_settings_disable_up_edit": "Отключить редактирование по «Вверх»",
 	"ktg_settings_always_show_scheduled": "Всегда показывать отложенные",

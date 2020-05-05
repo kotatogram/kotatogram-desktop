@@ -176,6 +176,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	}
 
 	settings.insert(qsl("sticker_height"), StickerHeight());
+	settings.insert(qsl("sticker_scale_both"), StickerScaleBoth());
 	settings.insert(qsl("adaptive_bubbles"), AdaptiveBubbles());
 	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
@@ -294,6 +295,10 @@ bool Manager::readCustomFile() {
 		if (v >= 64 && v <= 256) {
 			SetStickerHeight(v);
 		}
+	});
+
+	ReadBoolOption(settings, "sticker_scale_both", [&](auto v) {
+		SetStickerScaleBoth(v);
 	});
 
 	auto isAdaptiveBubblesSet = ReadBoolOption(settings, "adaptive_bubbles", [&](auto v) {

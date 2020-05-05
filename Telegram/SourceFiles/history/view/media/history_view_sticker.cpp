@@ -74,13 +74,14 @@ bool Sticker::isEmojiSticker() const {
 void Sticker::initSize() {
 	_size = _document->dimensions;
 	const auto maxHeight = int(st::maxStickerSize / 256.0 * StickerHeight());
+	const auto maxWidth = StickerScaleBoth() ? maxHeight : st::maxStickerSize;
 	if (isEmojiSticker() || _diceIndex >= 0) {
 		_size = GetAnimatedEmojiSize(&_document->session(), _size);
 		[[maybe_unused]] bool result = readyToDrawLottie();
 	} else {
 		_size = DownscaledSize(
 			_size,
-			{ st::maxStickerSize, maxHeight });
+			{ maxWidth, maxHeight });
 	}
 }
 

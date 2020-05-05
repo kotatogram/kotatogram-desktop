@@ -292,6 +292,25 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 		updateStickerHeight);
 	updateStickerHeightLabel(StickerHeight());
 
+	container->add(
+		object_ptr<Ui::Checkbox>(
+			container,
+			tr::ktg_settings_sticker_scale_both(tr::now),
+			StickerScaleBoth(),
+			st::settingsCheckbox),
+		st::settingsCheckboxPadding
+	)->checkedChanges(
+	) | rpl::filter([](bool checked) {
+		return (checked != StickerScaleBoth());
+	}) | rpl::start_with_next([](bool checked) {
+		SetStickerScaleBoth(checked);
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	AddSkip(container);
+	AddDividerText(container, tr::ktg_settings_sticker_scale_both_about());
+	AddSkip(container);
+
 	SettingsMenuSwitch(ktg_settings_adaptive_bubbles, AdaptiveBubbles);
 	SettingsMenuSwitch(ktg_settings_emoji_outline, BigEmojiOutline);
 

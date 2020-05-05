@@ -31,6 +31,17 @@ rpl::producer<int> StickerHeightChanges() {
 	return gStickerHeight.changes();
 }
 
+rpl::variable<bool> gStickerScaleBoth = true;
+void SetStickerScaleBoth(bool scale) {
+	gStickerScaleBoth = scale;
+}
+bool StickerScaleBoth() {
+	return gStickerScaleBoth.current();
+}
+rpl::producer<bool> StickerScaleBothChanges() {
+	return gStickerScaleBoth.changes();
+}
+
 rpl::variable<bool> gBigEmojiOutline = true;
 void SetBigEmojiOutline(bool enabled) {
 	gBigEmojiOutline = enabled;
