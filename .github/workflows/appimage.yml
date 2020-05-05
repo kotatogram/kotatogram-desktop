@@ -60,6 +60,12 @@ jobs:
       image: ubuntu:trusty
       options: --privileged --device /dev/fuse
 
+    strategy:
+      matrix:
+        defines:
+          - ""
+          - "DESKTOP_APP_DISABLE_DBUS_INTEGRATION"
+
     env:
       GIT: "https://github.com"
       QT: "5_12_8"
@@ -530,12 +536,22 @@ jobs:
         run: |
           cd $REPO_NAME/Telegram
 
+          DEFINE=""
+          if [ -n "${{ matrix.defines }}" ]; then
+            DEFINE="-D ${{ matrix.defines }}=ON"
+            echo Define from matrix: $DEFINE
+            echo ::set-env name=ARTIFACT_NAME::Kotatogram_${{ matrix.defines }}
+          else
+            echo ::set-env name=ARTIFACT_NAME::Kotatogram
+          fi
+
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
-          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF
+          -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF \
+          $DEFINE
 
           cd ../out/Release
           cmake --build . -- -j$(nproc)
@@ -568,16 +584,16 @@ jobs:
           -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,styles/libkvantum.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
-          artifact_name=$(echo Kotatogram_Desktop*.AppImage)
-          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+          appimage_name=$(echo Kotatogram_Desktop*.AppImage)
+          echo ::set-env name=APPIMAGE_NAME::$appimage_name
 
           # We don't need AppImagelauncher's desktop integration due to bad UX
-          dd if=/dev/zero of=$artifact_name bs=1 count=3 seek=8 conv=notrunc
+          dd if=/dev/zero of=$appimage_name bs=1 count=3 seek=8 conv=notrunc
 
       - name: Check.
         if: env.ONLY_CACHE == 'false'
         run: |
-          filePath="$REPO_NAME/$ARTIFACT_NAME"
+          filePath="$REPO_NAME/$APPIMAGE_NAME"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
 
@@ -593,7 +609,7 @@ jobs:
         run: |
           cd $REPO_NAME
           mkdir artifact
-          mv $ARTIFACT_NAME artifact/
+          mv $APPIMAGE_NAME artifact/
       - uses: actions/upload-artifact@master
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
