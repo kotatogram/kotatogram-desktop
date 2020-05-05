@@ -119,5 +119,6 @@
 	"ktg_settings_chat_id_desc": "Здесь можно выбрать желаемый вид ID.\n\nTelegram API использует ID как есть, а Bot API добавляет минус в начало для групп и -100 для каналов и супергрупп, чтобы уместить всё в одно поле.\n\nЕсли у вас открыта панель профиля, закройте её и откройте заново, чтобы увидеть изменения.",
 	"ktg_settings_chat_id_disable": "Скрыть",
 	"ktg_settings_chat_id_telegram": "Telegram API",
-	"ktg_settings_chat_id_bot": "Bot API"
+	"ktg_settings_chat_id_bot": "Bot API",
+	"ktg_message_id": "ID сообщения: {id}"
 }

@@ -2512,4 +2512,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_chat_id_telegram" = "Telegram API";
 "ktg_settings_chat_id_bot" = "Bot API";
 
+"ktg_message_id" = "Message ID: {id}";
+
 // Keys finished

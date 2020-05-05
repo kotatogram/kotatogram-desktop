@@ -3254,6 +3254,9 @@ QString HistoryInner::tooltipText() const {
 					dateText += '\n' + tr::lng_signed_author(tr::now, lt_user, msgsigned->author);
 				}
 			}
+			if (const auto msgId = view->data()->fullId().msg) {
+				dateText += '\n' + tr::ktg_message_id(tr::now, lt_id, QString::number(msgId));
+			}
 			return dateText;
 		}
 	} else if (_mouseCursorState == CursorState::Forwarded
