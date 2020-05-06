@@ -119,20 +119,37 @@ void ConvertIconToBlack(QImage &image) {
 }
 
 QIcon CreateOfficialIcon(Main::Account *account) {
-	auto image = Core::IsAppLaunched() ? Core::App().logo(cCustomAppIcon()) : LoadLogo(cCustomAppIcon());
+	const auto customIcon = QImage(cWorkingDir() + "tdata/icon.png");
+
+	auto image = customIcon.isNull()
+		? Core::IsAppLaunched()
+			? Core::App().logo(cCustomAppIcon())
+			: LoadLogo(cCustomAppIcon())
+		: customIcon;
+
 	if (account
 		&& account->sessionExists()
 		&& account->session().supportMode()) {
 		ConvertIconToBlack(image);
 	}
+
 	return QIcon(App::pixmapFromImageInPlace(std::move(image)));
 }
 
 QIcon CreateIcon(Main::Account *account) {
 	auto result = CreateOfficialIcon(account);
+
 #ifdef Q_OS_LINUX
-	return QIcon::fromTheme(Platform::GetIconName(), result);
+	if (
+		(!account
+			|| !account->sessionExists()
+			|| !account->session().supportMode())
+		&& cCustomAppIcon() == 0
+		&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
+		return QIcon::fromTheme(Platform::GetIconName(), result);
+	}
 #endif
+
 	return result;
 }
 
