@@ -77,6 +77,9 @@ void MemberListRow::paintAdminRank(
 		int y,
 		int outerWidth,
 		bool selected) {
+	if (_type.canRemove && selected) {
+		return;
+	}
 	p.setPen(_type.rights == Rights::Creator
 		? st::defaultPeerListItem.statusFgActive
 		: selected

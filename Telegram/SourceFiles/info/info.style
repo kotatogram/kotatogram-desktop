@@ -554,7 +554,7 @@ infoMembersRemoveIconOver: icon {{
 	menuIconFgOver
 }};
 infoMembersAdminIconMarigns: margins(10px, 18px, 10px, 10px);
-infoMembersRemoveIconMargins: margins(10px, 36px, 18px, 10px);
+infoMembersRemoveIconMargins: margins(10px, 12px, 12px, 10px);
 
 infoMediaHeaderStyle: TextStyle(semiboldTextStyle) {
 }
