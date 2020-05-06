@@ -161,7 +161,9 @@ void GroupMembersWidget::updateItemStatusText(Item *item) {
 	auto member = getMember(item);
 	auto user = member->user();
 	if (member->statusText.isEmpty() || (member->onlineTextTill <= _now)) {
-		if (user->isBot()) {
+		if (user->isInaccessible()) {
+			member->statusText = tr::ktg_user_status_unaccessible(tr::now);
+		} else if (user->isBot()) {
 			auto seesAllMessages = (user->botInfo->readsAllHistory || (member->adminState != Item::AdminState::None));
 			member->statusText = seesAllMessages
 				? tr::lng_status_bot_reads_all(tr::now)
