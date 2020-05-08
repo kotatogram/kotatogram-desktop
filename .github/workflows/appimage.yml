@@ -569,7 +569,7 @@ jobs:
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
           echo ::set-env name=APPIMAGE_NAME::$appimage_name
 
-          # We don't need AppImagelauncher's desktop integration due to bad UX
+          # We don't need AppImageLauncher's desktop integration due to bad UX
           dd if=/dev/zero of=$appimage_name bs=1 count=3 seek=8 conv=notrunc
 
       - name: Check.
