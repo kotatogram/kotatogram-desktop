@@ -40,8 +40,6 @@ on:
       - '!Telegram/Patches/qtbase_5_12_8_appimage.diff'
       - '!Telegram/Patches/qtwayland_5_12_8.diff'
       - '!Telegram/Patches/qtstyleplugins.diff'
-      - '!Telegram/Patches/nimf.diff'
-      - '!Telegram/Patches/AppImageKit-checkrt.diff'
       - 'Telegram/Resources/uwp/**'
       - 'Telegram/Resources/winrc/**'
       - 'Telegram/SourceFiles/platform/win/**'
