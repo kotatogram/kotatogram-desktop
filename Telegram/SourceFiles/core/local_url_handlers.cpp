@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/connection_box.h"
 #include "boxes/sticker_set_box.h"
 #include "boxes/sessions_box.h"
+#include "boxes/language_box.h"
 #include "passport/passport_form_controller.h"
 #include "window/window_session_controller.h"
 #include "data/data_session.h"
@@ -102,12 +103,21 @@ bool ShowTheme(
 	return true;
 }
 
+void ShowLanguagesBox() {
+	static auto Guard = base::binary_guard();
+	Guard = LanguageBox::Show();
+}
+
 bool SetLanguage(
 		Main::Session *session,
 		const Match &match,
 		const QVariant &context) {
-	const auto languageId = match->captured(1);
-	Lang::CurrentCloudManager().switchWithWarning(languageId);
+	if (match->capturedRef(1).isEmpty()) {
+		ShowLanguagesBox();
+	} else {
+		const auto languageId = match->captured(2);
+		Lang::CurrentCloudManager().switchWithWarning(languageId);
+	}
 	return true;
 }
 
@@ -358,6 +368,9 @@ bool ResolveSettings(
 	if (section == qstr("devices")) {
 		Ui::show(Box<SessionsBox>(session));
 		return true;
+	} else if (section == qstr("language")) {
+		ShowLanguagesBox();
+		return true;
 	}
 	const auto type = (section == qstr("folders"))
 		? ::Settings::Type::Folders
@@ -450,7 +463,7 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 			ShowTheme
 		},
 		{
-			qsl("^setlanguage/?\\?lang=([a-zA-Z0-9\\.\\_\\-]+)(&|$)"),
+			qsl("^setlanguage/?(\\?lang=([a-zA-Z0-9\\.\\_\\-]+))?(&|$)"),
 			SetLanguage
 		},
 		{
@@ -490,7 +503,7 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 			ResolvePrivatePost
 		},
 		{
-			qsl("^settings(/folders|/devices|/kotato)?$"),
+			qsl("^settings(/folders|/devices|/language|/kotato?$"),
 			ResolveSettings
 		},
 		{
