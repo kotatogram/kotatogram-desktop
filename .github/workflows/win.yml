@@ -363,23 +363,26 @@ jobs:
         if: env.ONLY_CACHE == 'false'
         shell: cmd
         run: |
-          cd %REPO_NAME%\Telegram
+          cd %REPO_NAME%
+          call vcvars32.bat
 
-          call configure.bat ^
+          cmake -B build . ^
+          -GNinja ^
+          -DCMAKE_BUILD_TYPE=Debug ^
+          -DCMAKE_C_COMPILER=cl ^
+          -DCMAKE_CXX_COMPILER=cl ^
           -D TDESKTOP_API_TEST=ON ^
           -D DESKTOP_APP_USE_PACKAGED=OFF ^
           %TDESKTOP_BUILD_DEFINE% ^
           -DCMAKE_SYSTEM_VERSION=%SDK%
 
-          call vcvars32.bat
-          cd ..\out
-          msbuild -m Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
+          cmake --build build
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         shell: cmd
         run: |
-          cd %REPO_NAME%\out\Debug
+          cd %REPO_NAME%\build\bin
           mkdir artifact
           move Kotatogram.exe artifact/
           move Updater.exe artifact/
@@ -388,4 +391,4 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.REPO_NAME }}\out\Debug\artifact\
+          path: ${{ env.REPO_NAME }}\build\bin\artifact\
