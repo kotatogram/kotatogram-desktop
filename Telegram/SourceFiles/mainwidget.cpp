@@ -2198,6 +2198,10 @@ void MainWidget::repaintDialogRow(Dialogs::RowDescriptor row) {
 	_dialogs->repaintDialogRow(row);
 }
 
+void MainWidget::refreshDialogRow(Dialogs::RowDescriptor row) {
+	_dialogs->refreshDialogRow(row);
+}
+
 void MainWidget::windowShown() {
 	_history->windowShown();
 }

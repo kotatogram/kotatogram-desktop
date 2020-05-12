@@ -158,7 +158,9 @@ private:
 	const HistoryMessageEdited *displayedEditBadge() const;
 	HistoryMessageEdited *displayedEditBadge();
 	void initTime();
-	int timeLeft() const;
+	[[nodiscard]] int timeLeft() const;
+	[[nodiscard]] int plainMaxWidth() const;
+	[[nodiscard]] int monospaceMaxWidth() const;
 
 	WebPage *logEntryOriginal() const;
 
@@ -167,6 +169,7 @@ private:
 
 	mutable ClickHandlerPtr _rightActionLink;
 	mutable ClickHandlerPtr _fastReplyLink;
+	int _bubbleWidthLimit = 0;
 
 };
 

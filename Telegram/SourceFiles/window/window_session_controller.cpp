@@ -263,6 +263,9 @@ bool SessionController::uniqueChatsInSearchResults() const {
 }
 
 void SessionController::openFolder(not_null<Data::Folder*> folder) {
+	if (_openedFolder.current() != folder) {
+		resetFakeUnreadWhileOpened();
+	}
 	setActiveChatsFilter(0);
 	_openedFolder = folder.get();
 }
@@ -292,6 +295,12 @@ void SessionController::setActiveChatEntry(Dialogs::RowDescriptor row) {
 	}
 	if (session().supportMode()) {
 		pushToChatEntryHistory(row);
+	}
+}
+
+void SessionController::resetFakeUnreadWhileOpened() {
+	if (const auto history = _activeChatEntry.current().key.history()) {
+		history->setFakeUnreadWhileOpened(false);
 	}
 }
 
@@ -807,6 +816,9 @@ FilterId SessionController::activeChatsFilterCurrent() const {
 }
 
 void SessionController::setActiveChatsFilter(FilterId id) {
+	if (activeChatsFilterCurrent() != id) {
+		resetFakeUnreadWhileOpened();
+	}
 	_activeChatsFilter.force_assign(id);
 	if (id) {
 		closeFolder(true);
