@@ -94,7 +94,7 @@ public:
 	bool displayEditedBadge() const override;
 	TimeId displayedEditDate() const override;
 	int infoWidth() const override;
-	int plainMaxWidth() const override;
+	[[nodiscard]] int plainMaxWidth() const override;
 
 	VerticalRepaintRange verticalRepaintRange() const override;
 
@@ -159,7 +159,7 @@ private:
 	HistoryMessageEdited *displayedEditBadge();
 	void initTime();
 	[[nodiscard]] int timeLeft() const;
-	[[nodiscard]] int plainMaxWidth() const;
+	//[[nodiscard]] int plainMaxWidth() const;
 	[[nodiscard]] int monospaceMaxWidth() const;
 
 	WebPage *logEntryOriginal() const;
