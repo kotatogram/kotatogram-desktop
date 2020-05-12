@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v1
       - name: Push the code to the master branch.
         run: |
-          url=https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+          url=https://x-access-token:${{ secrets.WORKFLOW_TOKEN }}@github.com/$GITHUB_REPOSITORY
           latest_tag=$(git describe --tags --abbrev=0)
           echo "Latest tag: $latest_tag"
 
