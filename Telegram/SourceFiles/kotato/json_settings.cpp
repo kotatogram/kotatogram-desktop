@@ -185,7 +185,6 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("chat_list_lines"), DialogListLines());
 	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
 	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
-	settings.insert(qsl("no_taskbar_flash"), cNoTaskbarFlashing());
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
@@ -398,10 +397,6 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "confirm_before_calls", [&](auto v) {
 		cSetConfirmBeforeCall(v);
-	});
-
-	ReadBoolOption(settings, "no_taskbar_flash", [&](auto v) {
-		cSetNoTaskbarFlashing(v);
 	});
 
 	ReadIntOption(settings, "recent_stickers_limit", [&](auto v) {

@@ -369,8 +369,6 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
-	SettingsMenuCSwitch(ktg_settings_no_taskbar_flash, NoTaskbarFlashing);
-
 	const QMap<int, QString> trayIconOptions = {
 		{ 0, TrayIconLabel(0) },
 		{ 1, TrayIconLabel(1) },

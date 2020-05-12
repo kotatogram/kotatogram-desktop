@@ -87,7 +87,6 @@ using CustomReplacementsMap = QMap<QString, QString>;
 DeclareRefSetting(CustomReplacementsMap, CustomReplaces);
 bool AddCustomReplace(QString from, QString to);
 DeclareSetting(bool, ConfirmBeforeCall);
-DeclareSetting(bool, NoTaskbarFlashing);
 
 void SetRecentStickersLimit(int limit);
 [[nodiscard]] int RecentStickersLimit();

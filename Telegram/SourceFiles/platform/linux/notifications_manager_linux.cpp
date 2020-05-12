@@ -6,7 +6,6 @@ For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/notifications_manager_linux.h"
-#include "mainwindow.h"
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 #include "platform/linux/specific_linux.h"
@@ -20,19 +19,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtDBus/QDBusError>
 #include <QtDBus/QDBusMetaType>
 #endif // !TDESKTOP_DISABLE_DBUS_INTEGRATION
-#include <QtWidgets/QApplication>
 
 namespace Platform {
 namespace Notifications {
-
-void FlashBounce() {
-	auto window = App::wnd();
-	if (!window) {
-		return;
-	}
-
-	QApplication::alert(window);
-}
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 namespace {
