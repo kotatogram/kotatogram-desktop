@@ -1236,7 +1236,7 @@ if ((NOT DESKTOP_APP_DISABLE_AUTOUPDATE OR NOT LINUX) AND NOT build_macstore AND
         target_link_options(Updater PRIVATE -static-libstdc++)
     endif()
 
-    if (DESKTOP_APP_SPECIAL_TARGET)
+    if (DESKTOP_APP_SPECIAL_TARGET OR KTGDESKTOP_ENABLE_PACKER)
         add_executable(Packer WIN32)
         init_target(Packer)
 
