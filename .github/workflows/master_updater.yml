@@ -16,7 +16,7 @@ jobs:
       - name: Push the code to the master branch.
         if: env.SKIP == '0'
         run: |
-          token=${{ secrets.WORKFLOW_TOKEN }}
+          token=${{ secrets.TOKEN_FOR_MASTER_UPDATER }}
           if [ -z "${token}" ]; then
               echo "Token is unset. Nothing to do."
               exit 0
