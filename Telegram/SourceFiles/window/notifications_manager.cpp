@@ -49,6 +49,8 @@ System::System(not_null<Main::Session*> session)
 		if (type == ChangeType::DesktopEnabled) {
 			App::wnd()->updateTrayMenu();
 			clearAll();
+		} else if (type == ChangeType::SoundEnabled) {
+			App::wnd()->updateTrayMenu();
 		} else if (type == ChangeType::ViewParams) {
 			updateAll();
 		} else if (type == ChangeType::IncludeMuted
