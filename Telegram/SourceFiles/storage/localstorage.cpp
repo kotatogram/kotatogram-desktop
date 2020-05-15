@@ -1197,6 +1197,7 @@ bool _readSetting(quint32 blockId, QDataStream &stream, int version, ReadSetting
 
 		Global::SetSoundNotify((v & 0x01) == 0x01);
 		Global::SetFlashBounceNotify((v & 0x02) == 0x00);
+		if (App::wnd()) App::wnd()->updateTrayMenu();
 	} break;
 
 	case dbiAutoDownloadOld: {
