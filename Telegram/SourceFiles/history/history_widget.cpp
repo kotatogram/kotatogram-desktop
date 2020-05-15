@@ -543,6 +543,13 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
+	HoverEmojiPanelChanges(
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			refreshTabbedPanel();
+		});
+	}, lifetime());
+
 	session().data().animationPlayInlineRequest(
 	) | rpl::start_with_next([=](not_null<HistoryItem*> item) {
 		if (const auto view = item->mainView()) {
@@ -4180,7 +4187,9 @@ void HistoryWidget::createTabbedPanel() {
 void HistoryWidget::setTabbedPanel(std::unique_ptr<TabbedPanel> panel) {
 	_tabbedPanel = std::move(panel);
 	if (const auto raw = _tabbedPanel.get()) {
-		_tabbedSelectorToggle->installEventFilter(raw);
+		if (HoverEmojiPanel()) {
+			_tabbedSelectorToggle->installEventFilter(raw);
+		}
 		_tabbedSelectorToggle->setColorOverrides(nullptr, nullptr, nullptr);
 	} else {
 		_tabbedSelectorToggle->setColorOverrides(

@@ -2518,5 +2518,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_chat_id_bot" = "Bot API";
 
 "ktg_message_id" = "Message ID: {id}";
+"ktg_emoji_panel_hover" = "Emoji panel on hover";
 
 // Keys finished

@@ -190,6 +190,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
+	settings.insert(qsl("hover_emoji_panel"), HoverEmojiPanel());
 
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
 	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
@@ -445,6 +446,10 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "profile_top_mute", [&](auto v) {
 		cSetProfileTopBarNotifications(v);
+	});
+
+	ReadBoolOption(settings, "hover_emoji_panel", [&](auto v) {
+		SetHoverEmojiPanel(v);
 	});
 	return true;
 }

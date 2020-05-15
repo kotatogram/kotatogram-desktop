@@ -223,6 +223,7 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 	}, container->lifetime());
 
 	SettingsMenuCSwitch(ktg_settings_always_show_scheduled, AlwaysShowScheduled);
+	SettingsMenuSwitch(ktg_emoji_panel_hover, HoverEmojiPanel);
 
 	AddButton(
 		container,

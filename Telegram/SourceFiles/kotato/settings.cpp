@@ -137,3 +137,14 @@ bool gHideFilterNames = false;
 bool gHideFilterAllChats = false;
 
 bool gProfileTopBarNotifications = false;
+
+rpl::variable<bool> gHoverEmojiPanel = true;
+void SetHoverEmojiPanel(bool enabled) {
+	gHoverEmojiPanel = enabled;
+}
+bool HoverEmojiPanel() {
+	return gHoverEmojiPanel.current();
+}
+rpl::producer<bool> HoverEmojiPanelChanges() {
+	return gHoverEmojiPanel.changes();
+}
