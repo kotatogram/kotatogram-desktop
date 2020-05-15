@@ -23,7 +23,7 @@ Original README with build instructions and licenses could be found in [Telegram
 * Adaptive chat bubbles
 * and other smaller features.
 
-Full list of features will rewritten later, for now you can use one of `control-*` branches. These branches have changes split by feature instead of chronologically.
+Full list of features will rewritten later. Control branches were used to list features, but they are now deprecated and archived in [separate repo][archive].
 
 ## Contributing
 Read [CONTRIBUTING.md][contributing].
@@ -45,3 +45,4 @@ Read [CONTRIBUTING.md][contributing].
 [preview_image]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/assets/ktg_preview.png "Preview of Kotatogram Desktop"
 [preview_image_url]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/assets/ktg_preview.png
 [contributing]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/.github/CONTRIBUTING.md
+[archive]: https://github.com/kotatogram/kotatogram-archived
