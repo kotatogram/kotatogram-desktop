@@ -25,6 +25,9 @@ Original README with build instructions and licenses could be found in [Telegram
 
 Full list of features will rewritten later, for now you can use one of `control-*` branches. These branches have changes split by feature instead of chronologically.
 
+## Contributing
+Read [CONTRIBUTING.md][contributing].
+
 ## Other links
 * Website: https://kotatogram.github.io
 * English Telegram channel: https://t.me/kotatogram
@@ -41,3 +44,4 @@ Full list of features will rewritten later, for now you can use one of `control-
 [changelog]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/kotatogram_changes.txt
 [preview_image]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/assets/ktg_preview.png "Preview of Kotatogram Desktop"
 [preview_image_url]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/assets/ktg_preview.png
+[contributing]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/.github/CONTRIBUTING.md
