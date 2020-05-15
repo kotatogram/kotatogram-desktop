@@ -501,13 +501,13 @@ bool ParseCommonMap(
 		return false;
 	}
 	const auto platforms = document.object();
-#ifdef Q_OS_LINUX
+#if defined Q_OS_LINUX && defined KTGDESKTOP_APPIMAGE_BUILD
 	const auto platform = Platform::InAppImage()
 		? "appimage"
 		: Platform::AutoUpdateKey();
-#else // Q_OS_LINUX
+#else // Q_OS_LINUX && KTGDESKTOP_APPIMAGE_BUILD
 	const auto platform = Platform::AutoUpdateKey();
-#endif // !Q_OS_LINUX
+#endif // !Q_OS_LINUX || !KTGDESKTOP_APPIMAGE_BUILD
 	const auto it = platforms.constFind(platform);
 	if (it == platforms.constEnd()) {
 		LOG(("Update Error: MTP platform '%1' not found in response."
