@@ -469,7 +469,7 @@ bool ConvertToSupergroupBox::convertFail(const RPCError &error) {
 	return true;
 }
 
-void PinMessageBox::resizeEvent(QResizeEvent *e) {
+void ConvertToSupergroupBox::resizeEvent(QResizeEvent *e) {
 	BoxContent::resizeEvent(e);
 	_text->moveToLeft(st::boxPadding.left(), st::boxPadding.top());
 }
