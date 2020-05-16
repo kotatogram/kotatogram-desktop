@@ -629,14 +629,14 @@ PRIVATE
     intro/intro_step.h
     intro/intro_widget.cpp
     intro/intro_widget.h
-    kotato/boxes/confirm_box.cpp
-    kotato/boxes/confirm_box.h
-    kotato/boxes/fonts_box.cpp
-    kotato/boxes/fonts_box.h
-    kotato/boxes/radio_box.cpp
-    kotato/boxes/radio_box.h
-    kotato/boxes/unpin_box.cpp
-    kotato/boxes/unpin_box.h
+    kotato/customboxes/confirm_box.cpp
+    kotato/customboxes/confirm_box.h
+    kotato/customboxes/fonts_box.cpp
+    kotato/customboxes/fonts_box.h
+    kotato/customboxes/radio_box.cpp
+    kotato/customboxes/radio_box.h
+    kotato/customboxes/unpin_box.cpp
+    kotato/customboxes/unpin_box.h
     kotato/json_settings.cpp
     kotato/json_settings.h
     kotato/settings_menu.cpp

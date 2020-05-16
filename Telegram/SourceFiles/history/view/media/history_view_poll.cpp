@@ -20,7 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/ripple_animation.h"
 #include "ui/effects/fireworks_animation.h"
 #include "ui/toast/toast.h"
-#include "kotato/boxes/confirm_box.h"
+#include "kotato/customboxes/confirm_box.h"
 #include "data/data_media_types.h"
 #include "data/data_poll.h"
 #include "data/data_user.h"

@@ -13,7 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "main/main_session.h"
 #include "boxes/confirm_box.h"
-#include "kotato/boxes/confirm_box.h"
+#include "kotato/customboxes/confirm_box.h"
 #include "base/qthelp_regex.h"
 #include "storage/localstorage.h"
 #include "history/view/history_view_element.h"
