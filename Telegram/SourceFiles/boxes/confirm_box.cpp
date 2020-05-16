@@ -426,6 +426,62 @@ void MaxInviteBox::resizeEvent(QResizeEvent *e) {
 	_invitationLink = myrtlrect(st::boxPadding.left(), st::boxPadding.top() + _textHeight + st::boxTextFont->height, width() - st::boxPadding.left() - st::boxPadding.right(), 2 * st::boxTextFont->height);
 }
 
+ConvertToSupergroupBox::ConvertToSupergroupBox(QWidget*, not_null<ChatData*> chat)
+: _chat(chat) {
+}
+
+void ConvertToSupergroupBox::prepare() {
+	setTitle(tr::lng_profile_convert_title());
+
+	addButton(tr::lng_profile_convert_confirm(), [=] { convertToSupergroup(); });
+	addButton(tr::lng_cancel(), [=] { closeBox(); });
+
+	auto details = TextWithEntities();
+	const auto appendDetails = [&](TextWithEntities &&text) {
+		details.append(qs("\n")).append(std::move(text));
+	};
+
+	details.text = tr::lng_profile_convert_feature1(tr::now);
+	appendDetails({ tr::lng_profile_convert_feature2(tr::now) });
+	appendDetails({ tr::lng_profile_convert_feature3(tr::now) });
+	appendDetails({ tr::lng_profile_convert_feature4(tr::now) });
+	appendDetails({ qs("\n") + tr::lng_profile_convert_warning(tr::now, lt_bold_start, textcmdStartSemibold(), lt_bold_end, textcmdStopSemibold()) });
+
+	_text.create(this, rpl::single(std::move(details)), st::boxLabel);
+	
+	_textWidth = st::boxWideWidth - st::boxPadding.left() - st::boxButtonPadding.right();
+	_textHeight = _text.countHeight(_textWidth);
+	setDimensions(st::boxWideWidth, _textHeight + st::boxPadding.bottom());
+}
+
+void ConvertToSupergroupBox::convertToSupergroup() {
+	MTP::send(MTPmessages_MigrateChat(_chat->inputChat), rpcDone(&ConvertToSupergroupBox::convertDone), rpcFail(&ConvertToSupergroupBox::convertFail));
+}
+
+void ConvertToSupergroupBox::convertDone(const MTPUpdates &updates) {
+	_chat->session().api().applyUpdates(updates);
+	Ui::hideLayer();
+}
+
+bool ConvertToSupergroupBox::convertFail(const RPCError &error) {
+	if (MTP::isDefaultHandledError(error)) return false;
+	Ui::hideLayer();
+	return true;
+}
+
+void PinMessageBox::resizeEvent(QResizeEvent *e) {
+	BoxContent::resizeEvent(e);
+	_text->moveToLeft(st::boxPadding.left(), st::boxPadding.top());
+}
+
+void ConvertToSupergroupBox::keyPressEvent(QKeyEvent *e) {
+	if (e->key() == Qt::Key_Enter || e->key() == Qt::Key_Return) {
+		convertToSupergroup();
+	} else {
+		BoxContent::keyPressEvent(e);
+	}
+}
+
 PinMessageBox::PinMessageBox(
 	QWidget*,
 	not_null<PeerData*> peer,

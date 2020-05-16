@@ -124,6 +124,26 @@ private:
 
 };
 
+class ConvertToSupergroupBox : public BoxContent, public RPCSender {
+public:
+	ConvertToSupergroupBox(QWidget*, not_null<ChatData*> chat);
+
+protected:
+	void prepare() override;
+
+	void resizeEvent(QResizeEvent *e) override;
+	void keyPressEvent(QKeyEvent *e) override;
+
+private:
+	void convertToSupergroup();
+	void convertDone(const MTPUpdates &updates);
+	bool convertFail(const RPCError &error);
+
+	not_null<ChatData*> _chat;
+	object_ptr<Ui::FlatLabel> _text = { nullptr };
+	int32 _textWidth, _textHeight;
+};
+
 class PinMessageBox : public Ui::BoxContent, public RPCSender {
 public:
 	PinMessageBox(QWidget*, not_null<PeerData*> peer, MsgId msgId);
