@@ -408,10 +408,18 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 		{ 5, TrayIconLabel(5) },
 	};
 
+	auto trayIconText = rpl::single(
+		rpl::empty_value()
+	) | rpl::then(base::ObservableViewer(
+		Global::RefUnreadCounterUpdate()
+	)) | rpl::map([] {
+		return TrayIconLabel(cCustomAppIcon());
+	});
+
 	AddButtonWithLabel(
 		container,
 		tr::ktg_settings_tray_icon(),
-		rpl::single(TrayIconLabel(cCustomAppIcon())),
+		trayIconText,
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
@@ -421,8 +429,9 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 			trayIconOptions,
 			[=] (int value) {
 				cSetCustomAppIcon(value);
+				Notify::unreadCounterUpdated();
 				::Kotato::JsonSettings::Write();
-			}, true));
+			}, false));
 	});
 
 	AddSkip(container);

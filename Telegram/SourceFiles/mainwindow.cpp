@@ -78,23 +78,7 @@ void FeedLangTestingKey(int key) {
 
 MainWindow::MainWindow(not_null<Window::Controller*> controller)
 : Platform::MainWindow(controller) {
-	QImage iconImage(cWorkingDir() + "tdata/icon.png");
-
-	auto logo = iconImage.isNull()
-		? Core::App().logo(cCustomAppIcon())
-		: iconImage;
-
-	icon16 = logo.scaledToWidth(16, Qt::SmoothTransformation);
-	icon32 = logo.scaledToWidth(32, Qt::SmoothTransformation);
-	icon64 = logo.scaledToWidth(64, Qt::SmoothTransformation);
-
-	auto logoNoMargin = iconImage.isNull()
-		? Core::App().logoNoMargin(cCustomAppIcon())
-		: iconImage;
-
-	iconbig16 = logoNoMargin.scaledToWidth(16, Qt::SmoothTransformation);
-	iconbig32 = logoNoMargin.scaledToWidth(32, Qt::SmoothTransformation);
-	iconbig64 = logoNoMargin.scaledToWidth(64, Qt::SmoothTransformation);
+	updateIconCache();
 
 	resize(st::windowDefaultWidth, st::windowDefaultHeight);
 
@@ -959,6 +943,28 @@ void MainWindow::placeSmallCounter(QImage &img, int size, int count, style::colo
 
 }
 
+void MainWindow::updateIconCache() {
+	QImage iconImage(cWorkingDir() + "tdata/icon.png");
+
+	auto logo = iconImage.isNull()
+		? Core::App().logo(cCustomAppIcon())
+		: iconImage;
+
+	icon16 = logo.scaledToWidth(16, Qt::SmoothTransformation);
+	icon32 = logo.scaledToWidth(32, Qt::SmoothTransformation);
+	icon64 = logo.scaledToWidth(64, Qt::SmoothTransformation);
+
+	auto logoNoMargin = iconImage.isNull()
+		? Core::App().logoNoMargin(cCustomAppIcon())
+		: iconImage;
+
+	iconbig16 = logoNoMargin.scaledToWidth(16, Qt::SmoothTransformation);
+	iconbig32 = logoNoMargin.scaledToWidth(32, Qt::SmoothTransformation);
+	iconbig64 = logoNoMargin.scaledToWidth(64, Qt::SmoothTransformation);
+
+	_customIconId = cCustomAppIcon();
+}
+
 QImage MainWindow::iconWithCounter(int size, int count, style::color bg, style::color fg, bool smallIcon) {
 	bool layer = false;
 	if (size < 0) {
@@ -1014,6 +1020,10 @@ QImage MainWindow::iconWithCounter(int size, int count, style::color bg, style::
 		return result;
 	} else {
 		if (size != 16 && size != 32) size = 64;
+	}
+
+	if (_customIconId != cCustomAppIcon()) {
+		updateIconCache();
 	}
 
 	QImage img(smallIcon ? ((size == 16) ? iconbig16 : (size == 32 ? iconbig32 : iconbig64)) : ((size == 16) ? icon16 : (size == 32 ? icon32 : icon64)));

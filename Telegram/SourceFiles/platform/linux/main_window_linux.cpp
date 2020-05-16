@@ -67,6 +67,7 @@ int32 TrayIconCount = 0;
 base::flat_map<int, QImage> TrayIconImageBack;
 QIcon TrayIcon;
 QString TrayIconThemeName, TrayIconName;
+int TrayIconCustomId = 0;
 
 bool SNIAvailable = false;
 bool AppMenuSupported = false;
@@ -125,7 +126,8 @@ bool IsIconRegenerationNeeded(
 		|| iconThemeName != TrayIconThemeName
 		|| iconName != TrayIconName
 		|| muted != TrayIconMuted
-		|| counterSlice != TrayIconCount;
+		|| counterSlice != TrayIconCount
+		|| cCustomAppIcon() != TrayIconCustomId;
 }
 
 void UpdateIconRegenerationNeeded(
@@ -141,6 +143,7 @@ void UpdateIconRegenerationNeeded(
 	TrayIconCount = counterSlice;
 	TrayIconThemeName = iconThemeName;
 	TrayIconName = iconName;
+	TrayIconCustomId = cCustomAppIcon();
 }
 
 QIcon TrayIconGen(int counter, bool muted) {
@@ -177,7 +180,8 @@ QIcon TrayIconGen(int counter, bool muted) {
 
 		if (currentImageBack.isNull()
 			|| iconThemeName != TrayIconThemeName
-			|| iconName != TrayIconName) {
+			|| iconName != TrayIconName
+			|| cCustomAppIcon() != TrayIconCustomId) {
 			if (QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
 				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
 			} else if (cCustomAppIcon() != 0) {

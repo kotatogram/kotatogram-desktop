@@ -192,6 +192,7 @@ private:
 
 	QIcon _icon;
 	bool _usingSupportIcon = false;
+	int _customIconId = 0;
 	QString _titleText;
 
 	bool _isActive = false;
