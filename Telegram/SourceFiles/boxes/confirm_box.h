@@ -124,7 +124,7 @@ private:
 
 };
 
-class ConvertToSupergroupBox : public BoxContent, public RPCSender {
+class ConvertToSupergroupBox : public Ui::BoxContent, public RPCSender {
 public:
 	ConvertToSupergroupBox(QWidget*, not_null<ChatData*> chat);
 
