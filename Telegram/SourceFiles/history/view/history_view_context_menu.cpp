@@ -632,18 +632,18 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 	return result;
 }
 
-void CopyPostLink(FullMsgId itemId) {
+void CopyPostLink(FullMsgId itemId, bool forcePrivate) {
 	const auto item = Auth().data().message(itemId);
 	if (!item || !item->hasDirectLink()) {
 		return;
 	}
 	QGuiApplication::clipboard()->setText(
-		item->history()->session().api().exportDirectMessageLink(item));
+		item->history()->session().api().exportDirectMessageLink(item, forcePrivate));
 
 	const auto channel = item->history()->peer->asChannel();
 	Assert(channel != nullptr);
 
-	Ui::Toast::Show(channel->hasUsername()
+	Ui::Toast::Show(channel->hasUsername() && !forcePrivate
 		? tr::lng_channel_public_link_copied(tr::now)
 		: tr::lng_context_about_private_link(tr::now));
 }
