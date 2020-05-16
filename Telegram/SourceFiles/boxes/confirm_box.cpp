@@ -449,9 +449,8 @@ void ConvertToSupergroupBox::prepare() {
 
 	_text.create(this, rpl::single(std::move(details)), st::boxLabel);
 	
-	_textWidth = st::boxWideWidth - st::boxPadding.left() - st::boxButtonPadding.right();
-	_textHeight = _text->countHeight(_textWidth);
-	setDimensions(st::boxWideWidth, _textHeight + st::boxPadding.bottom());
+	const auto fullHeight = st::boxPadding.top() + _text->height() + st::boxPadding.bottom();
+	setDimensions(st::boxWideWidth, fullHeight);
 }
 
 void ConvertToSupergroupBox::convertToSupergroup() {

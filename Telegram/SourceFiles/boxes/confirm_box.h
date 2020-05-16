@@ -141,7 +141,6 @@ private:
 
 	not_null<ChatData*> _chat;
 	object_ptr<Ui::FlatLabel> _text = { nullptr };
-	int32 _textWidth, _textHeight;
 };
 
 class PinMessageBox : public Ui::BoxContent, public RPCSender {
