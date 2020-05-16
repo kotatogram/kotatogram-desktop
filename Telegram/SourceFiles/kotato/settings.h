@@ -88,6 +88,9 @@ DeclareRefSetting(CustomReplacementsMap, CustomReplaces);
 bool AddCustomReplace(QString from, QString to);
 DeclareSetting(bool, ConfirmBeforeCall);
 
+DeclareSetting(bool, UseNativeDecorations);
+[[nodiscard]] bool UseNativeDecorations();
+
 void SetRecentStickersLimit(int limit);
 [[nodiscard]] int RecentStickersLimit();
 [[nodiscard]] rpl::producer<int> RecentStickersLimitChanges();

@@ -113,6 +113,12 @@ bool AddCustomReplace(QString from, QString to) {
 
 bool gConfirmBeforeCall = false;
 
+bool gUseNativeDecorations = false;
+bool UseNativeDecorations() {
+	static const auto NativeDecorations = cUseNativeDecorations();
+	return NativeDecorations;
+}
+
 rpl::variable<int> gRecentStickersLimit = 20;
 void SetRecentStickersLimit(int limit) {
 	if (limit >= 0 || limit <= 200) {

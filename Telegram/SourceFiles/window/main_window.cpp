@@ -357,7 +357,7 @@ void MainWindow::init() {
 
 	updatePalette();
 
-	if ((_title = Platform::CreateTitleWidget(this))) {
+	if (!UseNativeDecorations() && (_title = Platform::CreateTitleWidget(this))) {
 		_title->init();
 	}
 

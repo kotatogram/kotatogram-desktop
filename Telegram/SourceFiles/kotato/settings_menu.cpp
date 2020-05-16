@@ -370,6 +370,35 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
+#if defined Q_OS_WIN || defined Q_OS_MAC
+	const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
+		container.get());
+	AddButton(
+		container,
+		tr::ktg_settings_use_native_decorations(),
+		st::settingsButton
+	)->toggleOn(
+		useNativeDecorationsToggled->events_starting_with_copy(cUseNativeDecorations())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cUseNativeDecorations());
+	}) | rpl::start_with_next([=](bool enabled) {
+		const auto confirmed = [=] {
+			cSetUseNativeDecorations(enabled);
+			::Kotato::JsonSettings::Write();
+			App::restart();
+		};
+		const auto cancelled = [=] {
+			useNativeDecorationsToggled->fire(cUseNativeDecorations() == true);
+		};
+		Ui::show(Box<ConfirmBox>(
+			tr::lng_settings_need_restart(tr::now),
+			tr::lng_settings_restart_now(tr::now),
+			confirmed,
+			cancelled));
+	}, container->lifetime());
+#endif // Q_OS_WIN || Q_OS_MAC
+
 	const QMap<int, QString> trayIconOptions = {
 		{ 0, TrayIconLabel(0) },
 		{ 1, TrayIconLabel(1) },
