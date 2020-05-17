@@ -45,9 +45,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Platform {
 namespace {
 
-constexpr auto kDisableTrayCounter = "TDESKTOP_DISABLE_TRAY_COUNTER"_cs;
 constexpr auto kForcePanelIcon = "TDESKTOP_FORCE_PANEL_ICON"_cs;
-constexpr auto kUseTelegramPanelIcon = "KTGDESKTOP_USE_TELEGRAM_PANEL_ICON"_cs;
 constexpr auto kPanelTrayIconName = "kotatogram-panel"_cs;
 constexpr auto kMutePanelTrayIconName = "kotatogram-mute-panel"_cs;
 constexpr auto kAttentionPanelTrayIconName = "kotatogram-attention-panel"_cs;
@@ -67,23 +65,22 @@ int32 TrayIconCount = 0;
 base::flat_map<int, QImage> TrayIconImageBack;
 QIcon TrayIcon;
 QString TrayIconThemeName, TrayIconName;
+int TrayIconCustomId = 0;
+bool TrayIconCounterDisabled = false;
 
 bool SNIAvailable = false;
 bool AppMenuSupported = false;
 
 QString GetPanelIconName(int counter, bool muted) {
-	const auto useTelegramIcon = qEnvironmentVariableIsSet(
-		kUseTelegramPanelIcon.utf8());
-
-	const auto iconName = useTelegramIcon
+	const auto iconName = cUseTelegramPanelIcon()
 		? kTelegramPanelTrayIconName.utf16()
 		: kPanelTrayIconName.utf16();
 
-	const auto muteIconName = useTelegramIcon
+	const auto muteIconName = cUseTelegramPanelIcon()
 		? kTelegramMutePanelTrayIconName.utf16()
 		: kMutePanelTrayIconName.utf16();
 
-	const auto attentionIconName = useTelegramIcon
+	const auto attentionIconName = cUseTelegramPanelIcon()
 		? kTelegramAttentionPanelTrayIconName.utf16()
 		: kAttentionPanelTrayIconName.utf16();
 
@@ -125,7 +122,9 @@ bool IsIconRegenerationNeeded(
 		|| iconThemeName != TrayIconThemeName
 		|| iconName != TrayIconName
 		|| muted != TrayIconMuted
-		|| counterSlice != TrayIconCount;
+		|| counterSlice != TrayIconCount
+		|| cCustomAppIcon() != TrayIconCustomId
+		|| cDisableTrayCounter() != TrayIconCounterDisabled;
 }
 
 void UpdateIconRegenerationNeeded(
@@ -141,6 +140,8 @@ void UpdateIconRegenerationNeeded(
 	TrayIconCount = counterSlice;
 	TrayIconThemeName = iconThemeName;
 	TrayIconName = iconName;
+	TrayIconCustomId = cCustomAppIcon();
+	TrayIconCounterDisabled = cDisableTrayCounter();
 }
 
 QIcon TrayIconGen(int counter, bool muted) {
@@ -152,7 +153,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 
 	const auto iconName = GetTrayIconName(counter, muted);
 
-	if (qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+	if (cDisableTrayCounter()
 		&& !iconName.isEmpty()) {
 		const auto result = QIcon::fromTheme(iconName);
 		UpdateIconRegenerationNeeded(result, counter, muted, iconThemeName);
@@ -177,7 +178,8 @@ QIcon TrayIconGen(int counter, bool muted) {
 
 		if (currentImageBack.isNull()
 			|| iconThemeName != TrayIconThemeName
-			|| iconName != TrayIconName) {
+			|| iconName != TrayIconName
+			|| cCustomAppIcon() != TrayIconCustomId) {
 			if (QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
 				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
 			} else if (cCustomAppIcon() != 0) {
@@ -217,7 +219,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 
 		auto iconImage = currentImageBack;
 
-		if (!qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+		if (!cDisableTrayCounter()
 			&& counter > 0) {
 			QPainter p(&iconImage);
 			int32 layerSize = -16;
@@ -523,7 +525,7 @@ void MainWindow::psTrayMenuUpdated() {
 void MainWindow::setSNITrayIcon(int counter, bool muted) {
 	const auto iconName = GetTrayIconName(counter, muted);
 
-	if (qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+	if (cDisableTrayCounter()
 		&& !iconName.isEmpty()
 		&& (!InSnap()
 			|| qEnvironmentVariableIsSet(kForcePanelIcon.utf8()))) {
@@ -535,7 +537,8 @@ void MainWindow::setSNITrayIcon(int counter, bool muted) {
 		_sniTrayIcon->setToolTipIconByName(iconName);
 	} else if (IsIndicatorApplication()) {
 		if (!IsIconRegenerationNeeded(counter, muted)
-			&& !_sniTrayIcon->iconName().isEmpty()) {
+			&& _trayIconFile
+			&& _sniTrayIcon->iconName() == _trayIconFile->fileName()) {
 			return;
 		}
 
@@ -548,7 +551,8 @@ void MainWindow::setSNITrayIcon(int counter, bool muted) {
 		}
 	} else {
 		if (!IsIconRegenerationNeeded(counter, muted)
-			&& !_sniTrayIcon->iconPixmap().isEmpty()) {
+			&& !_sniTrayIcon->iconPixmap().isEmpty()
+			&& _sniTrayIcon->iconName().isEmpty()) {
 			return;
 		}
 

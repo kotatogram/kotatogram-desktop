@@ -159,6 +159,7 @@ private:
 	void applyInitialWorkMode();
 	void ensureLayerCreated();
 	void destroyLayer();
+	void updateIconCache();
 
 	void themeUpdated(const Window::Theme::BackgroundUpdate &data);
 
@@ -166,6 +167,7 @@ private:
 
 	void placeSmallCounter(QImage &img, int size, int count, style::color bg, const QPoint &shift, style::color color) override;
 	QImage icon16, icon32, icon64, iconbig16, iconbig32, iconbig64;
+	int _customIconId = 0;
 
 	crl::time _lastTrayClickTime = 0;
 	QPoint _lastMousePosition;

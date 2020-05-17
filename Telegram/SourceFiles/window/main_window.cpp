@@ -327,9 +327,10 @@ bool MainWindow::computeIsActive() const {
 void MainWindow::updateWindowIcon() {
 	const auto supportIcon = account().sessionExists()
 		&& account().session().supportMode();
-	if (supportIcon != _usingSupportIcon || _icon.isNull()) {
+	if (supportIcon != _usingSupportIcon || _icon.isNull() || _customIconId != cCustomAppIcon()) {
 		_icon = CreateIcon(&account());
 		_usingSupportIcon = supportIcon;
+		_customIconId = cCustomAppIcon();
 	}
 	setWindowIcon(_icon);
 }

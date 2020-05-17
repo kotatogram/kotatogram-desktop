@@ -2512,6 +2512,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_settings_tray_icon_desc" = "If you don't like any of these icons, you can place icon.png in your profile folder.\n\nYou'll need to restart app to save changes.";
 
+"ktg_settings_disable_tray_counter" = "Disable tray icon counter";
+"ktg_settings_use_telegram_panel_icon" = "Ask the system for telegram icon";
+
 "ktg_settings_chat_id" = "Chat ID in profile";
 "ktg_settings_chat_id_desc" = "You can choose desired format here.\n\nTelegram API uses IDs as-is, but Bot API adds minus in the beginning for groups, and -100 for channels and supergroups to fit it in one field.\n\nIf you have profile panel opened, re-open it to see changes.";
 "ktg_settings_chat_id_disable" = "Hide";
