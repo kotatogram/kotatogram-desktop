@@ -414,6 +414,23 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
+#ifdef Q_OS_LINUX
+	AddButton(
+		container,
+		tr::ktg_settings_use_telegram_panel_icon(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cUseTelegramPanelIcon())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cUseTelegramPanelIcon());
+	}) | rpl::start_with_next([](bool enabled) {
+		cSetUseTelegramPanelIcon(enabled);
+		Notify::unreadCounterUpdated();
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+#endif // Q_OS_LINUX
+
 	const QMap<int, QString> trayIconOptions = {
 		{ 0, TrayIconLabel(0) },
 		{ 1, TrayIconLabel(1) },

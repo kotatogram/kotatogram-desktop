@@ -190,6 +190,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("disable_tray_counter"), cDisableTrayCounter());
+	settings.insert(qsl("use_telegram_panel_icon"), cUseTelegramPanelIcon());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
 	settings.insert(qsl("hover_emoji_panel"), HoverEmojiPanel());
@@ -424,6 +425,10 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "disable_tray_counter", [&](auto v) {
 		cSetDisableTrayCounter(v);
+	});
+
+	ReadBoolOption(settings, "use_telegram_panel_icon", [&](auto v) {
+		cSetUseTelegramPanelIcon(v);
 	});
 
 	ReadIntOption(settings, "custom_app_icon", [&](auto v) {

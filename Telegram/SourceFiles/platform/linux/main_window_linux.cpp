@@ -46,7 +46,6 @@ namespace Platform {
 namespace {
 
 constexpr auto kForcePanelIcon = "TDESKTOP_FORCE_PANEL_ICON"_cs;
-constexpr auto kUseTelegramPanelIcon = "KTGDESKTOP_USE_TELEGRAM_PANEL_ICON"_cs;
 constexpr auto kPanelTrayIconName = "kotatogram-panel"_cs;
 constexpr auto kMutePanelTrayIconName = "kotatogram-mute-panel"_cs;
 constexpr auto kAttentionPanelTrayIconName = "kotatogram-attention-panel"_cs;
@@ -73,18 +72,15 @@ bool SNIAvailable = false;
 bool AppMenuSupported = false;
 
 QString GetPanelIconName(int counter, bool muted) {
-	const auto useTelegramIcon = qEnvironmentVariableIsSet(
-		kUseTelegramPanelIcon.utf8());
-
-	const auto iconName = useTelegramIcon
+	const auto iconName = cUseTelegramPanelIcon()
 		? kTelegramPanelTrayIconName.utf16()
 		: kPanelTrayIconName.utf16();
 
-	const auto muteIconName = useTelegramIcon
+	const auto muteIconName = cUseTelegramPanelIcon()
 		? kTelegramMutePanelTrayIconName.utf16()
 		: kMutePanelTrayIconName.utf16();
 
-	const auto attentionIconName = useTelegramIcon
+	const auto attentionIconName = cUseTelegramPanelIcon()
 		? kTelegramAttentionPanelTrayIconName.utf16()
 		: kAttentionPanelTrayIconName.utf16();
 
