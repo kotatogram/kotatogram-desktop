@@ -458,8 +458,16 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	auto forceOpenGL = std::make_unique<QOpenGLWidget>(this);
 #endif // !OS_MAC_OLD
 
-	trayImg = st::macTrayIcon.instance(QColor(0, 0, 0, 180), 100);
-	trayImgSel = st::macTrayIcon.instance(QColor(255, 255, 255), 100);
+	QImage iconImage(cWorkingDir() + "tdata/icon.png");
+	QImage iconImageSelected(cWorkingDir() + "tdata/icon_selected.png");
+
+	trayImg = iconImage.isNull()
+		? st::macTrayIcon.instance(QColor(0, 0, 0, 180), 100)
+		: iconImage;
+
+	trayImgSel = iconImageSelected.isNull()
+		? st::macTrayIcon.instance(QColor(255, 255, 255), 100)
+		: iconImageSelected;
 
 	_hideAfterFullScreenTimer.setCallback([this] { hideAndDeactivate(); });
 
@@ -563,21 +571,9 @@ void MainWindow::psTrayMenuUpdated() {
 void MainWindow::psSetupTrayIcon() {
 	if (!trayIcon) {
 		trayIcon = new QSystemTrayIcon(this);
-		QIcon icon;
-		QPixmap iconPixmap(cWorkingDir() + "tdata/icon.png");
-		QPixmap iconPixmapSelected(cWorkingDir() + "tdata/icon_selected.png");
 
-		if (!iconPixmap.isNull()) {
-			icon.addPixmap(iconPixmap);
-		} else {
-			icon.addPixmap(QPixmap::fromImage(psTrayIcon(), Qt::ColorOnly));
-		}
-
-		if (!iconPixmapSelected.isNull()) {
-			icon.addPixmap(iconPixmapSelected, QIcon::Selected);
-		} else {
-			icon.addPixmap(QPixmap::fromImage(psTrayIcon(true), Qt::ColorOnly), QIcon::Selected);
-		}
+		QIcon icon(QPixmap::fromImage(psTrayIcon(), Qt::ColorOnly));
+		icon.addPixmap(QPixmap::fromImage(psTrayIcon(true), Qt::ColorOnly), QIcon::Selected);
 
 		trayIcon->setIcon(icon);
 		attachToTrayIcon(trayIcon);
