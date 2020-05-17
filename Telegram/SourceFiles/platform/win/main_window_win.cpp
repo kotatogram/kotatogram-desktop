@@ -633,17 +633,20 @@ UINT MainWindow::_taskbarCreatedMsgId = 0;
 MainWindow::MainWindow(not_null<Window::Controller*> controller)
 : Window::MainWindow(controller)
 , ps_tbHider_hWnd(createTaskbarHider()) {
-	QCoreApplication::instance()->installNativeEventFilter(
-		EventFilter::CreateInstance(this));
+	if (!UseNativeDecorations()) {
+		QCoreApplication::instance()->installNativeEventFilter(
+			EventFilter::CreateInstance(this));
+
+		subscribe(Window::Theme::Background(), [this](const Window::Theme::BackgroundUpdate &update) {
+			if (update.paletteChanged()) {
+				_psShadowWindows.setColor(st::windowShadowFg->c);
+			}
+		});
+	}
 
 	if (!_taskbarCreatedMsgId) {
 		_taskbarCreatedMsgId = RegisterWindowMessage(L"TaskbarButtonCreated");
 	}
-	subscribe(Window::Theme::Background(), [this](const Window::Theme::BackgroundUpdate &update) {
-		if (update.paletteChanged()) {
-			_psShadowWindows.setColor(st::windowShadowFg->c);
-		}
-	});
 }
 
 void MainWindow::TaskbarCreated() {
@@ -654,16 +657,22 @@ void MainWindow::TaskbarCreated() {
 }
 
 void MainWindow::shadowsUpdate(ShadowsChanges changes, WINDOWPOS *position) {
-	_psShadowWindows.update(changes, position);
+	if (!UseNativeDecorations()) {
+		_psShadowWindows.update(changes, position);
+	}
 }
 
 void MainWindow::shadowsActivate() {
-//	_psShadowWindows.setColor(_shActive);
-	shadowsUpdate(ShadowsChange::Activate);
+	if (!UseNativeDecorations()) {
+//		_psShadowWindows.setColor(_shActive);
+		shadowsUpdate(ShadowsChange::Activate);
+	}
 }
 
 void MainWindow::shadowsDeactivate() {
-//	_psShadowWindows.setColor(_shInactive);
+//	if (!UseNativeDecorations()) {
+//		_psShadowWindows.setColor(_shInactive);
+//	}
 }
 
 void MainWindow::psShowTrayMenu() {
@@ -827,14 +836,16 @@ void MainWindow::initHook() {
 }
 
 void MainWindow::initShadows() {
-	_psShadowWindows.init(this, st::windowShadowFg->c);
-	_shadowsWorking = true;
-	psUpdateMargins();
-	shadowsUpdate(ShadowsChange::Hidden);
+	if (!UseNativeDecorations()) {
+		_psShadowWindows.init(this, st::windowShadowFg->c);
+		_shadowsWorking = true;
+		psUpdateMargins();
+		shadowsUpdate(ShadowsChange::Hidden);
+	}
 }
 
 void MainWindow::firstShadowsUpdate() {
-	if (!(windowState() & Qt::WindowMinimized) && !isHidden()) {
+	if (!UseNativeDecorations() && !(windowState() & Qt::WindowMinimized) && !isHidden()) {
 		shadowsUpdate(ShadowsChange::Moved | ShadowsChange::Resized | ShadowsChange::Shown);
 	}
 }
@@ -983,13 +994,17 @@ MainWindow::~MainWindow() {
 		taskbarList.Reset();
 	}
 
-	_shadowsWorking = false;
 	if (ps_menu) DestroyMenu(ps_menu);
 	psDestroyIcons();
-	_psShadowWindows.destroy();
+	if (!UseNativeDecorations()) {
+		_shadowsWorking = false;
+		_psShadowWindows.destroy();
+	}
 	if (ps_tbHider_hWnd) DestroyWindow(ps_tbHider_hWnd);
 
-	EventFilter::Destroy();
+	if (!UseNativeDecorations()) {
+		EventFilter::Destroy();
+	}
 }
 
 } // namespace Platform
