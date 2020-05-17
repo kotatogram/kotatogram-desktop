@@ -399,6 +399,21 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 	}, container->lifetime());
 #endif // Q_OS_WIN || Q_OS_MAC
 
+	AddButton(
+		container,
+		tr::ktg_settings_disable_tray_counter(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cDisableTrayCounter())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cDisableTrayCounter());
+	}) | rpl::start_with_next([](bool enabled) {
+		cSetDisableTrayCounter(enabled);
+		Notify::unreadCounterUpdated();
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
 	const QMap<int, QString> trayIconOptions = {
 		{ 0, TrayIconLabel(0) },
 		{ 1, TrayIconLabel(1) },

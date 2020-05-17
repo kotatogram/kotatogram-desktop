@@ -189,6 +189,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
+	settings.insert(qsl("disable_tray_counter"), cDisableTrayCounter());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
 	settings.insert(qsl("hover_emoji_panel"), HoverEmojiPanel());
@@ -419,6 +420,10 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "always_show_top_userpic", [&](auto v) {
 		cSetShowTopBarUserpic(v);
+	});
+
+	ReadBoolOption(settings, "disable_tray_counter", [&](auto v) {
+		cSetDisableTrayCounter(v);
 	});
 
 	ReadIntOption(settings, "custom_app_icon", [&](auto v) {

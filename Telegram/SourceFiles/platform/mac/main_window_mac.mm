@@ -666,9 +666,11 @@ void MainWindow::updateIconCounters() {
 		QImage img(psTrayIcon(dm)), imgsel(psTrayIcon(true));
 		img.detach();
 		imgsel.detach();
-		int32 size = 22 * cIntRetinaFactor();
-		_placeCounter(img, size, counter, bg, (dm && muted) ? st::trayCounterFgMacInvert : st::trayCounterFg);
-		_placeCounter(imgsel, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
+		if (!cDisableTrayCounter()) {
+			int32 size = 22 * cIntRetinaFactor();
+			_placeCounter(img, size, counter, bg, (dm && muted) ? st::trayCounterFgMacInvert : st::trayCounterFg);
+			_placeCounter(imgsel, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
+		}
 		icon.addPixmap(App::pixmapFromImageInPlace(std::move(img)));
 		icon.addPixmap(App::pixmapFromImageInPlace(std::move(imgsel)), QIcon::Selected);
 		trayIcon->setIcon(icon);

@@ -45,7 +45,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Platform {
 namespace {
 
-constexpr auto kDisableTrayCounter = "TDESKTOP_DISABLE_TRAY_COUNTER"_cs;
 constexpr auto kForcePanelIcon = "TDESKTOP_FORCE_PANEL_ICON"_cs;
 constexpr auto kUseTelegramPanelIcon = "KTGDESKTOP_USE_TELEGRAM_PANEL_ICON"_cs;
 constexpr auto kPanelTrayIconName = "kotatogram-panel"_cs;
@@ -68,6 +67,7 @@ base::flat_map<int, QImage> TrayIconImageBack;
 QIcon TrayIcon;
 QString TrayIconThemeName, TrayIconName;
 int TrayIconCustomId = 0;
+bool TrayIconCounterDisabled = false;
 
 bool SNIAvailable = false;
 bool AppMenuSupported = false;
@@ -127,7 +127,8 @@ bool IsIconRegenerationNeeded(
 		|| iconName != TrayIconName
 		|| muted != TrayIconMuted
 		|| counterSlice != TrayIconCount
-		|| cCustomAppIcon() != TrayIconCustomId;
+		|| cCustomAppIcon() != TrayIconCustomId
+		|| cDisableTrayCounter() != TrayIconCounterDisabled;
 }
 
 void UpdateIconRegenerationNeeded(
@@ -144,6 +145,7 @@ void UpdateIconRegenerationNeeded(
 	TrayIconThemeName = iconThemeName;
 	TrayIconName = iconName;
 	TrayIconCustomId = cCustomAppIcon();
+	TrayIconCounterDisabled = cDisableTrayCounter();
 }
 
 QIcon TrayIconGen(int counter, bool muted) {
@@ -155,7 +157,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 
 	const auto iconName = GetTrayIconName(counter, muted);
 
-	if (qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+	if (cDisableTrayCounter()
 		&& !iconName.isEmpty()) {
 		const auto result = QIcon::fromTheme(iconName);
 		UpdateIconRegenerationNeeded(result, counter, muted, iconThemeName);
@@ -221,7 +223,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 
 		auto iconImage = currentImageBack;
 
-		if (!qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+		if (!cDisableTrayCounter()
 			&& counter > 0) {
 			QPainter p(&iconImage);
 			int32 layerSize = -16;
@@ -527,7 +529,7 @@ void MainWindow::psTrayMenuUpdated() {
 void MainWindow::setSNITrayIcon(int counter, bool muted) {
 	const auto iconName = GetTrayIconName(counter, muted);
 
-	if (qEnvironmentVariableIsSet(kDisableTrayCounter.utf8())
+	if (cDisableTrayCounter()
 		&& !iconName.isEmpty()
 		&& (!InSnap()
 			|| qEnvironmentVariableIsSet(kForcePanelIcon.utf8()))) {
@@ -539,7 +541,8 @@ void MainWindow::setSNITrayIcon(int counter, bool muted) {
 		_sniTrayIcon->setToolTipIconByName(iconName);
 	} else if (IsIndicatorApplication()) {
 		if (!IsIconRegenerationNeeded(counter, muted)
-			&& !_sniTrayIcon->iconName().isEmpty()) {
+			&& _trayIconFile
+			&& _sniTrayIcon->iconName() == _trayIconFile->fileName()) {
 			return;
 		}
 
@@ -552,7 +555,8 @@ void MainWindow::setSNITrayIcon(int counter, bool muted) {
 		}
 	} else {
 		if (!IsIconRegenerationNeeded(counter, muted)
-			&& !_sniTrayIcon->iconPixmap().isEmpty()) {
+			&& !_sniTrayIcon->iconPixmap().isEmpty()
+			&& _sniTrayIcon->iconName().isEmpty()) {
 			return;
 		}
 
