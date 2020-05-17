@@ -116,7 +116,7 @@
 	"ktg_settings_tray_icon_orange": "Оранжевая",
 	"ktg_settings_tray_icon_red": "Красная",
 	"ktg_settings_tray_icon_legacy": "Старая",
-	"ktg_settings_tray_icon_desc": "Если вам не нравится ни одна из этих иконок, вы можете положить icon.png в вашу папку профиля.\n\nДля применения и просмотра изменений требуется перезапуск.",
+	"ktg_settings_tray_icon_desc": "Если вам не нравится ни одна из этих иконок, вы можете положить icon.png в вашу папку профиля, но для её просмотра требуется перезапуск.\n\nИконкам ниже перезапуск не требуется.",
 	"ktg_settings_disable_tray_counter": "Отключить счетчик на иконке в трее",
 	"ktg_settings_use_telegram_panel_icon": "Запрашивать у системы иконку Telegram",
 	"ktg_settings_chat_id": "ID чата в профиле",
