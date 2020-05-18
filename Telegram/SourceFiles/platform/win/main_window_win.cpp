@@ -633,19 +633,18 @@ UINT MainWindow::_taskbarCreatedMsgId = 0;
 MainWindow::MainWindow(not_null<Window::Controller*> controller)
 : Window::MainWindow(controller)
 , ps_tbHider_hWnd(createTaskbarHider()) {
-	if (!UseNativeDecorations()) {
-		QCoreApplication::instance()->installNativeEventFilter(
-			EventFilter::CreateInstance(this));
+	QCoreApplication::instance()->installNativeEventFilter(
+		EventFilter::CreateInstance(this));
 
+	if (!_taskbarCreatedMsgId) {
+		_taskbarCreatedMsgId = RegisterWindowMessage(L"TaskbarButtonCreated");
+	}
+	if (!UseNativeDecorations()) {
 		subscribe(Window::Theme::Background(), [this](const Window::Theme::BackgroundUpdate &update) {
 			if (update.paletteChanged()) {
 				_psShadowWindows.setColor(st::windowShadowFg->c);
 			}
 		});
-	}
-
-	if (!_taskbarCreatedMsgId) {
-		_taskbarCreatedMsgId = RegisterWindowMessage(L"TaskbarButtonCreated");
 	}
 }
 
@@ -1008,9 +1007,7 @@ MainWindow::~MainWindow() {
 	}
 	if (ps_tbHider_hWnd) DestroyWindow(ps_tbHider_hWnd);
 
-	if (!UseNativeDecorations()) {
-		EventFilter::Destroy();
-	}
+	EventFilter::Destroy();
 }
 
 } // namespace Platform
