@@ -92,6 +92,10 @@ bool EventFilter::mainWindowEvent(
 		}
 	}
 
+	if (UseNativeDecorations()) {
+		return false;
+	}
+
 	switch (msg) {
 
 	case WM_TIMECHANGE: {
