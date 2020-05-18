@@ -503,7 +503,7 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 			ResolvePrivatePost
 		},
 		{
-			qsl("^settings(/folders|/devices|/language|/kotato?$"),
+			qsl("^settings(/folders|/devices|/language|/kotato)?$"),
 			ResolveSettings
 		},
 		{
