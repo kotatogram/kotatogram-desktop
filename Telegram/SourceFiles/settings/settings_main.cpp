@@ -116,10 +116,13 @@ void SetupSections(
 				tr::lng_settings_section_filters(),
 				st::settingsSectionButton,
 				&st::settingsIconFolders)))->setDuration(0);
+	/*
 	if (!controller->session().data().chatsFilters().list().empty()
 		|| Global::DialogsFiltersEnabled()) {
+	*/
 		slided->show(anim::type::instant);
 		preload();
+	/*
 	} else {
 		const auto enabled = [=] {
 			const auto result = account->appConfig().get<bool>(
@@ -144,6 +147,7 @@ void SetupSections(
 				enabled
 			) | rpl::before_next(preloadIfEnabled));
 	}
+	*/
 	slided->entity()->setClickedCallback([=] {
 		showOther(Type::Folders);
 	});
