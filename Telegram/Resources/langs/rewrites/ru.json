@@ -125,5 +125,11 @@
 	"ktg_settings_chat_id_telegram": "Telegram API",
 	"ktg_settings_chat_id_bot": "Bot API",
 	"ktg_message_id": "ID сообщения: {id}",
-	"ktg_emoji_panel_hover": "Панель эмодзи по наведению"
+	"ktg_emoji_panel_hover": "Панель эмодзи по наведению",
+	"ktg_local_storage_limit_days": {
+		"one": "{count} дня",
+		"few": "{count} дней",
+		"many": "{count} дней",
+		"other": "{count} дней"
+	}
 }

@@ -31,7 +31,7 @@ constexpr auto kMegabyte = int64(1024 * 1024);
 constexpr auto kTotalSizeLimitsCount = 18;
 constexpr auto kMediaSizeLimitsCount = 18;
 constexpr auto kMinimalSizeLimit = 100 * kMegabyte;
-constexpr auto kTimeLimitsCount = 16;
+constexpr auto kTimeLimitsCount = 22;
 constexpr auto kMaxTimeLimitValue = std::numeric_limits<size_type>::max();
 constexpr auto kFakeMediaCacheTag = uint16(0xFFFF);
 
@@ -92,8 +92,16 @@ size_type TimeLimitInDays(int index) {
 	return 0;
 }
 
+size_type TimeLimitInDaysKotato(int index) {
+	if (index < 6) {
+		const auto days = (index + 1);
+		return size_type(days);
+	}
+	return TimeLimitInDays(index - 6);
+}
+
 size_type TimeLimit(int index) {
-	const auto days = TimeLimitInDays(index);
+	const auto days = TimeLimitInDaysKotato(index);
 	return days
 		? (days * 24 * 60 * 60)
 		: kMaxTimeLimitValue;
@@ -105,8 +113,10 @@ QString TimeLimitText(size_type limit) {
 	const auto months = (days / 29);
 	return (months > 0)
 		? tr::lng_local_storage_limit_months(tr::now, lt_count, months)
-		: (limit > 0)
+		: (weeks > 0)
 		? tr::lng_local_storage_limit_weeks(tr::now, lt_count, weeks)
+		: (limit > 0)
+		? tr::ktg_local_storage_limit_days(tr::now, lt_count, days)
 		: tr::lng_local_storage_limit_never(tr::now);
 }
 
