@@ -35,6 +35,19 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.3.6" date="2020-05-22">
+            <description>
+                <p>TDesktop sources were updated to 2.1.6.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Option to disable emoji panel on hover.</li>
+                    <li>Option to use native window frame on Windows and macOS.</li>
+                    <li>Option to disable tray counter.</li>
+                    <li>Option to use Telegram tray icon on Linux panels.</li>
+                    <li>Set media clear limit down to 1 day.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.3.5" date="2020-05-10">
             <description>
                 <p>TDesktop sources were updated to 2.1.4.</p>

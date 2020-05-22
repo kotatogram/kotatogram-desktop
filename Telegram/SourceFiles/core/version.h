@@ -25,5 +25,5 @@ constexpr auto AppName = "Kotatogram Desktop"_cs;
 constexpr auto AppFile = "Kotatogram"_cs;
 constexpr auto AppVersion = 2001006;
 constexpr auto AppVersionStr = "2.1.6";
-constexpr auto AppBetaVersion = false;
+constexpr auto AppBetaVersion = true;
 constexpr auto AppAlphaVersion = TDESKTOP_ALPHA_VERSION;
