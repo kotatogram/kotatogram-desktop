@@ -154,6 +154,8 @@ QIcon TrayIconGen(int counter, bool muted) {
 	const auto iconName = GetTrayIconName(counter, muted);
 
 	if (cDisableTrayCounter()
+		&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")
+		&& cCustomAppIcon() == 0
 		&& !iconName.isEmpty()) {
 		const auto result = QIcon::fromTheme(iconName);
 		UpdateIconRegenerationNeeded(result, counter, muted, iconThemeName);
