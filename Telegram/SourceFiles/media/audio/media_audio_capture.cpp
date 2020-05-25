@@ -9,9 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "media/audio/media_audio_ffmpeg_loader.h"
 
-#include <AL/al.h>
-#include <AL/alc.h>
-#include <AL/alext.h>
+#include <al.h>
+#include <alc.h>
 
 #include <numeric>
 
@@ -63,7 +62,7 @@ Instance::Instance() : _inner(new Inner(&_thread)) {
 void Instance::check() {
 	_available = false;
 	if (auto device = alcGetString(0, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER)) {
-		if (!QString::fromLocal8Bit(device).isEmpty()) {
+		if (!QString::fromUtf8(device).isEmpty()) {
 			_available = true;
 			return;
 		}
