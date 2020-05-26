@@ -586,6 +586,7 @@ jobs:
           -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF \
           $DEFINE
 
+          cd ../out/Release
           cmake --build . -- -j$(nproc)
           DESTDIR=../../AppDir cmake --install .
 
