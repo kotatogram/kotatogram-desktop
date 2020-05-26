@@ -580,14 +580,12 @@ jobs:
           ./configure.sh \
           -GNinja \
           -DCMAKE_INSTALL_PREFIX=/usr \
-          -DCMAKE_CXX_FLAGS="-s" \
           -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FONTS=OFF \
           -DTDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME=OFF \
           $DEFINE
 
-          cd ../out/Debug
           cmake --build . -- -j$(nproc)
           DESTDIR=../../AppDir cmake --install .
 
