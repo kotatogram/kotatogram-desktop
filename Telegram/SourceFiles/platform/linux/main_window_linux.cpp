@@ -111,6 +111,13 @@ int GetCounterSlice(int counter) {
 		: counter;
 }
 
+bool UseIconFromTheme(const QString &iconName) {
+	return cDisableTrayCounter()
+		&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")
+		&& cCustomAppIcon() == 0
+		&& !iconName.isEmpty();
+}
+
 bool IsIconRegenerationNeeded(
 		int counter,
 		bool muted,
@@ -153,10 +160,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 
 	const auto iconName = GetTrayIconName(counter, muted);
 
-	if (cDisableTrayCounter()
-		&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")
-		&& cCustomAppIcon() == 0
-		&& !iconName.isEmpty()) {
+	if (UseIconFromTheme(iconName)) {
 		const auto result = QIcon::fromTheme(iconName);
 		UpdateIconRegenerationNeeded(result, counter, muted, iconThemeName);
 		return result;
@@ -181,7 +185,8 @@ QIcon TrayIconGen(int counter, bool muted) {
 		if (currentImageBack.isNull()
 			|| iconThemeName != TrayIconThemeName
 			|| iconName != TrayIconName
-			|| cCustomAppIcon() != TrayIconCustomId) {
+			|| cCustomAppIcon() != TrayIconCustomId
+			|| cDisableTrayCounter() != TrayIconCounterDisabled) {
 			if (QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
 				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
 			} else if (cCustomAppIcon() != 0) {
@@ -527,8 +532,7 @@ void MainWindow::psTrayMenuUpdated() {
 void MainWindow::setSNITrayIcon(int counter, bool muted) {
 	const auto iconName = GetTrayIconName(counter, muted);
 
-	if (cDisableTrayCounter()
-		&& !iconName.isEmpty()
+	if (UseIconFromTheme(iconName)
 		&& (!InSnap()
 			|| qEnvironmentVariableIsSet(kForcePanelIcon.utf8()))) {
 		if (_sniTrayIcon->iconName() == iconName) {
