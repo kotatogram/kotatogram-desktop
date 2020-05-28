@@ -47,6 +47,10 @@ void SetAdaptiveBubbles(bool enabled);
 [[nodiscard]] bool AdaptiveBubbles();
 [[nodiscard]] rpl::producer<bool> AdaptiveBubblesChanges();
 
+void SetMonospaceLargeBubbles(bool enabled);
+[[nodiscard]] bool MonospaceLargeBubbles();
+[[nodiscard]] rpl::producer<bool> MonospaceLargeBubblesChanges();
+
 DeclareSetting(bool, AlwaysShowScheduled);
 DeclareSetting(int, ShowChatId);
 
