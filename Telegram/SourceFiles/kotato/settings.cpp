@@ -64,6 +64,17 @@ rpl::producer<bool> AdaptiveBubblesChanges() {
 	return gAdaptiveBubbles.changes();
 }
 
+rpl::variable<bool> gMonospaceLargeBubbles = false;
+void SetAdaptiveBubbles(bool enabled) {
+	gMonospaceLargeBubbles = enabled;
+}
+bool MonospaceLargeBubbles() {
+	return gMonospaceLargeBubbles.current();
+}
+rpl::producer<bool> MonospaceLargeBubblesChanges() {
+	return gMonospaceLargeBubbles.changes();
+}
+
 bool gAlwaysShowScheduled = false;
 int gShowChatId = 0;
 
