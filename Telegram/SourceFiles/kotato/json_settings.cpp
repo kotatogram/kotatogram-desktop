@@ -194,6 +194,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
 	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
 	settings.insert(qsl("hover_emoji_panel"), HoverEmojiPanel());
+	settings.insert(qsl("monospace_large_bubbles"), MonospaceLargeBubbles());
 
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
 	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
@@ -311,6 +312,16 @@ bool Manager::readCustomFile() {
 	if (!isAdaptiveBubblesSet) {
 		ReadBoolOption(settings, "adaptive_baloons", [&](auto v) {
 			SetAdaptiveBubbles(v);
+		});
+	}
+
+	auto isMonospaceLargeBubblesSet = ReadBoolOption(settings, "monospace_large_bubbles", [&](auto v) {
+		SetMonospaceLargeBubbles(v);
+	});
+
+	if (!isMonospaceLargeBubblesSet) {
+		ReadBoolOption(settings, "monospace_large_bubbles", [&](auto v) {
+			SetMonospaceLargeBubbles(v);
 		});
 	}
 
