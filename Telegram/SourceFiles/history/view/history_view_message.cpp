@@ -1862,7 +1862,8 @@ int Message::resizeContentGetHeight(int newWidth) {
 	if (!AdaptiveBubbles()) {
 		if (MonospaceLargeBubbles()) {
 			accumulate_min(contentWidth, _bubbleWidthLimit);
-		}	}
+		}
+	}
 	if (mediaDisplayed) {
 		media->resizeGetHeight(contentWidth);
 		if (media->width() < contentWidth) {
