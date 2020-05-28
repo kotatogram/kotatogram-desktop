@@ -65,7 +65,7 @@ rpl::producer<bool> AdaptiveBubblesChanges() {
 }
 
 rpl::variable<bool> gMonospaceLargeBubbles = false;
-void SetAdaptiveBubbles(bool enabled) {
+void SetMonospaceLargeBubbles(bool enabled) {
 	gMonospaceLargeBubbles = enabled;
 }
 bool MonospaceLargeBubbles() {
