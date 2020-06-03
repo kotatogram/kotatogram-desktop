@@ -447,6 +447,7 @@ void paintRow(
 	} else {
 		entry->paintUserpicLeft(
 			p,
+			row->userpicView(),
 			st::dialogsPadding.x(),
 			st::dialogsPadding.y(),
 			fullWidth,
@@ -1201,6 +1202,7 @@ void PaintCollapsedRow(
 	} else {
 		folder->paintUserpicLeft(
 			p,
+			row.userpicView(),
 			(fullWidth - st::dialogsUnreadHeight) / 2,
 			unreadTop,
 			fullWidth,

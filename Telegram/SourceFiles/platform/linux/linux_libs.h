@@ -44,6 +44,9 @@ bool load(QLibrary &lib, const char *name, Function &func) {
 typedef gboolean (*f_gtk_init_check)(int *argc, char ***argv);
 extern f_gtk_init_check gtk_init_check;
 
+typedef GtkSettings* (*f_gtk_settings_get_default)(void);
+extern f_gtk_settings_get_default gtk_settings_get_default;
+
 typedef GtkWidget* (*f_gtk_menu_new)(void);
 extern f_gtk_menu_new gtk_menu_new;
 
@@ -321,6 +324,9 @@ extern f_gtk_menu_popup gtk_menu_popup;
 typedef guint32 (*f_gtk_get_current_event_time)(void);
 extern f_gtk_get_current_event_time gtk_get_current_event_time;
 
+typedef void (*f_g_object_get)(gpointer object, const gchar *first_property_name, ...) G_GNUC_NULL_TERMINATED;
+extern f_g_object_get g_object_get;
+
 typedef gpointer (*f_g_object_ref_sink)(gpointer object);
 extern f_g_object_ref_sink g_object_ref_sink;
 
@@ -347,6 +353,12 @@ extern f_g_error_free g_error_free;
 
 typedef void (*f_g_slist_free)(GSList *list);
 extern f_g_slist_free g_slist_free;
+
+typedef guint (*f_g_log_set_handler)(const gchar *log_domain, GLogLevelFlags log_levels, GLogFunc log_func, gpointer user_data);
+extern f_g_log_set_handler g_log_set_handler;
+
+typedef void (*f_g_log_default_handler)(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer unused_data);
+extern f_g_log_default_handler g_log_default_handler;
 #endif // !TDESKTOP_DISABLE_GTK_INTEGRATION
 
 } // namespace Libs

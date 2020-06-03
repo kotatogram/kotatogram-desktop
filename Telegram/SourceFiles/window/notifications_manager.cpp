@@ -589,8 +589,11 @@ void NativeManager::doShowNotification(
 				: item->notificationText())
 			: tr::lng_forward_messages(tr::now, lt_count, forwardedCount));
 
+	// #TODO optimize
+	auto userpicView = item->history()->peer->createUserpicView();
 	doShowNativeNotification(
 		item->history()->peer,
+		userpicView,
 		item->id,
 		scheduled ? WrapFromScheduled(title) : title,
 		subtitle,
