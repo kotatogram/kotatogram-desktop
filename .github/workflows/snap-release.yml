@@ -18,6 +18,9 @@ jobs:
 
       - name: First set up
         run: |
+          # Workaround for permanent problems with third-party repository keys
+          sudo rm -rf /etc/apt/sources.list.d/*
+
           sudo apt-get update
           sudo snap install --classic snapcraft
 
