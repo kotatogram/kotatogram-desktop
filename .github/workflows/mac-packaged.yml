@@ -80,6 +80,7 @@ jobs:
 
           xcodebuild -version > CACHE_KEY.txt
           echo $MANUAL_CACHING >> CACHE_KEY.txt
+          echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
           if [ "$AUTO_CACHING" == "1" ]; then
             thisFile=$REPO_NAME/.github/workflows/mac-packaged.yml
             echo `md5 -q $thisFile` >> CACHE_KEY.txt

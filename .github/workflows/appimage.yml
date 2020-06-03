@@ -490,10 +490,10 @@ jobs:
           perl init-repository --module-subset=qtbase,qtwayland,qtimageformats,qtsvg,qttools,qtx11extras
           git submodule update qtbase qtwayland qtimageformats qtsvg qttools qtx11extras
           cd qtbase
-          git apply ../../patches/qtbase_${QT}.diff
+          find ../../patches/qtbase_${QT} -type f -print0 | sort -z | xargs -r0 git apply
           cd ..
           cd qtwayland
-          git apply ../../patches/qtwayland_${QT}.diff
+          find ../../patches/qtwayland_${QT} -type f -print0 | sort -z | xargs -r0 git apply
           cd ..
 
           ./configure -prefix /usr/local \
