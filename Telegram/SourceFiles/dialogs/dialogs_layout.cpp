@@ -1191,6 +1191,7 @@ void PaintCollapsedRow(
 
 		folder->paintUserpicLeft(
 			p,
+			row.userpicView(),
 			left,
 			unreadTop,
 			fullWidth,
