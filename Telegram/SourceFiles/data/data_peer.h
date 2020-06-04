@@ -256,11 +256,13 @@ public:
 	}
 	void paintUserpicCircled(
 		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
 		int x,
 		int y,
 		int size) const;
 	void paintUserpicRoundedLarge(
 		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
 		int x,
 		int y,
 		int size) const;
