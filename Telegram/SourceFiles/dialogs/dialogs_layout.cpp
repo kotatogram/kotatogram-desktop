@@ -278,6 +278,7 @@ void paintOneLineRow(
 	} else {
 		entry->paintUserpicLeft(
 			p,
+			row->userpicView(),
 			st::dialogsPadding.x(),
 			st::dialogsPadding.y(),
 			fullWidth,
