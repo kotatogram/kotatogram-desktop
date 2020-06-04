@@ -1425,7 +1425,7 @@ void Gif::playAnimation(bool autoplay) {
 		stopAnimation();
 	} else if (_dataMedia->canBePlayed()) {
 		if (!autoplayEnabled()) {
-			history()->owner().checkPlayingVideoFiles();
+			history()->owner().checkPlayingAnimations();
 		}
 		createStreamedPlayer();
 	}
@@ -1482,12 +1482,11 @@ void Gif::checkStreamedIsStarted() const {
 void Gif::setStreamed(std::unique_ptr<Streamed> value) {
 	const auto removed = (_streamed && !value);
 	const auto set = (!_streamed && value);
-	if (removed) {
-		history()->owner().unregisterPlayingVideoFile(_parent);
-	}
 	_streamed = std::move(value);
 	if (set) {
-		history()->owner().registerPlayingVideoFile(_parent);
+		history()->owner().registerHeavyViewPart(_parent);
+	} else if (removed) {
+		_parent->checkHeavyPart();
 	}
 }
 
@@ -1539,14 +1538,10 @@ void Gif::stopAnimation() {
 	}
 }
 
-int Gif::checkAnimationCount() {
-	if (!_streamed) {
-		return 0;
-	} else if (autoplayEnabled()) {
-		return 1;
+void Gif::checkAnimation() {
+	if (_streamed && !autoplayEnabled()) {
+		stopAnimation();
 	}
-	stopAnimation();
-	return 0;
 }
 
 float64 Gif::dataProgress() const {
