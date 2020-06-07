@@ -366,6 +366,7 @@ jobs:
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         shell: cmd
+        timeout-minutes: 120
         run: |
           cd %REPO_NAME%
           call vcvars32.bat
@@ -379,6 +380,15 @@ jobs:
           -D DESKTOP_APP_USE_PACKAGED=OFF ^
           %TDESKTOP_BUILD_DEFINE% ^
           -DCMAKE_SYSTEM_VERSION=%SDK%
+
+          cmake --build build
+
+      - name: Re-run build on failure.
+        if: failure()
+        timeout-minutes: 30
+        run: |
+          cd %REPO_NAME%
+          call vcvars32.bat
 
           cmake --build build
 
