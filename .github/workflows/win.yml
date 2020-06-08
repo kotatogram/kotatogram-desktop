@@ -385,6 +385,7 @@ jobs:
 
       - name: Re-run build on failure.
         if: failure()
+        shell: cmd
         timeout-minutes: 30
         run: |
           cd %REPO_NAME%
