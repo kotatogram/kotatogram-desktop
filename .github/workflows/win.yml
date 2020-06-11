@@ -368,30 +368,30 @@ jobs:
         shell: cmd
         timeout-minutes: 120
         run: |
-          cd %REPO_NAME%
-          call vcvars32.bat
-
-          cmake -B build . ^
-          -GNinja ^
-          -DCMAKE_BUILD_TYPE=Debug ^
-          -DCMAKE_C_COMPILER=cl ^
-          -DCMAKE_CXX_COMPILER=cl ^
+          cd %REPO_NAME%\Telegram
+          
+          call configure.bat ^
           -D TDESKTOP_API_TEST=ON ^
           -D DESKTOP_APP_USE_PACKAGED=OFF ^
+          -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON ^
+          -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON ^
           %TDESKTOP_BUILD_DEFINE% ^
           -DCMAKE_SYSTEM_VERSION=%SDK%
 
-          cmake --build build
+          call vcvars32.bat
+          cd ..\out
+          msbuild Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
+
 
       - name: Re-run build on failure.
         if: failure()
         shell: cmd
         timeout-minutes: 30
         run: |
-          cd %REPO_NAME%
+          cd %REPO_NAME%\out
           call vcvars32.bat
 
-          cmake --build build
+          msbuild Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
