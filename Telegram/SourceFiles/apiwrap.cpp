@@ -733,17 +733,18 @@ void ApiWrap::finalizeMessageDataRequest(
 	}
 }
 
-QString ApiWrap::exportDirectMessageLink(not_null<HistoryItem*> item) {
+QString ApiWrap::exportDirectMessageLink(not_null<HistoryItem*> item, bool forcePrivate) {
 	Expects(item->history()->peer->isChannel());
 
 	const auto itemId = item->fullId();
 	const auto channel = item->history()->peer->asChannel();
+	const auto useUsername = channel->hasUsername() && !forcePrivate;
 	const auto fallback = [&] {
-		const auto base = channel->hasUsername()
+		const auto base = useUsername
 			? channel->username
 			: "c/" + QString::number(channel->bareId());
 		const auto query = base + '/' + QString::number(item->id);
-		if (channel->hasUsername() && !channel->isMegagroup()) {
+		if (useUsername && !channel->isMegagroup()) {
 			if (const auto media = item->media()) {
 				if (const auto document = media->document()) {
 					if (document->isVideoMessage()) {
