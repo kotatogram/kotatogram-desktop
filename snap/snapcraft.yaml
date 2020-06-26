@@ -13,7 +13,7 @@ architectures:
   - build-on: ppc64el
 
 apps:
-  telegram-desktop:
+  kotatogram-desktop:
     command: bin/desktop-launch kotatogram-desktop
     common-id: io.github.kotatogram
     desktop: usr/share/applications/kotatogramdesktop.desktop
