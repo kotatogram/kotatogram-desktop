@@ -414,7 +414,7 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
-#ifdef Q_OS_LINUX
+#if defined Q_OS_UNIX && !defined Q_OS_MAC
 	AddButton(
 		container,
 		tr::ktg_settings_use_telegram_panel_icon(),
@@ -429,7 +429,7 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 		Notify::unreadCounterUpdated();
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
-#endif // Q_OS_LINUX
+#endif // Q_OS_UNIX && !Q_OS_MAC
 
 	const QMap<int, QString> trayIconOptions = {
 		{ 0, TrayIconLabel(0) },
