@@ -45,8 +45,6 @@ using Manager = Platform::Notifications::Manager;
 
 } // namespace
 
-NSImage *qt_mac_create_nsimage(const QPixmap &pm);
-
 @interface NotificationDelegate : NSObject<NSUserNotificationCenterDelegate> {
 }
 
@@ -244,7 +242,7 @@ void Manager::Private::showNotification(
 		auto userpic = peer->isSelf()
 			? Ui::EmptyUserpic::GenerateSavedMessages(st::notifyMacPhotoSize)
 			: peer->genUserpic(userpicView, st::notifyMacPhotoSize);
-		NSImage *img = [qt_mac_create_nsimage(userpic) autorelease];
+		NSImage *img = [ToNSImage(userpic) autorelease];
 		[notification setContentImage:img];
 	}
 

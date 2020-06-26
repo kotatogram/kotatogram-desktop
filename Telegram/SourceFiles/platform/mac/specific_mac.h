@@ -10,6 +10,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/platform_specific.h"
 #include "platform/mac/specific_mac_p.h"
 
+Q_FORWARD_DECLARE_OBJC_CLASS(NSImage);
+
 namespace Data {
 class LocationPoint;
 } // namespace Data
@@ -27,6 +29,8 @@ inline void FallbackFontConfigCheckEnd() {
 inline QImage GetImageFromClipboard() {
 	return {};
 }
+
+NSImage *ToNSImage(const QPixmap &pixmap);
 
 namespace ThirdParty {
 
