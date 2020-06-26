@@ -369,7 +369,7 @@ jobs:
         timeout-minutes: 120
         run: |
           cd %REPO_NAME%\Telegram
-
+          
           call configure.bat ^
           -D TDESKTOP_API_TEST=ON ^
           -D DESKTOP_APP_USE_PACKAGED=OFF ^
@@ -380,7 +380,7 @@ jobs:
 
           call vcvars32.bat
           cd ..\out
-          msbuild -m Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
+          msbuild Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
 
 
       - name: Re-run build on failure.
@@ -391,7 +391,7 @@ jobs:
           cd %REPO_NAME%\out
           call vcvars32.bat
 
-          msbuild -m Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
+          msbuild Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
