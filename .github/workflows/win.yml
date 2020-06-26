@@ -301,7 +301,7 @@ jobs:
         uses: actions/cache@v1
         with:
           path: ${{ env.LibrariesPath }}/Qt-5.12.8
-          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_8.diff') }}
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_8/*') }}
       - name: Configure Qt 5.12.8.
         if: steps.cache-qt.outputs.cache-hit != 'true'
         shell: cmd
@@ -397,7 +397,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         shell: cmd
         run: |
-          cd %REPO_NAME%\build\bin
+          cd %REPO_NAME%\out\Debug
           mkdir artifact
           move Kotatogram.exe artifact/
           move Updater.exe artifact/
@@ -406,4 +406,4 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.REPO_NAME }}\build\bin\artifact\
+          path: ${{ env.REPO_NAME }}\out\Debug\artifact\

@@ -139,7 +139,7 @@ void MainWindow::createTrayIconMenu() {
 		? tr::ktg_settings_disable_sound_from_tray(tr::now)
 		: tr::ktg_settings_enable_sound_from_tray(tr::now);
 
-	if (Platform::IsLinux()) {
+	if (Platform::IsLinux() && !Platform::IsWayland()) {
 		trayIconMenu->addAction(tr::ktg_open_from_tray(tr::now), this, SLOT(showFromTray()));
 	}
 	trayIconMenu->addAction(tr::lng_minimize_to_tray(tr::now), this, SLOT(minimizeToTray()));
@@ -593,12 +593,12 @@ void MainWindow::updateTrayMenu(bool force) {
 	if (!trayIconMenu || (Platform::IsWindows() && !force)) return;
 
 	auto actions = trayIconMenu->actions();
-	if (Platform::IsLinux()) {
+	if (Platform::IsLinux() && !Platform::IsWayland()) {
 		auto minimizeAction = actions.at(1);
 		minimizeAction->setEnabled(isVisible());
 	} else {
 		updateIsActive(0);
-		auto active = isActive();
+		auto active = Platform::IsWayland() ? isVisible() : isActive();
 		auto toggleAction = actions.at(0);
 		disconnect(toggleAction, SIGNAL(triggered(bool)), this, SLOT(minimizeToTray()));
 		disconnect(toggleAction, SIGNAL(triggered(bool)), this, SLOT(showFromTray()));
@@ -607,7 +607,7 @@ void MainWindow::updateTrayMenu(bool force) {
 			? tr::lng_minimize_to_tray(tr::now)
 			: tr::ktg_open_from_tray(tr::now));
 	}
-	auto notificationAction = actions.at(Platform::IsLinux() ? 2 : 1);
+	auto notificationAction = actions.at(Platform::IsLinux() && !Platform::IsWayland() ? 2 : 1);
 	auto notificationActionText = Global::DesktopNotify()
 		? tr::lng_disable_notifications_from_tray(tr::now)
 		: tr::lng_enable_notifications_from_tray(tr::now);
@@ -738,7 +738,7 @@ void MainWindow::handleTrayIconActication(
 		updateTrayMenu(true);
 		QTimer::singleShot(1, this, SLOT(psShowTrayMenu()));
 	} else if (!skipTrayClick()) {
-		if (isActive()) {
+		if (Platform::IsWayland() ? isVisible() : isActive()) {
 			minimizeToTray();
 		} else {
 			showFromTray(reason);

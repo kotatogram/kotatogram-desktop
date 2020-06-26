@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "app.h"
 
+#include <QtGui/QSessionManager>
 #include <QtGui/QScreen>
 
 namespace Core {
@@ -84,9 +85,9 @@ Sandbox::Sandbox(
 : QApplication(argc, argv)
 , _mainThreadId(QThread::currentThreadId())
 , _handleObservables([=] {
-	Expects(_application != nullptr);
-
-	_application->call_handleObservables();
+	if (_application) {
+		_application->call_handleObservables();
+	}
 })
 , _launcher(launcher) {
 }
@@ -131,6 +132,19 @@ int Sandbox::start() {
 			closeApplication();
 		});
 	});
+
+	// https://github.com/telegramdesktop/tdesktop/issues/948
+	// and https://github.com/telegramdesktop/tdesktop/issues/5022
+	const auto restartHint = [](QSessionManager &manager) {
+		manager.setRestartHint(QSessionManager::RestartNever);
+	};
+
+	connect(
+		this,
+		&QGuiApplication::saveStateRequest,
+		this,
+		restartHint,
+		Qt::DirectConnection);
 
 	if (cManyInstance()) {
 		LOG(("Many instance allowed, starting..."));

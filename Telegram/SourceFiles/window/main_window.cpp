@@ -139,7 +139,7 @@ QIcon CreateOfficialIcon(Main::Account *account) {
 QIcon CreateIcon(Main::Account *account) {
 	auto result = CreateOfficialIcon(account);
 
-#ifdef Q_OS_LINUX
+#if defined Q_OS_UNIX && !defined Q_OS_MAC
 	if (
 		(!account
 			|| !account->sessionExists()
@@ -635,7 +635,7 @@ bool MainWindow::minimizeToTray() {
 }
 
 void MainWindow::reActivateWindow() {
-#if defined Q_OS_LINUX32 || defined Q_OS_LINUX64
+#if defined Q_OS_UNIX && !defined Q_OS_MAC
 	const auto reActivate = [=] {
 		if (const auto w = App::wnd()) {
 			if (auto f = QApplication::focusWidget()) {
@@ -650,7 +650,7 @@ void MainWindow::reActivateWindow() {
 	};
 	crl::on_main(this, reActivate);
 	base::call_delayed(200, this, reActivate);
-#endif // Q_OS_LINUX32 || Q_OS_LINUX64
+#endif // Q_OS_UNIX && !Q_OS_MAC
 }
 
 void MainWindow::showRightColumn(object_ptr<TWidget> widget) {

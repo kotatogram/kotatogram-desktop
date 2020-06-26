@@ -353,11 +353,11 @@ OverlayWidget::OverlayWidget()
 		}
 	}, lifetime());
 
-#ifdef Q_OS_LINUX
+#if defined Q_OS_UNIX && !defined Q_OS_MAC
 	setWindowFlags(Qt::FramelessWindowHint | Qt::MaximizeUsingFullscreenGeometryHint);
-#else // Q_OS_LINUX
+#else // Q_OS_UNIX && !Q_OS_MAC
 	setWindowFlags(Qt::FramelessWindowHint);
-#endif // Q_OS_LINUX
+#endif // Q_OS_UNIX && !Q_OS_MAC
 	moveToScreen();
 	setAttribute(Qt::WA_NoSystemBackground, true);
 	setAttribute(Qt::WA_TranslucentBackground, true);
@@ -1538,6 +1538,21 @@ Data::FileOrigin OverlayWidget::fileOrigin() const {
 	return Data::FileOrigin();
 }
 
+Data::FileOrigin OverlayWidget::fileOrigin(const Entity &entity) const {
+	if (const auto item = entity.item) {
+		return item->fullId();
+	} else if (!entity.data.is<not_null<PhotoData*>>()) {
+		return Data::FileOrigin();
+	}
+	const auto photo = entity.data.get_unchecked<not_null<PhotoData*>>();
+	if (_user) {
+		return Data::FileOriginUserPhoto(_user->bareId(), photo->id);
+	} else if (_peer && _peer->userpicPhotoId() == photo->id) {
+		return Data::FileOriginPeerPhoto(_peer->id);
+	}
+	return Data::FileOrigin();
+}
+
 bool OverlayWidget::validSharedMedia() const {
 	if (auto key = sharedMediaKey()) {
 		if (!_sharedMedia) {
@@ -1883,8 +1898,6 @@ void OverlayWidget::showPhoto(not_null<PhotoData*> photo, HistoryItem *context) 
 	_firstOpenedPeerPhoto = false;
 	assignMediaPointer(photo);
 
-	refreshMediaViewer();
-
 	displayPhoto(photo, context);
 	preloadData(0);
 	activateControls();
@@ -1896,8 +1909,6 @@ void OverlayWidget::showPhoto(not_null<PhotoData*> photo, not_null<PeerData*> co
 	clearControlsState();
 	_firstOpenedPeerPhoto = true;
 	assignMediaPointer(photo);
-
-	refreshMediaViewer();
 
 	displayPhoto(photo, nullptr);
 	preloadData(0);
@@ -2031,6 +2042,7 @@ void OverlayWidget::displayDocument(
 				initThemePreview();
 			} else {
 				_documentMedia->automaticLoad(fileOrigin(), item);
+				_document->saveFromDataSilent();
 				auto &location = _document->location(true);
 				if (location.accessEnable()) {
 					const auto &path = location.name();
@@ -2144,11 +2156,11 @@ void OverlayWidget::displayFinished() {
 	updateControls();
 	if (isHidden()) {
 		Ui::Platform::UpdateOverlayed(this);
-#ifdef Q_OS_LINUX
+#if defined Q_OS_UNIX && !defined Q_OS_MAC
 		showFullScreen();
-#else // Q_OS_LINUX
+#else // Q_OS_UNIX && !Q_OS_MAC
 		show();
-#endif // Q_OS_LINUX
+#endif // Q_OS_UNIX && !Q_OS_MAC
 		Ui::Platform::ShowOverAll(this);
 		activateWindow();
 		QApplication::setActiveWindow(this);
@@ -3420,16 +3432,17 @@ OverlayWidget::Entity OverlayWidget::entityByIndex(int index) const {
 	return { std::nullopt, nullptr };
 }
 
-void OverlayWidget::setContext(base::optional_variant<
+void OverlayWidget::setContext(
+	base::optional_variant<
 		not_null<HistoryItem*>,
 		not_null<PeerData*>> context) {
-	if (auto item = base::get_if<not_null<HistoryItem*>>(&context)) {
+	if (const auto item = base::get_if<not_null<HistoryItem*>>(&context)) {
 		_msgid = (*item)->fullId();
 		_canForwardItem = (*item)->allowsForward();
 		_canDeleteItem = (*item)->canDelete();
 		_history = (*item)->history();
 		_peer = _history->peer;
-	} else if (auto peer = base::get_if<not_null<PeerData*>>(&context)) {
+	} else if (const auto peer = base::get_if<not_null<PeerData*>>(&context)) {
 		_msgid = FullMsgId();
 		_canForwardItem = _canDeleteItem = false;
 		_history = (*peer)->owner().history(*peer);
@@ -3498,15 +3511,15 @@ void OverlayWidget::preloadData(int delta) {
 		auto entity = entityByIndex(index);
 		if (auto photo = base::get_if<not_null<PhotoData*>>(&entity.data)) {
 			const auto [i, ok] = photos.emplace((*photo)->createMediaView());
-			(*i)->wanted(Data::PhotoSize::Small, fileOrigin());
-			(*photo)->load(fileOrigin(), LoadFromCloudOrLocal, true);
+			(*i)->wanted(Data::PhotoSize::Small, fileOrigin(entity));
+			(*photo)->load(fileOrigin(entity), LoadFromCloudOrLocal, true);
 		} else if (auto document = base::get_if<not_null<DocumentData*>>(
 				&entity.data)) {
 			const auto [i, ok] = documents.emplace(
 				(*document)->createMediaView());
-			(*i)->thumbnailWanted(fileOrigin());
+			(*i)->thumbnailWanted(fileOrigin(entity));
 			if (!(*i)->canBePlayed()) {
-				(*i)->automaticLoad(fileOrigin(), entity.item);
+				(*i)->automaticLoad(fileOrigin(entity), entity.item);
 			}
 		}
 	}

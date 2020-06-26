@@ -65,6 +65,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/tabbed_section.h"
 #include "chat_helpers/bot_keyboard.h"
 #include "chat_helpers/message_field.h"
+#include "platform/platform_specific.h"
 #include "lang/lang_keys.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
@@ -2102,6 +2103,7 @@ void HistoryWidget::refreshScheduledToggle() {
 				controller()->showSection(
 					HistoryView::ScheduledMemento(_history));
 			});
+			orderWidgets(); // Raise drag areas to the top.
 		}
 	}
 }
@@ -3068,8 +3070,9 @@ void HistoryWidget::saveEditMsg() {
 	if (webPageId == CancelledWebPageId) {
 		sendFlags |= MTPmessages_EditMessage::Flag::f_no_webpage;
 	}
-	auto localEntities = Api::EntitiesToMTP(sending.entities);
+	auto localEntities = Api::EntitiesToMTP(&session(), sending.entities);
 	auto sentEntities = Api::EntitiesToMTP(
+		&session(),
 		sending.entities,
 		Api::ConvertOption::SkipLocal);
 	if (!sentEntities.v.isEmpty()) {
@@ -4605,7 +4608,10 @@ bool HistoryWidget::confirmSendingFiles(
 	}
 
 	if (hasImage) {
-		auto image = qvariant_cast<QImage>(data->imageData());
+		auto image = Platform::GetImageFromClipboard();
+		if (image.isNull()) {
+			image = qvariant_cast<QImage>(data->imageData());
+		}
 		if (!image.isNull()) {
 			confirmSendingFiles(
 				std::move(image),
@@ -4755,7 +4761,7 @@ void HistoryWidget::sendFileConfirmed(
 		session().user()).flags;
 	TextUtilities::PrepareForSending(caption, prepareFlags);
 	TextUtilities::Trim(caption);
-	auto localEntities = Api::EntitiesToMTP(caption.entities);
+	auto localEntities = Api::EntitiesToMTP(&session(), caption.entities);
 
 	if (itemToEdit) {
 		if (const auto id = itemToEdit->groupId()) {
