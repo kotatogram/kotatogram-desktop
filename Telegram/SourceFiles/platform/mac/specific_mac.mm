@@ -266,6 +266,18 @@ bool AutostartSupported() {
 	return false;
 }
 
+NSImage *ToNSImage(const QPixmap &pixmap) {
+    if (pixmap.isNull())
+        return 0;
+    CGImageRef cgimage = pixmap.toImage().toCGImage();
+    NSBitmapImageRep *bitmapRep = [[NSBitmapImageRep alloc] initWithCGImage:cgimage];
+    NSImage *image = [[NSImage alloc] init];
+    [image addRepresentation:bitmapRep];
+    [bitmapRep release];
+    CFRelease(cgimage);
+    return image;
+}
+
 } // namespace Platform
 
 void psNewVersion() {

@@ -42,8 +42,6 @@
 #include "facades.h"
 #include "app.h"
 
-NSImage *qt_mac_create_nsimage(const QPixmap &pm);
-
 namespace {
 //https://developer.apple.com/design/human-interface-guidelines/macos/touch-bar/touch-bar-icons-and-images/
 constexpr auto kIdealIconSize = 36;
@@ -143,7 +141,7 @@ NSImage *CreateNSImageFromStyleIcon(const style::icon &icon, int size = kIdealIc
 	const auto instance = icon.instance(QColor(255, 255, 255, 255), 100);
 	auto pixmap = QPixmap::fromImage(instance);
 	pixmap.setDevicePixelRatio(cRetinaFactor());
-	NSImage *image = [qt_mac_create_nsimage(pixmap) autorelease];
+	NSImage *image = [Platform::ToNSImage(pixmap) autorelease];
 	[image setSize:NSMakeSize(size, size)];
 	return image;
 }
@@ -163,7 +161,7 @@ NSImage *CreateNSImageFromEmoji(EmojiPtr emoji) {
 		0,
 		0);
 #endif // OS_MAC_OLD
-	return [qt_mac_create_nsimage(pixmap) autorelease];
+	return [Platform::ToNSImage(pixmap) autorelease];
 }
 
 int WidthFromString(NSString *s) {
@@ -649,7 +647,7 @@ void AppendEmojiPacks(std::vector<PickerScrubberItem> &to) {
 
 - (void) updateImage:(QPixmap)pixmap {
 	NSButton *button = self.view;
-	NSImage *image = [qt_mac_create_nsimage(pixmap) autorelease];
+	NSImage *image = [Platform::ToNSImage(pixmap) autorelease];
 	[image setSize:NSMakeSize(kCircleDiameter, kCircleDiameter)];
 	[button.cell setImage:image];
 }
@@ -709,7 +707,7 @@ void AppendEmojiPacks(std::vector<PickerScrubberItem> &to) {
 - (void)updateImage {
 	const auto size = _dimensions
 			.scaled(kCircleDiameter, kCircleDiameter, Qt::KeepAspectRatio);
-	_imageView.image = [qt_mac_create_nsimage(
+	_imageView.image = [Platform::ToNSImage(
 		_image->pixSingle(
 			size.width(),
 			size.height(),
