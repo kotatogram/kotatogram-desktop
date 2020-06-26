@@ -323,7 +323,7 @@ void MainWindow::Private::initCustomTitle() {
 
 	if (UseNativeDecorations()) {
 		_useNativeTitle = true;
-		setWindowTitle(qsl("Telegram"));
+		setWindowTitle(qsl("Kotatogram"));
 	}
 #endif // !OS_MAC_OLD
 }
