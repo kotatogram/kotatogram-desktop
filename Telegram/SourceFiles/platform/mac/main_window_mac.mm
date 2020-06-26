@@ -298,10 +298,12 @@ void MainWindow::Private::initCustomTitle() {
 	// Emulate custom title instead (code below).
 	//
 	// Tried to backport a fix, testing.
-	[_nativeWindow setStyleMask:[_nativeWindow styleMask] | NSFullSizeContentViewWindowMask];
-	auto inner = [_nativeWindow contentLayoutRect];
-	auto full = [_nativeView frame];
-	_public->_customTitleHeight = qMax(qRound(full.size.height - inner.size.height), 0);
+	if (!UseNativeDecorations()) {
+		[_nativeWindow setStyleMask:[_nativeWindow styleMask] | NSFullSizeContentViewWindowMask];
+		auto inner = [_nativeWindow contentLayoutRect];
+		auto full = [_nativeView frame];
+		_public->_customTitleHeight = qMax(qRound(full.size.height - inner.size.height), 0);
+	}
 
 	// Qt still has some bug with layer-backed widgets containing QOpenGLWidgets.
 	// See https://github.com/telegramdesktop/tdesktop/issues/4150
@@ -319,9 +321,10 @@ void MainWindow::Private::initCustomTitle() {
 		}
 	});
 
-	// Disabled for now.
-	//_useNativeTitle = true;
-	//setWindowTitle(qsl("Telegram"));
+	if (UseNativeDecorations()) {
+		_useNativeTitle = true;
+		setWindowTitle(qsl("Kotatogram"));
+	}
 #endif // !OS_MAC_OLD
 }
 
