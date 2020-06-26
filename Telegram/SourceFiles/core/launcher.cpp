@@ -104,7 +104,7 @@ void ComputeTestMode() {
 }
 
 void ComputeExternalUpdater() {
-	QFile file(qsl("/etc/tdesktop/externalupdater"));
+	QFile file(qsl("/etc/kotatogram-desktop/externalupdater"));
 
 	if (file.exists() && file.open(QIODevice::ReadOnly)) {
 		QTextStream fileStream(&file);
