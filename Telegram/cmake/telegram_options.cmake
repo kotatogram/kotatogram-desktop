@@ -63,9 +63,9 @@ if (DESKTOP_APP_DISABLE_AUTOUPDATE)
     target_compile_definitions(Telegram PRIVATE TDESKTOP_DISABLE_AUTOUPDATE)
 endif()
 
-if (DESKTOP_APP_SPECIAL_TARGET)
-    target_compile_definitions(Telegram PRIVATE TDESKTOP_ALLOW_CLOSED_ALPHA)
-endif()
+# if (DESKTOP_APP_SPECIAL_TARGET)
+#     target_compile_definitions(Telegram PRIVATE TDESKTOP_ALLOW_CLOSED_ALPHA)
+# endif()
 
 if (TDESKTOP_USE_FONTCONFIG_FALLBACK)
     target_compile_definitions(Telegram PRIVATE TDESKTOP_USE_FONTCONFIG_FALLBACK)
