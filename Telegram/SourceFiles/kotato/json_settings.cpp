@@ -315,15 +315,9 @@ bool Manager::readCustomFile() {
 		});
 	}
 
-	auto isMonospaceLargeBubblesSet = ReadBoolOption(settings, "monospace_large_bubbles", [&](auto v) {
+	ReadBoolOption(settings, "monospace_large_bubbles", [&](auto v) {
 		SetMonospaceLargeBubbles(v);
 	});
-
-	if (!isMonospaceLargeBubblesSet) {
-		ReadBoolOption(settings, "monospace_large_bubbles", [&](auto v) {
-			SetMonospaceLargeBubbles(v);
-		});
-	}
 
 	ReadBoolOption(settings, "big_emoji_outline", [&](auto v) {
 		SetBigEmojiOutline(v);
