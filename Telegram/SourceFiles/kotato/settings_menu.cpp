@@ -313,6 +313,7 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 
 	SettingsMenuSwitch(ktg_settings_adaptive_bubbles, AdaptiveBubbles);
+	SettingsMenuSwitch(ktg_settings_monospace_large_bubbles, MonospaceLargeBubbles);
 	SettingsMenuSwitch(ktg_settings_emoji_outline, BigEmojiOutline);
 
 	AddSkip(container);

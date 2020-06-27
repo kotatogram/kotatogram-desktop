@@ -1814,7 +1814,9 @@ QRect Message::countGeometry() const {
 	}
 	accumulate_min(contentWidth, maxWidth());
 	if (!AdaptiveBubbles()) {
-		accumulate_min(contentWidth, _bubbleWidthLimit);
+		if (MonospaceLargeBubbles()) {
+			accumulate_min(contentWidth, _bubbleWidthLimit);
+		}
 	}
 	if (mediaWidth < contentWidth) {
 		const auto textualWidth = plainMaxWidth();
@@ -1859,7 +1861,9 @@ int Message::resizeContentGetHeight(int newWidth) {
 	accumulate_min(contentWidth, maxWidth());
 	_bubbleWidthLimit = std::max(st::msgMaxWidth, monospaceMaxWidth());
 	if (!AdaptiveBubbles()) {
-		accumulate_min(contentWidth, _bubbleWidthLimit);
+		if (MonospaceLargeBubbles()) {
+			accumulate_min(contentWidth, _bubbleWidthLimit);
+		}
 	}
 	if (mediaDisplayed) {
 		media->resizeGetHeight(contentWidth);
