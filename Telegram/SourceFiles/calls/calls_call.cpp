@@ -37,6 +37,17 @@ void AppendEndpoint(
 		if (data.vpeer_tag().v.length() != 16) {
 			return;
 		}
+#ifdef Q_OS_WIN
+		auto endpoint = TgVoipEndpoint();
+		endpoint.endpointId = (int64_t)data.vid().v;
+
+		endpoint.host = TgVoipEdpointHost();
+		endpoint.host.ipv4 = data.vip().v.toStdString();
+		endpoint.host.ipv6 = data.vipv6().v.toStdString();
+		
+		endpoint.port = (uint16_t)data.vport().v;
+		endpoint.type = TgVoipEndpointType::UdpRelay;
+#else
 		auto endpoint = TgVoipEndpoint{
 			.endpointId = (int64_t)data.vid().v,
 			.host = TgVoipEdpointHost{
@@ -45,6 +56,7 @@ void AppendEndpoint(
 			.port = (uint16_t)data.vport().v,
 			.type = TgVoipEndpointType::UdpRelay
 		};
+#endif
 		const auto tag = data.vpeer_tag().v;
 		if (tag.size() >= 16) {
 			memcpy(endpoint.peerTag, tag.data(), 16);
