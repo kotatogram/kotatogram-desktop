@@ -278,6 +278,8 @@ windowFilterSmallItem: PeerListItem(defaultPeerListItem) {
 	height: 44px;
 	photoPosition: point(15px, 5px);
 	namePosition: point(62px, 14px);
+	chatNamePosition: point(62px, 5px);
+	chatDescPosition: point(62px, 23px);
 	photoSize: 34px;
 	checkbox: RoundImageCheckbox(defaultPeerListCheckbox) {
 		imageRadius: 17px;
@@ -319,6 +321,13 @@ windowFilterAboutPadding: margins(22px, 0px, 22px, 19px);
 windowArchiveToast: Toast(defaultToast) {
 	minWidth: boxWideWidth;
 	maxWidth: boxWideWidth;
+}
+
+windowFilterChatNameStyle: TextStyle(defaultTextStyle) {
+	font: font(11px semibold);
+}
+windowFilterChatDescStyle: TextStyle(defaultTextStyle) {
+	font: font(11px);
 }
 
 // Mac specific

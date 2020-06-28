@@ -139,5 +139,13 @@
 	"ktg_supergroup_id_copied": "ID супергруппы скопирован.",
 	"ktg_channel_id_copied": "ID канала скопирован.",
 	"ktg_phone_copied": "Номер телефона скопирован.",
-	"ktg_mention_copied": "Имя пользователя скопировано."
+	"ktg_mention_copied": "Имя пользователя скопировано.",
+	"ktg_status_mutual_contact": "взаимный контакт",
+	"ktg_status_contact": "контакт",
+	"ktg_status_non_contact": "не контакт",
+	"ktg_supergroup_status": "супергруппа",
+	"ktg_group_status_not_in": "не участник",
+	"ktg_channel_status_not_in": "не подписчик",
+	"ktg_group_status_owner": "вы владелец",
+	"ktg_group_status_admin": "вы админ"
 }
