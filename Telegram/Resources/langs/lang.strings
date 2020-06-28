@@ -2533,4 +2533,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_settings_monospace_large_bubbles" = "Expand bubbles with monospace";
 
+"ktg_bot_id_copied" = "Bot ID copied to clipboard.";
+"ktg_user_id_copied" = "User ID copied to clipboard.";
+"ktg_group_id_copied" = "Group ID copied to clipboard.";
+"ktg_supergroup_id_copied" = "Supergroup ID copied to clipboard.";
+"ktg_channel_id_copied" = "Channel ID copied to clipboard.";
+
+"ktg_phone_copied" = "Phone copied to clipboard.";
+"ktg_mention_copied" = "Username copied to clipboard.";
+
 // Keys finished

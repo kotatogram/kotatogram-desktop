@@ -48,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "styles/style_info.h"
 #include "styles/style_boxes.h"
+#include "app.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
@@ -255,19 +256,41 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		result->setContextCopyText(contextCopyText);
 		return result;
 	};
+	auto addInfoOneLineInline = [&](
+			rpl::producer<QString> &&label,
+			rpl::producer<TextWithEntities> &&text,
+			const QString &contextCopyText) {
+		auto result = addInfoLine(
+			std::move(label),
+			std::move(text),
+			st::infoLabeledOneLineInline);
+		result->setContextCopyText(contextCopyText);
+		return result;
+	};
 	if (const auto user = _peer->asUser()) {
 		if (cShowChatId() != 0) {
-			if (user->isBot()) {
-				addInfoOneLine(
-					tr::ktg_profile_bot_id(),
-					IDValue(user),
-					tr::ktg_profile_copy_id(tr::now));
-			} else {
-				addInfoOneLine(
-					tr::ktg_profile_user_id(),
-					IDValue(user),
-					tr::ktg_profile_copy_id(tr::now));
-			}
+			auto idDrawableText = IDValue(
+				user
+			) | rpl::map([](TextWithEntities &&text) {
+				return Ui::Text::Link(text.text);
+			});
+			auto idInfo = addInfoOneLineInline(
+				(user->isBot()
+					? tr::ktg_profile_bot_id()
+					: tr::ktg_profile_user_id()),
+				std::move(idDrawableText),
+				tr::ktg_profile_copy_id(tr::now));
+
+			idInfo->setClickHandlerFilter([user](auto&&...) {
+				const auto idText = IDString(user);
+				if (!idText.isEmpty()) {
+					QGuiApplication::clipboard()->setText(idText);
+					Ui::Toast::Show(user->isBot()
+						? tr::ktg_bot_id_copied(tr::now)
+						: tr::ktg_user_id_copied(tr::now));
+				}
+				return false;
+			});
 		}
 
 		if (user->session().supportMode()) {
@@ -275,20 +298,63 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				user->session().supportHelper().infoLabelValue(user),
 				user->session().supportHelper().infoTextValue(user));
 		}
+		
+		auto phoneDrawableText = rpl::combine(
+			PhoneValue(user),
+			UsernameValue(user),
+			AboutValue(user),
+			tr::lng_info_mobile_hidden()
+		) | rpl::map([](
+				const TextWithEntities &phone,
+				const TextWithEntities &username,
+				const TextWithEntities &bio,
+				const QString &hidden) {
+			return (phone.text.isEmpty() && username.text.isEmpty() && bio.text.isEmpty())
+				? Ui::Text::WithEntities(hidden)
+				: Ui::Text::Link(phone.text);
+		});
 
-		addInfoOneLine(
+		auto phoneInfo = addInfoOneLineInline(
 			tr::lng_info_mobile_label(),
-			PhoneOrHiddenValue(user),
+			std::move(phoneDrawableText),
 			tr::lng_profile_copy_phone(tr::now));
+
+		phoneInfo->setClickHandlerFilter([user](auto&&...) {
+			const auto phoneText = user->phone();
+			if (!phoneText.isEmpty()) {
+				QGuiApplication::clipboard()->setText(App::formatPhone(phoneText));
+				Ui::Toast::Show(tr::ktg_phone_copied(tr::now));
+			}
+			return false;
+		});
+		
 		if (user->isBot()) {
 			addInfoLine(tr::lng_info_about_label(), AboutValue(user));
 		} else {
 			addInfoLine(tr::lng_info_bio_label(), AboutValue(user));
 		}
-		addInfoOneLine(
+
+		auto usernameDrawableText = UsernameValue(
+			user
+		) | rpl::map([](TextWithEntities &&username) {
+			return username.text.isEmpty()
+				? TextWithEntities()
+				: Ui::Text::Link(username.text);
+		});
+
+		auto usernameInfo = addInfoOneLineInline(
 			tr::lng_info_username_label(),
-			UsernameValue(user),
+			std::move(usernameDrawableText),
 			tr::lng_context_copy_mention(tr::now));
+
+		usernameInfo->setClickHandlerFilter([user](auto&&...) {
+			const auto usernameText = user->userName();
+			if (!usernameText.isEmpty()) {
+				QGuiApplication::clipboard()->setText('@' + usernameText);
+				Ui::Toast::Show(tr::ktg_mention_copied(tr::now));
+			}
+			return false;
+		});
 
 		const auto window = &_controller->parentController()->window();
 		AddMainButton(
@@ -299,22 +365,32 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			tracker);
 	} else {
 		if (cShowChatId() != 0) {
-			if (_peer->isChat()) {
-				addInfoOneLine(
-					tr::ktg_profile_group_id(),
-					IDValue(_peer),
-					tr::ktg_profile_copy_id(tr::now));
-			} else if (_peer->isMegagroup()) {
-				addInfoOneLine(
-					tr::ktg_profile_supergroup_id(),
-					IDValue(_peer),
-					tr::ktg_profile_copy_id(tr::now));
-			} else {
-				addInfoOneLine(
-					tr::ktg_profile_channel_id(),
-					IDValue(_peer),
-					tr::ktg_profile_copy_id(tr::now));
-			}
+			auto idDrawableText = IDValue(
+				_peer
+			) | rpl::map([](TextWithEntities &&text) {
+				return Ui::Text::Link(text.text);
+			});
+			auto idInfo = addInfoOneLineInline(
+				(_peer->isChat()
+					? tr::ktg_profile_group_id()
+					: _peer->isMegagroup()
+					? tr::ktg_profile_supergroup_id()
+					: tr::ktg_profile_channel_id()),
+				std::move(idDrawableText),
+				tr::ktg_profile_copy_id(tr::now));
+
+			idInfo->setClickHandlerFilter([peer = _peer](auto&&...) {
+				const auto idText = IDString(peer);
+				if (!idText.isEmpty()) {
+					QGuiApplication::clipboard()->setText(idText);
+					Ui::Toast::Show(peer->isChat()
+						? tr::ktg_group_id_copied(tr::now)
+						: peer->isMegagroup()
+						? tr::ktg_supergroup_id_copied(tr::now)
+						: tr::ktg_channel_id_copied(tr::now));
+				}
+				return false;
+			});
 		}
 
 		auto linkText = LinkValue(

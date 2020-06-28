@@ -132,5 +132,12 @@
 		"many": "{count} дней",
 		"other": "{count} дней"
 	},
-	"ktg_settings_monospace_large_bubbles": "Расширять моноширинные сообщения"
+	"ktg_settings_monospace_large_bubbles": "Расширять моноширинные сообщения",
+	"ktg_bot_id_copied": "ID бота скопирован.",
+	"ktg_user_id_copied": "ID пользователя скопирован.",
+	"ktg_group_id_copied": "ID группы скопирован.",
+	"ktg_supergroup_id_copied": "ID супергруппы скопирован.",
+	"ktg_channel_id_copied": "ID канала скопирован.",
+	"ktg_phone_copied": "Номер телефона скопирован.",
+	"ktg_mention_copied": "Имя пользователя скопировано."
 }

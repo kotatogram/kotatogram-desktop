@@ -47,7 +47,7 @@ auto PlainUsernameValue(not_null<PeerData*> peer) {
 
 } // namespace
 
-rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer) {
+QString IDString(not_null<PeerData*> peer) {
 	auto resultId = QString::number(peer->bareId());
 
 	if (cShowChatId() == 2) {
@@ -58,7 +58,11 @@ rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer) {
 		}
 	}
 
-	return rpl::single(resultId) | Ui::Text::ToWithEntities();
+	return resultId;
+}
+
+rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer) {
+	return rpl::single(IDString(peer)) | Ui::Text::ToWithEntities();
 }
 
 rpl::producer<TextWithEntities> NameValue(not_null<PeerData*> peer) {
@@ -76,39 +80,6 @@ rpl::producer<TextWithEntities> PhoneValue(not_null<UserData*> user) {
 			Notify::PeerUpdate::Flag::UserPhoneChanged
 	) | rpl::map([user] {
 		return App::formatPhone(user->phone());
-	}) | Ui::Text::ToWithEntities();
-}
-
-rpl::producer<TextWithEntities> PhoneOrHiddenValue(not_null<UserData*> user) {
-	return rpl::combine(
-		PhoneValue(user),
-		PlainUsernameValue(user),
-		PlainBioValue(user),
-		tr::lng_info_mobile_hidden()
-	) | rpl::map([](
-			const TextWithEntities &phone,
-			const QString &username,
-			const QString &bio,
-			const QString &hidden) {
-		return (phone.text.isEmpty() && username.isEmpty() && bio.isEmpty())
-			? Ui::Text::WithEntities(hidden)
-			: phone;
-	});
-}
-
-rpl::producer<TextWithEntities> BioValue(not_null<UserData*> user) {
-	return PlainBioValue(user)
-		| ToSingleLine()
-		| Ui::Text::ToWithEntities();
-}
-
-rpl::producer<TextWithEntities> UsernameValue(not_null<UserData*> user) {
-	return PlainUsernameValue(
-		user
-	) | rpl::map([](QString &&username) {
-		return username.isEmpty()
-			? QString()
-			: ('@' + username);
 	}) | Ui::Text::ToWithEntities();
 }
 
@@ -140,6 +111,39 @@ rpl::producer<TextWithEntities> AboutValue(not_null<PeerData*> peer) {
 		TextUtilities::ParseEntities(text, flags);
 		return std::move(text);
 	});
+}
+
+rpl::producer<TextWithEntities> PhoneOrHiddenValue(not_null<UserData*> user) {
+	return rpl::combine(
+		PhoneValue(user),
+		PlainUsernameValue(user),
+		PlainAboutValue(user),
+		tr::lng_info_mobile_hidden()
+	) | rpl::map([](
+			const TextWithEntities &phone,
+			const QString &username,
+			const QString &bio,
+			const QString &hidden) {
+		return (phone.text.isEmpty() && username.isEmpty() && bio.isEmpty())
+			? Ui::Text::WithEntities(hidden)
+			: phone;
+	});
+}
+
+rpl::producer<TextWithEntities> BioValue(not_null<UserData*> user) {
+	return PlainBioValue(user)
+		| ToSingleLine()
+		| Ui::Text::ToWithEntities();
+}
+
+rpl::producer<TextWithEntities> UsernameValue(not_null<UserData*> user) {
+	return PlainUsernameValue(
+		user
+	) | rpl::map([](QString &&username) {
+		return username.isEmpty()
+			? QString()
+			: ('@' + username);
+	}) | Ui::Text::ToWithEntities();
 }
 
 rpl::producer<QString> LinkValue(not_null<PeerData*> peer) {
