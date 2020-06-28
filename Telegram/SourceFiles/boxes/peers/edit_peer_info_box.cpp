@@ -192,6 +192,8 @@ void SaveSlowmodeSeconds(
 	api->registerModifyRequest(key, requestId);
 }
 
+} // namespace
+
 void ShowEditPermissions(not_null<PeerData*> peer) {
 	const auto box = Ui::show(
 		Box<EditPeerPermissionsBox>(peer),
@@ -232,8 +234,6 @@ void ShowEditPermissions(not_null<PeerData*> peer) {
 		});
 	}, box->lifetime());
 }
-
-} // namespace
 
 namespace {
 

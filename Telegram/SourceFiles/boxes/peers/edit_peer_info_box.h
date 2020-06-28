@@ -23,6 +23,8 @@ class VerticalLayout;
 class SettingsButton;
 } // namespace Ui
 
+void ShowEditPermissions(not_null<PeerData*> peer);
+
 class EditPeerInfoBox : public Ui::BoxContent {
 public:
 	EditPeerInfoBox(

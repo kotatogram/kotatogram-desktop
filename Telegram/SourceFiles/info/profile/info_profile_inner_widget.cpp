@@ -98,6 +98,10 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 	} else {
 		result->add(std::move(details));
 	}
+	if (auto manage = SetupManage(_controller, result.data(), _peer)) {
+		result->add(object_ptr<Ui::BoxContentDivider>(result));
+		result->add(std::move(manage));
+	}
 	result->add(setupSharedMedia(result.data()));
 	if (auto members = SetupChannelMembers(_controller, result.data(), _peer)) {
 		result->add(std::move(members));
