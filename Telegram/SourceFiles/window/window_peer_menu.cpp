@@ -15,11 +15,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/create_poll_box.h"
 #include "boxes/peers/add_participants_box.h"
 #include "boxes/peers/edit_contact_box.h"
+#include "boxes/share_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/layers/generic_box.h"
+#include "core/application.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
 #include "mainwidget.h"
@@ -31,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "history/history_message.h" // GetErrorTextForSending.
 #include "history/history_widget.h"
+#include "history/view/history_view_context_menu.h" // CopyPostLink.
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "support/support_helper.h"
@@ -45,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat.h"
 #include "data/data_drafts.h"
 #include "data/data_user.h"
+#include "data/data_game.h"
 #include "data/data_scheduled_messages.h"
 #include "data/data_histories.h"
 #include "data/data_chat_filters.h"
@@ -56,6 +60,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h" // st::windowMinWidth
 #include "styles/style_history.h" // st::historyErrorToast
 
+#include <QtGui/QGuiApplication>
+#include <QtGui/QClipboard>
 #include <QtWidgets/QAction>
 
 namespace Window {
@@ -968,6 +974,7 @@ void PeerMenuUnblockUserWithBotRestart(not_null<UserData*> user) {
 	});
 }
 
+/*
 QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		not_null<Window::SessionNavigation*> navigation,
 		MessageIdsList &&items,
@@ -1009,6 +1016,163 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 			navigation,
 			std::move(callback)),
 		std::move(initBox)), Ui::LayerOption::KeepOther);
+	return weak->data();
+}
+*/
+
+QPointer<Ui::RpWidget> ShowForwardMessagesBox(
+		not_null<Window::SessionNavigation*> navigation,
+		MessageIdsList &&items,
+		FnMut<void()> &&successCallback) {
+	struct ShareData {
+		ShareData(not_null<PeerData*> peer, MessageIdsList &&ids)
+		: peer(peer)
+		, msgIds(std::move(ids)) {
+		}
+		not_null<PeerData*> peer;
+		MessageIdsList msgIds;
+		base::flat_set<mtpRequestId> requests;
+	};
+	const auto weak = std::make_shared<QPointer<ShareBox>>();
+	const auto item = App::wnd()->sessionController()->session().data().message(items[0]);
+	const auto history = item->history();
+	const auto owner = &history->owner();
+	const auto isGroup = (owner->groups().find(item) != nullptr);
+	const auto isGame = item->getMessageBot()
+		&& item->media()
+		&& (item->media()->game() != nullptr);
+	const auto canCopyLink = items.size() == 1 && (item->hasDirectLink() || isGame);
+	const auto data = std::make_shared<ShareData>(history->peer, std::move(items));
+
+	auto copyCallback = [=]() {
+		if (const auto item = owner->message(data->msgIds[0])) {
+			if (item->hasDirectLink()) {
+				HistoryView::CopyPostLink(item->fullId());
+			} else if (const auto bot = item->getMessageBot()) {
+				if (const auto media = item->media()) {
+					if (const auto game = media->game()) {
+						const auto link = Core::App().createInternalLinkFull(
+							bot->username
+							+ qsl("?game=")
+							+ game->shortName);
+
+						QGuiApplication::clipboard()->setText(link);
+
+						Ui::Toast::Show(tr::lng_share_game_link_copied(tr::now));
+					}
+				}
+			}
+		}
+	};
+	auto submitCallback = [=](
+			std::vector<not_null<PeerData*>> &&result,
+			TextWithTags &&comment,
+			Api::SendOptions options) {
+		if (!data->requests.empty()) {
+			return; // Share clicked already.
+		}
+		auto items = history->owner().idsToItems(data->msgIds);
+		if (items.empty() || result.empty()) {
+			return;
+		}
+
+		const auto error = [&] {
+			for (const auto peer : result) {
+				const auto error = GetErrorTextForSending(
+					peer,
+					items,
+					comment);
+				if (!error.isEmpty()) {
+					return std::make_pair(error, peer);
+				}
+			}
+			return std::make_pair(QString(), result.front());
+		}();
+		if (!error.first.isEmpty()) {
+			auto text = TextWithEntities();
+			if (result.size() > 1) {
+				text.append(
+					Ui::Text::Bold(error.second->name)
+				).append("\n\n");
+			}
+			text.append(error.first);
+			Ui::show(
+				Box<InformBox>(text),
+				Ui::LayerOption::KeepOther);
+			return;
+		}
+
+		const auto sendFlags = MTPmessages_ForwardMessages::Flag(0)
+			| MTPmessages_ForwardMessages::Flag::f_with_my_score
+			| (isGroup
+				? MTPmessages_ForwardMessages::Flag::f_grouped
+				: MTPmessages_ForwardMessages::Flag(0))
+			| (options.silent
+				? MTPmessages_ForwardMessages::Flag::f_silent
+				: MTPmessages_ForwardMessages::Flag(0))
+			| (options.scheduled
+				? MTPmessages_ForwardMessages::Flag::f_schedule_date
+				: MTPmessages_ForwardMessages::Flag(0));
+		auto msgIds = QVector<MTPint>();
+		msgIds.reserve(data->msgIds.size());
+		for (const auto fullId : data->msgIds) {
+			msgIds.push_back(MTP_int(fullId.msg));
+		}
+		auto generateRandom = [&] {
+			auto result = QVector<MTPlong>(data->msgIds.size());
+			for (auto &value : result) {
+				value = rand_value<MTPlong>();
+			}
+			return result;
+		};
+		auto &api = owner->session().api();
+		auto &histories = owner->histories();
+		const auto requestType = Data::Histories::RequestType::Send;
+		for (const auto peer : result) {
+			const auto history = owner->history(peer);
+			if (!comment.text.isEmpty()) {
+				auto message = ApiWrap::MessageToSend(history);
+				message.textWithTags = comment;
+				message.action.options = options;
+				message.action.clearDraft = false;
+				api.sendMessage(std::move(message));
+			}
+			histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+				auto &api = history->session().api();
+				history->sendRequestId = api.request(MTPmessages_ForwardMessages(
+						MTP_flags(sendFlags),
+						data->peer->input,
+						MTP_vector<MTPint>(msgIds),
+						MTP_vector<MTPlong>(generateRandom()),
+						peer->input,
+						MTP_int(options.scheduled)
+				)).done([=](const MTPUpdates &updates, mtpRequestId requestId) {
+					history->session().api().applyUpdates(updates);
+					data->requests.remove(requestId);
+					if (data->requests.empty()) {
+						Ui::Toast::Show(tr::lng_share_done(tr::now));
+						Ui::hideLayer();
+					}
+					finish();
+				}).fail([=](const RPCError &error) {
+					finish();
+				}).afterRequest(history->sendRequestId).send();
+				return history->sendRequestId;
+			});
+			data->requests.insert(history->sendRequestId);
+		}
+	};
+	auto filterCallback = [](PeerData *peer) {
+		return peer->canWrite();
+	};
+	auto copyLinkCallback = canCopyLink
+		? Fn<void()>(std::move(copyCallback))
+		: Fn<void()>();
+	*weak = Ui::show(Box<ShareBox>(
+		App::wnd()->sessionController(),
+		std::move(copyLinkCallback),
+		std::move(submitCallback),
+		std::move(filterCallback)));
 	return weak->data();
 }
 
