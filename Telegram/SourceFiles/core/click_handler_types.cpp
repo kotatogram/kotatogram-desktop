@@ -15,7 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/confirm_box.h"
 #include "kotato/customboxes/confirm_box.h"
 #include "base/qthelp_regex.h"
-#include "storage/localstorage.h"
+#include "storage/storage_account.h"
 #include "history/view/history_view_element.h"
 #include "history/history_item.h"
 #include "data/data_user.h"
@@ -84,12 +84,14 @@ void BotGameUrlClickHandler::onClick(ClickContext context) const {
 	};
 	if (url.startsWith(qstr("tg://"), Qt::CaseInsensitive)) {
 		open();
-	} else if (!_bot || _bot->isVerified() || Local::isBotTrusted(_bot)) {
+	} else if (!_bot
+		|| _bot->isVerified()
+		|| _bot->session().local().isBotTrusted(_bot)) {
 		open();
 	} else {
 		const auto callback = [=, bot = _bot] {
 			Ui::hideLayer();
-			Local::makeBotTrusted(bot);
+			bot->session().local().markBotTrusted(bot);
 			open();
 		};
 		Ui::show(Box<ConfirmBox>(
@@ -110,7 +112,9 @@ QString MentionClickHandler::copyToClipboardContextItemText() const {
 void MentionClickHandler::onClick(ClickContext context) const {
 	const auto button = context.button;
 	if (button == Qt::LeftButton || button == Qt::MiddleButton) {
-		App::main()->openPeerByName(_tag.mid(1), ShowAtProfileMsgId);
+		if (const auto m = App::main()) { // multi good
+			m->openPeerByName(_tag.mid(1), ShowAtProfileMsgId);
+		}
 	}
 }
 
@@ -121,7 +125,7 @@ auto MentionClickHandler::getTextEntity() const -> TextEntity {
 void MentionNameClickHandler::onClick(ClickContext context) const {
 	const auto button = context.button;
 	if (button == Qt::LeftButton || button == Qt::MiddleButton) {
-		if (auto user = Auth().data().userLoaded(_userId)) {
+		if (auto user = _session->data().userLoaded(_userId)) {
 			Ui::showPeerProfile(user);
 		}
 	}
@@ -133,7 +137,7 @@ auto MentionNameClickHandler::getTextEntity() const -> TextEntity {
 }
 
 QString MentionNameClickHandler::tooltip() const {
-	if (const auto user = Auth().data().userLoaded(_userId)) {
+	if (const auto user = _session->data().userLoaded(_userId)) {
 		const auto name = user->name;
 		if (name != _text) {
 			return name;

@@ -16,14 +16,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_lock_widgets.h"
 #include "window/window_outdated_bar.h"
 #include "window/window_controller.h"
-#include "boxes/confirm_box.h"
 #include "main/main_account.h" // Account::sessionValue.
-#include "core/click_handler_types.h"
 #include "core/application.h"
 #include "core/sandbox.h"
 #include "lang/lang_keys.h"
 #include "data/data_session.h"
 #include "main/main_session.h"
+#include "main/main_session_settings.h"
 #include "base/crc32hash.h"
 #include "base/call_delayed.h"
 #include "ui/toast/toast.h"
@@ -33,7 +32,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "app.h"
 #include "styles/style_window.h"
-#include "styles/style_layers.h"
 
 #include <QtWidgets/QDesktopWidget>
 #include <QtCore/QMimeData>
@@ -118,7 +116,7 @@ void ConvertIconToBlack(QImage &image) {
 	}
 }
 
-QIcon CreateOfficialIcon(Main::Account *account) {
+QIcon CreateOfficialIcon(Main::Session *session) {
 	const auto customIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	auto image = customIcon.isNull()
@@ -127,17 +125,15 @@ QIcon CreateOfficialIcon(Main::Account *account) {
 			: LoadLogo(cCustomAppIcon())
 		: customIcon;
 
-	if (account
-		&& account->sessionExists()
-		&& account->session().supportMode()) {
+	if (session && session->supportMode()) {
 		ConvertIconToBlack(image);
 	}
 
 	return QIcon(App::pixmapFromImageInPlace(std::move(image)));
 }
 
-QIcon CreateIcon(Main::Account *account) {
-	auto result = CreateOfficialIcon(account);
+QIcon CreateIcon(Main::Session *session) {
+	auto result = CreateOfficialIcon(session);
 
 #if defined Q_OS_UNIX && !defined Q_OS_MAC
 	if (
@@ -165,17 +161,15 @@ MainWindow::MainWindow(not_null<Controller*> controller)
 			updatePalette();
 		}
 	});
-	subscribe(Global::RefUnreadCounterUpdate(), [=] {
+
+	Core::App().unreadBadgeChanges(
+	) | rpl::start_with_next([=] {
 		updateUnreadCounter();
-	});
+	}, lifetime());
+
 	subscribe(Global::RefWorkMode(), [=](DBIWorkMode mode) {
 		workmodeUpdated(mode);
 	});
-
-	Core::App().termsLockValue(
-	) | rpl::start_with_next([=] {
-		checkLockByTerms();
-	}, lifetime());
 
 	Ui::Toast::SetDefaultParent(_body.data());
 
@@ -190,8 +184,6 @@ MainWindow::MainWindow(not_null<Controller*> controller)
 			updateControlsGeometry();
 		}, _outdated->lifetime());
 	}
-
-	_isActiveTimer.setCallback([this] { updateIsActive(0); });
 }
 
 Main::Account &MainWindow::account() const {
@@ -202,106 +194,24 @@ Window::SessionController *MainWindow::sessionController() const {
 	return _controller->sessionController();
 }
 
-void MainWindow::checkLockByTerms() {
-	const auto data = Core::App().termsLocked();
-	if (!data || !account().sessionExists()) {
-		if (_termsBox) {
-			_termsBox->closeBox();
-		}
-		return;
-	}
-	Ui::hideSettingsAndLayer(anim::type::instant);
-	const auto box = Ui::show(Box<TermsBox>(
-		*data,
-		tr::lng_terms_agree(),
-		tr::lng_terms_decline()));
-
-	box->setCloseByEscape(false);
-	box->setCloseByOutsideClick(false);
-
-	const auto id = data->id;
-	box->agreeClicks(
-	) | rpl::start_with_next([=] {
-		const auto mention = box ? box->lastClickedMention() : QString();
-		if (account().sessionExists()) {
-			account().session().api().acceptTerms(id);
-			if (!mention.isEmpty()) {
-				MentionClickHandler(mention).onClick({});
-			}
-		}
-		Core::App().unlockTerms();
-	}, box->lifetime());
-
-	box->cancelClicks(
-	) | rpl::start_with_next([=] {
-		showTermsDecline();
-	}, box->lifetime());
-
-	connect(box, &QObject::destroyed, [=] {
-		crl::on_main(this, [=] { checkLockByTerms(); });
-	});
-
-	_termsBox = box;
-}
-
-void MainWindow::showTermsDecline() {
-	const auto box = Ui::show(
-		Box<Window::TermsBox>(
-			TextWithEntities{ tr::lng_terms_update_sorry(tr::now) },
-			tr::lng_terms_decline_and_delete(),
-			tr::lng_terms_back(),
-			true),
-		Ui::LayerOption::KeepOther);
-
-	box->agreeClicks(
-	) | rpl::start_with_next([=] {
-		if (box) {
-			box->closeBox();
-		}
-		showTermsDelete();
-	}, box->lifetime());
-
-	box->cancelClicks(
-	) | rpl::start_with_next([=] {
-		if (box) {
-			box->closeBox();
-		}
-	}, box->lifetime());
-}
-
-void MainWindow::showTermsDelete() {
-	const auto box = std::make_shared<QPointer<Ui::BoxContent>>();
-	const auto deleteByTerms = [=] {
-		if (account().sessionExists()) {
-			account().session().termsDeleteNow();
-		} else {
-			Ui::hideLayer();
-		}
-	};
-	*box = Ui::show(
-		Box<ConfirmBox>(
-			tr::lng_terms_delete_warning(tr::now),
-			tr::lng_terms_delete_now(tr::now),
-			st::attentionBoxButton,
-			deleteByTerms,
-			[=] { if (*box) (*box)->closeBox(); }),
-		Ui::LayerOption::KeepOther);
-}
-
 bool MainWindow::hideNoQuit() {
 	if (App::quitting()) {
 		return false;
 	}
 	if (Global::WorkMode().value() == dbiwmTrayOnly || Global::WorkMode().value() == dbiwmWindowAndTray) {
 		if (minimizeToTray()) {
-			Ui::showChatsList();
+			if (const auto controller = sessionController()) {
+				Ui::showChatsList(&controller->session());
+			}
 			return true;
 		}
 	} else if (Platform::IsMac()) {
 		closeWithoutDestroy();
-		updateIsActive(Global::OfflineBlurTimeout());
+		controller().updateIsActiveBlur();
 		updateGlobalMenu();
-		Ui::showChatsList();
+		if (const auto controller = sessionController()) {
+			Ui::showChatsList(&controller->session());
+		}
 		return true;
 	}
 	return false;
@@ -312,10 +222,7 @@ void MainWindow::clearWidgets() {
 	updateGlobalMenu();
 }
 
-void MainWindow::updateIsActive(int timeout) {
-	if (timeout > 0) {
-		return _isActiveTimer.callOnce(timeout);
-	}
+void MainWindow::updateIsActive() {
 	_isActive = computeIsActive();
 	updateIsActiveHook();
 }
@@ -325,10 +232,12 @@ bool MainWindow::computeIsActive() const {
 }
 
 void MainWindow::updateWindowIcon() {
-	const auto supportIcon = account().sessionExists()
-		&& account().session().supportMode();
+	const auto session = sessionController()
+		? &sessionController()->session()
+		: nullptr;
+	const auto supportIcon = session && session->supportMode();
 	if (supportIcon != _usingSupportIcon || _icon.isNull() || _customIconId != cCustomAppIcon()) {
-		_icon = CreateIcon(&account());
+		_icon = CreateIcon(session);
 		_usingSupportIcon = supportIcon;
 		_customIconId = cCustomAppIcon();
 	}
@@ -368,7 +277,11 @@ void MainWindow::init() {
 
 void MainWindow::handleStateChanged(Qt::WindowState state) {
 	stateChangedHook(state);
-	updateIsActive((state == Qt::WindowMinimized) ? Global::OfflineBlurTimeout() : Global::OnlineFocusTimeout());
+	if (state == Qt::WindowMinimized) {
+		controller().updateIsActiveBlur();
+	} else {
+		controller().updateIsActiveFocus();
+	}
 	Core::App().updateNonIdle();
 	if (state == Qt::WindowMinimized && Global::WorkMode().value() == dbiwmTrayOnly) {
 		minimizeToTray();
@@ -442,10 +355,10 @@ void MainWindow::initSize() {
 		? primaryScreen->availableGeometry()
 		: QRect(0, 0, st::windowDefaultWidth, st::windowDefaultHeight);
 	bool maximized = false;
-	const auto initialWidth = Main::Settings::ThirdColumnByDefault()
+	const auto initialWidth = Core::Settings::ThirdColumnByDefault()
 		? st::windowBigDefaultWidth
 		: st::windowDefaultWidth;
-	const auto initialHeight = Main::Settings::ThirdColumnByDefault()
+	const auto initialHeight = Core::Settings::ThirdColumnByDefault()
 		? st::windowBigDefaultHeight
 		: st::windowDefaultHeight;
 	auto geometry = QRect(
@@ -558,11 +471,11 @@ void MainWindow::updateControlsGeometry() {
 }
 
 void MainWindow::updateUnreadCounter() {
-	if (!Global::started() || App::quitting()) return;
+	if (App::quitting()) {
+		return;
+	}
 
-	const auto counter = account().sessionExists()
-		? account().session().data().unreadBadge()
-		: 0;
+	const auto counter = Core::App().unreadBadge();
 	_titleText = (counter > 0) ? qsl("Kotatogram (%1)").arg(counter) : qsl("Kotatogram");
 
 	unreadCounterChangedHook();
@@ -627,7 +540,7 @@ bool MainWindow::minimizeToTray() {
 	if (App::quitting() || !hasTrayIcon()) return false;
 
 	closeWithoutDestroy();
-	updateIsActive(Global::OfflineBlurTimeout());
+	controller().updateIsActiveBlur();
 	updateTrayMenu();
 	updateGlobalMenu();
 	showTrayTooltip();

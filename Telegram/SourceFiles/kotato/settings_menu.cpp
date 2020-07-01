@@ -169,7 +169,9 @@ QString ChatIdLabel(int option) {
 	::Kotato::JsonSettings::Write(); \
 }, container->lifetime());
 
-void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
+void SetupKotatoChats(
+	not_null<Window::SessionController*> controller,
+	not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_chats());
 
@@ -222,7 +224,21 @@ void SetupKotatoChats(not_null<Ui::VerticalLayout*> container) {
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
-	SettingsMenuCSwitch(ktg_settings_always_show_scheduled, AlwaysShowScheduled);
+	AddButton(
+		container,
+		tr::ktg_settings_always_show_scheduled(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cAlwaysShowScheduled())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cAlwaysShowScheduled());
+	}) | rpl::start_with_next([controller](bool enabled) {
+		cSetAlwaysShowScheduled(enabled);
+		Notify::showScheduledButtonChanged(&controller->session());
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
 	SettingsMenuSwitch(ktg_emoji_panel_hover, HoverEmojiPanel);
 
 	AddButton(
@@ -403,7 +419,9 @@ void SetupKotatoFolders(
 	AddSkip(container);
 }
 
-void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
+void SetupKotatoSystem(
+	not_null<Window::SessionController*> controller,
+	not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
@@ -446,9 +464,9 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
 		return (enabled != cDisableTrayCounter());
-	}) | rpl::start_with_next([](bool enabled) {
+	}) | rpl::start_with_next([controller](bool enabled) {
 		cSetDisableTrayCounter(enabled);
-		Notify::unreadCounterUpdated();
+		controller->session().data().notifyUnreadBadgeChanged();
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
@@ -464,7 +482,7 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 		return (enabled != cUseTelegramPanelIcon());
 	}) | rpl::start_with_next([](bool enabled) {
 		cSetUseTelegramPanelIcon(enabled);
-		Notify::unreadCounterUpdated();
+		controller->session().data().notifyUnreadBadgeChanged();
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 #endif // Q_OS_UNIX && !Q_OS_MAC
@@ -480,9 +498,9 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 
 	auto trayIconText = rpl::single(
 		rpl::empty_value()
-	) | rpl::then(base::ObservableViewer(
-		Global::RefUnreadCounterUpdate()
-	)) | rpl::map([] {
+	) | rpl::then(
+		controller->session().data().unreadBadgeChanges()
+	) | rpl::map([] {
 		return TrayIconLabel(cCustomAppIcon());
 	});
 
@@ -499,7 +517,7 @@ void SetupKotatoSystem(not_null<Ui::VerticalLayout*> container) {
 			trayIconOptions,
 			[=] (int value) {
 				cSetCustomAppIcon(value);
-				Notify::unreadCounterUpdated();
+				controller->session().data().notifyUnreadBadgeChanged();
 				::Kotato::JsonSettings::Write();
 			}, false));
 	});
@@ -565,11 +583,11 @@ Kotato::Kotato(
 void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 
-	SetupKotatoChats(content);
+	SetupKotatoChats(controller, content);
 	SetupKotatoMessages(content);
 	SetupKotatoNetwork(content);
 	SetupKotatoFolders(controller, content);
-	SetupKotatoSystem(content);
+	SetupKotatoSystem(controller, content);
 	SetupKotatoOther(content);
 
 	Ui::ResizeFitChild(this, content);

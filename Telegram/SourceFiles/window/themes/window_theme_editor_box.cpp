@@ -400,16 +400,16 @@ bool CopyColorsToPalette(
 	if (slug.size() < kMinSlugSize || slug.size() > kMaxSlugSize) {
 		return false;
 	}
-	const auto i = ranges::find_if(slug, [](QChar ch) {
+	return ranges::none_of(slug, [](QChar ch) {
 		return (ch < 'A' || ch > 'Z')
 			&& (ch < 'a' || ch > 'z')
 			&& (ch < '0' || ch > '9')
 			&& (ch != '_');
 	});
-	return (i == slug.end());
 }
 
 SendMediaReady PrepareThemeMedia(
+		MTP::DcId dcId,
 		const QString &name,
 		const QByteArray &content) {
 	PreparedPhotoThumbs thumbnails;
@@ -453,7 +453,7 @@ SendMediaReady PrepareThemeMedia(
 		MTP_int(content.size()),
 		MTP_vector<MTPPhotoSize>(sizes),
 		MTPVector<MTPVideoSize>(),
-		MTP_int(MTP::maindc()),
+		MTP_int(dcId),
 		MTP_vector<MTPDocumentAttribute>(attributes));
 
 	return SendMediaReady(
@@ -586,7 +586,10 @@ Fn<void()> SavePreparedTheme(
 	};
 
 	const auto uploadFile = [=](const QByteArray &theme) {
-		const auto media = PrepareThemeMedia(fields.title, theme);
+		const auto media = PrepareThemeMedia(
+			session->mainDcId(),
+			fields.title,
+			theme);
 		state->filename = media.filename;
 		state->themeContent = theme;
 
@@ -840,7 +843,7 @@ void SaveThemeBox(
 		st::createThemeLink,
 		rpl::single(qsl("link")),
 		cloud.slug.isEmpty() ? GenerateSlug() : cloud.slug,
-		true);
+		window->account().session().createInternalLink(QString()));
 	linkWrap->widthValue(
 	) | rpl::start_with_next([=](int width) {
 		link->resize(width, link->height());
@@ -851,7 +854,7 @@ void SaveThemeBox(
 		linkWrap->resize(linkWrap->width(), height);
 	}, link->lifetime());
 	link->setLinkPlaceholder(
-		Core::App().createInternalLink(qsl("addtheme/")));
+		window->account().session().createInternalLink(qsl("addtheme/")));
 	link->setPlaceholderHidden(false);
 	link->setMaxLength(kMaxSlugSize);
 

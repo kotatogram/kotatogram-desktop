@@ -215,7 +215,7 @@ void FillMenu(
 		if (type != Type::Kotato) {
 			addAction(
 				tr::lng_settings_logout(tr::now),
-				[=] { window->widget()->onLogout(); });
+				[=] { window->widget()->showLogoutConfirmation(); });
 		}
 	}
 }

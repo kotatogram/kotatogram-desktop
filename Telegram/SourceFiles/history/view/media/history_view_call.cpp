@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_cursor_state.h"
+#include "core/application.h"
 #include "calls/calls_instance.h"
 #include "data/data_media_types.h"
 #include "data/data_user.h"
@@ -54,10 +55,10 @@ QSize Call::countOptimalSize() {
 			if (cConfirmBeforeCall()) {
 				Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
 					Ui::hideLayer();
-					user->session().calls().startOutgoingCall(user);
+					Core::App().calls().startOutgoingCall(user);
 				}));
 			} else {
-				user->session().calls().startOutgoingCall(user);
+				Core::App().calls().startOutgoingCall(user);
 			}
 		}
 	});

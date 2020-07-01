@@ -8,13 +8,13 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #pragma once
 
 #include "boxes/abstract_box.h"
-#include "mtproto/mtproto_rpc_sender.h"
+#include "mtproto/sender.h"
 
 namespace Ui {
 class FlatLabel;
 } // namespace Ui
 
-class UnpinMessageBox : public Ui::BoxContent, public RPCSender {
+class UnpinMessageBox final : public Ui::BoxContent {
 public:
 	UnpinMessageBox(QWidget*, not_null<PeerData*> peer);
 
@@ -27,10 +27,9 @@ protected:
 private:
 	void unpinMessage();
 	void hideMessage();
-	void unpinDone(const MTPUpdates &updates);
-	bool unpinFail(const RPCError &error);
 
-	not_null<PeerData*> _peer;
+	const not_null<PeerData*> _peer;
+	MTP::Sender _api;
 
 	object_ptr<Ui::FlatLabel> _text;
 

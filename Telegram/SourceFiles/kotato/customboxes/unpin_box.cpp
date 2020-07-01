@@ -13,9 +13,9 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/labels.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_changes.h"
 #include "data/data_user.h"
 #include "main/main_session.h"
-#include "observer_peer.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 
@@ -23,6 +23,7 @@ UnpinMessageBox::UnpinMessageBox(
 	QWidget*,
 	not_null<PeerData*> peer)
 : _peer(peer)
+, _api(&peer->session().mtp())
 , _text(this, tr::lng_pinned_unpin_sure(tr::now), st::boxLabel) {
 }
 
@@ -54,13 +55,17 @@ void UnpinMessageBox::keyPressEvent(QKeyEvent *e) {
 void UnpinMessageBox::unpinMessage() {
 	if (_requestId) return;
 
-	_requestId = MTP::send(
-		MTPmessages_UpdatePinnedMessage(
-			MTP_flags(0),
-			_peer->input,
-			MTP_int(0)),
-		rpcDone(&UnpinMessageBox::unpinDone),
-		rpcFail(&UnpinMessageBox::unpinFail));
+	//auto flags = MTPmessages_UpdatePinnedMessage::Flags(0);
+	_requestId = _api.request(MTPmessages_UpdatePinnedMessage(
+		MTP_flags(0),
+		_peer->input,
+		MTP_int(0)
+	)).done([=](const MTPUpdates &result) {
+		_peer->session().api().applyUpdates(result);
+		Ui::hideLayer();
+	}).fail([=](const RPCError &error) {
+		Ui::hideLayer();
+	}).send();
 }
 
 void UnpinMessageBox::hideMessage() {
@@ -68,21 +73,7 @@ void UnpinMessageBox::hideMessage() {
 
 	auto hidden = HistoryWidget::switchPinnedHidden(_peer, true);
 	if (hidden) {
-		Notify::peerUpdatedDelayed(
-			_peer,
-			Notify::PeerUpdate::Flag::PinnedMessageChanged);
+		_peer->session().changes().peerUpdated(_peer, Data::PeerUpdate::Flag::PinnedMessage);
 	}
 	Ui::hideLayer();
 }
-
-void UnpinMessageBox::unpinDone(const MTPUpdates &updates) {
-	_peer->session().api().applyUpdates(updates);
-	Ui::hideLayer();
-}
-
-bool UnpinMessageBox::unpinFail(const RPCError &error) {
-	if (MTP::isDefaultHandledError(error)) return false;
-	Ui::hideLayer();
-	return true;
-}
-
