@@ -95,7 +95,7 @@ jobs:
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/ffmpeg-cache
           key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}

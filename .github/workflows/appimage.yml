@@ -154,7 +154,7 @@ jobs:
 
       - name: OpenSSL cache.
         id: cache-openssl
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/openssl-cache
           key: ${{ runner.OS }}-${{ env.OPENSSL_VER }}-${{ env.CACHE_KEY }}
@@ -180,7 +180,7 @@ jobs:
 
       - name: Python 3.8 cache.
         id: cache-python
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/python-cache
           key: ${{ runner.OS }}-python-${{ env.CACHE_KEY }}
@@ -275,7 +275,7 @@ jobs:
 
       - name: Opus cache.
         id: cache-opus
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/opus
           key: ${{ runner.OS }}-opus-${{ env.CACHE_KEY }}
@@ -296,7 +296,7 @@ jobs:
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/ffmpeg-cache
           key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
@@ -476,7 +476,7 @@ jobs:
 
       - name: Qt 5.12.8 cache.
         id: cache-qt
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/qt-cache
           key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qt*_5_12_8/*') }}
