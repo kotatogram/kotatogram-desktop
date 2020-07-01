@@ -3056,7 +3056,7 @@ void InnerWidget::setupShortcuts() {
 	}) | rpl::start_with_next([=](not_null<Shortcuts::Request*> request) {
 		using Command = Shortcuts::Command;
 
-		if (_controller->content()->selectingPeer()) {
+		if (_controller->selectingPeer()) {
 			return;
 		}
 		const auto row = _controller->activeChatEntryCurrent();

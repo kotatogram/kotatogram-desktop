@@ -52,8 +52,6 @@ constexpr auto kSystemAlertDuration = crl::time(0);
 System::System()
 : _waitTimer([=] { showNext(); })
 , _waitForAllGroupedTimer([=] { showGrouped(); }) {
-	createManager();
-
 	subscribe(settingsChanged(), [=](ChangeType type) {
 		if (type == ChangeType::DesktopEnabled) {
 			App::wnd()->updateTrayMenu();
@@ -92,6 +90,9 @@ System::SkipState System::skipNotification(
 	const auto history = item->history();
 	const auto notifyBy = item->specialNotificationPeer();
 	if (App::quitting() || !history->currentNotification()) {
+		return { SkipState::Skip };
+	} else if (!Core::App().settings().notifyFromAll()
+		&& &history->session().account() != &Core::App().domain().active()) {
 		return { SkipState::Skip };
 	}
 	const auto scheduled = item->out() && item->isFromScheduled();
@@ -176,7 +177,9 @@ void System::schedule(not_null<HistoryItem*> item) {
 }
 
 void System::clearAll() {
-	_manager->clearAll();
+	if (_manager) {
+		_manager->clearAll();
+	}
 
 	for (auto i = _whenMaps.cbegin(), e = _whenMaps.cend(); i != e; ++i) {
 		i->first->clearNotifications();
@@ -188,7 +191,9 @@ void System::clearAll() {
 }
 
 void System::clearFromHistory(not_null<History*> history) {
-	_manager->clearFromHistory(history);
+	if (_manager) {
+		_manager->clearFromHistory(history);
+	}
 
 	history->clearNotifications();
 	_whenMaps.remove(history);
@@ -201,19 +206,21 @@ void System::clearFromHistory(not_null<History*> history) {
 }
 
 void System::clearFromSession(not_null<Main::Session*> session) {
-	_manager->clearFromSession(session);
+	if (_manager) {
+		_manager->clearFromSession(session);
+	}
 
 	for (auto i = _whenMaps.begin(); i != _whenMaps.end();) {
 		const auto history = i->first;
-		if (&history->session() == session) {
-			history->clearNotifications();
-			i = _whenMaps.erase(i);
-			_whenAlerts.remove(history);
-			_waiters.remove(history);
-			_settingWaiters.remove(history);
-		} else {
+		if (&history->session() != session) {
 			++i;
+			continue;
 		}
+		history->clearNotifications();
+		i = _whenMaps.erase(i);
+		_whenAlerts.remove(history);
+		_waiters.remove(history);
+		_settingWaiters.remove(history);
 	}
 	const auto clearFrom = [&](auto &map) {
 		for (auto i = map.begin(); i != map.end();) {
@@ -230,17 +237,23 @@ void System::clearFromSession(not_null<Main::Session*> session) {
 }
 
 void System::clearIncomingFromHistory(not_null<History*> history) {
-	_manager->clearFromHistory(history);
+	if (_manager) {
+		_manager->clearFromHistory(history);
+	}
 	history->clearIncomingNotifications();
 	_whenAlerts.remove(history);
 }
 
 void System::clearFromItem(not_null<HistoryItem*> item) {
-	_manager->clearFromItem(item);
+	if (_manager) {
+		_manager->clearFromItem(item);
+	}
 }
 
 void System::clearAllFast() {
-	_manager->clearAllFast();
+	if (_manager) {
+		_manager->clearAllFast();
+	}
 
 	_whenMaps.clear();
 	_whenAlerts.clear();
@@ -295,6 +308,8 @@ void System::checkDelayed() {
 }
 
 void System::showGrouped() {
+	Expects(_manager != nullptr);
+
 	if (const auto session = findSession(_lastHistorySessionId)) {
 		if (const auto lastItem = session->data().message(_lastHistoryItemId)) {
 			_waitForAllGroupedTimer.cancel();
@@ -307,7 +322,11 @@ void System::showGrouped() {
 }
 
 void System::showNext() {
-	if (App::quitting()) return;
+	Expects(_manager != nullptr);
+
+	if (App::quitting()) {
+		return;
+	}
 
 	const auto isSameGroup = [=](HistoryItem *item) {
 		if (!_lastHistorySessionId || !_lastHistoryItemId || !item) {
@@ -538,7 +557,9 @@ void System::ensureSoundCreated() {
 }
 
 void System::updateAll() {
-	_manager->updateAll();
+	if (_manager) {
+		_manager->updateAll();
+	}
 }
 
 Manager::DisplayOptions Manager::GetNotificationOptions(HistoryItem *item) {
@@ -561,7 +582,17 @@ Manager::DisplayOptions Manager::GetNotificationOptions(HistoryItem *item) {
 QString Manager::addTargetAccountName(
 		const QString &title,
 		not_null<Main::Session*> session) {
-	return (Core::App().domain().accounts().size() > 1)
+	const auto add = [&] {
+		for (const auto &[index, account] : Core::App().domain().accounts()) {
+			if (const auto other = account->maybeSession()) {
+				if (other != session) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}();
+	return add
 		? (title
 			+ accountNameSeparator()
 			+ (session->user()->username.isEmpty()
