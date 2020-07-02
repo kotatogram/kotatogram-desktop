@@ -480,7 +480,7 @@ void SetupKotatoSystem(
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
 		return (enabled != cUseTelegramPanelIcon());
-	}) | rpl::start_with_next([](bool enabled) {
+	}) | rpl::start_with_next([controller](bool enabled) {
 		cSetUseTelegramPanelIcon(enabled);
 		controller->session().data().notifyUnreadBadgeChanged();
 		::Kotato::JsonSettings::Write();
