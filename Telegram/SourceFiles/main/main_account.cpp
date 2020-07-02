@@ -30,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "main/main_domain.h"
 #include "main/main_session_settings.h"
+#include "kotato/json_settings.h"
 #include "facades.h"
 
 namespace Main {
@@ -188,6 +189,19 @@ void Account::createSession(
 	_sessionValue = _session.get();
 
 	Ensures(_session != nullptr);
+
+	const auto defaultFilterUserId = _mtp->isTestMode()
+			? -session().userId()
+			: session().userId();
+
+	if (HasDefaultFilterId(0)) {
+		const auto newDefaultFilterId = DefaultFilterId(0);
+		ClearDefaultFilterId(0);
+		setDefaultFilterId(newDefaultFilterId);
+		Kotato::JsonSettings::Write();
+	} else {
+		_defaultFilterId = DefaultFilterId(defaultFilterUserId);
+	}
 }
 
 void Account::destroySession(DestroyReason reason) {
@@ -574,6 +588,22 @@ void Account::destroyStaleAuthorizationKeys() {
 			resetAuthorizationKeys();
 			return;
 		}
+	}
+}
+
+void Account::setDefaultFilterId(int id) {
+	Expects(_mtp != nullptr);
+	Expects(_session != nullptr);
+
+	_defaultFilterId = id;
+	const auto defaultFilterUserId = _mtp->isTestMode()
+			? -session().userId()
+			: session().userId();
+
+	if (id == 0) {
+		ClearDefaultFilterId(defaultFilterUserId);
+	} else {
+		SetDefaultFilterId(defaultFilterUserId, id);
 	}
 }
 

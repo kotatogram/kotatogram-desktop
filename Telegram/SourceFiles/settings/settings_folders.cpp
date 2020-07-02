@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat_filters.h"
 #include "history/history.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "ui/layers/generic_box.h"
@@ -312,11 +313,13 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 		not_null<Window::SessionController*> controller,
 		not_null<Ui::VerticalLayout*> container) {
 	auto &lifetime = container->lifetime();
-	const auto currentDefaultId = cDefaultFilterId();
+
+	const auto session = &controller->session();
+	const auto account = &session->account();
+	const auto currentDefaultId = account->defaultFilterId();
 	localNewFilterId = kFiltersLimit;
 	currentDefaultRemoved = false;
 
-	const auto session = &controller->session();
 	AddSkip(container, st::settingsSectionSkip);
 	AddSubsectionTitle(container, tr::lng_filters_subtitle());
 
@@ -343,7 +346,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 		button->removeRequests(
 		) | rpl::start_with_next([=] {
 			button->setRemoved(true);
-			if (find(button)->filter.id() == cDefaultFilterId()) {
+			if (find(button)->filter.id() == account->defaultFilterId()) {
 				currentDefaultRemoved = true;
 			}
 			find(button)->removed = true;
@@ -353,7 +356,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			if (showLimitReached()) {
 				return;
 			}
-			if (find(button)->filter.id() == cDefaultFilterId()) {
+			if (find(button)->filter.id() == account->defaultFilterId()) {
 				currentDefaultRemoved = false;
 			}
 			button->setRemoved(false);
@@ -366,10 +369,10 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			}
 			const auto doneCallback = [=](const Data::ChatFilter &result) {
 				find(button)->filter = result;
-				const auto isCurrentDefault = result.id() == cDefaultFilterId();
+				const auto isCurrentDefault = result.id() == account->defaultFilterId();
 				if ((isCurrentDefault && !result.isDefault())
 					|| (!isCurrentDefault && result.isDefault())) {
-					cSetDefaultFilterId(result.isDefault() ? result.id() : 0);
+					account->setDefaultFilterId(result.isDefault() ? result.id() : 0);
 				}
 				button->updateData(result);
 			};
@@ -432,7 +435,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 		}
 		const auto doneCallback = [=](const Data::ChatFilter &result) {
 			if (result.isDefault()) {
-				cSetDefaultFilterId(result.id());
+				account->setDefaultFilterId(result.id());
 			}
 			addFilter(result);
 		};
@@ -528,8 +531,8 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 				continue;
 			} else if (!ranges::contains(list, id, &Data::ChatFilter::id)) {
 				result.emplace(row.button, chooseNextId());
-				if (cDefaultFilterId() == id) {
-					cSetDefaultFilterId(localId);
+				if (account->defaultFilterId() == id) {
+					account->setDefaultFilterId(localId);
 				}
 			}
 		}
@@ -589,10 +592,10 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			realFilters.saveOrder(order, previousId);
 		}
 		if (currentDefaultRemoved) {
-			cSetDefaultFilterId(0);
+			account->setDefaultFilterId(0);
 			controller->setActiveChatsFilter(0);
 		}
-		if (currentDefaultId != cDefaultFilterId()) {
+		if (currentDefaultId != account->defaultFilterId()) {
 			Kotato::JsonSettings::Write();
 		}
 	};

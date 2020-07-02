@@ -149,7 +149,26 @@ bool gDisableTrayCounter = false;
 bool gUseTelegramPanelIcon = false;
 int gCustomAppIcon = 0;
 
-int gDefaultFilterId = 0;
+DefaultFilterMap gDefaultFilterId;
+void SetDefaultFilterId(int account, int filter) {
+	if (gDefaultFilterId.contains(account)) {
+		gDefaultFilterId[account] = filter;
+	} else {
+		gDefaultFilterId.insert(account, filter);
+	}
+}
+int DefaultFilterId(int account) {
+	if (gDefaultFilterId.contains(account)) {
+		return gDefaultFilterId[account];
+	}
+	return 0;
+}
+bool HasDefaultFilterId(int account) {
+	return gDefaultFilterId.contains(account);
+}
+bool ClearDefaultFilterId(int account) {
+	return gDefaultFilterId.remove(account);
+}
 bool gUnmutedFilterCounterOnly = false;
 bool gHideFilterEditButton = false;
 bool gHideFilterNames = false;

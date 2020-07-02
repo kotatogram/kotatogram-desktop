@@ -107,6 +107,11 @@ public:
 		return _lifetime;
 	}
 
+	[[nodiscard]] int defaultFilterId() {
+		return _defaultFilterId;
+	}
+	void setDefaultFilterId(int id);
+
 private:
 	static constexpr auto kDefaultSaveDelay = crl::time(1000);
 	enum class DestroyReason {
@@ -152,6 +157,7 @@ private:
 	MTP::Instance::Fields _mtpFields;
 	MTP::AuthKeysList _mtpKeysToDestroy;
 	bool _loggingOut = false;
+	int _defaultFilterId = 0;
 
 	rpl::lifetime _lifetime;
 

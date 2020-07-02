@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "data/data_session.h"
 #include "data/data_chat_filters.h"
 #include "data/data_folder.h"
@@ -61,6 +62,10 @@ bool FiltersFirstLoad = true;
 
 } // namespace
 
+void ResetFiltersFirstLoad() {
+	FiltersFirstLoad = true;
+}
+
 FiltersMenu::FiltersMenu(
 	not_null<Ui::RpWidget*> parent,
 	not_null<SessionController*> session)
@@ -101,6 +106,7 @@ void FiltersMenu::setup() {
 	}, _outer.lifetime());
 
 	const auto filters = &_session->session().data().chatsFilters();
+	_activeFilterId = _session->activeChatsFilterCurrent();
 	rpl::single(
 		rpl::empty_value()
 	) | rpl::then(
@@ -109,7 +115,6 @@ void FiltersMenu::setup() {
 		refresh();
 	}, _outer.lifetime());
 
-	_activeFilterId = _session->activeChatsFilterCurrent();
 	_session->activeChatsFilter(
 	) | rpl::filter([=](FilterId id) {
 		return id != _activeFilterId;
@@ -200,7 +205,7 @@ void FiltersMenu::refresh() {
 	}
 
 	if (FiltersFirstLoad) {
-		_session->setActiveChatsFilter(cDefaultFilterId());
+		_session->setActiveChatsFilter(_session->session().account().defaultFilterId());
 		FiltersFirstLoad = false;
 	}
 }
@@ -321,11 +326,12 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 	if (i == end(_filters)) {
 		return;
 	}
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(i->second.get());
 	_popupMenu->addAction(
 		tr::lng_filters_context_edit(tr::now),
 		crl::guard(&_outer, [=] { showEditBox(id); }));
-	if (cDefaultFilterId() != id) {
+	if (defaultFilterId != id) {
 		_popupMenu->addAction(
 			tr::ktg_filters_context_make_default(tr::now),
 			crl::guard(&_outer, [=] { setDefaultFilter(id); }));
@@ -345,11 +351,12 @@ void FiltersMenu::showAllMenu(QPoint position) {
 		_popupMenu = nullptr;
 		return;
 	}
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(_all);
 	_popupMenu->addAction(
 		tr::ktg_filters_context_edit_all(tr::now),
 		crl::guard(&_outer, [=] { _session->showSettings(Settings::Type::Folders); }));
-	if (cDefaultFilterId() != 0) {
+	if (defaultFilterId != 0) {
 		_popupMenu->addAction(
 			tr::ktg_filters_context_make_default(tr::now),
 			crl::guard(&_outer, [=] { setDefaultFilter(0); }));
@@ -359,8 +366,9 @@ void FiltersMenu::showAllMenu(QPoint position) {
 }
 
 void FiltersMenu::setDefaultFilter(FilterId id) {
-	if (cDefaultFilterId() != id) {
-		cSetDefaultFilterId(id);
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
+	if (defaultFilterId != id) {
+		_session->session().account().setDefaultFilterId(id);
 		Kotato::JsonSettings::Write();
 	}
 }
@@ -378,6 +386,7 @@ void FiltersMenu::showRemoveBox(FilterId id) {
 }
 
 void FiltersMenu::remove(FilterId id) {
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
 	_session->session().data().chatsFilters().apply(MTP_updateDialogFilter(
 		MTP_flags(MTPDupdateDialogFilter::Flag(0)),
 		MTP_int(id),
@@ -387,8 +396,8 @@ void FiltersMenu::remove(FilterId id) {
 		MTP_int(id),
 		MTPDialogFilter()
 	)).send();
-	if (id == cDefaultFilterId()) {
-		cSetDefaultFilterId(0);
+	if (id == defaultFilterId) {
+		_session->session().account().setDefaultFilterId(0);
 		Kotato::JsonSettings::Write();
 		if (id == _session->activeChatsFilterCurrent()) {
 			_session->setActiveChatsFilter(0);

@@ -26,6 +26,8 @@ namespace Window {
 
 class SessionController;
 
+void ResetFiltersFirstLoad();
+
 class FiltersMenu final {
 public:
 	FiltersMenu(

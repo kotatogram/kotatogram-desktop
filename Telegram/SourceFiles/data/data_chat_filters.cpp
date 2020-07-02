@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "dialogs/dialogs_main_list.h"
 #include "ui/ui_utility.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "apiwrap.h"
 
 namespace Data {
@@ -100,6 +101,7 @@ ChatFilter ChatFilter::FromTL(
 			all.begin(),
 			all.end()
 		};
+		const auto defaultFilterId = owner->session().account().defaultFilterId();
 		return ChatFilter(
 			data.vid().v,
 			qs(data.vtitle()),
@@ -108,7 +110,7 @@ ChatFilter ChatFilter::FromTL(
 			std::move(list),
 			std::move(pinned),
 			{ never.begin(), never.end() },
-			(data.vid().v == cDefaultFilterId()));
+			(data.vid().v == defaultFilterId));
 	});
 }
 
@@ -472,6 +474,7 @@ const ChatFilter &ChatFilters::applyUpdatedPinned(
 			}
 		}
 	}
+	const auto defaultFilterId = _owner->session().account().defaultFilterId();
 	set(ChatFilter(
 		id,
 		i->title(),
@@ -480,7 +483,7 @@ const ChatFilter &ChatFilters::applyUpdatedPinned(
 		std::move(always),
 		std::move(pinned),
 		i->never(),
-		(id == cDefaultFilterId())));
+		(id == defaultFilterId)));
 	return *i;
 }
 

@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "mainwidget.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "main/main_session_settings.h"
 #include "apiwrap.h"
 #include "base/event_filter.h"
@@ -696,10 +697,11 @@ void Widget::escape() {
 	if (controller()->openedFolder().current()) {
 		controller()->closeFolder();
 	} else if (!onCancelSearch()) {
+		const auto defaultFilterId = session().account().defaultFilterId();
 		if (controller()->activeChatEntryCurrent().key) {
 			emit cancelled();
-		} else if (controller()->activeChatsFilterCurrent() != cDefaultFilterId()) {
-			controller()->setActiveChatsFilter(cDefaultFilterId());
+		} else if (controller()->activeChatsFilterCurrent() != defaultFilterId) {
+			controller()->setActiveChatsFilter(defaultFilterId);
 		}
 	} else if (!_searchInChat && !controller()->selectingPeer()) {
 		if (controller()->activeChatEntryCurrent().key) {

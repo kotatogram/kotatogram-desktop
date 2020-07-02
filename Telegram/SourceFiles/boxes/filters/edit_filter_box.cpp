@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "history/history.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "apiwrap.h"
@@ -637,7 +638,8 @@ void EditFilterBox(
 		name->setFocusFast();
 	});
 
-	const auto isCurrent = filter.id() == cDefaultFilterId();
+	const auto defaultFilterId = window->session().account().defaultFilterId();
+	const auto isCurrent = filter.id() == defaultFilterId;
 	const auto checkboxDefault = content->add(
 		object_ptr<Ui::Checkbox>(
 			box,
@@ -783,10 +785,11 @@ void EditExistingFilter(
 			MTP_int(id),
 			tl
 		)).send();
-		const auto isCurrentDefault = result.id() == cDefaultFilterId();
+		const auto defaultFilterId = session->account().defaultFilterId();
+		const auto isCurrentDefault = result.id() == defaultFilterId;
 		if ((isCurrentDefault && !result.isDefault())
 			|| (!isCurrentDefault && result.isDefault())) {
-			cSetDefaultFilterId(result.isDefault() ? result.id() : 0);
+			 session->account().setDefaultFilterId(result.isDefault() ? result.id() : 0);
 			Kotato::JsonSettings::Write();
 		}
 	};

@@ -137,6 +137,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 
 	auto settingsFonts = QJsonObject();
 	auto settingsFolders = QJsonObject();
+	auto settingsFoldersDefault = QJsonObject();
 	auto settingsScales = QJsonArray();
 	auto settingsReplaces = QJsonArray();
 
@@ -173,6 +174,22 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 			a << i.key() << i.value();
 			settingsReplaces << a;
 		}
+
+		const auto defaultFilterIdMap = cDefaultFilterId();
+		for (auto i = defaultFilterIdMap.constBegin(), e = defaultFilterIdMap.constEnd(); i != e; ++i) {
+			auto value = i.value();
+			if (value == 0) {
+				continue;
+			}
+
+			auto key = QString::number(std::abs(i.key()));
+
+			if (i.key() < 0) {
+				key.prepend("test_");
+			}
+
+			settingsFoldersDefault.insert(key, value);
+		}
 	}
 
 	settings.insert(qsl("sticker_height"), StickerHeight());
@@ -199,7 +216,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
 	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
 
-	settingsFolders.insert(qsl("default"), cDefaultFilterId());
+	settingsFolders.insert(qsl("default"), settingsFoldersDefault);
 	settingsFolders.insert(qsl("count_unmuted_only"), cUnmutedFilterCounterOnly());
 	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
 	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
@@ -443,9 +460,37 @@ bool Manager::readCustomFile() {
 	});
 
 	ReadObjectOption(settings, "folders", [&](auto o) {
-		ReadIntOption(o, "default", [&](auto v) {
-			cSetDefaultFilterId(v);
+		auto isDefaultFilterRead = ReadIntOption(o, "default", [&](auto v) {
+			SetDefaultFilterId(0, v);
 		});
+
+		if (!isDefaultFilterRead) {
+			ReadObjectOption(o, "default", [&](auto f) {
+				if (f.empty()) {
+					return;
+				}
+				bool isInt;
+
+				for (auto i = f.begin(), e = f.end(); i != e; ++i) {
+					auto value = i.value().toInt(0);
+
+					if (value == 0) {
+						continue;
+					}
+
+					auto key = i.key();
+					if (key.startsWith("test_")) {
+						key = key.mid(5).prepend("-");
+					}
+
+					auto account_id = key.toInt(&isInt, 10);
+
+					if (isInt) {
+						SetDefaultFilterId(account_id, value);
+					}
+				}
+			});
+		}
 
 		ReadBoolOption(o, "count_unmuted_only", [&](auto v) {
 			cSetUnmutedFilterCounterOnly(v);

@@ -105,7 +105,12 @@ DeclareSetting(bool, DisableTrayCounter);
 DeclareSetting(bool, UseTelegramPanelIcon);
 DeclareSetting(int, CustomAppIcon);
 
-DeclareSetting(int, DefaultFilterId);
+using DefaultFilterMap = QMap<int, int>;
+DeclareRefSetting(DefaultFilterMap, DefaultFilterId);
+void SetDefaultFilterId(int account, int filter);
+int DefaultFilterId(int account);
+bool HasDefaultFilterId(int account);
+bool ClearDefaultFilterId(int account);
 DeclareSetting(bool, UnmutedFilterCounterOnly);
 DeclareSetting(bool, HideFilterEditButton);
 DeclareSetting(bool, HideFilterNames);

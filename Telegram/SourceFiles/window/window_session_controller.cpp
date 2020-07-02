@@ -39,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "main/main_session_settings.h"
 #include "apiwrap.h"
 #include "support/support_helper.h"
@@ -290,8 +291,9 @@ void SessionController::checkOpenedFilter() {
 		const auto &list = session().data().chatsFilters().list();
 		const auto i = ranges::find(list, filterId, &Data::ChatFilter::id);
 		if (i == end(list)) {
-			const auto j = ranges::find(list, FilterId(cDefaultFilterId()), &Data::ChatFilter::id);
-			setActiveChatsFilter(j == end(list) ? 0 : cDefaultFilterId());
+			const auto defaultFilterId = session().account().defaultFilterId();
+			const auto j = ranges::find(list, FilterId(defaultFilterId), &Data::ChatFilter::id);
+			setActiveChatsFilter(j == end(list) ? 0 : defaultFilterId);
 		}
 	}
 }
@@ -311,10 +313,11 @@ void SessionController::openFolder(not_null<Data::Folder*> folder) {
 }
 
 void SessionController::closeFolder(bool force) {
-	if (cDefaultFilterId() == 0 || force) {
+	const auto defaultFilterId = session().account().defaultFilterId();
+	if (defaultFilterId == 0 || force) {
 		_openedFolder = nullptr;
 	} else {
-		setActiveChatsFilter(cDefaultFilterId());
+		setActiveChatsFilter(defaultFilterId);
 		checkOpenedFilter();
 	}
 }
