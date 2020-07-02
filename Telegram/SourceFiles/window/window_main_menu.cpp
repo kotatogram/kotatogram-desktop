@@ -760,6 +760,8 @@ void MainMenu::rebuildAccounts() {
 	_addAccount->toggle(
 		(count < Main::Domain::kMaxAccounts),
 		anim::type::instant);
+
+	_accountsCount = count;
 }
 
 not_null<Ui::SlideWrap<Ui::RippleButton>*> MainMenu::setupAddAccount(
@@ -797,7 +799,19 @@ not_null<Ui::SlideWrap<Ui::RippleButton>*> MainMenu::setupAddAccount(
 	}, button->lifetime());
 
 	const auto add = [=](MTP::Environment environment) {
-		Core::App().domain().addActivated(environment);
+		const auto sure = [=] {
+			Core::App().domain().addActivated(environment);
+		};
+		if (_accountsCount >= Main::Domain::kMaxAccountsWarn) {
+			Ui::show(
+				Box<ConfirmBox>(
+					tr::ktg_too_many_accounts_warning(tr::now),
+					tr::ktg_account_add_anyway(tr::now),
+					sure),
+				Ui::LayerOption::KeepOther);
+		} else {
+			sure();
+		}
 	};
 
 	button->setAcceptBoth(true);

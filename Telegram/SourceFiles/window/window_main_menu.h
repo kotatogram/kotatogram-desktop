@@ -82,6 +82,7 @@ private:
 		not_null<Main::Account*>,
 		base::unique_qptr<AccountButton>> _watched;
 	not_null<Ui::SlideWrap<Ui::VerticalLayout>*> _accounts;
+	int _accountsCount = 0;
 	Ui::SlideWrap<Ui::RippleButton> *_addAccount = nullptr;
 	not_null<Ui::SlideWrap<Ui::PlainShadow>*> _shadow;
 	not_null<Ui::Menu*> _menu;
