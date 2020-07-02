@@ -2559,4 +2559,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_too_many_accounts_warning" = "Warning! Using too many accounts at the same time is not recommended due to higher memory comsumption and possible crashes because of it.\n\nYou sure you want to add a new account?";
 "ktg_account_add_anyway" = "Add anyway";
 
+"ktg_media_selected_gif#one" = "{count} GIF";
+"ktg_media_selected_gif#other" = "{count} GIFs";
+"ktg_media_type_gif" = "GIFs";
+"ktg_profile_gif#one" = "{count} GIF";
+"ktg_profile_gif#other" = "{count} GIFs";
+"ktg_media_gif_empty" = "No GIFs here yet";
+
 // Keys finished

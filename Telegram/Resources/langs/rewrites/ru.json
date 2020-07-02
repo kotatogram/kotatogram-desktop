@@ -149,5 +149,19 @@
 	"ktg_group_status_owner": "вы владелец",
 	"ktg_group_status_admin": "вы админ",
 	"ktg_too_many_accounts_warning": "Внимание! Использование слишком большого количества аккаунтов одновременно не рекомендуется из-за высокого потребления памяти, а также возможных вылетов из-за этого.\n\nВы точно хотите добавить новый аккаунт?",
-	"ktg_account_add_anyway": "Всё равно добавить"
+	"ktg_account_add_anyway": "Всё равно добавить",
+	"ktg_media_selected_gif": {
+		"one": "{count} GIF",
+		"few": "{count} GIF",
+		"many": "{count} GIF",
+		"other": "{count} GIF"
+	},
+	"ktg_media_type_gif": "GIF",
+	"ktg_profile_gif": {
+		"one": "{count} GIF",
+		"few": "{count} GIF",
+		"many": "{count} GIF",
+		"other": "{count} GIF"
+	},
+	"ktg_media_gif_empty": "Здесь пока нет GIF"
 }
