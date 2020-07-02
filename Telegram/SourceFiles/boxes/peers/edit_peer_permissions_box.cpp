@@ -104,7 +104,10 @@ std::vector<std::pair<ChatRestrictions, QString>> RestrictionLabels() {
 	const auto langKeys = {
 		tr::lng_rights_chat_send_text,
 		tr::lng_rights_chat_send_media,
-		tr::lng_rights_chat_send_stickers,
+		tr::ktg_rights_chat_send_stickers,
+		tr::ktg_rights_chat_send_gif,
+		tr::ktg_rights_chat_send_games,
+		tr::ktg_rights_chat_use_inline,
 		tr::lng_rights_chat_send_links,
 		tr::lng_rights_chat_send_polls,
 		tr::lng_rights_chat_add_members,
@@ -154,6 +157,7 @@ auto Dependencies(ChatRestrictions)
 	using Flag = ChatRestriction;
 
 	return {
+		/*
 		// stickers <-> gifs
 		{ Flag::f_send_gifs, Flag::f_send_stickers },
 		{ Flag::f_send_stickers, Flag::f_send_gifs },
@@ -168,6 +172,7 @@ auto Dependencies(ChatRestrictions)
 
 		// stickers -> send_media
 		{ Flag::f_send_stickers, Flag::f_send_messages },
+		*/
 
 		// embed_links -> send_media
 		{ Flag::f_embed_links, Flag::f_send_messages },
@@ -276,11 +281,13 @@ ChatRestrictions FixDependentRestrictions(ChatRestrictions restrictions) {
 
 	// Fix iOS bug of saving send_inline like embed_links.
 	// We copy send_stickers to send_inline.
+	/*
 	if (restrictions & ChatRestriction::f_send_stickers) {
 		restrictions |= ChatRestriction::f_send_inline;
 	} else {
 		restrictions &= ~ChatRestriction::f_send_inline;
 	}
+	*/
 
 	// Apply the strictest.
 	const auto fixOne = [&] {

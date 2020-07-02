@@ -163,5 +163,13 @@
 		"many": "{count} GIF",
 		"other": "{count} GIF"
 	},
-	"ktg_media_gif_empty": "Здесь пока нет GIF"
+	"ktg_media_gif_empty": "Здесь пока нет GIF",
+	"ktg_rights_chat_send_stickers": "Отправка стикеров",
+	"ktg_rights_chat_send_gif": "Отправка GIF",
+	"ktg_rights_chat_send_games": "Отправка игр",
+	"ktg_rights_chat_use_inline": "Отправка через ботов",
+	"ktg_admin_log_banned_send_stickers": "Отправка стикеров",
+	"ktg_admin_log_banned_send_gif": "Отправка GIF",
+	"ktg_admin_log_banned_send_games": "Отправка игр",
+	"ktg_admin_log_banned_use_inline": "Отправка через ботов"
 }
