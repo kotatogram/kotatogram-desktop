@@ -202,11 +202,24 @@ void FillMenu(
 			tr::lng_settings_bg_theme_create(tr::now),
 			[=] { window->show(Box(Window::Theme::CreateBox, window)); });
 	} else {
-		const auto &list = Core::App().domain().accounts();
-		if (list.size() < ::Main::Domain::kMaxAccounts) {
-			addAction(tr::lng_menu_add_account(tr::now), [=] {
-				Core::App().domain().addActivated(MTP::Environment{});
-			});
+		if (type != Type::Kotato) {
+			const auto &list = Core::App().domain().accounts();
+			if (list.size() < ::Main::Domain::kMaxAccountsWarn) {
+				addAction(tr::lng_menu_add_account(tr::now), [=] {
+					Core::App().domain().addActivated(MTP::Environment{});
+				});
+			} else if (list.size() < ::Main::Domain::kMaxAccounts) {
+				addAction(tr::lng_menu_add_account(tr::now), [=] {
+					Ui::show(
+					Box<ConfirmBox>(
+						tr::ktg_too_many_accounts_warning(tr::now),
+						tr::ktg_account_add_anyway(tr::now),
+						[=] {
+							Core::App().domain().addActivated(MTP::Environment{});
+						}),
+					Ui::LayerOption::KeepOther);
+				});
+			}
 		}
 		const auto customSettingsFile = cWorkingDir() + "tdata/kotato-settings-custom.json";
 		if (type != Type::Kotato && !controller->session().supportMode()) {
