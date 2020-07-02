@@ -28,8 +28,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 constexpr auto kMegabyte = int64(1024 * 1024);
-constexpr auto kTotalSizeLimitsCount = 18;
-constexpr auto kMediaSizeLimitsCount = 18;
+constexpr auto kTotalSizeLimitsCount = 27;
+constexpr auto kMediaSizeLimitsCount = 27;
 constexpr auto kMinimalSizeLimit = 100 * kMegabyte;
 constexpr auto kTimeLimitsCount = 22;
 constexpr auto kMaxTimeLimitValue = std::numeric_limits<size_type>::max();
@@ -42,8 +42,15 @@ int64 TotalSizeLimitInMB(int index) {
 	return int64(index - 7) * 1024;
 }
 
+int64 TotalSizeLimitInMBKotato(int index) {
+	if (index < 9) {
+		return int64(index + 2) * 10;
+	}
+	return TotalSizeLimitInMB(index - 9);
+}
+
 int64 TotalSizeLimit(int index) {
-	return TotalSizeLimitInMB(index) * kMegabyte;
+	return TotalSizeLimitInMBKotato(index) * kMegabyte;
 }
 
 int64 MediaSizeLimitInMB(int index) {
@@ -53,8 +60,15 @@ int64 MediaSizeLimitInMB(int index) {
 	return int64(index - 8) * 1024;
 }
 
+int64 MediaSizeLimitInMBKotato(int index) {
+	if (index < 9) {
+		return int64(index + 1) * 10;
+	}
+	return MediaSizeLimitInMB(index - 9);
+}
+
 int64 MediaSizeLimit(int index) {
-	return MediaSizeLimitInMB(index) * kMegabyte;
+	return MediaSizeLimitInMBKotato(index) * kMegabyte;
 }
 
 QString SizeLimitText(int64 limit) {
