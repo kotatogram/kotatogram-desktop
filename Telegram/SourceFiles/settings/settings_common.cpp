@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/box_content_divider.h"
 #include "ui/widgets/buttons.h"
 #include "boxes/abstract_box.h"
+#include "boxes/confirm_box.h"
 #include "window/themes/window_theme_editor_box.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
