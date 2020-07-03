@@ -131,7 +131,7 @@
 		"few": "{count} дні",
 		"many": "{count} днів",
 		"other": "{count} дня"
-	}
+	},
 	"ktg_settings_monospace_large_bubbles": "Розширювати моноширинні повідомлення",
 	"ktg_bot_id_copied": "ID бота скопійовано.",
 	"ktg_user_id_copied": "ID користувача скопійовано.",
@@ -171,5 +171,5 @@
 	"ktg_admin_log_banned_send_stickers": "Надсилати наліпки",
 	"ktg_admin_log_banned_send_gif": "Надсилати GIF",
 	"ktg_admin_log_banned_send_games": "Надсилати ігри",
-	"ktg_admin_log_banned_use_inline": "Використання інлайн-ботів",
+	"ktg_admin_log_banned_use_inline": "Використання інлайн-ботів"
 }
