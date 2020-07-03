@@ -137,9 +137,7 @@ QIcon CreateIcon(Main::Session *session) {
 
 #if defined Q_OS_UNIX && !defined Q_OS_MAC
 	if (
-		(!account
-			|| !account->sessionExists()
-			|| !account->session().supportMode())
+		(!session || !session->supportMode())
 		&& cCustomAppIcon() == 0
 		&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
 		return QIcon::fromTheme(Platform::GetIconName(), result);
