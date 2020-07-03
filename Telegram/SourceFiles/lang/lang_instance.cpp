@@ -565,23 +565,25 @@ QString Instance::jsonLangDir() {
 void Instance::fillDefaultJson() {
 	if (!QDir().exists(jsonLangDir())) QDir().mkpath(jsonLangDir());
 
-	const auto path = jsonLangDir() + "ru.default.json";
-	const auto pathRaw = jsonLangDir() + "ru-raw.default.json";
-	auto input = QFile(":/ktg_lang/ru.json");
-	auto output = QFile(path);
-	auto outputRaw = QFile(pathRaw);
-	if (input.open(QIODevice::ReadOnly)) {
-		auto inputData = input.readAll();
-		if (output.open(QIODevice::WriteOnly)) {
-			output.write(inputData);
-			output.close();
-		}
+	for (const auto language : { "ru", "uk" }) {
+		const auto path = jsonLangDir() + language + ".default.json";
+		const auto pathRaw = jsonLangDir() + language + "-raw.default.json";
+		auto input = QFile(qsl(":/ktg_lang/%1.json").arg(language));
+		auto output = QFile(path);
+		auto outputRaw = QFile(pathRaw);
+		if (input.open(QIODevice::ReadOnly)) {
+			auto inputData = input.readAll();
+			if (output.open(QIODevice::WriteOnly)) {
+				output.write(inputData);
+				output.close();
+			}
 
-		if (outputRaw.open(QIODevice::WriteOnly)) {
-			outputRaw.write(inputData);
-			outputRaw.close();
+			if (outputRaw.open(QIODevice::WriteOnly)) {
+				outputRaw.write(inputData);
+				outputRaw.close();
+			}
+			input.close();
 		}
-		input.close();
 	}
 }
 

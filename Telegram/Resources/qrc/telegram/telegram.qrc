@@ -73,5 +73,6 @@
   </qresource>
   <qresource prefix="/ktg_lang">
     <file alias="ru.json">../../langs/rewrites/ru.json</file>
+    <file alias="uk.json">../../langs/rewrites/uk.json</file>
   </qresource>
 </RCC>
