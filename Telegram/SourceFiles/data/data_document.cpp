@@ -341,10 +341,12 @@ void DocumentOpenClickHandler::Open(
 			|| data->isVideoMessage()) {
 			const auto msgId = context ? context->fullId() : FullMsgId();
 			Media::Player::instance()->playPause({ data, msgId });
+		/*
 		} else if (context
 			&& data->isAnimation()
 			&& HistoryView::Gif::CanPlayInline(data)) {
 			data->owner().requestAnimationPlayInline(context);
+		*/
 		} else {
 			Core::App().showDocument(data, context);
 		}
