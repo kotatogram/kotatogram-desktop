@@ -307,7 +307,11 @@ HistoryWidget::HistoryWidget(
 , _topShadow(this) {
 	setAcceptDrops(true);
 
-	subscribe(session().downloaderTaskFinished(), [=] { update(); });
+	session().downloaderTaskFinished(
+	) | rpl::start_with_next([=] {
+		update();
+	}, lifetime());
+
 	connect(_scroll, SIGNAL(scrolled()), this, SLOT(onScroll()));
 	_historyDown->addClickHandler([=] { historyDownClicked(); });
 	_unreadMentions->addClickHandler([=] { showNextUnreadMention(); });
@@ -497,15 +501,6 @@ HistoryWidget::HistoryWidget(
 	) | rpl::start_with_next([=](not_null<HistoryView::Element*> view) {
 		if (view->data()->mainView() == view) {
 			updateHistoryGeometry();
-		}
-	}, lifetime());
-
-	session().data().itemViewRefreshRequest(
-	) | rpl::start_with_next([=](not_null<HistoryItem*> item) {
-		// While HistoryInner doesn't own item views we must refresh them
-		// even if the list is not yet created / was destroyed.
-		if (!_list) {
-			item->refreshMainView();
 		}
 	}, lifetime());
 

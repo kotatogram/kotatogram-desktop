@@ -169,7 +169,7 @@ void DocumentMedia::setGoodThumbnail(QImage thumbnail) {
 		return;
 	}
 	_goodThumbnail = std::make_unique<Image>(std::move(thumbnail));
-	_owner->session().downloaderTaskFinished().notify();
+	_owner->session().notifyDownloaderTaskFinished();
 }
 
 Image *DocumentMedia::thumbnailInline() const {
@@ -207,7 +207,7 @@ QSize DocumentMedia::thumbnailSize() const {
 
 void DocumentMedia::setThumbnail(QImage thumbnail) {
 	_thumbnail = std::make_unique<Image>(std::move(thumbnail));
-	_owner->session().downloaderTaskFinished().notify();
+	_owner->session().notifyDownloaderTaskFinished();
 }
 
 QByteArray DocumentMedia::videoThumbnailContent() const {

@@ -3534,8 +3534,7 @@ void OverlayWidget::setSession(not_null<Main::Session*> session) {
 	_session = session;
 	setWindowIcon(Window::CreateIcon(session));
 
-	base::ObservableViewer(
-		session->downloaderTaskFinished()
+	session->downloaderTaskFinished(
 	) | rpl::start_with_next([=] {
 		if (!isHidden()) {
 			updateControls();

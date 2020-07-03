@@ -308,7 +308,10 @@ StickerSetBox::Inner::Inner(
 
 	_controller->session().api().updateStickers();
 
-	subscribe(_controller->session().downloaderTaskFinished(), [this] { update(); });
+	_controller->session().downloaderTaskFinished(
+	) | rpl::start_with_next([=] {
+		update();
+	}, lifetime());
 
 	setMouseTracking(true);
 }

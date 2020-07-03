@@ -578,7 +578,10 @@ MainMenu::MainMenu(
 	_version->setRichText(textcmdLink(1, currentVersionText()));
 	_version->setLink(1, std::make_shared<UrlClickHandler>(qsl("https://github.com/kotatogram/kotatogram-desktop")));
 
-	subscribe(_controller->session().downloaderTaskFinished(), [=] { update(); });
+	_controller->session().downloaderTaskFinished(
+	) | rpl::start_with_next([=] {
+		update();
+	}, lifetime());
 
 	_controller->session().changes().peerUpdates(
 		_controller->session().user(),
