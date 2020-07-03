@@ -30,7 +30,7 @@ namespace {
 constexpr auto kMegabyte = int64(1024 * 1024);
 constexpr auto kTotalSizeLimitsCount = 27;
 constexpr auto kMediaSizeLimitsCount = 27;
-constexpr auto kMinimalSizeLimit = 100 * kMegabyte;
+constexpr auto kMinimalSizeLimit = 20 * kMegabyte;
 constexpr auto kTimeLimitsCount = 22;
 constexpr auto kMaxTimeLimitValue = std::numeric_limits<size_type>::max();
 constexpr auto kFakeMediaCacheTag = uint16(0xFFFF);
