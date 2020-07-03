@@ -35,6 +35,25 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.3.7" date="2020-07-03">
+            <description>
+                <p>TDesktop sources were updated to 2.1.17.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Option to disable monospace bubbles expansion (user-contributed).</li>
+                    <li>Click-to-copy for ID, phone and username in profile.</li>
+                    <li>Revoke messages by default.</li>
+                    <li>Additional info for chats in folders.</li>
+                    <li>Manage buttons in profile.</li>
+                    <li>Forward to multiple chats.</li>
+                    <li>Allow add up to 10 accounts.</li>
+                    <li>Do not share phone number by default (from TDesktop-x64).</li>
+                    <li>GIFs shared media section (from TDesktop-x64).</li>
+                    <li>Uwrapped "Stickers and GIFs" permission (from TDesktop-x64).</li>
+                    <li>Ukranian translation (by winqooq).</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.3.6" date="2020-05-22">
             <description>
                 <p>TDesktop sources were updated to 2.1.6.</p>

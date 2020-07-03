@@ -1,3 +1,17 @@
+1.3.7 (3.07.2020)
+- Updated TDesktop sources to 2.1.17.
+- Option to disable monospace bubbles expansion (user-contributed).
+- Click-to-copy for ID, phone and username in profile.
+- Revoke messages by default.
+- Additional info for chats in folders.
+- Manage buttons in profile.
+- Forward to multiple chats.
+- Allow add up to 10 accounts.
+- Do not share phone number by default (from TDesktop-x64).
+- GIFs shared media section (from TDesktop-x64).
+- Uwrapped "Stickers and GIFs" permission (from TDesktop-x64).
+- Ukranian translation (by winqooq).
+
 1.3.6 (22.05.2020)
 - Updated TDesktop sources to 2.1.6.
 - Option to disable emoji panel on hover.
