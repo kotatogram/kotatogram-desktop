@@ -807,9 +807,21 @@ QPoint UserpicButton::countPhotoPosition() const {
 }
 
 QImage UserpicButton::prepareRippleMask() const {
-	return Ui::RippleAnimation::ellipseMask(QSize(
-		_st.photoSize,
-		_st.photoSize));
+	const auto size = QSize(_st.photoSize, _st.photoSize);
+
+	switch (cUserpicCornersType()) {
+		case 0:
+			return Ui::RippleAnimation::rectMask(size);
+
+		case 1:
+			return Ui::RippleAnimation::roundRectMask(size, st::buttonRadius);
+
+		case 2:
+			return Ui::RippleAnimation::roundRectMask(size, st::dateRadius);
+
+		default:
+			return Ui::RippleAnimation::ellipseMask(size);
+	}
 }
 
 QPoint UserpicButton::prepareRippleStartPosition() const {
@@ -994,7 +1006,28 @@ void UserpicButton::prepareUserpicPixmap() {
 		PainterHighQualityEnabler hq(p);
 		p.setBrush(color);
 		p.setPen(Qt::NoPen);
-		p.drawEllipse(0, 0, size, size);
+		switch (cUserpicCornersType()) {
+			case 0:
+				p.drawRoundedRect(
+					QRect{ 0, 0, size, size },
+					0, 0);
+				break;
+
+			case 1:
+				p.drawRoundedRect(
+					QRect{ 0, 0, size, size },
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case 2:
+				p.drawRoundedRect(
+					QRect{ 0, 0, size, size },
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(0, 0, size, size);
+		}
 	};
 	_userpicHasImage = _peer
 		? (_peer->currentUserpic(_userpicView) || _role != Role::ChangePhoto)
