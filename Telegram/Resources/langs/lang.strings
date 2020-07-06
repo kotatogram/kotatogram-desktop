@@ -2400,7 +2400,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_no_mic_permission" = "Kotatogram needs access to your microphone so that you can make calls and record voice messages.";
 "ktg_passport_app_out_of_date" = "Sorry, your Telegram app is out of date and can't handle this request. Please update Kotatogram.";
 "ktg_export_progress" = "You can close this window now. Please don't quit Kotatogram until the data export is completed.";
-"ktg_language_not_ready_about" = "Unfortunately, this custom language pack ({lang_name}) doesn't contain data for Telegram Desktop. You can contribute to this language pack using the {link}.";
+"ktg_language_not_ready_about" = "Unfortunately, this custom language pack ({lang_name}) doesn't contain data for Kotatogram Desktop. You can contribute to this language pack using the {link}.";
 "ktg_outdated_soon" = "Otherwise, Kotatogram Desktop will stop updating on {date}.";
 "ktg_outdated_now" = "So that Kotatogram Desktop can update to newer versions.";
 "ktg_mac_menu_show" = "Show Kotatogram";
@@ -2462,7 +2462,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_user_status_unaccessible" = "account inaccessible";
 
-"ktg_settings_show_json_settings" = "Show custom settings";
+"ktg_settings_show_json_settings" = "Show settings file";
 "ktg_settings_restart" = "Restart Kotatogram";
 
 "ktg_copy_btn_callback" = "Copy callback data";
