@@ -173,6 +173,9 @@
 	"ktg_admin_log_banned_send_games": "Отправка игр",
 	"ktg_admin_log_banned_use_inline": "Отправка через ботов",
 
+	// New strings
+	"ktg_forward_go_to_chat": "Перейти в чат",
+
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }

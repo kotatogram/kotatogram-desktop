@@ -2576,4 +2576,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_admin_log_banned_send_games" = "Send games";
 "ktg_admin_log_banned_use_inline" = "Use inline bots";
 
+"ktg_forward_go_to_chat" = "Go to chat";
+
 // Keys finished

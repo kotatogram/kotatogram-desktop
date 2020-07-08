@@ -157,12 +157,14 @@ ShareBox::ShareBox(
 	not_null<Window::SessionNavigation*> navigation,
 	CopyCallback &&copyCallback,
 	SubmitCallback &&submitCallback,
-	FilterCallback &&filterCallback)
+	FilterCallback &&filterCallback,
+	GoToChatCallback &&goToChatCallback)
 : _navigation(navigation)
 , _api(&_navigation->session().mtp())
 , _copyCallback(std::move(copyCallback))
 , _submitCallback(std::move(submitCallback))
 , _filterCallback(std::move(filterCallback))
+, _goToChatCallback(goToChatCallback ? std::move(goToChatCallback) : nullptr)
 , _select(
 	this,
 	st::contactsMultiSelect,
@@ -420,6 +422,11 @@ SendMenuType ShareBox::sendMenuType() const {
 void ShareBox::createButtons() {
 	clearButtons();
 	if (_hasSelected) {
+		if (_goToChatCallback && _inner->selected().size() == 1) {
+			const auto singleChat = _inner->selected().at(0);
+			addLeftButton(tr::ktg_forward_go_to_chat(), [=] { goToChat(singleChat); });
+		}
+
 		const auto send = addButton(tr::lng_share_confirm(), [=] {
 			submit({});
 		});
@@ -489,14 +496,20 @@ void ShareBox::copyLink() {
 	}
 }
 
+void ShareBox::goToChat(not_null<PeerData*> peer) {
+	if (_goToChatCallback) {
+		_goToChatCallback(peer);
+	}
+}
+
 void ShareBox::selectedChanged() {
 	auto hasSelected = _inner->hasSelected();
 	if (_hasSelected != hasSelected) {
 		_hasSelected = hasSelected;
-		createButtons();
 		_comment->toggle(_hasSelected, anim::type::normal);
 		_comment->resizeToWidth(st::boxWideWidth);
 	}
+	createButtons();
 	update();
 }
 

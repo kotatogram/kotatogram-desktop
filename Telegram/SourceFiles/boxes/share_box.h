@@ -57,13 +57,15 @@ public:
 		TextWithTags&&,
 		Api::SendOptions)>;
 	using FilterCallback = Fn<bool(PeerData*)>;
+	using GoToChatCallback = Fn<void(PeerData *peer)>;
 
 	ShareBox(
 		QWidget*,
 		not_null<Window::SessionNavigation*> navigation,
 		CopyCallback &&copyCallback,
 		SubmitCallback &&submitCallback,
-		FilterCallback &&filterCallback);
+		FilterCallback &&filterCallback,
+		GoToChatCallback &&goToChatCallback = nullptr);
 
 protected:
 	void prepare() override;
@@ -80,6 +82,7 @@ private:
 	void submitSilent();
 	void submitScheduled();
 	void copyLink();
+	void goToChat(not_null<PeerData*> peer);
 	bool searchByUsername(bool useCache = false);
 
 	SendMenuType sendMenuType() const;
@@ -108,6 +111,7 @@ private:
 	CopyCallback _copyCallback;
 	SubmitCallback _submitCallback;
 	FilterCallback _filterCallback;
+	GoToChatCallback _goToChatCallback;
 
 	object_ptr<Ui::MultiSelect> _select;
 	object_ptr<Ui::SlideWrap<Ui::InputField>> _comment;

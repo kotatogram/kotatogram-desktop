@@ -1169,11 +1169,15 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	auto copyLinkCallback = canCopyLink
 		? Fn<void()>(std::move(copyCallback))
 		: Fn<void()>();
+	auto goToChatCallback = [navigation, data](PeerData *peer) {
+		navigation->parentController()->content()->setForwardDraft(peer->id, std::move(data->msgIds));
+	};
 	*weak = Ui::show(Box<ShareBox>(
 		App::wnd()->sessionController(),
 		std::move(copyLinkCallback),
 		std::move(submitCallback),
-		std::move(filterCallback)));
+		std::move(filterCallback),
+		std::move(goToChatCallback)));
 	return weak->data();
 }
 
