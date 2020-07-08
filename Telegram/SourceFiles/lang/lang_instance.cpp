@@ -565,7 +565,10 @@ QString Instance::jsonLangDir() {
 void Instance::fillDefaultJson() {
 	if (!QDir().exists(jsonLangDir())) QDir().mkpath(jsonLangDir());
 
-	for (const auto language : { "ru", "uk", "tr", "pl" }) {
+	const auto langs = QDir(":/ktg_lang").entryList(QStringList() << "*.json", QDir::Files);
+
+	for (auto language : langs) {
+		language.chop(5);
 		const auto path = jsonLangDir() + language + ".default.json";
 		const auto pathRaw = jsonLangDir() + language + "-raw.default.json";
 		auto input = QFile(qsl(":/ktg_lang/%1.json").arg(language));
