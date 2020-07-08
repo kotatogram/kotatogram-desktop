@@ -164,5 +164,8 @@
 	"ktg_admin_log_banned_send_stickers": "Etiket Gönder",
 	"ktg_admin_log_banned_send_gif": "GIF'ler Gönder",
 	"ktg_admin_log_banned_send_games": "Oyunlar Gönder",
-	"ktg_admin_log_banned_use_inline": "İnline Bot'lar Kullan"
+	"ktg_admin_log_banned_use_inline": "İnline Bot'lar Kullan",
+
+	// This string should always be last for better work with Git.
+	"dummy_last_string": ""
 }

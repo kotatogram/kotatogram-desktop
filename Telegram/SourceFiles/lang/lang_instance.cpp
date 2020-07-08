@@ -634,6 +634,10 @@ void Instance::loadFromJson(const QString &filename) {
 
 	for (auto i = keyList.constBegin(), e = keyList.constEnd(); i != e; ++i) {
 		const auto key = *i;
+		if (key.startsWith("dummy_")) {
+			continue;
+		}
+
 		const auto value = langKeys.constFind(key);
 
 		if ((*value).isString()) {

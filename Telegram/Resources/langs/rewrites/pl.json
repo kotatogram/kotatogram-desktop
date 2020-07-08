@@ -172,5 +172,8 @@
 	"ktg_admin_log_banned_send_stickers": "Wyślij naklejki",
 	"ktg_admin_log_banned_send_gif": "Wyślij GIFy",
 	"ktg_admin_log_banned_send_games": "Wyślij gry",
-	"ktg_admin_log_banned_use_inline": "Użyj bota liniowego (inline)"
+	"ktg_admin_log_banned_use_inline": "Użyj bota liniowego (inline)",
+
+	// This string should always be last for better work with Git.
+	"dummy_last_string": ""
 }

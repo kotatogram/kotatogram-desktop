@@ -164,5 +164,8 @@
 	"ktg_admin_log_banned_send_stickers": "Send stickers",
 	"ktg_admin_log_banned_send_gif": "Send GIFs",
 	"ktg_admin_log_banned_send_games": "Send games",
-	"ktg_admin_log_banned_use_inline": "Use inline bots"
+	"ktg_admin_log_banned_use_inline": "Use inline bots",
+
+	// This string should always be last for better work with Git.
+	"dummy_last_string": ""
 }

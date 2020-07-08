@@ -171,5 +171,8 @@
 	"ktg_admin_log_banned_send_stickers": "Отправка стикеров",
 	"ktg_admin_log_banned_send_gif": "Отправка GIF",
 	"ktg_admin_log_banned_send_games": "Отправка игр",
-	"ktg_admin_log_banned_use_inline": "Отправка через ботов"
+	"ktg_admin_log_banned_use_inline": "Отправка через ботов",
+
+	// This string should always be last for better work with Git.
+	"dummy_last_string": ""
 }
