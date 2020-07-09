@@ -372,6 +372,16 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 }
 
+void SetupKotatoForward(not_null<Ui::VerticalLayout*> container) {
+	AddDivider(container);
+	AddSkip(container);
+	AddSubsectionTitle(container, tr::ktg_settings_forward());
+
+	SettingsMenuCSwitch(ktg_settings_forward_retain_selection, ForwardRetainSelection);
+
+	AddSkip(container);
+}
+
 void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
@@ -585,6 +595,7 @@ void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 
 	SetupKotatoChats(controller, content);
 	SetupKotatoMessages(content);
+	SetupKotatoForward(content);
 	SetupKotatoNetwork(content);
 	SetupKotatoFolders(controller, content);
 	SetupKotatoSystem(controller, content);

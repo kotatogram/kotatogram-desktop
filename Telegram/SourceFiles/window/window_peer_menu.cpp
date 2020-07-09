@@ -1025,13 +1025,15 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		MessageIdsList &&items,
 		FnMut<void()> &&successCallback) {
 	struct ShareData {
-		ShareData(not_null<PeerData*> peer, MessageIdsList &&ids)
+		ShareData(not_null<PeerData*> peer, MessageIdsList &&ids, FnMut<void()> &&callback)
 		: peer(peer)
-		, msgIds(std::move(ids)) {
+		, msgIds(std::move(ids))
+		, submitCallback(std::move(callback)) {
 		}
 		not_null<PeerData*> peer;
 		MessageIdsList msgIds;
 		base::flat_set<mtpRequestId> requests;
+		FnMut<void()> submitCallback;
 	};
 	const auto weak = std::make_shared<QPointer<ShareBox>>();
 	const auto item = App::wnd()->sessionController()->session().data().message(items[0]);
@@ -1043,7 +1045,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		&& item->media()
 		&& (item->media()->game() != nullptr);
 	const auto canCopyLink = items.size() == 1 && (item->hasDirectLink() || isGame);
-	const auto data = std::make_shared<ShareData>(history->peer, std::move(items));
+	const auto data = std::make_shared<ShareData>(history->peer, std::move(items), std::move(successCallback));
 
 	auto copyCallback = [=]() {
 		if (const auto item = owner->message(data->msgIds[0])) {
@@ -1161,6 +1163,9 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 				return history->sendRequestId;
 			});
 			data->requests.insert(history->sendRequestId);
+		}
+		if (data->submitCallback && !cForwardRetainSelection()) {
+			data->submitCallback();
 		}
 	};
 	auto filterCallback = [](PeerData *peer) {

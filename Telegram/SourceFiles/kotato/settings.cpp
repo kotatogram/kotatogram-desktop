@@ -186,3 +186,5 @@ bool HoverEmojiPanel() {
 rpl::producer<bool> HoverEmojiPanelChanges() {
 	return gHoverEmojiPanel.changes();
 }
+
+bool gForwardRetainSelection = false;

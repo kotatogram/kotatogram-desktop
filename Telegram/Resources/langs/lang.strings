@@ -2578,4 +2578,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 "ktg_forward_go_to_chat" = "Go to chat";
 
+"ktg_settings_forward" = "Forward";
+"ktg_settings_forward_retain_selection" = "Retain selection after forward";
+
 // Keys finished

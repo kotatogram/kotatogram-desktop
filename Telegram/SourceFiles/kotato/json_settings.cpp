@@ -212,6 +212,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("profile_top_mute"), cProfileTopBarNotifications());
 	settings.insert(qsl("hover_emoji_panel"), HoverEmojiPanel());
 	settings.insert(qsl("monospace_large_bubbles"), MonospaceLargeBubbles());
+	settings.insert(qsl("forward_retain_selection"), cForwardRetainSelection());
 
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
 	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
@@ -515,6 +516,10 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "hover_emoji_panel", [&](auto v) {
 		SetHoverEmojiPanel(v);
+	});
+
+	ReadBoolOption(settings, "forward_retain_selection", [&](auto v) {
+		cSetForwardRetainSelection(v);
 	});
 	return true;
 }

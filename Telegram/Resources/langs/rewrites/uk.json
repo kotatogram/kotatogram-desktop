@@ -175,6 +175,8 @@
 
 	// New strings
 	"ktg_forward_go_to_chat": "Go to chat",
+	"ktg_settings_forward": "Forward",
+	"ktg_settings_forward_retain_selection": "Retain selection after forward",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

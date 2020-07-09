@@ -121,3 +121,5 @@ DeclareSetting(bool, ProfileTopBarNotifications);
 void SetHoverEmojiPanel(bool enabled);
 [[nodiscard]] bool HoverEmojiPanel();
 [[nodiscard]] rpl::producer<bool> HoverEmojiPanelChanges();
+
+DeclareSetting(bool, ForwardRetainSelection);
