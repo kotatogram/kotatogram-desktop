@@ -174,11 +174,11 @@
 	"ktg_admin_log_banned_use_inline": "Використання інлайн-ботів",
 
 	// New strings
-	"ktg_forward_go_to_chat": "Go to chat",
-	"ktg_settings_forward": "Forward",
-	"ktg_settings_forward_retain_selection": "Retain selection after forward",
-	"ktg_settings_forward_chat_on_click": "Open chat on click",
-	"ktg_settings_forward_chat_on_click_description": "You can hold Ctrl to select multiple chats regardless of this option.",
+	"ktg_forward_go_to_chat": "Відкрити чат",
+	"ktg_settings_forward": "Пересилка",
+	"ktg_settings_forward_retain_selection": "Зберегти вибір після пересилки",
+	"ktg_settings_forward_chat_on_click": "Відкрити чат при натисканні",
+	"ktg_settings_forward_chat_on_click_description": "Ви можете виборати декількох чатів утримуючі Ctrl незалежно від цього параметра.",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
