@@ -951,11 +951,12 @@ void ManageFiller::addPeerPermissions(
 	}();
 
 	if (canEditPermissions) {
+		const auto controller = _controller;
 		auto button = AddActionButton(
 			_wrap,
 			tr::lng_manage_peer_permissions(),
 			rpl::single(true),
-			[=] { ShowEditPermissions(_controller, peer); }
+			[=] { ShowEditPermissions(controller, peer); }
 			);
 		object_ptr<FloatingIcon>(
 			button,
