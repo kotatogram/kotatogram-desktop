@@ -167,11 +167,11 @@
 	"ktg_admin_log_banned_use_inline": "İnline Bot'lar Kullan",
 
 	// New strings
-	"ktg_forward_go_to_chat": "Go to chat",
-	"ktg_settings_forward": "Forward",
-	"ktg_settings_forward_retain_selection": "Retain selection after forward",
-	"ktg_settings_forward_chat_on_click": "Open chat on click",
-	"ktg_settings_forward_chat_on_click_description": "You can hold Ctrl to select multiple chats regardless of this option.",
+	"ktg_forward_go_to_chat": "Sohbete git",
+	"ktg_settings_forward": "yönlendir",
+	"ktg_settings_forward_retain_selection": "Yönlendirdikten sonra seçilenleri yeniden eğit",
+	"ktg_settings_forward_chat_on_click": "Tıklamayla sohbeti aç",
+	"ktg_settings_forward_chat_on_click_description": "Ctrl tuşunu uzun tutarak birden fazla sohbet seçmek için, bu seçenek aktifligine rağmen.",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
