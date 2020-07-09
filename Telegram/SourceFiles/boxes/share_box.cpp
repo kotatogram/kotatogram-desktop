@@ -50,6 +50,7 @@ public:
 
 	void setPeerSelectedChangedCallback(
 		Fn<void(PeerData *peer, bool selected)> callback);
+	void setSubmitRequest(Fn<void()> callback);
 	void peerUnselected(not_null<PeerData*> peer);
 
 	std::vector<not_null<PeerData*>> selected() const;
@@ -141,6 +142,7 @@ private:
 	base::flat_set<not_null<PeerData*>> _selected;
 
 	Fn<void(PeerData *peer, bool selected)> _peerSelectedChangedCallback;
+	Fn<void()> _submitRequest;
 
 	bool _searching = false;
 	QString _lastQuery;
@@ -150,6 +152,7 @@ private:
 	rpl::event_stream<Ui::ScrollToRequest> _scrollToRequests;
 	rpl::event_stream<> _searchRequests;
 
+	bool _hadSelection = false;
 };
 
 ShareBox::ShareBox(
@@ -267,6 +270,10 @@ void ShareBox::prepare() {
 
 	_inner->setPeerSelectedChangedCallback([=](PeerData *peer, bool checked) {
 		innerSelectedChanged(peer, checked);
+	});
+
+	_inner->setSubmitRequest([=] {
+		submit({});
 	});
 
 	Ui::Emoji::SuggestionsController::Init(
@@ -923,6 +930,15 @@ void ShareBox::Inner::mousePressEvent(QMouseEvent *e) {
 	if (e->button() == Qt::LeftButton) {
 		updateUpon(e->pos());
 		changeCheckState(getChatAtIndex(_upon));
+		if (!_hadSelection
+			&& _submitRequest
+			&& !(e->modifiers() & Qt::ControlModifier)
+			&& _selected.size() == 1
+			&& _selected.front()->isSelf()) {
+			_submitRequest();
+		} else if (!_hadSelection) {
+			_hadSelection = true;
+		}
 	}
 }
 
@@ -968,6 +984,10 @@ void ShareBox::Inner::peerUnselected(not_null<PeerData*> peer) {
 void ShareBox::Inner::setPeerSelectedChangedCallback(
 		Fn<void(PeerData *peer, bool selected)> callback) {
 	_peerSelectedChangedCallback = std::move(callback);
+}
+
+void ShareBox::Inner::setSubmitRequest(Fn<void()> callback) {
+	_submitRequest = std::move(callback);
 }
 
 void ShareBox::Inner::changePeerCheckState(
