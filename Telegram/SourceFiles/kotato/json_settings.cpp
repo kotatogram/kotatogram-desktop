@@ -213,6 +213,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("hover_emoji_panel"), HoverEmojiPanel());
 	settings.insert(qsl("monospace_large_bubbles"), MonospaceLargeBubbles());
 	settings.insert(qsl("forward_retain_selection"), cForwardRetainSelection());
+	settings.insert(qsl("forward_on_click"), cForwardChatOnClick());
 
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
 	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
@@ -520,6 +521,10 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "forward_retain_selection", [&](auto v) {
 		cSetForwardRetainSelection(v);
+	});
+
+	ReadBoolOption(settings, "forward_on_click", [&](auto v) {
+		cSetForwardChatOnClick(v);
 	});
 	return true;
 }

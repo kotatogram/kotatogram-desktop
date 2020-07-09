@@ -123,3 +123,4 @@ void SetHoverEmojiPanel(bool enabled);
 [[nodiscard]] rpl::producer<bool> HoverEmojiPanelChanges();
 
 DeclareSetting(bool, ForwardRetainSelection);
+DeclareSetting(bool, ForwardChatOnClick);

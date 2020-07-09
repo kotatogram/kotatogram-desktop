@@ -177,6 +177,8 @@
 	"ktg_forward_go_to_chat": "Перейти в чат",
 	"ktg_settings_forward": "Пересылка",
 	"ktg_settings_forward_retain_selection": "Сохранять выделение после пересылки",
+	"ktg_settings_forward_chat_on_click": "Открывать чат по клику",
+	"ktg_settings_forward_chat_on_click_description": "Удерживайте Ctrl для выбора нескольких чатов вне зависимости от этой настройки.",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

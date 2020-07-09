@@ -378,12 +378,13 @@ void SetupKotatoForward(not_null<Ui::VerticalLayout*> container) {
 	AddSubsectionTitle(container, tr::ktg_settings_forward());
 
 	SettingsMenuCSwitch(ktg_settings_forward_retain_selection, ForwardRetainSelection);
+	SettingsMenuCSwitch(ktg_settings_forward_chat_on_click, ForwardChatOnClick);
 
 	AddSkip(container);
+	AddDividerText(container, tr::ktg_settings_forward_chat_on_click_description());
 }
 
 void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
-	AddDivider(container);
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_network());
 

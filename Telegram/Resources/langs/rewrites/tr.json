@@ -170,6 +170,8 @@
 	"ktg_forward_go_to_chat": "Go to chat",
 	"ktg_settings_forward": "Forward",
 	"ktg_settings_forward_retain_selection": "Retain selection after forward",
+	"ktg_settings_forward_chat_on_click": "Open chat on click",
+	"ktg_settings_forward_chat_on_click_description": "You can hold Ctrl to select multiple chats regardless of this option.",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

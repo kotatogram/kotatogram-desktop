@@ -188,3 +188,4 @@ rpl::producer<bool> HoverEmojiPanelChanges() {
 }
 
 bool gForwardRetainSelection = false;
+bool gForwardChatOnClick = false;
