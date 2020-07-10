@@ -78,56 +78,13 @@ bool EventFilter::nativeEventFilter(
 	});
 }
 
-bool EventFilter::mainWindowEvent(
+bool EventFilter::customWindowFrameEvent(
 		HWND hWnd,
 		UINT msg,
 		WPARAM wParam,
 		LPARAM lParam,
 		LRESULT *result) {
-	using ShadowsChange = MainWindow::ShadowsChange;
-
-	if (const auto tbCreatedMsgId = Platform::MainWindow::TaskbarCreatedMsgId()) {
-		if (msg == tbCreatedMsgId) {
-			Platform::MainWindow::TaskbarCreated();
-		}
-	}
-
-	if (UseNativeDecorations()) {
-		return false;
-	}
-
 	switch (msg) {
-
-	case WM_TIMECHANGE: {
-		Core::App().checkAutoLockIn(100);
-	} return false;
-
-	case WM_WTSSESSION_CHANGE: {
-		if (wParam == WTS_SESSION_LOGOFF || wParam == WTS_SESSION_LOCK) {
-			setSessionLoggedOff(true);
-		} else if (wParam == WTS_SESSION_LOGON || wParam == WTS_SESSION_UNLOCK) {
-			setSessionLoggedOff(false);
-		}
-	} return false;
-
-	case WM_DESTROY: {
-		App::quit();
-	} return false;
-
-	case WM_ACTIVATE: {
-		if (LOWORD(wParam) == WA_CLICKACTIVE) {
-			Ui::MarkInactivePress(_window, true);
-		}
-		if (LOWORD(wParam) != WA_INACTIVE) {
-			_window->shadowsActivate();
-		} else {
-			_window->shadowsDeactivate();
-		}
-		if (Global::started()) {
-			_window->update();
-		}
-	} return false;
-
 	case WM_NCPAINT: {
 		if (QSysInfo::WindowsVersion >= QSysInfo::WV_WINDOWS8) return false;
 		if (result) *result = 0;
@@ -162,47 +119,6 @@ bool EventFilter::mainWindowEvent(
 		}
 	} return true;
 
-	case WM_WINDOWPOSCHANGING:
-	case WM_WINDOWPOSCHANGED: {
-		WINDOWPLACEMENT wp;
-		wp.length = sizeof(WINDOWPLACEMENT);
-		if (GetWindowPlacement(hWnd, &wp) && (wp.showCmd == SW_SHOWMAXIMIZED || wp.showCmd == SW_SHOWMINIMIZED)) {
-			_window->shadowsUpdate(ShadowsChange::Hidden);
-		} else {
-			_window->shadowsUpdate(ShadowsChange::Moved | ShadowsChange::Resized, (WINDOWPOS*)lParam);
-		}
-	} return false;
-
-	case WM_SIZE: {
-		if (wParam == SIZE_MAXIMIZED || wParam == SIZE_RESTORED || wParam == SIZE_MINIMIZED) {
-			if (wParam != SIZE_RESTORED || _window->windowState() != Qt::WindowNoState) {
-				Qt::WindowState state = Qt::WindowNoState;
-				if (wParam == SIZE_MAXIMIZED) {
-					state = Qt::WindowMaximized;
-				} else if (wParam == SIZE_MINIMIZED) {
-					state = Qt::WindowMinimized;
-				}
-				emit _window->windowHandle()->windowStateChanged(state);
-			} else {
-				_window->positionUpdated();
-			}
-			_window->psUpdateMargins();
-			MainWindow::ShadowsChanges changes = (wParam == SIZE_MINIMIZED || wParam == SIZE_MAXIMIZED) ? ShadowsChange::Hidden : (ShadowsChange::Resized | ShadowsChange::Shown);
-			_window->shadowsUpdate(changes);
-		}
-	} return false;
-
-	case WM_SHOWWINDOW: {
-		LONG style = GetWindowLongPtr(hWnd, GWL_STYLE);
-		auto changes = ShadowsChange::Resized | ((wParam && !(style & (WS_MAXIMIZE | WS_MINIMIZE))) ? ShadowsChange::Shown : ShadowsChange::Hidden);
-		_window->shadowsUpdate(changes);
-	} return false;
-
-	case WM_MOVE: {
-		_window->shadowsUpdate(ShadowsChange::Moved);
-		_window->positionUpdated();
-	} return false;
-
 	case WM_NCHITTEST: {
 		if (!result) return false;
 
@@ -230,6 +146,103 @@ bool EventFilter::mainWindowEvent(
 	case WM_NCRBUTTONUP: {
 		SendMessage(hWnd, WM_SYSCOMMAND, SC_MOUSEMENU, lParam);
 	} return true;
+	}
+
+	return false;
+}
+
+bool EventFilter::mainWindowEvent(
+		HWND hWnd,
+		UINT msg,
+		WPARAM wParam,
+		LPARAM lParam,
+		LRESULT *result) {
+	using Change = Ui::Platform::WindowShadow::Change;
+
+	if (const auto tbCreatedMsgId = Platform::MainWindow::TaskbarCreatedMsgId()) {
+		if (msg == tbCreatedMsgId) {
+			Platform::MainWindow::TaskbarCreated();
+		}
+	}
+
+	if (!Core::App().settings().nativeWindowFrame()) {
+		if (customWindowFrameEvent(hWnd, msg, wParam, lParam, result)) {
+			return true;
+		}
+	}
+
+	switch (msg) {
+
+	case WM_TIMECHANGE: {
+		Core::App().checkAutoLockIn(100);
+	} return false;
+
+	case WM_WTSSESSION_CHANGE: {
+		if (wParam == WTS_SESSION_LOGOFF || wParam == WTS_SESSION_LOCK) {
+			setSessionLoggedOff(true);
+		} else if (wParam == WTS_SESSION_LOGON || wParam == WTS_SESSION_UNLOCK) {
+			setSessionLoggedOff(false);
+		}
+	} return false;
+
+	case WM_DESTROY: {
+		App::quit();
+	} return false;
+
+	case WM_ACTIVATE: {
+		if (LOWORD(wParam) == WA_CLICKACTIVE) {
+			Ui::MarkInactivePress(_window, true);
+		}
+		if (LOWORD(wParam) != WA_INACTIVE) {
+			_window->shadowsActivate();
+		} else {
+			_window->shadowsDeactivate();
+		}
+		if (Global::started()) {
+			_window->update();
+		}
+	} return false;
+
+	case WM_WINDOWPOSCHANGING:
+	case WM_WINDOWPOSCHANGED: {
+		WINDOWPLACEMENT wp;
+		wp.length = sizeof(WINDOWPLACEMENT);
+		if (GetWindowPlacement(hWnd, &wp) && (wp.showCmd == SW_SHOWMAXIMIZED || wp.showCmd == SW_SHOWMINIMIZED)) {
+			_window->shadowsUpdate(Change::Hidden);
+		} else {
+			_window->shadowsUpdate(Change::Moved | Change::Resized, (WINDOWPOS*)lParam);
+		}
+	} return false;
+
+	case WM_SIZE: {
+		if (wParam == SIZE_MAXIMIZED || wParam == SIZE_RESTORED || wParam == SIZE_MINIMIZED) {
+			if (wParam != SIZE_RESTORED || _window->windowState() != Qt::WindowNoState) {
+				Qt::WindowState state = Qt::WindowNoState;
+				if (wParam == SIZE_MAXIMIZED) {
+					state = Qt::WindowMaximized;
+				} else if (wParam == SIZE_MINIMIZED) {
+					state = Qt::WindowMinimized;
+				}
+				emit _window->windowHandle()->windowStateChanged(state);
+			} else {
+				_window->positionUpdated();
+			}
+			_window->updateCustomMargins();
+			const auto changes = (wParam == SIZE_MINIMIZED || wParam == SIZE_MAXIMIZED) ? Change::Hidden : (Change::Resized | Change::Shown);
+			_window->shadowsUpdate(changes);
+		}
+	} return false;
+
+	case WM_SHOWWINDOW: {
+		LONG style = GetWindowLongPtr(hWnd, GWL_STYLE);
+		const auto changes = Change::Resized | ((wParam && !(style & (WS_MAXIMIZE | WS_MINIMIZE))) ? Change::Shown : Change::Hidden);
+		_window->shadowsUpdate(changes);
+	} return false;
+
+	case WM_MOVE: {
+		_window->shadowsUpdate(Change::Moved);
+		_window->positionUpdated();
+	} return false;
 
 	case WM_SYSCOMMAND: {
 		if (wParam == SC_MOUSEMENU) {

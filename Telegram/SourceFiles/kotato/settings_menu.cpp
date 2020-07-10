@@ -437,12 +437,12 @@ void SetupKotatoSystem(
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
-#if defined Q_OS_WIN || defined Q_OS_MAC || QT_VERSION >= QT_VERSION_CHECK(5, 15, 0) || defined DESKTOP_APP_QT_PATCHED
+#if defined Q_OS_MAC
 	const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
 		container.get());
 	AddButton(
 		container,
-		tr::ktg_settings_use_native_decorations(),
+		tr::lng_settings_native_frame(),
 		st::settingsButton
 	)->toggleOn(
 		useNativeDecorationsToggled->events_starting_with_copy(cUseNativeDecorations())
@@ -464,7 +464,7 @@ void SetupKotatoSystem(
 			confirmed,
 			cancelled));
 	}, container->lifetime());
-#endif // Q_OS_WIN || Q_OS_MAC || Qt >= 5.15 || DESKTOP_APP_QT_PATCHED
+#endif // Q_OS_MAC
 
 	AddButton(
 		container,
