@@ -35,6 +35,22 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.3.8" date="2020-07-10">
+            <description>
+                <p>TDesktop sources were updated to 2.1.18.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Restored one-click forward to Saved Messages.</li>
+                    <li>Ability to go to chat from forward when selecting one.</li>
+                    <li>Make retaining selection after forward optional.</li>
+                    <li>Option to open chat on click.</li>
+                    <li>Hide account name in notification if it's the current one.</li>
+                    <li>Possible fix for crash on Permissions click in profile.</li>
+                    <li>Turkish translation (by disk3).</li>
+                    <li>Polish translation (by Sebek).</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.3.7" date="2020-07-03">
             <description>
                 <p>TDesktop sources were updated to 2.1.17.</p>
