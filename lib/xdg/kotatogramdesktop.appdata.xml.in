@@ -43,7 +43,7 @@
                     <li>Restored one-click forward to Saved Messages.</li>
                     <li>Ability to go to chat from forward when selecting one.</li>
                     <li>Make retaining selection after forward optional.</li>
-                    <li>Option to open chat on click.</li>
+                    <li>Option to open chat on click in forward.</li>
                     <li>Hide account name in notification if it's the current one.</li>
                     <li>Possible fix for crash on Permissions click in profile.</li>
                     <li>Turkish translation (by disk3).</li>
