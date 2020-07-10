@@ -1,9 +1,9 @@
 1.3.8 (10.07.2020)
-- Updated TDesktop sources to 2.1.17.
+- Updated TDesktop sources to 2.1.18.
 - Restored one-click forward to Saved Messages.
 - Ability to go to chat from forward when selecting one.
 - Make retaining selection after forward optional.
-- Option to open chat on click.
+- Option to open chat on click in forward window.
 - Hide account name in notification if it's the current one.
 - Possible fix for crash on Permissions click in profile.
 - Turkish translation (by disk3).
