@@ -170,9 +170,9 @@
 	"ktg_admin_log_banned_send_stickers": "Надсилати наліпки",
 	"ktg_admin_log_banned_send_gif": "Надсилати GIF",
 	"ktg_admin_log_banned_send_games": "Надсилати ігри",
+	"ktg_admin_log_banned_use_inline": "Використовувати інлайн-ботів",
 
 	// New strings
-	"ktg_admin_log_banned_use_inline": "Використовувати інлайн-ботів",
 	"ktg_forward_go_to_chat": "Відкрити чат",
 	"ktg_settings_forward": "Пересилка",
 	"ktg_settings_forward_retain_selection": "Зберегти вибір після пересилки",
