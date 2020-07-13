@@ -77,5 +77,6 @@
     <file alias="tr.json">../../langs/rewrites/tr.json</file>
     <file alias="pl.json">../../langs/rewrites/pl.json</file>
     <file alias="pt-br.json">../../langs/rewrites/pt-br.json</file>
+    <file alias="it.json">../../langs/rewrites/it.json</file> 
   </qresource>
 </RCC>
