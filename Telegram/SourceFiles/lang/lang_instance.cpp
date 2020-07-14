@@ -566,9 +566,15 @@ void Instance::fillDefaultJson() {
 	if (!QDir().exists(jsonLangDir())) QDir().mkpath(jsonLangDir());
 
 	const auto langs = QDir(":/ktg_lang").entryList(QStringList() << "*.json", QDir::Files);
+	auto neededLangs = QStringList() << "en" << id() << baseId();
+	neededLangs.removeDuplicates();
 
 	for (auto language : langs) {
 		language.chop(5);
+		if (!neededLangs.contains(language)) {
+			continue;
+		}
+
 		const auto path = jsonLangDir() + language + ".default.json";
 		const auto pathRaw = jsonLangDir() + language + "-raw.default.json";
 		auto input = QFile(qsl(":/ktg_lang/%1.json").arg(language));
@@ -581,7 +587,7 @@ void Instance::fillDefaultJson() {
 				output.close();
 			}
 
-			if (outputRaw.open(QIODevice::WriteOnly)) {
+			if (language != qstr("en") && outputRaw.open(QIODevice::WriteOnly)) {
 				outputRaw.write(inputData);
 				outputRaw.close();
 			}

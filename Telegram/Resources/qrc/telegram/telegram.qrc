@@ -72,6 +72,7 @@
     <file alias="kotatogramdesktop.desktop">../../../../lib/xdg/kotatogramdesktop.desktop</file>
   </qresource>
   <qresource prefix="/ktg_lang">
+    <file alias="en.json">../../langs/rewrites/en.json</file>
     <file alias="ru.json">../../langs/rewrites/ru.json</file>
     <file alias="uk.json">../../langs/rewrites/uk.json</file>
     <file alias="tr.json">../../langs/rewrites/tr.json</file>
