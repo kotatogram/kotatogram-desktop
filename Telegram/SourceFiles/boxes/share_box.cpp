@@ -426,6 +426,8 @@ void ShareBox::keyPressEvent(QKeyEvent *e) {
 			_inner->activateSkipPage(contentHeight(), -1);
 		} else if (e->key() == Qt::Key_PageDown) {
 			_inner->activateSkipPage(contentHeight(), 1);
+		} else if (e->key() == Qt::Key_Escape && !_select->getQuery().isEmpty()) {
+			_select->clearQuery();
 		} else {
 			BoxContent::keyPressEvent(e);
 		}
