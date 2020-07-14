@@ -68,6 +68,8 @@ public:
 	void activateSkipPage(int pageHeight, int direction);
 	void updateFilter(QString filter = QString());
 	void selectActive();
+	void tryGoToChat();
+	void selectionMade();
 
 	rpl::producer<Ui::ScrollToRequest> scrollToRequests() const;
 	rpl::producer<> searchRequests() const;
@@ -249,11 +251,16 @@ void ShareBox::prepare() {
 	});
 	_select->setResizedCallback([=] { updateScrollSkips(); });
 	_select->setSubmittedCallback([=](Qt::KeyboardModifiers modifiers) {
-		if (modifiers.testFlag(Qt::ControlModifier)
+		if ((modifiers.testFlag(Qt::ControlModifier) && !cForwardChatOnClick())
 			|| modifiers.testFlag(Qt::MetaModifier)) {
 			submit({});
 		} else {
 			_inner->selectActive();
+			if (!modifiers.testFlag(Qt::ControlModifier) || cForwardChatOnClick()) {
+				_inner->tryGoToChat();
+			} else {
+				_inner->selectionMade();
+			}
 		}
 	});
 	_comment->heightValue(
@@ -940,23 +947,34 @@ void ShareBox::Inner::mousePressEvent(QMouseEvent *e) {
 	if (e->button() == Qt::LeftButton) {
 		updateUpon(e->pos());
 		changeCheckState(getChatAtIndex(_upon));
-		if (!_hadSelection
-			&& !(e->modifiers() & Qt::ControlModifier)
-			&& _selected.size() == 1) {
-			if (_submitRequest && _selected.front()->isSelf()) {
-				_submitRequest();
-			} else if (_goToChatRequest && cForwardChatOnClick()) {
-				_goToChatRequest();
-			}
-			_hadSelection = true;
-		} else if (!_hadSelection) {
-			_hadSelection = true;
+		if (!e->modifiers().testFlag(Qt::ControlModifier)) {
+			tryGoToChat();
+		} else {
+			selectionMade();
 		}
 	}
 }
 
 void ShareBox::Inner::selectActive() {
 	changeCheckState(getChatAtIndex(_active > 0 ? _active : 0));
+}
+
+void ShareBox::Inner::tryGoToChat() {
+	if (!_hadSelection
+		&& _selected.size() == 1) {
+		if (_submitRequest && _selected.front()->isSelf()) {
+			_submitRequest();
+		} else if (_goToChatRequest && cForwardChatOnClick()) {
+			_goToChatRequest();
+		}
+		_hadSelection = true;
+	}
+}
+
+void ShareBox::Inner::selectionMade() {
+	 if (!_hadSelection) {
+		_hadSelection = true;
+	}
 }
 
 void ShareBox::Inner::resizeEvent(QResizeEvent *e) {
