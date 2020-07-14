@@ -1045,15 +1045,15 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		FnMut<void()> submitCallback;
 	};
 	const auto weak = std::make_shared<QPointer<ShareBox>>();
-	const auto item = navigation->session().data().message(items[0]);
-	const auto history = item->history();
+	const auto firstItem = navigation->session().data().message(items[0]);
+	const auto history = firstItem->history();
 	const auto owner = &history->owner();
 	const auto session = &history->session();
-	const auto isGroup = (owner->groups().find(item) != nullptr);
-	const auto isGame = item->getMessageBot()
-		&& item->media()
-		&& (item->media()->game() != nullptr);
-	const auto canCopyLink = items.size() == 1 && (item->hasDirectLink() || isGame);
+	const auto isGroup = (owner->groups().find(firstItem) != nullptr);
+	const auto isGame = firstItem->getMessageBot()
+		&& firstItem->media()
+		&& (firstItem->media()->game() != nullptr);
+	const auto canCopyLink = items.size() == 1 && (firstItem->hasDirectLink() || isGame);
 	const auto data = std::make_shared<ShareData>(history->peer, std::move(items), std::move(successCallback));
 
 	auto copyCallback = [=]() {
