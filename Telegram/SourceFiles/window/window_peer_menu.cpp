@@ -1045,7 +1045,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		FnMut<void()> submitCallback;
 	};
 	const auto weak = std::make_shared<QPointer<ShareBox>>();
-	const auto item = App::wnd()->sessionController()->session().data().message(items[0]);
+	const auto item = navigation->session().data().message(items[0]);
 	const auto history = item->history();
 	const auto owner = &history->owner();
 	const auto session = &history->session();
@@ -1187,7 +1187,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		navigation->parentController()->content()->setForwardDraft(peer->id, std::move(data->msgIds));
 	};
 	*weak = Ui::show(Box<ShareBox>(
-		App::wnd()->sessionController(),
+		navigation,
 		std::move(copyLinkCallback),
 		std::move(submitCallback),
 		std::move(filterCallback),
