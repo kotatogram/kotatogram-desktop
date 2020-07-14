@@ -1044,12 +1044,16 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		base::flat_set<mtpRequestId> requests;
 		FnMut<void()> submitCallback;
 	};
+	struct MsgIdsGroup {
+		HistoryItemsList items;
+		QVector<MTPint> ids;
+		bool grouped = false;
+	};
 	const auto weak = std::make_shared<QPointer<ShareBox>>();
 	const auto firstItem = navigation->session().data().message(items[0]);
 	const auto history = firstItem->history();
 	const auto owner = &history->owner();
 	const auto session = &history->session();
-	const auto isGroup = (owner->groups().find(firstItem) != nullptr);
 	const auto isGame = firstItem->getMessageBot()
 		&& firstItem->media()
 		&& (firstItem->media()->game() != nullptr);
@@ -1116,22 +1120,46 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 
 		const auto sendFlags = MTPmessages_ForwardMessages::Flag(0)
 			| MTPmessages_ForwardMessages::Flag::f_with_my_score
-			| (isGroup
-				? MTPmessages_ForwardMessages::Flag::f_grouped
-				: MTPmessages_ForwardMessages::Flag(0))
 			| (options.silent
 				? MTPmessages_ForwardMessages::Flag::f_silent
 				: MTPmessages_ForwardMessages::Flag(0))
 			| (options.scheduled
 				? MTPmessages_ForwardMessages::Flag::f_schedule_date
 				: MTPmessages_ForwardMessages::Flag(0));
-		auto msgIds = QVector<MTPint>();
-		msgIds.reserve(data->msgIds.size());
+		const auto groupedSendFlags = sendFlags | MTPmessages_ForwardMessages::Flag::f_grouped;
+
+		auto groupedMsgIds = QVector<MsgIdsGroup>();
 		for (const auto fullId : data->msgIds) {
-			msgIds.push_back(MTP_int(fullId.msg));
+			auto item = navigation->session().data().message(fullId);
+			auto group = owner->groups().find(item);
+
+			if (!groupedMsgIds.size()) {
+				MsgIdsGroup msgIdGroupInst;
+				msgIdGroupInst.items.push_back(item);
+				msgIdGroupInst.ids.push_back(MTP_int(fullId.msg));
+				if (group != nullptr) {
+					msgIdGroupInst.grouped = true;
+				}
+				groupedMsgIds.push_back(msgIdGroupInst);
+			} else {
+				auto prevItem = groupedMsgIds.back().items.back();
+				auto prevGroup = owner->groups().find(prevItem);
+				if (prevGroup == group) {
+					groupedMsgIds.back().items.push_back(item);
+					groupedMsgIds.back().ids.push_back(MTP_int(fullId.msg));
+				} else {
+					MsgIdsGroup msgIdGroupInst;
+					msgIdGroupInst.items.push_back(item);
+					msgIdGroupInst.ids.push_back(MTP_int(fullId.msg));
+					if (group != nullptr) {
+						msgIdGroupInst.grouped = true;
+					}
+					groupedMsgIds.push_back(msgIdGroupInst);
+				}
+			}
 		}
-		auto generateRandom = [&] {
-			auto result = QVector<MTPlong>(data->msgIds.size());
+		auto generateRandom = [&] (int size) {
+			auto result = QVector<MTPlong>(size);
 			for (auto &value : result) {
 				value = rand_value<MTPlong>();
 			}
@@ -1149,29 +1177,31 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 				message.action.clearDraft = false;
 				api.sendMessage(std::move(message));
 			}
-			histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
-				auto &api = history->session().api();
-				history->sendRequestId = api.request(MTPmessages_ForwardMessages(
-						MTP_flags(sendFlags),
-						data->peer->input,
-						MTP_vector<MTPint>(msgIds),
-						MTP_vector<MTPlong>(generateRandom()),
-						peer->input,
-						MTP_int(options.scheduled)
-				)).done([=](const MTPUpdates &updates, mtpRequestId requestId) {
-					history->session().api().applyUpdates(updates);
-					data->requests.remove(requestId);
-					if (data->requests.empty()) {
-						Ui::Toast::Show(tr::lng_share_done(tr::now));
-						Ui::hideLayer();
-					}
-					finish();
-				}).fail([=](const RPCError &error) {
-					finish();
-				}).afterRequest(history->sendRequestId).send();
-				return history->sendRequestId;
-			});
-			data->requests.insert(history->sendRequestId);
+			for (auto group : groupedMsgIds) {
+				histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+					auto &api = history->session().api();
+					history->sendRequestId = api.request(MTPmessages_ForwardMessages(
+							MTP_flags(group.grouped ? groupedSendFlags : sendFlags),
+							data->peer->input,
+							MTP_vector<MTPint>(group.ids),
+							MTP_vector<MTPlong>(generateRandom(group.ids.size())),
+							peer->input,
+							MTP_int(options.scheduled)
+					)).done([=](const MTPUpdates &updates, mtpRequestId requestId) {
+						history->session().api().applyUpdates(updates);
+						data->requests.remove(requestId);
+						if (data->requests.empty()) {
+							Ui::Toast::Show(tr::lng_share_done(tr::now));
+							Ui::hideLayer();
+						}
+						finish();
+					}).fail([=](const RPCError &error) {
+						finish();
+					}).afterRequest(history->sendRequestId).send();
+					return history->sendRequestId;
+				});
+				data->requests.insert(history->sendRequestId);
+			}
 		}
 		if (data->submitCallback && !cForwardRetainSelection()) {
 			data->submitCallback();
