@@ -172,6 +172,8 @@
 	"ktg_settings_forward_chat_on_click": "Tıklamayla sohbeti aç",
 	"ktg_settings_forward_chat_on_click_description": "Ctrl tuşunu uzun tutarak birden fazla sohbet seçmek için, bu seçenek aktifligine rağmen.",
 
+	// New strings
+
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }

@@ -179,6 +179,8 @@
 	"ktg_settings_forward_chat_on_click": "Відкривати чат при пересиланні",
 	"ktg_settings_forward_chat_on_click_description": "Ви можете вибрати декілька чатів утримуючи Ctrl незалежно від цього параметра.",
 
+	// New strings
+
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }

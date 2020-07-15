@@ -172,6 +172,8 @@
 	"ktg_settings_forward_chat_on_click": "Abrir chat ao clicar",
 	"ktg_settings_forward_chat_on_click_description": "Você pode pressionar Ctrl para selecionar vários chats, independentemente desta opção.",
 
+	// New strings
+
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }
