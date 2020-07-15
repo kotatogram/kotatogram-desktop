@@ -28,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "api/api_chat_filters.h"
+#include "api/api_text_entities.h"
 #include "mtproto/mtproto_config.h"
 #include "history/history.h"
 #include "history/history_item.h"
@@ -1045,6 +1046,15 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		FnMut<void()> submitCallback;
 	};
 	struct MsgIdsGroup {
+		MsgIdsGroup() = default;
+		MsgIdsGroup(not_null<HistoryItem*> item, MTPint fullId, bool isGrouped = false)
+		: grouped(isGrouped) {
+			add(item, fullId);
+		}
+		void add(not_null<HistoryItem*> item, MTPint fullId) {
+			items.push_back(item);
+			ids.push_back(fullId);
+		}
 		HistoryItemsList items;
 		QVector<MTPint> ids;
 		bool grouped = false;
@@ -1058,6 +1068,23 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		&& firstItem->media()
 		&& (firstItem->media()->game() != nullptr);
 	const auto canCopyLink = items.size() == 1 && (firstItem->hasDirectLink() || isGame);
+	auto hasMediaForGrouping = false;
+
+	if (items.size() > 1) {
+		auto grouppableMediaCount = 0;
+		for (const auto item : history->owner().idsToItems(items)) {
+			if (item->media() && item->media()->canBeGrouped()) {
+				grouppableMediaCount++;
+			} else {
+				grouppableMediaCount = 0;
+			}
+			if (grouppableMediaCount > 1) {
+				hasMediaForGrouping = true;
+				break;
+			}
+		}
+	}
+
 	const auto data = std::make_shared<ShareData>(history->peer, std::move(items), std::move(successCallback));
 
 	auto copyCallback = [=]() {
@@ -1128,37 +1155,261 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 				: MTPmessages_ForwardMessages::Flag(0));
 		const auto groupedSendFlags = sendFlags | MTPmessages_ForwardMessages::Flag::f_grouped;
 
+		// Regroup messages if needed
 		auto groupedMsgIds = QVector<MsgIdsGroup>();
 		for (const auto fullId : data->msgIds) {
-			auto item = navigation->session().data().message(fullId);
-			auto group = owner->groups().find(item);
+			const auto item = navigation->session().data().message(fullId);
+			const auto group = owner->groups().find(item);
+			const auto canBeGrouped = hasMediaForGrouping && item->media() && item->media()->canBeGrouped();
 
-			if (groupedMsgIds.size()) {
-				auto prevItem = groupedMsgIds.back().items.back();
-				auto prevGroup = owner->groups().find(prevItem);
-				if (prevGroup == group) {
-					groupedMsgIds.back().items.push_back(item);
-					groupedMsgIds.back().ids.push_back(MTP_int(fullId.msg));
-					continue;
+			if (groupedMsgIds.size() > 0) {
+				auto lastGroup = &groupedMsgIds.back();
+
+				if (cForwardAlbumsAsIs()) {
+					if (owner->groups().find(lastGroup->items.back()) == group) {
+						lastGroup->add(item, MTP_int(fullId.msg));
+						continue;
+					}
+				} else {
+					if (lastGroup->grouped) {
+						if (lastGroup->items.size() < 10 && canBeGrouped) {
+							lastGroup->add(item, MTP_int(fullId.msg));
+							continue;
+						}
+					} else {
+						if (!canBeGrouped) {
+							lastGroup->add(item, MTP_int(fullId.msg));
+							continue;
+						}
+					}
 				}
 			}
 
-			MsgIdsGroup msgIdGroupInst;
-			msgIdGroupInst.items.push_back(item);
-			msgIdGroupInst.ids.push_back(MTP_int(fullId.msg));
-			msgIdGroupInst.grouped = (group != nullptr);
-			groupedMsgIds.push_back(msgIdGroupInst);
+			groupedMsgIds.push_back(MsgIdsGroup(
+				item,
+				MTP_int(fullId.msg),
+				cForwardAlbumsAsIs()
+					? (group != nullptr)
+					: canBeGrouped
+						? cForwardGrouped()
+						: false));
 		}
-		auto generateRandom = [&] (int size) {
+
+		const auto generateRandom = [&] (int size) {
 			auto result = QVector<MTPlong>(size);
 			for (auto &value : result) {
 				value = rand_value<MTPlong>();
 			}
 			return result;
 		};
+		const auto checkAndClose = [=] (mtpRequestId requestId) {
+			data->requests.remove(requestId);
+			if (data->requests.empty()) {
+				Ui::Toast::Show(tr::lng_share_done(tr::now));
+				Ui::hideLayer();
+			}
+		};
 		auto &api = owner->session().api();
 		auto &histories = owner->histories();
 		const auto requestType = Data::Histories::RequestType::Send;
+
+		const auto forwardQuoted = [&] (
+			MsgIdsGroup &&group,
+			not_null<History*> history,
+			MTPmessages_ForwardMessages::Flags flags) {
+			histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+				auto &api = history->session().api();
+				history->sendRequestId = api.request(MTPmessages_ForwardMessages(
+						MTP_flags(flags),
+						data->peer->input,
+						MTP_vector<MTPint>(group.ids),
+						MTP_vector<MTPlong>(generateRandom(group.ids.size())),
+						history->peer->input,
+						MTP_int(options.scheduled)
+				)).done([=](const MTPUpdates &updates, mtpRequestId requestId) {
+					history->session().api().applyUpdates(updates);
+					checkAndClose(requestId);
+					finish();
+				}).fail([=](const RPCError &error) {
+					finish();
+				}).afterRequest(history->sendRequestId).send();
+				return history->sendRequestId;
+			});
+			data->requests.insert(history->sendRequestId);
+		};
+
+		const auto forwardAlbumUnquoted = [&] (MsgIdsGroup &&group, not_null<History*> history) {
+			auto medias = QVector<MTPInputSingleMedia>();
+			medias.reserve(group.items.size());
+
+			auto randomIds = generateRandom(group.items.size());
+
+			for (const auto item : group.items) {
+				const auto media = item->media();
+				const auto inputMedia = media->photo()
+					? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
+					: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint());
+				const auto caption = cForwardCaptioned()
+						? item->originalText()
+						: TextWithEntities();
+				const auto sentEntities = Api::EntitiesToMTP(
+					session,
+					caption.entities,
+					Api::ConvertOption::SkipLocal);
+
+				const auto flags = !sentEntities.v.isEmpty()
+						? MTPDinputSingleMedia::Flag::f_entities
+						: MTPDinputSingleMedia::Flag(0);
+
+				const auto randomId = randomIds.takeFirst();
+
+				medias.push_back(MTP_inputSingleMedia(
+					MTP_flags(flags),
+					inputMedia,
+					randomId,
+					MTP_string(caption.text),
+					sentEntities));
+			}
+
+			const auto flags = MTPmessages_SendMultiMedia::Flags(0)
+				| (options.silent
+					? MTPmessages_SendMultiMedia::Flag::f_silent
+					: MTPmessages_SendMultiMedia::Flag(0))
+				| (options.scheduled
+					? MTPmessages_SendMultiMedia::Flag::f_schedule_date
+					: MTPmessages_SendMultiMedia::Flag(0));
+
+			histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+				auto &api = history->session().api();
+				history->sendRequestId = api.request(MTPmessages_SendMultiMedia(
+					MTP_flags(flags),
+					history->peer->input,
+					MTPint(),
+					MTP_vector<MTPInputSingleMedia>(medias),
+					MTP_int(options.scheduled)
+				)).done([=](const MTPUpdates &updates, mtpRequestId requestId) {
+					history->session().api().applyUpdates(updates);
+					checkAndClose(requestId);
+					finish();
+				}).fail([=](const RPCError &error) {
+					finish();
+				}).afterRequest(history->sendRequestId).send();
+				return history->sendRequestId;
+			});
+			data->requests.insert(history->sendRequestId);
+		};
+
+		const auto forwardMediaUnquoted = [&] (not_null<HistoryItem *> item, not_null<History*> history) {
+			const auto media = item->media();
+
+			auto newSendFlags = MTPmessages_SendMedia::Flags(0)
+				| (options.silent
+					? MTPmessages_SendMedia::Flag::f_silent
+					: MTPmessages_SendMedia::Flag(0))
+				| (options.scheduled
+					? MTPmessages_SendMedia::Flag::f_schedule_date
+					: MTPmessages_SendMedia::Flag(0));
+
+			const auto caption = (cForwardCaptioned()
+					&& !media->geoPoint()
+					&& !media->sharedContact())
+						? item->originalText()
+						: TextWithEntities();
+
+			const auto sentEntities = Api::EntitiesToMTP(
+				session,
+				caption.entities,
+				Api::ConvertOption::SkipLocal);
+			if (!sentEntities.v.isEmpty()) {
+				newSendFlags |= MTPmessages_SendMedia::Flag::f_entities;
+			}
+
+			const auto inputMedia = media->poll()
+				? PollDataToInputMedia(media->poll())
+				: media->geoPoint()
+					? MTP_inputMediaGeoPoint(
+						MTP_inputGeoPoint(
+							MTP_double(media->geoPoint()->lat()),
+							MTP_double(media->geoPoint()->lon())))
+					: media->sharedContact()
+						? MTP_inputMediaContact(
+							MTP_string(media->sharedContact()->phoneNumber),
+							MTP_string(media->sharedContact()->firstName),
+							MTP_string(media->sharedContact()->lastName),
+							MTPstring())
+						: media->photo()
+							? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
+							: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint());
+
+			histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+				auto &api = history->session().api();
+				history->sendRequestId = api.request(MTPmessages_SendMedia(
+					MTP_flags(newSendFlags),
+					history->peer->input,
+					MTPint(),
+					inputMedia,
+					MTP_string(caption.text),
+					rand_value<MTPlong>(),
+					MTPReplyMarkup(),
+					sentEntities,
+					MTP_int(options.scheduled)
+				)).done([=](const MTPUpdates &updates, mtpRequestId requestId) {
+					history->session().api().applyUpdates(updates);
+					checkAndClose(requestId);
+					finish();
+				}).fail([=](const RPCError &error) {
+					finish();
+				}).afterRequest(history->sendRequestId).send();
+				return history->sendRequestId;
+			});
+			data->requests.insert(history->sendRequestId);
+		};
+
+		const auto forwardMessageUnquoted = [&] (not_null<HistoryItem *> item, not_null<History*> history) {
+			const auto media = item->media();
+
+			auto newSendFlags = MTPmessages_SendMessage::Flag(0)
+				| (!media || !media->webpage()
+					? MTPmessages_SendMessage::Flag::f_no_webpage
+					: MTPmessages_SendMessage::Flag(0))
+				| (options.silent
+					? MTPmessages_SendMessage::Flag::f_silent
+					: MTPmessages_SendMessage::Flag(0))
+				| (options.scheduled
+					? MTPmessages_SendMessage::Flag::f_schedule_date
+					: MTPmessages_SendMessage::Flag(0));
+
+			const auto sentEntities = Api::EntitiesToMTP(
+				session,
+				item->originalText().entities,
+				Api::ConvertOption::SkipLocal);
+			if (!sentEntities.v.isEmpty()) {
+				newSendFlags |= MTPmessages_SendMessage::Flag::f_entities;
+			}
+
+			histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+				auto &api = history->session().api();
+				history->sendRequestId = api.request(MTPmessages_SendMessage(
+					MTP_flags(newSendFlags),
+					history->peer->input,
+					MTPint(),
+					MTP_string(item->originalText().text),
+					rand_value<MTPlong>(),
+					MTPReplyMarkup(),
+					sentEntities,
+					MTP_int(options.scheduled)
+				)).done([=](const MTPUpdates &updates, mtpRequestId requestId) {
+					history->session().api().applyUpdates(updates);
+					checkAndClose(requestId);
+					finish();
+				}).fail([=](const RPCError &error) {
+					finish();
+				}).afterRequest(history->sendRequestId).send();
+				return history->sendRequestId;
+			});
+			data->requests.insert(history->sendRequestId);
+		};
+
 		for (const auto peer : result) {
 			const auto history = owner->history(peer);
 			if (!comment.text.isEmpty()) {
@@ -1168,30 +1419,39 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 				message.action.clearDraft = false;
 				api.sendMessage(std::move(message));
 			}
-			for (auto group : groupedMsgIds) {
-				histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
-					auto &api = history->session().api();
-					history->sendRequestId = api.request(MTPmessages_ForwardMessages(
-							MTP_flags(group.grouped ? groupedSendFlags : sendFlags),
-							data->peer->input,
-							MTP_vector<MTPint>(group.ids),
-							MTP_vector<MTPlong>(generateRandom(group.ids.size())),
-							peer->input,
-							MTP_int(options.scheduled)
-					)).done([=](const MTPUpdates &updates, mtpRequestId requestId) {
-						history->session().api().applyUpdates(updates);
-						data->requests.remove(requestId);
-						if (data->requests.empty()) {
-							Ui::Toast::Show(tr::lng_share_done(tr::now));
-							Ui::hideLayer();
+			for (auto &group : groupedMsgIds) {
+				if (cForwardQuoted()) {
+					// Forward regrouped messages as is
+					const auto flags = group.grouped ? groupedSendFlags : sendFlags;
+					forwardQuoted(std::move(group), history, flags);
+				} else if (group.grouped) {
+					// Sending albums without author
+					forwardAlbumUnquoted(std::move(group), history);
+				} else {
+					for (const auto item : group.items) {
+						const auto media = item->media();
+
+						if (media && !media->webpage()) {
+							if (media->poll()
+								|| media->geoPoint()
+								|| media->sharedContact()
+								|| media->photo()
+								|| media->document()) {
+								// Send media messages without author
+								forwardMediaUnquoted(item, history);
+							} else {
+								// Forward message if type doesn't support forwarding unquoted
+								forwardQuoted(
+									MsgIdsGroup(item, MTP_int(item->fullId().msg)),
+									history,
+									sendFlags);
+							}
+						} else {
+							// Send messages without author
+							forwardMessageUnquoted(item, history);
 						}
-						finish();
-					}).fail([=](const RPCError &error) {
-						finish();
-					}).afterRequest(history->sendRequestId).send();
-					return history->sendRequestId;
-				});
-				data->requests.insert(history->sendRequestId);
+					}
+				}
 			}
 		}
 		if (data->submitCallback && !cForwardRetainSelection()) {
@@ -1212,7 +1472,8 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		std::move(copyLinkCallback),
 		std::move(submitCallback),
 		std::move(filterCallback),
-		std::move(goToChatCallback)));
+		std::move(goToChatCallback),
+		hasMediaForGrouping));
 	return weak->data();
 }
 

@@ -3890,7 +3890,7 @@ void ApiWrap::forwardMessages(
 	}
 
 	const auto count = int(items.size());
-	const auto genClientSideMessage = action.generateLocal && (count < 2);
+	const auto genClientSideMessage = action.generateLocal && (count < 2) && cForwardQuoted();
 	const auto history = action.history;
 	const auto peer = history->peer;
 
@@ -3916,18 +3916,47 @@ void ApiWrap::forwardMessages(
 
 	auto forwardFrom = items.front()->history()->peer;
 	auto currentGroupId = items.front()->groupId();
+	auto isLastGrouped = false;
 	auto ids = QVector<MTPint>();
 	auto randomIds = QVector<MTPlong>();
 	auto localIds = std::shared_ptr<base::flat_map<uint64, FullMsgId>>();
+	auto fromIter = items.begin();
+	auto toIter = items.begin();
 
-	const auto sendAccumulated = [&] {
+	const auto needNextGroup = [&] (not_null<HistoryItem *> item) {
+		if (cForwardAlbumsAsIs()) {
+			const auto newFrom = item->history()->peer;
+			const auto newGroupId = item->groupId();
+			return forwardFrom != newFrom
+				|| currentGroupId != newGroupId;
+		} else if (cForwardGrouped()) {
+			if (item->media() && item->media()->canBeGrouped()) {
+				return !isLastGrouped;
+			} else {
+				return isLastGrouped;
+			}
+		} else {
+			return false;
+		}
+	};
+
+	const auto isGrouped = [&] {
+		return (cForwardAlbumsAsIs()
+				&& currentGroupId != MessageGroupId())
+			|| (!cForwardAlbumsAsIs() 
+				&& cForwardGrouped()
+				&& items.front()->media()
+				&& items.front()->media()->canBeGrouped());
+	};
+
+	const auto forwardQuoted = [&] {
 		if (shared) {
 			++shared->requestsLeft;
 		}
 		const auto finalFlags = sendFlags
-			| (currentGroupId == MessageGroupId()
-				? MTPmessages_ForwardMessages::Flag(0)
-				: MTPmessages_ForwardMessages::Flag::f_grouped);
+			| (isGrouped()
+				? MTPmessages_ForwardMessages::Flag::f_grouped
+				: MTPmessages_ForwardMessages::Flag(0));
 		const auto requestType = Data::Histories::RequestType::Send;
 		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
 			history->sendRequestId = request(MTPmessages_ForwardMessages(
@@ -3957,6 +3986,308 @@ void ApiWrap::forwardMessages(
 			).send();
 			return history->sendRequestId;
 		});
+	};
+
+	const auto forwardQuotedSingle = [&] (not_null<HistoryItem *> item) {
+		if (shared) {
+			++shared->requestsLeft;
+		}
+
+		auto currentIds = QVector<MTPint>();
+		currentIds.push_back(MTP_int(item->id));
+
+		auto currentRandomId = randomIds.takeFirst();
+		auto currentRandomIds = QVector<MTPlong>();
+		currentRandomIds.push_back(currentRandomId);
+
+		const auto requestType = Data::Histories::RequestType::Send;
+		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+			history->sendRequestId = request(MTPmessages_ForwardMessages(
+				MTP_flags(sendFlags),
+				forwardFrom->input,
+				MTP_vector<MTPint>(currentIds),
+				MTP_vector<MTPlong>(currentRandomIds),
+				peer->input,
+				MTP_int(action.options.scheduled)
+			)).done([=](const MTPUpdates &result) {
+				applyUpdates(result);
+				if (shared && !--shared->requestsLeft) {
+					shared->callback();
+				}
+				finish();
+			}).fail([=, ids = localIds](const RPCError &error) {
+				auto found = false;
+				for (const auto &[randomId, itemId] : *ids) {
+					if (currentRandomId == MTP_long(randomId)) {
+						sendMessageFail(error, peer, randomId, itemId);
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					sendMessageFail(error, peer);
+				}
+				finish();
+			}).afterRequest(
+				history->sendRequestId
+			).send();
+			return history->sendRequestId;
+		});
+	};
+
+	const auto forwardAlbumUnquoted = [&] {
+		if (shared) {
+			++shared->requestsLeft;
+		}
+		auto medias = QVector<MTPInputSingleMedia>();
+		medias.reserve(ids.size());
+
+		for (auto i = fromIter, e = toIter; i != e; i++) {
+			const auto item = *i;
+			const auto media = item->media();
+			auto inputMedia = media->photo()
+				? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
+				: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint());
+			auto caption = cForwardCaptioned()
+					? item->originalText()
+					: TextWithEntities();
+			auto sentEntities = Api::EntitiesToMTP(
+				_session,
+				caption.entities,
+				Api::ConvertOption::SkipLocal);
+
+			const auto flags = !sentEntities.v.isEmpty()
+					? MTPDinputSingleMedia::Flag::f_entities
+					: MTPDinputSingleMedia::Flag(0);
+
+			auto randomId = randomIds.takeFirst();
+
+			medias.push_back(MTP_inputSingleMedia(
+				MTP_flags(flags),
+				inputMedia,
+				randomId,
+				MTP_string(caption.text),
+				sentEntities));
+		}
+
+		const auto finalFlags = MTPmessages_SendMultiMedia::Flags(0)
+			| (action.options.silent
+				? MTPmessages_SendMultiMedia::Flag::f_silent
+				: MTPmessages_SendMultiMedia::Flag(0))
+			| (action.options.scheduled
+				? MTPmessages_SendMultiMedia::Flag::f_schedule_date
+				: MTPmessages_SendMultiMedia::Flag(0));
+
+		const auto requestType = Data::Histories::RequestType::Send;
+		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+			history->sendRequestId = request(MTPmessages_SendMultiMedia(
+				MTP_flags(finalFlags),
+				peer->input,
+				MTPint(),
+				MTP_vector<MTPInputSingleMedia>(medias),
+				MTP_int(action.options.scheduled)
+			)).done([=](const MTPUpdates &result) {
+				applyUpdates(result);
+				if (shared && !--shared->requestsLeft) {
+					shared->callback();
+				}
+				finish();
+			}).fail([=, ids = localIds](const RPCError &error) {
+				if (ids) {
+					for (const auto &[randomId, itemId] : *ids) {
+						sendMessageFail(error, peer, randomId, itemId);
+					}
+				} else {
+					sendMessageFail(error, peer);
+				}
+				finish();
+			}).afterRequest(
+				history->sendRequestId
+			).send();
+			return history->sendRequestId;
+		});
+	};
+
+	const auto forwardMediaUnquoted = [&] (not_null<HistoryItem *> item) {
+		if (shared) {
+			++shared->requestsLeft;
+		}
+		const auto media = item->media();
+
+		auto newSendFlags = MTPmessages_SendMedia::Flags(0)
+			| (action.options.silent
+				? MTPmessages_SendMedia::Flag::f_silent
+				: MTPmessages_SendMedia::Flag(0))
+			| (action.options.scheduled
+				? MTPmessages_SendMedia::Flag::f_schedule_date
+				: MTPmessages_SendMedia::Flag(0));
+
+		auto caption = (cForwardCaptioned()
+				&& !media->geoPoint()
+				&& !media->sharedContact())
+					? item->originalText()
+					: TextWithEntities();
+
+		auto sentEntities = Api::EntitiesToMTP(
+			_session,
+			caption.entities,
+			Api::ConvertOption::SkipLocal);
+		if (!sentEntities.v.isEmpty()) {
+			newSendFlags |= MTPmessages_SendMedia::Flag::f_entities;
+		}
+
+		auto inputMedia = media->poll()
+			? PollDataToInputMedia(media->poll())
+			: media->geoPoint()
+				? MTP_inputMediaGeoPoint(
+					MTP_inputGeoPoint(
+						MTP_double(media->geoPoint()->lat()),
+						MTP_double(media->geoPoint()->lon())))
+				: media->sharedContact()
+					? MTP_inputMediaContact(
+						MTP_string(media->sharedContact()->phoneNumber),
+						MTP_string(media->sharedContact()->firstName),
+						MTP_string(media->sharedContact()->lastName),
+						MTPstring())
+					: media->photo()
+						? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
+						: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint());
+
+		const auto requestType = Data::Histories::RequestType::Send;
+		const auto currentRandomId = randomIds.takeFirst();
+		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+			history->sendRequestId = request(MTPmessages_SendMedia(
+				MTP_flags(newSendFlags),
+				peer->input,
+				MTPint(),
+				inputMedia,
+				MTP_string(caption.text),
+				currentRandomId,
+				MTPReplyMarkup(),
+				sentEntities,
+				MTP_int(action.options.scheduled)
+			)).done([=](const MTPUpdates &result) {
+				applyUpdates(result);
+				if (shared && !--shared->requestsLeft) {
+					shared->callback();
+				}
+				finish();
+			}).fail([=, ids = localIds](const RPCError &error) {
+				if (ids) {
+					auto found = false;
+					for (const auto &[randomId, itemId] : *ids) {
+						if (currentRandomId == MTP_long(randomId)) {
+							sendMessageFail(error, peer, randomId, itemId);
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						sendMessageFail(error, peer);
+					}
+				} else {
+					sendMessageFail(error, peer);
+				}
+				finish();
+			}).afterRequest(
+				history->sendRequestId
+			).send();
+			return history->sendRequestId;
+		});
+	};
+
+	const auto forwardMessageUnquoted = [&] (not_null<HistoryItem *> item) {
+		if (shared) {
+			++shared->requestsLeft;
+		}
+		const auto media = item->media();
+
+		auto newSendFlags = MTPmessages_SendMessage::Flag(0)
+			| (!media || !media->webpage()
+				? MTPmessages_SendMessage::Flag::f_no_webpage
+				: MTPmessages_SendMessage::Flag(0))
+			| (action.options.silent
+				? MTPmessages_SendMessage::Flag::f_silent
+				: MTPmessages_SendMessage::Flag(0))
+			| (action.options.scheduled
+				? MTPmessages_SendMessage::Flag::f_schedule_date
+				: MTPmessages_SendMessage::Flag(0));
+
+		auto sentEntities = Api::EntitiesToMTP(
+			_session,
+			item->originalText().entities,
+			Api::ConvertOption::SkipLocal);
+		if (!sentEntities.v.isEmpty()) {
+			newSendFlags |= MTPmessages_SendMessage::Flag::f_entities;
+		}
+
+		const auto requestType = Data::Histories::RequestType::Send;
+		const auto currentRandomId = randomIds.takeFirst();
+		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+			history->sendRequestId = request(MTPmessages_SendMessage(
+				MTP_flags(newSendFlags),
+				peer->input,
+				MTPint(),
+				MTP_string(item->originalText().text),
+				currentRandomId,
+				MTPReplyMarkup(),
+				sentEntities,
+				MTP_int(action.options.scheduled)
+			)).done([=](const MTPUpdates &result) {
+				applyUpdates(result);
+				if (shared && !--shared->requestsLeft) {
+					shared->callback();
+				}
+				finish();
+			}).fail([=, ids = localIds](const RPCError &error) {
+				if (ids) {
+					auto found = false;
+					for (const auto &[randomId, itemId] : *ids) {
+						if (currentRandomId == MTP_long(randomId)) {
+							sendMessageFail(error, peer, randomId, itemId);
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						sendMessageFail(error, peer);
+					}
+				} else {
+					sendMessageFail(error, peer);
+				}
+				finish();
+			}).afterRequest(
+				history->sendRequestId
+			).send();
+			return history->sendRequestId;
+		});
+	};
+
+	const auto sendAccumulated = [&] {
+		if (cForwardQuoted()) {
+			forwardQuoted();
+		} else if (isGrouped()) {
+			forwardAlbumUnquoted();
+		} else {
+			for (auto i = fromIter, e = toIter; i != e; i++) {
+				const auto item = *i;
+				const auto media = item->media();
+
+				if (media && !media->webpage()) {
+					if (media->poll()
+						|| media->geoPoint()
+						|| media->sharedContact()
+						|| media->photo()
+						|| media->document()) {
+						forwardMediaUnquoted(item);
+					} else {
+						forwardQuotedSingle(item);
+					}
+				} else {
+					forwardMessageUnquoted(item);
+				}
+			}
+		}
 
 		ids.resize(0);
 		randomIds.resize(0);
@@ -3965,7 +4296,8 @@ void ApiWrap::forwardMessages(
 
 	ids.reserve(count);
 	randomIds.reserve(count);
-	for (const auto item : items) {
+	for (auto i = items.begin(), e = items.end(); i != e; /* ++i is in the end */) {
+		const auto item = *i;
 		const auto randomId = rand_value<uint64>();
 		if (genClientSideMessage) {
 			if (const auto message = item->toHistoryMessage()) {
@@ -3994,16 +4326,18 @@ void ApiWrap::forwardMessages(
 				localIds->emplace(randomId, newId);
 			}
 		}
-		const auto newFrom = item->history()->peer;
-		const auto newGroupId = item->groupId();
-		if (forwardFrom != newFrom
-			|| currentGroupId != newGroupId) {
+		if (needNextGroup(item)) {
 			sendAccumulated();
-			forwardFrom = newFrom;
-			currentGroupId = newGroupId;
+			forwardFrom = item->history()->peer;
+			currentGroupId = item->groupId();
+			fromIter = i;
 		}
 		ids.push_back(MTP_int(item->id));
 		randomIds.push_back(MTP_long(randomId));
+		if (item->media() && item->media()->canBeGrouped()) {
+			isLastGrouped = true;
+		}
+		toIter = ++i;
 	}
 	sendAccumulated();
 	_session->data().sendHistoryChangeNotifications();

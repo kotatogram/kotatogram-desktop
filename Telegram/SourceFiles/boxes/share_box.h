@@ -38,6 +38,7 @@ class IndexedList;
 namespace Ui {
 class MultiSelect;
 class InputField;
+class DropdownMenu;
 struct ScrollToRequest;
 template <typename Widget>
 class SlideWrap;
@@ -67,7 +68,8 @@ public:
 		CopyCallback &&copyCallback,
 		SubmitCallback &&submitCallback,
 		FilterCallback &&filterCallback,
-		GoToChatCallback &&goToChatCallback = nullptr);
+		GoToChatCallback &&goToChatCallback = nullptr,
+		bool hasMedia = false);
 
 protected:
 	void prepare() override;
@@ -94,6 +96,8 @@ private:
 	void applyFilterUpdate(const QString &query);
 	void selectedChanged();
 	void createButtons();
+	bool showMenu(not_null<Ui::IconButton*> button);
+	void updateAdditionalTitle();
 	int getTopScrollSkip() const;
 	int getBottomScrollSkip() const;
 	int contentHeight() const;
@@ -115,6 +119,8 @@ private:
 	FilterCallback _filterCallback;
 	GoToChatCallback _goToChatCallback;
 
+	bool _hasMediaMessages = false;
+
 	object_ptr<Ui::MultiSelect> _select;
 	object_ptr<Ui::SlideWrap<Ui::InputField>> _comment;
 
@@ -135,5 +141,7 @@ private:
 	PeopleQueries _peopleQueries;
 
 	Ui::Animations::Simple _scrollAnimation;
+
+	base::unique_qptr<Ui::DropdownMenu> _menu;
 
 };

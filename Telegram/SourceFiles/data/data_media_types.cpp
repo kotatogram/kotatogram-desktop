@@ -182,6 +182,10 @@ PollData *Media::poll() const {
 	return nullptr;
 }
 
+const LocationPoint *Media::geoPoint() const {
+	return nullptr;
+}
+
 bool Media::uploading() const {
 	return false;
 }
@@ -806,6 +810,10 @@ std::unique_ptr<Media> MediaLocation::clone(not_null<HistoryItem*> parent) {
 
 Data::CloudImage *MediaLocation::location() const {
 	return _location;
+}
+
+const LocationPoint *MediaLocation::geoPoint() const {
+	return &_point;
 }
 
 QString MediaLocation::chatListText() const {

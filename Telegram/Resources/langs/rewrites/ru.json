@@ -180,6 +180,16 @@
 	"ktg_settings_forward_chat_on_click_description": "Удерживайте Ctrl для выбора нескольких чатов вне зависимости от этой настройки.",
 
 	// New strings
+	"ktg_forward_menu_quoted": "С автором",
+	"ktg_forward_menu_unquoted": "Без автора с подписями",
+	"ktg_forward_menu_uncaptioned": "Без автора и подписей",
+	"ktg_forward_menu_default_albums": "Оригинальные альбомы",
+	"ktg_forward_menu_group_all_media": "Объединить все медиа",
+	"ktg_forward_menu_separate_messages": "Отдельные сообщения",
+	"ktg_forward_subtitle_unquoted": "без автора",
+	"ktg_forward_subtitle_uncaptioned": "без подписей",
+	"ktg_forward_subtitle_group_all_media": "альбомами",
+	"ktg_forward_subtitle_separate_messages": "по одному",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

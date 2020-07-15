@@ -82,6 +82,7 @@ public:
 	virtual const Invoice *invoice() const;
 	virtual Data::CloudImage *location() const;
 	virtual PollData *poll() const;
+	virtual const LocationPoint *geoPoint() const;
 
 	virtual bool uploading() const;
 	virtual Storage::SharedMediaTypesMask sharedMediaTypes() const;
@@ -245,6 +246,7 @@ public:
 	std::unique_ptr<Media> clone(not_null<HistoryItem*> parent) override;
 
 	Data::CloudImage *location() const override;
+	const LocationPoint *geoPoint() const override;
 	QString chatListText() const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;

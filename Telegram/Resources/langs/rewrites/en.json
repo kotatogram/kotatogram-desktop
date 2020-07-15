@@ -173,6 +173,16 @@
 	"ktg_settings_forward_chat_on_click_description": "You can hold Ctrl to select multiple chats regardless of this option.",
 
 	// New strings
+	"ktg_forward_menu_quoted": "Quoted",
+	"ktg_forward_menu_unquoted": "Unquoted with captions",
+	"ktg_forward_menu_uncaptioned": "Unquoted without captions",
+	"ktg_forward_menu_default_albums": "Preserve albums",
+	"ktg_forward_menu_group_all_media": "Group all media",
+	"ktg_forward_menu_separate_messages": "Separate messages",
+	"ktg_forward_subtitle_unquoted": "unquoted",
+	"ktg_forward_subtitle_uncaptioned": "uncaptioned",
+	"ktg_forward_subtitle_group_all_media": "as albums",
+	"ktg_forward_subtitle_separate_messages": "one by one",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

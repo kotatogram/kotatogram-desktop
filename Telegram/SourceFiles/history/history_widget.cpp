@@ -5172,6 +5172,9 @@ void HistoryWidget::mousePressEvent(QMouseEvent *e) {
 		updateField();
 	} else if (_inReplyEditForward) {
 		if (readyToForward()) {
+			if (e->button() != Qt::LeftButton) {
+				return;
+			}
 			const auto items = std::move(_toForward);
 			session().data().cancelForwarding(_history);
 			auto list = ranges::view::all(
@@ -5186,6 +5189,92 @@ void HistoryWidget::mousePressEvent(QMouseEvent *e) {
 	} else if (_inPinnedMsg) {
 		Assert(_pinnedBar != nullptr);
 		Ui::showPeerHistory(_peer, _pinnedBar->msgId);
+	}
+}
+
+void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
+	if (_menu) {
+		return;
+	}
+	const auto hasSecondLayer = (_editMsgId
+		|| _replyToId
+		|| readyToForward()
+		|| _kbReplyTo);
+	_replyForwardPressed = hasSecondLayer && QRect(
+		0,
+		_field->y() - st::historySendPadding - st::historyReplyHeight,
+		st::historyReplySkip,
+		st::historyReplyHeight).contains(e->pos());
+	if (_replyForwardPressed && !_fieldBarCancel->isHidden()) {
+		return;
+	} else if (_inReplyEditForward) {
+		if (readyToForward()) {
+			const auto count = int(_toForward.size());
+			auto hasMediaToGroup = false;
+
+			if (count > 1) {
+				auto grouppableMediaCount = 0;
+				for (const auto item : _toForward) {
+					if (item->media() && item->media()->canBeGrouped()) {
+						grouppableMediaCount++;
+					} else {
+						grouppableMediaCount = 0;
+					}
+					if (grouppableMediaCount > 1) {
+						hasMediaToGroup = true;
+						break;
+					}
+				}
+			}
+
+			_menu = base::make_unique_q<Ui::PopupMenu>(this);
+			
+			if (!cForwardQuoted()) {
+				_menu->addAction(tr::ktg_forward_menu_quoted(tr::now), [=] {
+					cSetForwardQuoted(true);
+					updateForwardingTexts();
+				});
+			}
+			if (cForwardQuoted() || !cForwardCaptioned()) {
+				_menu->addAction(tr::ktg_forward_menu_unquoted(tr::now), [=] {
+					cSetForwardQuoted(false);
+					cSetForwardCaptioned(true);
+					updateForwardingTexts();
+				});
+			}
+			if (cForwardQuoted() || cForwardCaptioned()) {
+				_menu->addAction(tr::ktg_forward_menu_uncaptioned(tr::now), [=] {
+					cSetForwardQuoted(false);
+					cSetForwardCaptioned(false);
+					updateForwardingTexts();
+				});
+			}
+			if (hasMediaToGroup && count > 1) {
+				_menu->addSeparator();
+				if (!cForwardAlbumsAsIs()) {
+					_menu->addAction(tr::ktg_forward_menu_default_albums(tr::now), [=] {
+						cSetForwardAlbumsAsIs(true);
+						updateForwardingTexts();
+					});
+				}
+				if (cForwardAlbumsAsIs() || !cForwardGrouped()) {
+					_menu->addAction(tr::ktg_forward_menu_group_all_media(tr::now), [=] {
+						cSetForwardAlbumsAsIs(false);
+						cSetForwardGrouped(true);
+						updateForwardingTexts();
+					});
+				}
+				if (cForwardAlbumsAsIs() || cForwardGrouped()) {
+					_menu->addAction(tr::ktg_forward_menu_separate_messages(tr::now), [=] {
+						cSetForwardAlbumsAsIs(false);
+						cSetForwardGrouped(false);
+						updateForwardingTexts();
+					});
+				}
+			}
+
+			_menu->popup(QCursor::pos());
+		}
 	}
 }
 
@@ -6319,6 +6408,8 @@ void HistoryWidget::updateForwardingTexts() {
 		auto insertedPeers = base::flat_set<not_null<PeerData*>>();
 		auto insertedNames = base::flat_set<QString>();
 		auto fullname = QString();
+		auto hasMediaToGroup = false;
+		auto grouppableMediaCount = 0;
 		auto names = std::vector<QString>();
 		names.reserve(_toForward.size());
 		for (const auto item : _toForward) {
@@ -6339,7 +6430,18 @@ void HistoryWidget::updateForwardingTexts() {
 			} else {
 				Unexpected("Corrupt forwarded information in message.");
 			}
+			if (!hasMediaToGroup) {
+				if (item->media() && item->media()->canBeGrouped()) {
+					grouppableMediaCount++;
+				} else {
+					grouppableMediaCount = 0;
+				}
+				if (grouppableMediaCount > 1) {
+					hasMediaToGroup = true;
+				}
+			}
 		}
+
 		if (names.size() > 2) {
 			from = tr::lng_forwarding_from(tr::now, lt_count, names.size() - 1, lt_user, names[0]);
 		} else if (names.size() < 2) {
@@ -6348,10 +6450,20 @@ void HistoryWidget::updateForwardingTexts() {
 			from = tr::lng_forwarding_from_two(tr::now, lt_user, names[0], lt_second_user, names[1]);
 		}
 
-		if (count < 2) {
+		if (count < 2 && cForwardQuoted()) {
 			text = _toForward.front()->inReplyText();
 		} else {
-			text = textcmdLink(1, tr::lng_forward_messages(tr::now, lt_count, count));
+			text = textcmdLink(1, tr::lng_forward_messages(tr::now, lt_count, count)
+				+ (cForwardQuoted()
+					? QString()
+					: qsl(", ") + (cForwardCaptioned()
+						? tr::ktg_forward_subtitle_unquoted(tr::now)
+						: tr::ktg_forward_subtitle_uncaptioned(tr::now)))
+				+ (cForwardAlbumsAsIs() || !hasMediaToGroup
+					? QString()
+					: qsl(", ") + (cForwardGrouped()
+						? tr::ktg_forward_subtitle_group_all_media(tr::now)
+						: tr::ktg_forward_subtitle_separate_messages(tr::now))));
 		}
 	}
 	_toForwardFrom.setText(st::msgNameStyle, from, Ui::NameTextOptions());
