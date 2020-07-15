@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "layout.h"
 #include "window/notifications_manager.h"
 #include "window/window_session_controller.h"
+#include "window/window_peer_menu.h"
 #include "storage/storage_shared_media.h"
 #include "mtproto/mtproto_config.h"
 #include "data/data_session.h"
@@ -195,6 +196,10 @@ QString GetErrorTextForSending(
 }
 
 void FastShareMessage(not_null<HistoryItem*> item) {
+	Window::ShowForwardMessagesBox(
+		App::wnd()->sessionController(),
+		item->history()->owner().itemOrItsGroup(item));
+	/*
 	struct ShareData {
 		ShareData(not_null<PeerData*> peer, MessageIdsList &&ids)
 		: peer(peer)
@@ -351,6 +356,7 @@ void FastShareMessage(not_null<HistoryItem*> item) {
 		std::move(copyLinkCallback),
 		std::move(submitCallback),
 		std::move(filterCallback)));
+	*/
 }
 
 Fn<void(ChannelData*, MsgId)> HistoryDependentItemCallback(
