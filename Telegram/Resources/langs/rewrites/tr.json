@@ -165,7 +165,7 @@
 	"ktg_admin_log_banned_send_games": "Oyunlar Gönder",
 	"ktg_admin_log_banned_use_inline": "İnline Bot'lar Kullan",
 
-	// New strings
+	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Sohbete git",
 	"ktg_settings_forward": "yönlendir",
 	"ktg_settings_forward_retain_selection": "Yönlendirdikten sonra seçilenleri yeniden eğit",

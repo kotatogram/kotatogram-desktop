@@ -165,7 +165,7 @@
 	"ktg_admin_log_banned_send_games": "Enviando jogos",
 	"ktg_admin_log_banned_use_inline": "Usando bots em linha",
 
-	// New strings
+	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Ir para o chat",
 	"ktg_settings_forward": "Encaminhar",
 	"ktg_settings_forward_retain_selection": "Manter seleção após enviar",

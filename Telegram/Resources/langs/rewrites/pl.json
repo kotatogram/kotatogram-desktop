@@ -173,7 +173,7 @@
 	"ktg_admin_log_banned_send_games": "Wyślij gry",
 	"ktg_admin_log_banned_use_inline": "Użyj bota liniowego (inline)",
 
-	// New strings
+	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Go to chat",
 	"ktg_settings_forward": "Forward",
 	"ktg_settings_forward_retain_selection": "Retain selection after forward",

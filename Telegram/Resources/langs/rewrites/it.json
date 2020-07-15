@@ -165,13 +165,13 @@
 	"ktg_admin_log_banned_send_games": "Inviare giochi",
 	"ktg_admin_log_banned_use_inline": "Usare bot inline",
 
-	// New strings
+	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Vai alla chat",
 	"ktg_settings_forward": "Inoltro",
 	"ktg_settings_forward_retain_selection": "Mantieni la selezione dopo l'inoltro",
 	"ktg_settings_forward_chat_on_click": "Apri la chat al click",
 	"ktg_settings_forward_chat_on_click_description": "Puoi tenere premuto Ctrl per selezionare più chat insieme indipendentemente da questa opzione.",
-	
+
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }

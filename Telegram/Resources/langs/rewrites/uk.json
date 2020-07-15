@@ -172,7 +172,7 @@
 	"ktg_admin_log_banned_send_games": "Надсилати ігри",
 	"ktg_admin_log_banned_use_inline": "Використовувати інлайн-ботів",
 
-	// New strings
+	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Відкрити чат",
 	"ktg_settings_forward": "Пересилка",
 	"ktg_settings_forward_retain_selection": "Зберегти вибір після пересилки",
