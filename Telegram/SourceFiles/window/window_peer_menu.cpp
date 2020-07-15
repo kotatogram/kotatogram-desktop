@@ -1133,30 +1133,21 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 			auto item = navigation->session().data().message(fullId);
 			auto group = owner->groups().find(item);
 
-			if (!groupedMsgIds.size()) {
-				MsgIdsGroup msgIdGroupInst;
-				msgIdGroupInst.items.push_back(item);
-				msgIdGroupInst.ids.push_back(MTP_int(fullId.msg));
-				if (group != nullptr) {
-					msgIdGroupInst.grouped = true;
-				}
-				groupedMsgIds.push_back(msgIdGroupInst);
-			} else {
+			if (groupedMsgIds.size()) {
 				auto prevItem = groupedMsgIds.back().items.back();
 				auto prevGroup = owner->groups().find(prevItem);
 				if (prevGroup == group) {
 					groupedMsgIds.back().items.push_back(item);
 					groupedMsgIds.back().ids.push_back(MTP_int(fullId.msg));
-				} else {
-					MsgIdsGroup msgIdGroupInst;
-					msgIdGroupInst.items.push_back(item);
-					msgIdGroupInst.ids.push_back(MTP_int(fullId.msg));
-					if (group != nullptr) {
-						msgIdGroupInst.grouped = true;
-					}
-					groupedMsgIds.push_back(msgIdGroupInst);
+					continue;
 				}
 			}
+
+			MsgIdsGroup msgIdGroupInst;
+			msgIdGroupInst.items.push_back(item);
+			msgIdGroupInst.ids.push_back(MTP_int(fullId.msg));
+			msgIdGroupInst.grouped = (group != nullptr);
+			groupedMsgIds.push_back(msgIdGroupInst);
 		}
 		auto generateRandom = [&] (int size) {
 			auto result = QVector<MTPlong>(size);
