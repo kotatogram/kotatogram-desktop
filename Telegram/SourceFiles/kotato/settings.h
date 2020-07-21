@@ -124,3 +124,6 @@ void SetHoverEmojiPanel(bool enabled);
 
 DeclareSetting(bool, ForwardRetainSelection);
 DeclareSetting(bool, ForwardChatOnClick);
+
+DeclareSetting(int, ApiId);
+DeclareSetting(QString, ApiHash);

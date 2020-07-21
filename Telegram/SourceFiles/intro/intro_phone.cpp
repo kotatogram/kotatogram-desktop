@@ -171,8 +171,8 @@ void PhoneWidget::submit() {
 	api().instance().setUserPhone(_sentPhone);
 	_sentRequest = api().request(MTPauth_SendCode(
 		MTP_string(_sentPhone),
-		MTP_int(ApiId),
-		MTP_string(ApiHash),
+		MTP_int(cApiId()),
+		MTP_string(cApiHash()),
 		MTP_codeSettings(MTP_flags(0))
 	)).done([=](const MTPauth_SentCode &result) {
 		phoneSubmitDone(result);

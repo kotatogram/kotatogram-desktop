@@ -311,8 +311,8 @@ void QrWidget::refreshCode() {
 		return;
 	}
 	_requestId = api().request(MTPauth_ExportLoginToken(
-		MTP_int(ApiId),
-		MTP_string(ApiHash),
+		MTP_int(cApiId()),
+		MTP_string(cApiHash()),
 		MTP_vector<MTPint>(0)
 	)).done([=](const MTPauth_LoginToken &result) {
 		handleTokenResult(result);

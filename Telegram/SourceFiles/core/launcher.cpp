@@ -20,6 +20,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Core {
 namespace {
 
+constexpr auto kApiIdVarName = "KTGDESKTOP_API_ID"_cs;
+constexpr auto kApiHashVarName = "KTGDESKTOP_API_HASH"_cs;
+
 uint64 InstallationTag = 0;
 
 class FilteredCommandLineArguments {
@@ -331,6 +334,12 @@ int Launcher::exec() {
 	// Must be started before Sandbox is created.
 	Platform::start();
 	Ui::DisableCustomScaling();
+
+	if (qEnvironmentVariableIsSet(kApiIdVarName.utf8())
+		&& qEnvironmentVariableIsSet(kApiHashVarName.utf8())) {
+		cSetApiId(qgetenv(kApiIdVarName.utf8()).toInt());
+		cSetApiHash(QString::fromLatin1(qgetenv(kApiHashVarName.utf8())));
+	}
 
 	auto result = executeApplication();
 
