@@ -91,11 +91,44 @@ void PeerListDummy::paintEvent(QPaintEvent *e) {
 	p.setPen(Qt::NoPen);
 	for (auto i = from; i != till; ++i) {
 		p.setBrush(st::windowBgOver);
-		p.drawEllipse(
-			_st.item.photoPosition.x(),
-			_st.item.photoPosition.y(),
-			_st.item.photoSize,
-			_st.item.photoSize);
+		switch (cUserpicCornersType()) {
+			case 0:
+				p.drawRoundedRect(
+					QRect{
+						_st.item.photoPosition.x(),
+						_st.item.photoPosition.y(),
+						_st.item.photoSize,
+						_st.item.photoSize },
+					0, 0);
+				break;
+
+			case 1:
+				p.drawRoundedRect(
+					QRect{
+						_st.item.photoPosition.x(),
+						_st.item.photoPosition.y(),
+						_st.item.photoSize,
+						_st.item.photoSize },
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case 2:
+				p.drawRoundedRect(
+					QRect{
+						_st.item.photoPosition.x(),
+						_st.item.photoPosition.y(),
+						_st.item.photoSize,
+						_st.item.photoSize },
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(
+					_st.item.photoPosition.x(),
+					_st.item.photoPosition.y(),
+					_st.item.photoSize,
+					_st.item.photoSize);
+		}
 
 		const auto small = int(1.5 * _st.item.photoSize);
 		const auto large = 2 * small;
