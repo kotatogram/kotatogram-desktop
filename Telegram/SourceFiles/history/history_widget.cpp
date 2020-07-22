@@ -5631,9 +5631,11 @@ void HistoryWidget::destroyPinnedBar() {
 bool HistoryWidget::sendExistingDocument(
 		not_null<DocumentData*> document,
 		Api::SendOptions options) {
-	const auto error = _peer
-		? Data::RestrictionError(_peer, ChatRestriction::f_send_stickers)
-		: std::nullopt;
+	const auto error = !_peer
+		? std::nullopt
+		: document->sticker()
+			? Data::RestrictionError(_peer, ChatRestriction::f_send_stickers)
+			: Data::RestrictionError(_peer, ChatRestriction::f_send_gifs);
 	if (error) {
 		Ui::show(Box<InformBox>(*error), Ui::LayerOption::KeepOther);
 		return false;
