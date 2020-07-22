@@ -182,7 +182,28 @@ void Contact::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 			PainterHighQualityEnabler hq(p);
 			p.setBrush(p.textPalette().selectOverlay);
 			p.setPen(Qt::NoPen);
-			p.drawEllipse(rthumb);
+			switch (cUserpicCornersType()) {
+				case 0:
+					p.drawRoundedRect(
+						rthumb,
+						0, 0);
+					break;
+
+				case 1:
+					p.drawRoundedRect(
+						rthumb,
+						st::buttonRadius, st::buttonRadius);
+					break;
+
+				case 2:
+					p.drawRoundedRect(
+						rthumb,
+						st::dateRadius, st::dateRadius);
+					break;
+
+				default:
+					p.drawEllipse(rthumb);
+			}
 		}
 
 		bool over = ClickHandler::showAsActive(_linkl);
