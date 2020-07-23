@@ -99,6 +99,16 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 			pushArgument('"' + cExeDir() + '"');
 		}
 	}
+
+	if (!cUseEnvApi()) {
+		pushArgument(qsl("-no-env-api"));
+	}
+	if (cApiFromStartParams()) {
+		pushArgument(qsl("-api-id"));
+		pushArgument('"' + QString::number(cApiId()) + '"');
+		pushArgument(qsl("-api-hash"));
+		pushArgument('"' + cApiHash() + '"');
+	}
 	return launch(operation, binaryPath, argumentsList);
 }
 

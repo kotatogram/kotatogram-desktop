@@ -74,6 +74,13 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 		if (customWorkingDir()) {
 			[args addObject:@"-workdir_custom"];
 		}
+		if (!cUseEnvApi()) [args addObject:@"-no-env-api"];
+		if (cApiFromStartParams()) {
+			[args addObject:@"-api-id"];
+			[args addObject:Q2NSString(QString::number(cApiId()))];
+			[args addObject:@"-api-hash"];
+			[args addObject:Q2NSString(cApiHash())];
+		}
 
 		DEBUG_LOG(("Application Info: executing %1 %2").arg(NS2QString(path)).arg(NS2QString([args componentsJoinedByString:@" "])));
 		Logs::closeMain();

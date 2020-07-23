@@ -96,6 +96,17 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 		}
 	}
 
+	if (!cUseEnvApi()) {
+		argumentsList.push("-no-env-api");
+	}
+
+	if (cApiFromStartParams()) {
+		argumentsList.push("-api-id");
+		argumentsList.push(QFile::encodeName(QString::number(cApiId())));
+		argumentsList.push("-api-hash");
+		argumentsList.push(QFile::encodeName(cApiHash()));
+	}
+
 	Logs::closeMain();
 	CrashReports::Finish();
 

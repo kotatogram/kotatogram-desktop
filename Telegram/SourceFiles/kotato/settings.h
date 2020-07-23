@@ -127,3 +127,5 @@ DeclareSetting(bool, ForwardChatOnClick);
 
 DeclareSetting(int, ApiId);
 DeclareSetting(QString, ApiHash);
+DeclareSetting(bool, UseEnvApi);
+DeclareSetting(bool, ApiFromStartParams);

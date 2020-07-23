@@ -335,10 +335,12 @@ int Launcher::exec() {
 	Platform::start();
 	Ui::DisableCustomScaling();
 
-	if (qEnvironmentVariableIsSet(kApiIdVarName.utf8())
+	if (cUseEnvApi()
+		&& qEnvironmentVariableIsSet(kApiIdVarName.utf8())
 		&& qEnvironmentVariableIsSet(kApiHashVarName.utf8())) {
 		cSetApiId(qgetenv(kApiIdVarName.utf8()).toInt());
 		cSetApiHash(QString::fromLatin1(qgetenv(kApiHashVarName.utf8())));
+		cSetApiFromStartParams(false);
 	}
 
 	auto result = executeApplication();
@@ -463,6 +465,9 @@ void Launcher::processArguments() {
 		{ "-workdir"        , KeyFormat::OneValue },
 		{ "--"              , KeyFormat::OneValue },
 		{ "-scale"          , KeyFormat::OneValue },
+		{ "-no-env-api"     , KeyFormat::NoValues },
+		{ "-api-id"         , KeyFormat::OneValue },
+		{ "-api-hash"       , KeyFormat::OneValue },
 	};
 	auto parseResult = QMap<QByteArray, QStringList>();
 	auto parsingKey = QByteArray();
@@ -519,6 +524,15 @@ void Launcher::processArguments() {
 		gConfigScale = ((value < 75) || (value > 300))
 			? style::kScaleAuto
 			: value;
+	}
+
+	gUseEnvApi = !parseResult.contains("-no-env-api");
+	auto customApiId = parseResult.value("-api-id", {}).join(QString()).toInt();
+	auto customApiHash = parseResult.value("-api-hash", {}).join(QString());
+	if (customApiId > 0 && !customApiHash.isEmpty()) {
+		gApiId = customApiId;
+		gApiHash = customApiHash;
+		gApiFromStartParams = true;
 	}
 }
 

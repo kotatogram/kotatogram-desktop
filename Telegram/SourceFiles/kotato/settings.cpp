@@ -216,3 +216,6 @@ int gApiId = 0;
 QString gApiHash;
 
 #endif // TDESKTOP_API_ID && TDESKTOP_API_HASH
+
+bool gUseEnvApi = true;
+bool gApiFromStartParams = false;
