@@ -189,3 +189,30 @@ rpl::producer<bool> HoverEmojiPanelChanges() {
 
 bool gForwardRetainSelection = false;
 bool gForwardChatOnClick = false;
+
+#if defined TDESKTOP_API_ID && defined TDESKTOP_API_HASH
+
+int gApiId = TDESKTOP_API_ID;
+QString gApiHash = MACRO_TO_STRING(TDESKTOP_API_HASH);
+
+#else // TDESKTOP_API_ID && TDESKTOP_API_HASH
+
+// To build your version of Telegram Desktop you're required to provide
+// your own 'api_id' and 'api_hash' for the Telegram API access.
+//
+// How to obtain your 'api_id' and 'api_hash' is described here:
+// https://core.telegram.org/api/obtaining_api_id
+//
+// If you're building the application not for deployment,
+// but only for test purposes you can comment out the error below.
+//
+// This will allow you to use TEST ONLY 'api_id' and 'api_hash' which are
+// very limited by the Telegram API server.
+//
+// Your users will start getting internal server errors on login
+// if you deploy an app using those 'api_id' and 'api_hash'.
+
+int gApiId = 0;
+QString gApiHash;
+
+#endif // TDESKTOP_API_ID && TDESKTOP_API_HASH

@@ -638,7 +638,7 @@ void SessionPrivate::tryToSend() {
 		initWrapper = MTPInitConnection<SerializedRequest>(
 			MTP_flags(Flag::f_params
 				| (mtprotoProxy ? Flag::f_proxy : Flag(0))),
-			MTP_int(ApiId),
+			MTP_int(cApiId()),
 			MTP_string(deviceModel),
 			MTP_string(systemVersion),
 			MTP_string(appVersion),

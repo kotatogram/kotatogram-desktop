@@ -343,7 +343,7 @@ QString PlatformString() {
 void StartCatching(not_null<Core::Launcher*> launcher) {
 #ifndef DESKTOP_APP_DISABLE_CRASH_REPORTS
 	ProcessAnnotations["Binary"] = cExeName().toUtf8().constData();
-	ProcessAnnotations["ApiId"] = QString::number(ApiId).toUtf8().constData();
+	ProcessAnnotations["ApiId"] = QString::number(cApiId()).toUtf8().constData();
 	ProcessAnnotations["Version"] = (cAlphaVersion() ? qsl("%1 alpha").arg(cAlphaVersion()) : (AppBetaVersion ? qsl("%1 beta") : qsl("%1")).arg(AppVersion)).toUtf8().constData();
 	ProcessAnnotations["Launched"] = QDateTime::currentDateTime().toString("dd.MM.yyyy hh:mm:ss").toUtf8().constData();
 	ProcessAnnotations["Platform"] = PlatformString().toUtf8().constData();
