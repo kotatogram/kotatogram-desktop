@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_widgets.h"
+#include "styles/style_info.h"
 
 #include <rpl/range.h>
 
@@ -523,9 +524,37 @@ void PeerListRow::invalidatePixmapsCache() {
 }
 
 int PeerListRow::nameIconWidth() const {
-	return (special() || !_peer->isVerified())
+	if (special()) {
+		return 0;
+	}
+	auto hasCreatorRights = false;
+	auto hasAdminRights = false;
+	if (const auto chat = _peer->asChat()) {
+		if (chat->amCreator()) {
+			hasCreatorRights = true;
+			hasAdminRights = true;
+		} else if (chat->hasAdminRights()) {
+			hasAdminRights = true;
+		}
+	} else if (const auto channel = _peer->asChannel()) {
+		if (channel->amCreator()) {
+			hasCreatorRights = true;
+			hasAdminRights = true;
+		} else if (channel->hasAdminRights()) {
+			hasAdminRights = true;
+		}
+	}
+
+	return special()
 		? 0
-		: st::dialogsVerifiedIcon.width();
+		: (_peer->isVerified()
+			? st::dialogsVerifiedIcon.width()
+			: 0)
+		+ (hasCreatorRights
+			? st::infoMembersCreatorIcon.width()
+			: hasAdminRights
+				? st::infoMembersAdminIcon.width()
+				: 0);
 }
 
 void PeerListRow::paintNameIcon(
@@ -534,7 +563,43 @@ void PeerListRow::paintNameIcon(
 		int y,
 		int outerWidth,
 		bool selected) {
-	st::dialogsVerifiedIcon.paint(p, x, y, outerWidth);
+	if (special()) {
+		return;
+	}
+
+	auto hasCreatorRights = false;
+	auto hasAdminRights = false;
+	if (const auto chat = _peer->asChat()) {
+		if (chat->amCreator()) {
+			hasCreatorRights = true;
+			hasAdminRights = true;
+		} else if (chat->hasAdminRights()) {
+			hasAdminRights = true;
+		}
+	} else if (const auto channel = _peer->asChannel()) {
+		if (channel->amCreator()) {
+			hasCreatorRights = true;
+			hasAdminRights = true;
+		} else if (channel->hasAdminRights()) {
+			hasAdminRights = true;
+		}
+	}
+
+	auto icon = [&] {
+		return hasCreatorRights
+				? (selected
+					? &st::infoMembersCreatorIconOver
+					: &st::infoMembersCreatorIcon)
+				: (selected
+					? &st::infoMembersAdminIconOver
+					: &st::infoMembersAdminIcon);
+	}();
+	if (_peer->isVerified()) { 
+		st::dialogsVerifiedIcon.paint(p, x, y, outerWidth);
+	}
+	if (hasAdminRights) {
+		icon->paint(p, x + (_peer->isVerified() ? st::dialogsVerifiedIcon.width() : 0 ), y, outerWidth);
+	}
 }
 
 void PeerListRow::paintStatusText(
