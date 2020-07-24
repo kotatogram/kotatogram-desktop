@@ -542,6 +542,10 @@ void PeerListRow::paintStatusText(
 	_status.drawLeftElided(p, x, y, availableWidth, outerWidth);
 }
 
+bool PeerListRow::hasAction() {
+	return true;
+}
+
 template <typename UpdateCallback>
 void PeerListRow::addRipple(const style::PeerListItem &st, QSize size, QPoint point, UpdateCallback updateCallback) {
 	if (!_ripple) {
@@ -1276,7 +1280,11 @@ crl::time PeerListContent::paintRow(
 	p.setPen(st::contactsNameFg);
 
 	auto skipRight = _st.item.photoPosition.x();
-	auto actionSize = row->actionSize();
+	auto actionSize = !row->actionSize().isEmpty()
+						&& (row->placeholderSize().isEmpty() 
+							|| selected)
+						? row->actionSize()
+						: row->placeholderSize();
 	auto actionMargins = actionSize.isEmpty() ? QMargins() : row->actionMargins();
 	auto &name = row->name();
 	auto namex = _st.item.namePosition.x();
@@ -1649,7 +1657,7 @@ void PeerListContent::selectByMouse(QPoint globalPosition) {
 		if (row->disabled()) {
 			selected = Selected();
 		} else {
-			if (getActionRect(row, selected.index).contains(point)) {
+			if (row->hasAction() && getActionRect(row, selected.index).contains(point)) {
 				selected.action = true;
 			}
 		}

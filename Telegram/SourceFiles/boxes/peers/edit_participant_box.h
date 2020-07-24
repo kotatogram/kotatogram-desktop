@@ -37,6 +37,7 @@ public:
 		not_null<UserData*> user,
 		bool hasAdminRights);
 
+	void setCustomStatus(const QString &status);
 protected:
 	void prepare() override;
 
@@ -62,6 +63,7 @@ private:
 
 	class Inner;
 	QPointer<Inner> _inner;
+	QString _customStatus;
 
 };
 

@@ -1475,6 +1475,20 @@ void ParticipantsBoxController::showAdmin(not_null<UserData*> user) {
 		user,
 		currentRights,
 		_additional.adminRank(user));
+	if (const auto by = _additional.adminPromotedBy(user)) {
+		box->setCustomStatus(tr::lng_channel_admin_status_promoted_by(
+			tr::now,
+			lt_user,
+			by->name));
+	} else {
+		if (_additional.isCreator(user)) {
+			box->setCustomStatus(
+				tr::lng_channel_admin_status_creator(tr::now));
+		} else {
+			box->setCustomStatus(
+				tr::lng_channel_admin_status_not_admin(tr::now));
+		}
+	}
 	const auto chat = _peer->asChat();
 	const auto channel = _peer->asChannel();
 	if (_additional.canAddOrEditAdmin(user)) {
@@ -1787,9 +1801,17 @@ std::unique_ptr<PeerListRow> ParticipantsBoxController::createRow(
 	auto row = std::make_unique<PeerListRowWithLink>(user);
 	refreshCustomStatus(row.get());
 	if (_role == Role::Admins
-		&& _additional.adminRights(user).has_value()
-		&& _additional.canEditAdmin(user)) {
-		row->setActionLink(tr::lng_profile_kick(tr::now));
+		&& (_additional.adminRights(user).has_value()
+			|| _additional.isCreator(user))) {
+		if (_additional.canEditAdmin(user) && !_additional.isCreator(user)) {
+			row->setActionLink(tr::lng_profile_kick(tr::now));
+		}
+		row->setActionPlaceholder(channel
+			? channel->adminRank(user)
+			: (chat && _additional.isCreator(user))
+				? tr::lng_owner_badge(tr::now)
+				: QString(),
+			_additional.isCreator(user));
 	} else if (_role == Role::Kicked || _role == Role::Restricted) {
 		if (_additional.canRestrictUser(user)) {
 			row->setActionLink(tr::lng_profile_delete_removed(tr::now));
@@ -1840,6 +1862,7 @@ void ParticipantsBoxController::refreshCustomStatus(
 		not_null<PeerListRow*> row) const {
 	const auto user = row->peer()->asUser();
 	if (_role == Role::Admins) {
+		/*
 		if (const auto by = _additional.adminPromotedBy(user)) {
 			row->setCustomStatus(tr::lng_channel_admin_status_promoted_by(
 				tr::now,
@@ -1854,6 +1877,7 @@ void ParticipantsBoxController::refreshCustomStatus(
 					tr::lng_channel_admin_status_not_admin(tr::now));
 			}
 		}
+		*/
 	} else if (_role == Role::Kicked || _role == Role::Restricted) {
 		const auto by = _additional.restrictedBy(user);
 		row->setCustomStatus((_role == Role::Kicked

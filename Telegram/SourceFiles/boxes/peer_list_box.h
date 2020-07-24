@@ -110,6 +110,9 @@ public:
 	virtual QSize actionSize() const {
 		return QSize();
 	}
+	virtual QSize placeholderSize() const {
+		return QSize();
+	}
 	virtual QMargins actionMargins() const {
 		return QMargins();
 	}
@@ -206,6 +209,8 @@ public:
 		int availableWidth,
 		int outerWidth,
 		bool selected);
+
+	virtual bool hasAction();
 
 protected:
 	bool isInitialized() const {

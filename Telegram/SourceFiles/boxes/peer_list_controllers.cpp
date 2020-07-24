@@ -109,9 +109,16 @@ void PeerListRowWithLink::setActionLink(const QString &action) {
 	refreshActionLink();
 }
 
+void PeerListRowWithLink::setActionPlaceholder(const QString &placeholder, bool active) {
+	_actionPlaceholder = placeholder;
+	_actionPlaceholderActive = active;
+	refreshActionLink();
+}
+
 void PeerListRowWithLink::refreshActionLink() {
 	if (!isInitialized()) return;
 	_actionWidth = _action.isEmpty() ? 0 : st::normalFont->width(_action);
+	_actionPlaceholderWidth = _actionPlaceholder.isEmpty() ? 0 : st::normalFont->width(_actionPlaceholder);
 }
 
 void PeerListRowWithLink::lazyInitialize(const style::PeerListItem &st) {
@@ -119,8 +126,16 @@ void PeerListRowWithLink::lazyInitialize(const style::PeerListItem &st) {
 	refreshActionLink();
 }
 
+bool PeerListRowWithLink::hasAction() {
+	return !_action.isEmpty();
+}
+
 QSize PeerListRowWithLink::actionSize() const {
 	return QSize(_actionWidth, st::normalFont->height);
+}
+
+QSize PeerListRowWithLink::placeholderSize() const {
+	return QSize(_actionPlaceholderWidth, st::normalFont->height);
 }
 
 QMargins PeerListRowWithLink::actionMargins() const {
@@ -138,9 +153,19 @@ void PeerListRowWithLink::paintAction(
 		int outerWidth,
 		bool selected,
 		bool actionSelected) {
-	p.setFont(actionSelected ? st::linkOverFont : st::linkFont);
-	p.setPen(actionSelected ? st::defaultLinkButton.overColor : st::defaultLinkButton.color);
-	p.drawTextLeft(x, y, outerWidth, _action, _actionWidth);
+	if (!_action.isEmpty() && (_actionPlaceholder.isEmpty() || selected)) {
+		p.setFont(actionSelected ? st::linkOverFont : st::linkFont);
+		p.setPen(actionSelected ? st::defaultLinkButton.overColor : st::defaultLinkButton.color);
+		p.drawTextLeft(x, y, outerWidth, _action, _actionWidth);
+	} else {
+		p.setFont(st::linkFont);
+		p.setPen(_actionPlaceholderActive
+			? st::defaultPeerListItem.statusFgActive
+			: selected
+			? st::defaultPeerListItem.statusFgOver
+			: st::defaultPeerListItem.statusFg);
+		p.drawTextLeft(x, y, outerWidth, _actionPlaceholder, _actionPlaceholderWidth);
+	}
 }
 
 PeerListGlobalSearchController::PeerListGlobalSearchController(
