@@ -2578,6 +2578,14 @@ void MainWidget::searchInChat(Dialogs::Key chat) {
 	}
 }
 
+void MainWidget::mentionUser(PeerData *peer) {
+	if (!_history->peer() || !_history->peer()->canWrite()) {
+		return;
+	}
+
+	_history->mentionUser(peer);
+}
+
 void MainWidget::openPeerByName(
 		const QString &username,
 		MsgId msgId,

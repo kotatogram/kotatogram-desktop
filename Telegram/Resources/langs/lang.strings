@@ -2634,4 +2634,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_forward_subtitle_group_all_media" = "as albums";
 "ktg_forward_subtitle_separate_messages" = "one by one";
 
+"ktg_profile_mention_user" = "Mention user";
+
 // Keys finished

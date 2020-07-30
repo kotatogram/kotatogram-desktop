@@ -220,6 +220,8 @@ public:
 
 	void searchInChat(Dialogs::Key chat);
 
+	void mentionUser(PeerData *peer);
+
 	void ui_showPeerHistory(
 		PeerId peer,
 		const SectionShow &params,

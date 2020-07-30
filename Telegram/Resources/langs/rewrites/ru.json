@@ -190,6 +190,7 @@
 	"ktg_forward_subtitle_uncaptioned": "без подписей",
 	"ktg_forward_subtitle_group_all_media": "альбомами",
 	"ktg_forward_subtitle_separate_messages": "по одному",
+	"ktg_profile_mention_user": "Упомянуть пользователя",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

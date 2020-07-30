@@ -191,6 +191,7 @@
 	"ktg_forward_subtitle_uncaptioned": "uncaptioned",
 	"ktg_forward_subtitle_group_all_media": "as albums",
 	"ktg_forward_subtitle_separate_messages": "one by one",
+	"ktg_profile_mention_user": "Mention user",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

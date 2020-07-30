@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "apiwrap.h"
 #include "lang/lang_keys.h"
+#include "mainwindow.h"
 #include "mainwidget.h"
 #include "dialogs/dialogs_indexed_list.h"
 #include "data/data_peer_values.h"
@@ -1425,6 +1426,17 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				crl::guard(this, [=] { removeKickedWithRow(user); }));
 		}
 		return result;
+	}
+	if (const auto window = App::wnd()) {
+		if (const auto mainwidget = window->sessionContent()) {
+			if (const auto openedPeer = mainwidget->peer()) {
+				if (openedPeer->canWrite()) {
+					result->addAction(
+						tr::ktg_profile_mention_user(tr::now),
+						crl::guard(this, [=] { mainwidget->mentionUser(user); }));
+				}
+			}
+		}
 	}
 	if (_additional.canAddOrEditAdmin(user)) {
 		const auto isAdmin = _additional.isCreator(user)
