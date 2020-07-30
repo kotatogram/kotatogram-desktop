@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_account.h"
 #include "main/main_domain.h"
 #include "boxes/confirm_box.h"
+#include "boxes/add_contact_box.h"
 #include "lang/lang_cloud_manager.h"
 #include "lang/lang_instance.h"
 #include "core/application.h"
@@ -184,6 +185,13 @@ auto GenerateCodes() {
 		Core::App().settings().clearSoundOverrides();
 		Core::App().saveSettingsDelayed();
 		Ui::show(Box<InformBox>("All sound overrides were reset."));
+	});
+	codes.emplace(qsl("usernames"), [](SessionController *window) {
+		Ui::show(
+			Box<RevokePublicLinkBox>(
+				&window->session(),
+				std::move(Fn<void()>())),
+			Ui::LayerOption::KeepOther);
 	});
 
 	return codes;
