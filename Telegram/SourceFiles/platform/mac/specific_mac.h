@@ -20,6 +20,8 @@ namespace Platform {
 
 void RemoveQuarantine(const QString &path);
 
+[[nodiscard]] bool IsDarkMenuBar();
+
 inline void FallbackFontConfigCheckBegin() {
 }
 
@@ -28,6 +30,22 @@ inline void FallbackFontConfigCheckEnd() {
 
 inline QImage GetImageFromClipboard() {
 	return {};
+}
+
+inline bool StartSystemMove(QWindow *window) {
+	return false;
+}
+
+inline bool StartSystemResize(QWindow *window, Qt::Edges edges) {
+	return false;
+}
+
+inline bool AutostartSupported() {
+	return false;
+}
+
+inline bool TrayIconSupported() {
+	return true;
 }
 
 NSImage *ToNSImage(const QPixmap &pixmap);

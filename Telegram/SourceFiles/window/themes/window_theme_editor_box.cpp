@@ -677,6 +677,10 @@ void StartEditor(
 		window->show(Box<InformBox>(tr::lng_theme_editor_error(tr::now)));
 		return;
 	}
+	if (Core::App().settings().systemDarkModeEnabled()) {
+		Core::App().settings().setSystemDarkModeEnabled(false);
+		Core::App().saveSettingsDelayed();
+	}
 	Background()->setEditingTheme(cloud);
 	window->showRightColumn(Box<Editor>(window, cloud));
 }

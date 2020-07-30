@@ -48,6 +48,7 @@ private:
 		FilterId id,
 		const QString &title,
 		Ui::FilterIcon icon);
+	void setupMainMenuIcon();
 	void showMenu(QPoint position, FilterId id);
 	void showAllMenu(QPoint position);
 	void setDefaultFilter(FilterId id);

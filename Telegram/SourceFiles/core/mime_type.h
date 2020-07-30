@@ -39,6 +39,8 @@ MimeType MimeTypeForName(const QString &mime);
 MimeType MimeTypeForFile(const QFileInfo &file);
 MimeType MimeTypeForData(const QByteArray &data);
 
+bool IsMimeStickerAnimated(const QString &mime);
 bool IsMimeSticker(const QString &mime);
+bool IsMimeAcceptedForAlbum(const QString &mime);
 
 } // namespace Core

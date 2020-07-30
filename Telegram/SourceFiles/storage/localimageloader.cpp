@@ -222,6 +222,7 @@ SendMediaReady PreparePeerPhoto(MTP::DcId dcId, PeerId peerId, QImage &&image) {
 		MTP_bytes(),
 		MTP_int(base::unixtime::now()),
 		MTP_vector<MTPPhotoSize>(photoSizes),
+		MTPVector<MTPVideoSize>(),
 		MTP_int(dcId));
 
 	QString file, filename;
@@ -497,7 +498,8 @@ FileLoadTask::FileLoadTask(
 , _type(type)
 , _caption(caption)
 , _msgIdToEdit(msgIdToEdit) {
-	Expects(_msgIdToEdit == 0 || IsServerMsgId(_msgIdToEdit));
+	Expects(to.options.scheduled
+		|| (_msgIdToEdit == 0 || IsServerMsgId(_msgIdToEdit)));
 }
 
 FileLoadTask::FileLoadTask(
@@ -843,11 +845,9 @@ void FileLoadTask::process() {
 
 		if (ValidateThumbDimensions(w, h)) {
 			isSticker = Core::IsMimeSticker(filemime)
-				&& (w > 0)
-				&& (h > 0)
-				&& (w <= StickerMaxSize)
-				&& (h <= StickerMaxSize)
-				&& (filesize < Storage::kMaxStickerBytesSize);
+				&& (filesize < Storage::kMaxStickerBytesSize)
+				&& (Core::IsMimeStickerAnimated(filemime)
+					|| GoodStickerDimensions(w, h));
 			if (isSticker) {
 				attributes.push_back(MTP_documentAttributeSticker(
 					MTP_flags(0),
@@ -884,6 +884,7 @@ void FileLoadTask::process() {
 					MTP_bytes(),
 					MTP_int(base::unixtime::now()),
 					MTP_vector<MTPPhotoSize>(photoSizes),
+					MTPVector<MTPVideoSize>(),
 					MTP_int(_dcId));
 
 				if (filesize < 0) {

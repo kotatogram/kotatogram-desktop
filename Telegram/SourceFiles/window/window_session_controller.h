@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/observer.h"
 #include "base/object_ptr.h"
 #include "base/weak_ptr.h"
+#include "base/timer.h"
 #include "dialogs/dialogs_key.h"
 #include "ui/effects/animation_value.h"
 
@@ -308,6 +309,7 @@ private:
 	void initSupportMode();
 	void refreshFiltersMenu();
 	void checkOpenedFilter();
+	void suggestArchiveAndMute();
 
 	int minimalThreeColumnWidth() const;
 	int countDialogsWidthFromRatio(int bodyWidth) const;
@@ -324,6 +326,8 @@ private:
 	void pushToChatEntryHistory(Dialogs::RowDescriptor row);
 	bool chatEntryHistoryMove(int steps);
 	void resetFakeUnreadWhileOpened();
+
+	void checkInvitePeek();
 
 	const not_null<Controller*> _window;
 
@@ -343,6 +347,8 @@ private:
 	int _chatEntryHistoryPosition = -1;
 	bool _selectingPeer = false;
 
+	base::Timer _invitePeekTimer;
+
 	rpl::variable<FilterId> _activeChatsFilter;
 
 	PeerData *_showEditPeer = nullptr;
@@ -355,5 +361,7 @@ private:
 	rpl::lifetime _lifetime;
 
 };
+
+void ActivateWindow(not_null<SessionController*> controller);
 
 } // namespace Window

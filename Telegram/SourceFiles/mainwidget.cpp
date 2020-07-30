@@ -714,16 +714,16 @@ void MainWidget::cancelUploadLayer(not_null<HistoryItem*> item) {
 	session().uploader().pause(itemId);
 	const auto stopUpload = [=] {
 		Ui::hideLayer();
-		if (const auto item = session().data().message(itemId)) {
-			const auto history = item->history();
-			if (!IsServerMsgId(itemId.msg)) {
+		auto &data = session().data();
+		if (const auto item = data.message(itemId)) {
+			if (!item->isEditingMedia()) {
 				item->destroy();
-				history->requestChatListMessage();
+				item->history()->requestChatListMessage();
 			} else {
 				item->returnSavedMedia();
 				session().uploader().cancel(item->fullId());
 			}
-			session().data().sendHistoryChangeNotifications();
+			data.sendHistoryChangeNotifications();
 		}
 		session().uploader().unpause();
 	};
@@ -839,14 +839,6 @@ void MainWidget::sendBotCommand(
 
 void MainWidget::hideSingleUseKeyboard(PeerData *peer, MsgId replyTo) {
 	_history->hideSingleUseKeyboard(peer, replyTo);
-}
-
-void MainWidget::app_sendBotCallback(
-		not_null<const HistoryMessageMarkupButton*> button,
-		not_null<const HistoryItem*> msg,
-		int row,
-		int column) {
-	_history->app_sendBotCallback(button, msg, row, column);
 }
 
 bool MainWidget::insertBotCommand(const QString &cmd) {
@@ -2106,7 +2098,12 @@ void MainWidget::showAll() {
 	}
 	if (_callTopBar) {
 		_callTopBar->setVisible(true);
-		_callTopBarHeight = _callTopBar->height();
+
+		// show() could've send pending resize event that would update
+		// the height value and destroy the top bar if it was hiding.
+		if (_callTopBar) {
+			_callTopBarHeight = _callTopBar->height();
+		}
 	}
 	updateControlsGeometry();
 	floatPlayerCheckVisibility();
@@ -2188,9 +2185,9 @@ void MainWidget::updateControlsGeometry() {
 		const auto shadowTop = _controller->window().verticalShadowTop();
 		const auto shadowHeight = height() - shadowTop;
 		_sideShadow->setGeometryToLeft(
-			dialogsWidth, 
+			dialogsWidth,
 			shadowTop,
-			st::lineWidth, 
+			st::lineWidth,
 			shadowHeight);
 		if (_thirdShadow) {
 			_thirdShadow->setGeometryToLeft(

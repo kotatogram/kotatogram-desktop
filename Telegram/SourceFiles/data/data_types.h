@@ -320,6 +320,14 @@ enum DocumentType {
 	WallPaperDocument = 7,
 };
 
+inline constexpr auto kStickerSideSize = 512;
+
+[[nodiscard]] inline bool GoodStickerDimensions(int width, int height) {
+	return (width > 0 && width <= kStickerSideSize)
+		&& (height > 0 && height <= kStickerSideSize)
+		&& (width == kStickerSideSize || height == kStickerSideSize);
+}
+
 using MediaKey = QPair<uint64, uint64>;
 
 class AudioMsgId {
@@ -421,35 +429,6 @@ inline bool operator==(
 		&& (a.anchor == b.anchor)
 		&& (a.scroll == b.scroll);
 }
-
-struct SendAction {
-	enum class Type {
-		Typing,
-		RecordVideo,
-		UploadVideo,
-		RecordVoice,
-		UploadVoice,
-		RecordRound,
-		UploadRound,
-		UploadPhoto,
-		UploadFile,
-		ChooseLocation,
-		ChooseContact,
-		PlayGame,
-	};
-	SendAction(
-		Type type,
-		crl::time until,
-		int progress = 0)
-	: type(type)
-	, until(until)
-	, progress(progress) {
-	}
-	Type type = Type::Typing;
-	crl::time until = 0;
-	int progress = 0;
-
-};
 
 class FileClickHandler : public LeftButtonClickHandler {
 public:

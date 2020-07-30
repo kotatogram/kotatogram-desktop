@@ -100,8 +100,8 @@ Gif::~Gif() {
 		}
 		if (_dataMedia) {
 			_data->owner().keepAlive(base::take(_dataMedia));
+			_parent->checkHeavyPart();
 		}
-		_parent->checkHeavyPart();
 	}
 }
 
@@ -1514,8 +1514,8 @@ void Gif::repaintStreamedContent() {
 	const auto own = activeOwnStreamed();
 	if (own && !own->frozenFrame.isNull()) {
 		return;
-	}
-	if (_parent->delegate()->elementIsGifPaused() && !activeRoundStreamed()) {
+	} else if (_parent->delegate()->elementIsGifPaused()
+		&& !activeRoundStreamed()) {
 		return;
 	}
 	history()->owner().requestViewRepaint(_parent);

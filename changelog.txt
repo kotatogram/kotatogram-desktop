@@ -1,3 +1,36 @@
+2.2 (26.07.20)
+
+- Quickly switch between different Telegram accounts if you use multiple phone numbers.
+- Share and store unlimited files of any type, now up to 2'000 MB each.
+- Edit your scheduled messages.
+- Use Auto-Night Mode to make Telegram night mode match the system Dark Mode settings.
+- Also added an option to switch to system window frame in Windows and Linux.
+
+2.1.22 beta (24.07.20)
+
+- Fix crash in web page preview display.
+
+2.1.21 beta (24.07.20)
+
+- Edit your scheduled messages.
+- See the unread messages indicator for the secondary accounts on the main menu button.
+- Use Auto-Night Mode to make Telegram night mode match the system Dark Mode settings.
+- Enjoy dark native window frame for Telegram night mode on Windows.
+
+2.1.20 beta (17.07.20)
+
+- Fix animated emoji.
+- Fix crash in bot callback sending.
+
+2.1.19 beta (16.07.20)
+
+- File uploading in an inactive account correctly finishes.
+- Stickers panel works correctly after switching between accounts.
+- Large .webp files are not shown as stickers.
+- MacBook TouchBar support was fully rewritten with fixes for multiple accounts.
+- Custom window title bar works in all Linux versions.
+- Passcode doesn't auto-lock while you're active in other apps on Linux X11.
+
 2.1.18 beta (08.07.20)
 
 - Fix a possible crash in Picture-in-Picture video player.

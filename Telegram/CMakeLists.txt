@@ -72,9 +72,7 @@ if (LINUX)
     PRIVATE
         desktop-app::external_materialdecoration
         desktop-app::external_nimf_qt5
-        desktop-app::external_qt5ct
-        desktop-app::external_qt5ct_style
-        desktop-app::external_qt5ct_qtplugin
+        desktop-app::external_qt5ct_support
     )
 
     if (NOT DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
@@ -106,6 +104,7 @@ PRIVATE
     tdesktop::lib_mtproto
     tdesktop::lib_scheme
     tdesktop::lib_export
+    tdesktop::lib_tgvoip
     desktop-app::lib_base
     desktop-app::lib_crl
     desktop-app::lib_ui
@@ -122,10 +121,36 @@ PRIVATE
     desktop-app::external_qr_code_generator
     desktop-app::external_crash_reports
     desktop-app::external_auto_updates
-    tdesktop::lib_tgvoip
     desktop-app::external_openssl
     desktop-app::external_openal
 )
+
+if (LINUX AND DESKTOP_APP_USE_PACKAGED AND Qt5WaylandClient_VERSION VERSION_LESS 5.13.0)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
+
+    target_include_directories(Telegram
+    PRIVATE
+        ${WAYLAND_CLIENT_INCLUDE_DIRS}
+    )
+endif()
+
+if (LINUX)
+    if (DESKTOP_APP_USE_PACKAGED)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(XCB_SCREENSAVER REQUIRED IMPORTED_TARGET xcb-screensaver)
+        pkg_check_modules(XCB REQUIRED IMPORTED_TARGET xcb)
+
+        target_link_libraries(Telegram
+        PRIVATE
+            PkgConfig::XCB_SCREENSAVER
+            PkgConfig::XCB
+        )
+    else()
+        target_link_static_libraries(Telegram PRIVATE xcb-screensaver)
+        target_link_libraries(Telegram PRIVATE xcb)
+    endif()
+endif()
 
 if (LINUX AND NOT TDESKTOP_DISABLE_GTK_INTEGRATION)
     find_package(PkgConfig REQUIRED)
@@ -156,38 +181,30 @@ if (LINUX AND NOT TDESKTOP_DISABLE_GTK_INTEGRATION)
     endif()
 endif()
 
-# Telegram uses long atomic types, so on some architectures libatomic is needed.
-check_cxx_source_compiles("
-#include <atomic>
-std::atomic_int64_t foo;
-int main() {return foo;}
-" HAVE_LONG_ATOMIC_WITHOUT_LIB)
-if (NOT HAVE_LONG_ATOMIC_WITHOUT_LIB)
-    target_link_libraries(Telegram PRIVATE atomic)
-endif()
-
-if (DESKTOP_APP_USE_PACKAGED)
-    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-    find_package(Threads REQUIRED)
-
-    target_link_libraries(Telegram
-    PRIVATE
-        Threads::Threads
-    )
-endif()
-
 target_precompile_headers(Telegram PRIVATE ${src_loc}/stdafx.h)
 nice_target_sources(Telegram ${src_loc}
 PRIVATE
     ${style_files}
 
+    api/api_bot.cpp
+    api/api_bot.h
     api/api_chat_filters.cpp
     api/api_chat_filters.h
+    api/api_chat_invite.cpp
+    api/api_chat_invite.h
     api/api_common.h
+    api/api_editing.cpp
+    api/api_editing.h
+    api/api_global_privacy.cpp
+    api/api_global_privacy.h
     api/api_hash.cpp
     api/api_hash.h
+    api/api_media.cpp
+    api/api_media.h
     api/api_self_destruct.cpp
     api/api_self_destruct.h
+    api/api_send_progress.cpp
+    api/api_send_progress.h
     api/api_sending.cpp
     api/api_sending.h
     api/api_sensitive_content.cpp
@@ -569,6 +586,8 @@ PRIVATE
     history/view/history_view_service_message.h
     history/view/history_view_top_bar_widget.cpp
     history/view/history_view_top_bar_widget.h
+    history/view/history_view_webpage_preview.cpp
+    history/view/history_view_webpage_preview.h
     history/history.cpp
     history/history.h
     history/history_drag_area.cpp
@@ -850,6 +869,8 @@ PRIVATE
     platform/linux/linux_gdk_helper.h
     platform/linux/linux_libs.cpp
     platform/linux/linux_libs.h
+    platform/linux/linux_xlib_helper.cpp
+    platform/linux/linux_xlib_helper.h
     platform/linux/file_utilities_linux.cpp
     platform/linux/file_utilities_linux.h
     platform/linux/launcher_linux.cpp
@@ -875,8 +896,24 @@ PRIVATE
     platform/mac/specific_mac_p.h
     platform/mac/window_title_mac.mm
     platform/mac/window_title_mac.h
-    platform/mac/mac_touchbar.h
-    platform/mac/mac_touchbar.mm
+    platform/mac/touchbar/items/mac_formatter_item.h
+    platform/mac/touchbar/items/mac_formatter_item.mm
+    platform/mac/touchbar/items/mac_pinned_chats_item.h
+    platform/mac/touchbar/items/mac_pinned_chats_item.mm
+    platform/mac/touchbar/items/mac_scrubber_item.h
+    platform/mac/touchbar/items/mac_scrubber_item.mm
+    platform/mac/touchbar/mac_touchbar_audio.h
+    platform/mac/touchbar/mac_touchbar_audio.mm
+    platform/mac/touchbar/mac_touchbar_common.h
+    platform/mac/touchbar/mac_touchbar_common.mm
+    platform/mac/touchbar/mac_touchbar_controls.h
+    platform/mac/touchbar/mac_touchbar_controls.mm
+    platform/mac/touchbar/mac_touchbar_main.h
+    platform/mac/touchbar/mac_touchbar_main.mm
+    platform/mac/touchbar/mac_touchbar_manager.h
+    platform/mac/touchbar/mac_touchbar_manager.mm
+    platform/mac/touchbar/mac_touchbar_media_view.h
+    platform/mac/touchbar/mac_touchbar_media_view.mm
     platform/win/audio_win.cpp
     platform/win/audio_win.h
     platform/win/file_utilities_win.cpp
@@ -1049,6 +1086,7 @@ PRIVATE
     window/window_connecting_widget.h
     window/window_controller.cpp
     window/window_controller.h
+    window/window_controls_layout.h
     window/window_filters_menu.cpp
     window/window_filters_menu.h
     window/window_history_hider.cpp
@@ -1117,9 +1155,7 @@ if (NOT LINUX)
     )
 endif()
 
-if (DESKTOP_APP_USE_PACKAGED)
-    nice_target_sources(Telegram ${src_loc} PRIVATE qt_functions.cpp)
-else()
+if (NOT DESKTOP_APP_USE_PACKAGED)
     nice_target_sources(Telegram ${src_loc} PRIVATE platform/mac/mac_iconv_helper.c)
 endif()
 
@@ -1261,7 +1297,7 @@ PRIVATE
     TDESKTOP_API_HASH=${TDESKTOP_API_HASH}
 )
 
-if (${CMAKE_GENERATOR} MATCHES "(Visual Studio|Xcode)")
+if (APPLE OR NOT CMAKE_EXECUTABLE_SUFFIX STREQUAL "" OR NOT "${output_name}" STREQUAL "Telegram")
     set(output_folder ${CMAKE_BINARY_DIR})
 elseif (DESKTOP_APP_SPECIAL_TARGET STREQUAL "")
     set(output_folder ${CMAKE_BINARY_DIR}/bin)

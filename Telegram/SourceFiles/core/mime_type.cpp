@@ -102,9 +102,20 @@ MimeType MimeTypeForData(const QByteArray &data) {
 	return MimeType(QMimeDatabase().mimeTypeForData(data));
 }
 
+bool IsMimeStickerAnimated(const QString &mime) {
+	return mime == qsl("application/x-tgsticker");
+}
+
 bool IsMimeSticker(const QString &mime) {
 	return mime == qsl("image/webp")
-		|| mime == qsl("application/x-tgsticker");
+		|| IsMimeStickerAnimated(mime);
+}
+
+bool IsMimeAcceptedForAlbum(const QString &mime) {
+	return (mime == u"image/jpeg"_q)
+		|| (mime == u"image/png"_q)
+		|| (mime == u"video/mp4"_q)
+		|| (mime == u"video/quicktime"_q);
 }
 
 } // namespace Core

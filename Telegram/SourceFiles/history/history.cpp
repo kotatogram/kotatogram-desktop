@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history.h"
 
+#include "api/api_send_progress.h"
 #include "history/view/history_view_element.h"
 #include "history/history_message.h"
 #include "history/history_service.h"
@@ -357,7 +358,7 @@ bool History::updateSendActionNeedsAnimating(
 		return false;
 	}
 
-	using Type = SendAction::Type;
+	using Type = Api::SendProgressType;
 	if (action.type() == mtpc_sendMessageCancelAction) {
 		clearSendAction(user);
 		return false;
@@ -375,7 +376,7 @@ bool History::updateSendActionNeedsAnimating(
 	}, [&](const MTPDsendMessageRecordVideoAction &) {
 		emplaceAction(Type::RecordVideo, kStatusShowClientsideRecordVideo);
 	}, [&](const MTPDsendMessageRecordAudioAction &) {
-		emplaceAction(Type::RecordVoice, kStatusShowClientsideRecordVideo);
+		emplaceAction(Type::RecordVoice, kStatusShowClientsideRecordVoice);
 	}, [&](const MTPDsendMessageRecordRoundAction &) {
 		emplaceAction(Type::RecordRound, kStatusShowClientsideRecordRound);
 	}, [&](const MTPDsendMessageGeoLocationAction &) {
@@ -420,7 +421,7 @@ bool History::updateSendActionNeedsAnimating(
 	return updateSendActionNeedsAnimating(now, true);
 }
 
-bool History::mySendActionUpdated(SendAction::Type type, bool doing) {
+bool History::mySendActionUpdated(Api::SendProgressType type, bool doing) {
 	const auto now = crl::now();
 	const auto i = _mySendActions.find(type);
 	if (doing) {
@@ -508,7 +509,7 @@ bool History::updateSendActionNeedsAnimating(crl::time now, bool force) {
 					begin(_typing)->first->firstName);
 		} else if (!_sendActions.empty()) {
 			// Handles all actions except game playing.
-			using Type = SendAction::Type;
+			using Type = Api::SendProgressType;
 			auto sendActionString = [](Type type, const QString &name) -> QString {
 				switch (type) {
 				case Type::RecordVideo: return name.isEmpty() ? tr::lng_send_action_record_video(tr::now) : tr::lng_user_action_record_video(tr::now, lt_user, name);
@@ -562,7 +563,7 @@ bool History::updateSendActionNeedsAnimating(crl::time now, bool force) {
 			}
 		}
 		if (typingCount > 0) {
-			_sendActionAnimation.start(SendAction::Type::Typing);
+			_sendActionAnimation.start(Api::SendProgressType::Typing);
 		} else if (newTypingString.isEmpty()) {
 			_sendActionAnimation.stop();
 		}
@@ -1185,10 +1186,17 @@ void History::applyServiceChanges(
 				case mtpc_photoCachedSize: bigLoc = &bigSize.c_photoCachedSize().vlocation(); break;
 				}
 				if (smallLoc && bigLoc) {
+					const auto chatPhoto = MTP_chatPhoto(
+						MTP_flags(photo->hasVideo()
+							? MTPDchatPhoto::Flag::f_has_video
+							: MTPDchatPhoto::Flag(0)),
+						*smallLoc,
+						*bigLoc,
+						data.vdc_id());
 					if (const auto chat = peer->asChat()) {
-						chat->setPhoto(photo->id, MTP_chatPhoto(*smallLoc, *bigLoc, data.vdc_id()));
+						chat->setPhoto(photo->id, chatPhoto);
 					} else if (const auto channel = peer->asChannel()) {
-						channel->setPhoto(photo->id, MTP_chatPhoto(*smallLoc, *bigLoc, data.vdc_id()));
+						channel->setPhoto(photo->id, chatPhoto);
 					}
 					peer->loadUserpic();
 				}
@@ -2894,20 +2902,7 @@ HistoryItem *History::lastSentMessage() const {
 	for (const auto &block : ranges::view::reverse(blocks)) {
 		for (const auto &message : ranges::view::reverse(block->messages)) {
 			const auto item = message->data();
-			// Skip if message is editing media.
-			if (item->isEditingMedia()) {
-				continue;
-			}
-			// Skip if message is video message or sticker.
-			if (const auto media = item->media()) {
-				// Skip only if media is not webpage.
-				if (!media->webpage() && !media->allowsEditCaption()) {
-					continue;
-				}
-			}
-			if (IsServerMsgId(item->id)
-				&& !item->serviceMsg()
-				&& (item->out() || peer->isSelf())) {
+			if (item->canBeEditedFromHistory()) {
 				return item;
 			}
 		}

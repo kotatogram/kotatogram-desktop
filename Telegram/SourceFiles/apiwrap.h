@@ -50,6 +50,12 @@ struct CloudPasswordState;
 } // namespace Core
 
 namespace Api {
+
+class Updates;
+class SelfDestruct;
+class SensitiveContent;
+class GlobalPrivacy;
+
 namespace details {
 
 inline QString ToString(const QString &value) {
@@ -65,8 +71,6 @@ inline QString ToString(uint64 value) {
 }
 
 } // namespace details
-
-class Updates;
 
 template <
 	typename ...Types,
@@ -85,9 +89,6 @@ QString RequestKey(Types &&...values) {
 	}
 	return result;
 }
-
-class SelfDestruct;
-class SensitiveContent;
 
 } // namespace Api
 
@@ -422,12 +423,6 @@ public:
 		const MTPInputFile &file,
 		const std::optional<MTPInputFile> &thumb,
 		Api::SendOptions options);
-	void editUploadedFile(
-		FullMsgId localId,
-		const MTPInputFile &file,
-		const std::optional<MTPInputFile> &thumb,
-		Api::SendOptions options,
-		bool isDocument);
 
 	void cancelLocalItem(not_null<HistoryItem*> item);
 
@@ -466,6 +461,7 @@ public:
 
 	[[nodiscard]] Api::SelfDestruct &selfDestruct();
 	[[nodiscard]] Api::SensitiveContent &sensitiveContent();
+	[[nodiscard]] Api::GlobalPrivacy &globalPrivacy();
 
 	void createPoll(
 		const PollData &data,
@@ -477,10 +473,6 @@ public:
 		const std::vector<QByteArray> &options);
 	void closePoll(not_null<HistoryItem*> item);
 	void reloadPollResults(not_null<HistoryItem*> item);
-
-	void rescheduleMessage(
-		not_null<HistoryItem*> item,
-		Api::SendOptions options);
 
 private:
 	struct MessageDataRequest {
@@ -831,6 +823,7 @@ private:
 
 	const std::unique_ptr<Api::SelfDestruct> _selfDestruct;
 	const std::unique_ptr<Api::SensitiveContent> _sensitiveContent;
+	const std::unique_ptr<Api::GlobalPrivacy> _globalPrivacy;
 
 	base::flat_map<FullMsgId, mtpRequestId> _pollVotesRequestIds;
 	base::flat_map<FullMsgId, mtpRequestId> _pollCloseRequestIds;

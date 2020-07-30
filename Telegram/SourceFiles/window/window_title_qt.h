@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "window/window_title.h"
+#include "window/window_controls_layout.h"
 #include "base/object_ptr.h"
 
 namespace style {
@@ -40,11 +41,15 @@ private:
 	void windowStateChanged(Qt::WindowState state = Qt::WindowNoState);
 	void updateButtonsState();
 	void updateControlsPosition();
+	void updateControlsPositionBySide(
+		const std::vector<Control> &controls,
+		bool right);
 
 	void toggleFramelessWindow(bool enabled);
 	Qt::Edges edgesFromPos(const QPoint &pos);
 	void updateCursor(Qt::Edges edges);
 	void restoreCursor();
+	bool startMove();
 	bool startResize(Qt::Edges edges);
 
 	const style::WindowTitle &_st;

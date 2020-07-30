@@ -177,7 +177,6 @@ QIcon TrayIconGen(int counter, bool muted) {
 		24,
 		32,
 		48,
-		64
 	};
 
 	for (const auto iconSize : iconSizes) {
@@ -294,12 +293,12 @@ bool IsIndicatorApplication() {
 
 std::unique_ptr<QTemporaryFile> TrayIconFile(
 		const QIcon &icon,
-		int size,
-		QObject *parent) {
+		QObject *parent = nullptr) {
 	static const auto templateName = AppRuntimeDirectory()
 		+ kTrayIconFilename.utf16();
 
-	const auto desiredSize = QSize(size, size);
+	const auto dpr = style::DevicePixelRatio();
+	const auto desiredSize = QSize(22 * dpr, 22 * dpr);
 
 	auto ret = std::make_unique<QTemporaryFile>(
 		templateName,
@@ -459,7 +458,7 @@ void MainWindow::initHook() {
 		|| QSystemTrayIcon::isSystemTrayAvailable();
 
 	LOG(("System tray available: %1").arg(Logs::b(trayAvailable)));
-	cSetSupportTray(trayAvailable);
+	Platform::SetTrayIconSupported(trayAvailable);
 
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 	auto sniWatcher = new QDBusServiceWatcher(
@@ -556,7 +555,7 @@ void MainWindow::setSNITrayIcon(int counter, bool muted) {
 		}
 
 		const auto icon = TrayIconGen(counter, muted);
-		_trayIconFile = TrayIconFile(icon, 22, this);
+		_trayIconFile = TrayIconFile(icon, this);
 
 		if (_trayIconFile) {
 			// indicator-application doesn't support tooltips
@@ -623,9 +622,9 @@ void MainWindow::onSNIOwnerChanged(
 	const auto trayAvailable = SNIAvailable
 		|| QSystemTrayIcon::isSystemTrayAvailable();
 
-	cSetSupportTray(trayAvailable);
+	Platform::SetTrayIconSupported(trayAvailable);
 
-	if (cSupportTray()) {
+	if (trayAvailable) {
 		psSetupTrayIcon();
 	} else {
 		LOG(("System tray is not available."));
@@ -686,9 +685,9 @@ void MainWindow::psSetupTrayIcon() {
 }
 
 void MainWindow::workmodeUpdated(DBIWorkMode mode) {
-	if (!cSupportTray()) return;
-
-	if (mode == dbiwmWindowOnly) {
+	if (!Platform::TrayIconSupported()) {
+		return;
+	} else if (mode == dbiwmWindowOnly) {
 #ifndef TDESKTOP_DISABLE_DBUS_INTEGRATION
 		if (_sniTrayIcon) {
 			_sniTrayIcon->setContextMenu(0);
