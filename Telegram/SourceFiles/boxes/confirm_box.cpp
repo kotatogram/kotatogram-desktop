@@ -444,7 +444,7 @@ void PinMessageBox::prepare() {
 	addButton(tr::lng_cancel(), [this] { closeBox(); });
 
 	if (_peer->isChat() || _peer->isMegagroup()) {
-		_notify.create(this, tr::lng_pinned_notify(tr::now), true, st::defaultBoxCheckbox);
+		_notify.create(this, tr::lng_pinned_notify(tr::now), false, st::defaultBoxCheckbox);
 	}
 
 	auto height = st::boxPadding.top() + _text->height() + st::boxPadding.bottom();
