@@ -876,6 +876,14 @@ void HistoryWidget::initTabbedSelector() {
 		toggleTabbedSelectorMode();
 	});
 
+	base::install_event_filter(_tabbedSelectorToggle, [=](not_null<QEvent*> e) {
+		if (e->type() == QEvent::ContextMenu && !HoverEmojiPanel()) {
+			_tabbedPanel->toggleAnimated();
+			return base::EventFilterResult::Cancel;
+		}
+		return base::EventFilterResult::Continue;
+	});
+
 	const auto selector = controller()->tabbedSelector();
 
 	base::install_event_filter(this, selector, [=](not_null<QEvent*> e) {
