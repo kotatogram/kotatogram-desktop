@@ -59,7 +59,7 @@ public:
 	}
 	bool searchWordsContain(const QString &needle) const {
 		for_const (auto &word, _searchWords) {
-			if (word.startsWith(needle)) {
+			if (word.contains(needle, Qt::CaseInsensitive)) {
 				return true;
 			}
 		}
