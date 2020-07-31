@@ -87,6 +87,11 @@ public:
 	rpl::producer<> erasePrevious() const;
 	rpl::producer<QChar> putNext() const;
 
+	void setOverflowCallback(Fn<bool(int)> callback);
+	bool hasOverflowCallback();
+	bool add(int value);
+	bool remove(int value);
+
 protected:
 	void keyPressEvent(QKeyEvent *e) override;
 	void wheelEvent(QWheelEvent *e) override;
@@ -103,6 +108,8 @@ private:
 	int _wheelStep = 0;
 	rpl::event_stream<> _erasePrevious;
 	rpl::event_stream<QChar> _putNext;
+
+	Fn<bool(int)> _overflowCallback = nullptr;
 
 };
 
@@ -126,6 +133,7 @@ public:
 	void showError();
 
 	int resizeGetHeight(int width) override;
+	void setOverflowCallback(Fn<bool(int)> callback);
 
 protected:
 	void paintEvent(QPaintEvent *e) override;
@@ -162,6 +170,8 @@ private:
 	bool _error = false;
 	Ui::Animations::Simple _a_focused;
 	bool _focused = false;
+
+	Fn<bool(int)> _overflowCallback = nullptr;
 
 };
 
@@ -216,6 +226,40 @@ rpl::producer<QChar> TimePart::putNext() const {
 	return _putNext.events();
 }
 
+void TimePart::setOverflowCallback(Fn<bool(int)> callback) {
+	_overflowCallback = std::move(callback);
+}
+
+bool TimePart::hasOverflowCallback() {
+	return _overflowCallback != nullptr;
+}
+
+bool TimePart::add(int value) {
+	auto time = Number(this) + value;
+	const auto max = _maxValue + 1;
+	if (time < 0) {
+		if (!_overflowCallback(time)) {
+			return false;
+		}
+		while (time < 0) {
+			time += max;
+		}
+	} else if (time >= max) {
+		if (!_overflowCallback(time)) {
+			return false;
+		}
+		while (time >= max) {
+			time -= max;
+		}
+	}
+	setText(QString::number(time));
+	return true;
+}
+
+bool TimePart::remove(int value) {
+	return add(-value);
+}
+
 void TimePart::keyPressEvent(QKeyEvent *e) {
 	const auto isBackspace = (e->key() == Qt::Key_Backspace);
 	const auto isBeginning = (cursorPosition() == 0);
@@ -228,14 +272,7 @@ void TimePart::keyPressEvent(QKeyEvent *e) {
 
 void TimePart::wheelEvent(QWheelEvent *e) {
 	const auto direction = ProcessWheelEvent(e);
-	auto time = Number(this) + (direction * _wheelStep);
-	const auto max = _maxValue + 1;
-	if (time < 0) {
-		time += max;
-	} else if (time >= max) {
-		time -= max;
-	}
-	setText(QString::number(time));
+	add(direction * _wheelStep);
 }
 
 void TimePart::correctValue(
@@ -333,11 +370,29 @@ TimeInput::TimeInput(QWidget *parent, const QString &value)
 	_hour->putNext() | rpl::start_with_next([=](QChar ch) {
 		putNext(_minute, ch);
 	}, lifetime());
+	_hour->setOverflowCallback([=] (int h) {
+		if (_overflowCallback) {
+			return _overflowCallback(h);
+		}
+
+		return true;
+	});
 	_minute->setMaxValue(59);
 	_minute->setWheelStep(10);
 	_minute->erasePrevious() | rpl::start_with_next([=] {
 		erasePrevious(_hour);
 	}, lifetime());
+	_minute->setOverflowCallback([=] (int m) {
+		if (_hour->hasOverflowCallback()) {
+			if (m > 59) {
+				return _hour->add(1);
+			} else if (m < 0) {
+				return _hour->remove(1);
+			}
+		}
+
+		return true;
+	});
 	_separator1->setAttribute(Qt::WA_TransparentForMouseEvents);
 	setMouseTracking(true);
 
@@ -510,6 +565,10 @@ int TimeInput::resizeGetHeight(int width) {
 	return st::scheduleDateField.heightMin;
 }
 
+void TimeInput::setOverflowCallback(Fn<bool(int)> callback) {
+	_overflowCallback = std::move(callback);
+}
+
 void TimeInput::showError() {
 	setErrorShown(true);
 	if (!_focused) {
@@ -649,6 +708,17 @@ void ScheduleBox(
 			return base::EventFilterResult::Cancel;
 		}
 		return base::EventFilterResult::Continue;
+	});
+
+	timeInput->setOverflowCallback([=] (int h) {
+		// Since it will be triggered only on overflow, we don't need additional condition here.
+		const auto direction = (h < 0) ? -1 : 1;
+
+		const auto prevDate = date->current();
+		const auto d = date->current().addDays(direction);
+		*date = std::clamp(d, minDate, maxDate);
+
+		return prevDate != date->current();
 	});
 
 	content->widthValue(
