@@ -479,14 +479,14 @@ void Generator::paintHistoryBackground() {
 }
 
 void Generator::paintTopBar() {
-	_p->fillRect(_topBar, st::topBarBg[_palette]);
+	_p->fillRect(_topBar, st::ktgTopBarBg[_palette]);
 
 	auto right = st::topBarMenuToggle.width;
-	st::topBarMenuToggle.icon[_palette].paint(*_p, _topBar.x() + _topBar.width() - right + st::topBarMenuToggle.iconPosition.x(), _topBar.y() + st::topBarMenuToggle.iconPosition.y(), _rect.width());
+	st::ktgTopBarMenuToggle.icon[_palette].paint(*_p, _topBar.x() + _topBar.width() - right + st::topBarMenuToggle.iconPosition.x(), _topBar.y() + st::topBarMenuToggle.iconPosition.y(), _rect.width());
 	right += st::topBarSearch.width;
-	st::topBarSearch.icon[_palette].paint(*_p, _topBar.x() + _topBar.width() - right + st::topBarSearch.iconPosition.x(), _topBar.y() + st::topBarSearch.iconPosition.y(), _rect.width());
+	st::ktgTopBarSearch.icon[_palette].paint(*_p, _topBar.x() + _topBar.width() - right + st::topBarSearch.iconPosition.x(), _topBar.y() + st::topBarSearch.iconPosition.y(), _rect.width());
 	right += st::topBarCallSkip + st::topBarCall.width;
-	st::topBarCall.icon[_palette].paint(*_p, _topBar.x() + _topBar.width() - right + st::topBarCall.iconPosition.x(), _topBar.y() + st::topBarCall.iconPosition.y(), _rect.width());
+	st::ktgTopBarCall.icon[_palette].paint(*_p, _topBar.x() + _topBar.width() - right + st::topBarCall.iconPosition.x(), _topBar.y() + st::topBarCall.iconPosition.y(), _rect.width());
 
 	auto decreaseWidth = st::topBarCall.width + st::topBarCallSkip + st::topBarSearch.width + st::topBarMenuToggle.width;
 	auto nameleft = _topBar.x() + st::topBarArrowPadding.right();
@@ -494,10 +494,10 @@ void Generator::paintTopBar() {
 	auto statustop = _topBar.y() + st::topBarHeight - st::topBarArrowPadding.bottom() - st::dialogsTextFont->height;
 	auto namewidth = _topBar.x() + _topBar.width() - decreaseWidth - nameleft - st::topBarArrowPadding.right();
 	_p->setFont(st::dialogsTextFont);
-	_p->setPen(_topBarStatusActive ? st::historyStatusFgActive[_palette] : st::historyStatusFg[_palette]);
+	_p->setPen(_topBarStatusActive ? st::ktgTopBarStatusFgActive[_palette] : st::ktgTopBarStatusFg[_palette]);
 	_p->drawText(nameleft, statustop + st::dialogsTextFont->ascent, _topBarStatus);
 
-	_p->setPen(st::dialogsNameFg[_palette]);
+	_p->setPen(st::ktgTopBarNameFg[_palette]);
 	_topBarName.drawElided(*_p, nameleft, nametop, namewidth);
 }
 

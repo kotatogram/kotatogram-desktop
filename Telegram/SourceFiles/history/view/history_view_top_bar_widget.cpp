@@ -56,15 +56,15 @@ TopBarWidget::TopBarWidget(
 	not_null<Window::SessionController*> controller)
 : RpWidget(parent)
 , _controller(controller)
-, _clear(this, tr::lng_selected_clear(), st::topBarClearButton)
-, _forward(this, tr::lng_selected_forward(), st::defaultActiveButton)
-, _sendNow(this, tr::lng_selected_send_now(), st::defaultActiveButton)
-, _delete(this, tr::lng_selected_delete(), st::defaultActiveButton)
-, _back(this, st::historyTopBarBack)
-, _call(this, st::topBarCall)
-, _search(this, st::topBarSearch)
-, _infoToggle(this, st::topBarInfo)
-, _menuToggle(this, st::topBarMenuToggle)
+, _clear(this, tr::lng_selected_clear(), st::ktgTopBarClearButton)
+, _forward(this, tr::lng_selected_forward(), st::ktgTopBarActiveButton)
+, _sendNow(this, tr::lng_selected_send_now(), st::ktgTopBarActiveButton)
+, _delete(this, tr::lng_selected_delete(), st::ktgTopBarActiveButton)
+, _back(this, st::ktgHistoryTopBarBack)
+, _call(this, st::ktgTopBarCall)
+, _search(this, st::ktgTopBarSearch)
+, _infoToggle(this, st::ktgTopBarInfo)
+, _menuToggle(this, st::ktgTopBarMenuToggle)
 , _titlePeerText(st::windowMinWidth / 3)
 , _onlineUpdater([=] { updateOnlineDisplay(); }) {
 	subscribe(Lang::Current().updated(), [=] { refreshLang(); });
@@ -318,7 +318,7 @@ void TopBarWidget::paintEvent(QPaintEvent *e) {
 	auto hasSelected = (_selectedCount > 0);
 	auto selectedButtonsTop = countSelectedButtonsTop(_selectedShown.value(hasSelected ? 1. : 0.));
 
-	p.fillRect(QRect(0, 0, width(), st::topBarHeight), st::topBarBg);
+	p.fillRect(QRect(0, 0, width(), st::topBarHeight), st::ktgTopBarBg);
 	if (selectedButtonsTop < 0) {
 		p.translate(0, selectedButtonsTop + st::topBarHeight);
 		paintTopBar(p);
@@ -349,7 +349,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 		if (availableWidth < textWidth) {
 			text = st::historySavedFont->elided(text, availableWidth);
 		}
-		p.setPen(st::dialogsNameFg);
+		p.setPen(st::ktgTopBarNameFg);
 		p.setFont(st::historySavedFont);
 		p.drawTextLeft(
 			nameleft,
@@ -359,7 +359,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 	} else if (_section == Section::Scheduled) {
 		auto text = tr::lng_scheduled_messages(tr::now);
 		
-		p.setPen(st::dialogsNameFg);
+		p.setPen(st::ktgTopBarNameFg);
 		
 		if (history) {
 			const auto textWidth = st::msgNameFont->width(text);
@@ -374,7 +374,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 				text);
 
 			auto nameText = history->peer->topBarNameText().toString();
-			p.setPen(st::historyStatusFg);
+			p.setPen(st::ktgTopBarStatusFg);
 
 			Ui::Text::String nameTextStr;
 			nameTextStr.setText(st::dialogsTextStyle, nameText, Ui::NameTextOptions());
@@ -410,7 +410,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			badgeStyle);
 		const auto namewidth = availableWidth - badgeWidth;
 
-		p.setPen(st::dialogsNameFg);
+		p.setPen(st::ktgTopBarNameFg);
 		peer->topBarNameText().drawElided(
 			p,
 			nameleft,
@@ -426,7 +426,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 				statustop,
 			availableWidth,
 				width(),
-				st::historyStatusFgTyping,
+				st::ktgTopBarStatusFgActive,
 				crl::now())) {
 			return;
 		} else {
@@ -453,7 +453,7 @@ bool TopBarWidget::paintConnectingState(
 	left += st::topBarConnectingPosition.x()
 		+ st::topBarConnectingAnimation.size.width()
 		+ st::topBarConnectingSkip;
-	p.setPen(st::historyStatusFg);
+	p.setPen(st::ktgTopBarStatusFg);
 	p.drawTextLeft(left, top, outerWidth, tr::lng_status_connecting(tr::now));
 	return true;
 }
@@ -465,8 +465,8 @@ void TopBarWidget::paintStatus(
 		int availableWidth,
 		int outerWidth) {
 	p.setPen(_titlePeerTextOnline
-		? st::historyStatusFgActive
-		: st::historyStatusFg);
+		? st::ktgTopBarStatusFgActive
+		: st::ktgTopBarStatusFg);
 	_titlePeerText.drawLeftElided(p, left, top, availableWidth, outerWidth);
 }
 
@@ -852,10 +852,10 @@ void TopBarWidget::updateInfoToggleActive() {
 		&& (Core::App().settings().thirdSectionInfoEnabled()
 			|| Core::App().settings().tabbedReplacedWithInfo());
 	auto iconOverride = infoThirdActive
-		? &st::topBarInfoActive
+		? &st::ktgTopBarInfoActive
 		: nullptr;
 	auto rippleOverride = infoThirdActive
-		? &st::lightButtonBgOver
+		? &st::ktgTopBarIconBgActiveRipple
 		: nullptr;
 	_infoToggle->setIconOverride(iconOverride, iconOverride);
 	_infoToggle->setRippleColorOverride(rippleOverride);

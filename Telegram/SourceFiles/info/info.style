@@ -833,3 +833,76 @@ separatePanelBack: IconButton(separatePanelClose) {
 	icon: infoTopBarBackIcon;
 	iconOver: infoTopBarBackIconOver;
 }
+
+ktgHistoryTopBarBack: IconButton(historyTopBarBack) {
+	icon: icon {{ "info_back", ktgTopBarBackIconFg }};
+	iconOver: icon {{ "info_back", ktgTopBarBackIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarBackIconBgRipple;
+	}
+}
+
+ktgTopBarCall: IconButton(topBarCall) {
+	icon: icon {{ "top_bar_call", ktgTopBarIconFg }};
+	iconOver: icon {{ "top_bar_call", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarSearch: IconButton(topBarSearch) {
+	icon: icon {{ "top_bar_search", ktgTopBarIconFg }};
+	iconOver: icon {{ "top_bar_search", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarInfo: IconButton(topBarInfo) {
+	icon: icon {{ "top_bar_profile", ktgTopBarIconFg }};
+	iconOver: icon {{ "top_bar_profile", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarInfoActive: icon {{ "top_bar_profile", ktgTopBarIconFgActive }};
+
+ktgTopBarMenuToggle: IconButton(topBarMenuToggle) {
+	icon: icon {{ "title_menu_dots", ktgTopBarIconFg }};
+	iconOver: icon {{ "title_menu_dots", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarActiveButton: RoundButton(defaultActiveButton) {
+	textFg: ktgTopBarActiveButtonFg;
+	textFgOver: ktgTopBarActiveButtonFgOver;
+	numbersTextFg: ktgTopBarActiveButtonSecondaryFg;
+	numbersTextFgOver: ktgTopBarActiveButtonSecondaryFgOver;
+	textBg: ktgTopBarActiveButtonBg;
+	textBgOver: ktgTopBarActiveButtonBgOver;
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarActiveButtonBgRipple;
+	}
+}
+
+ktgTopBarClearButton: RoundButton(topBarClearButton) {
+	textFg: ktgTopBarClearButtonFg;
+	textFgOver: ktgTopBarClearButtonFgOver;
+	numbersTextFg: ktgTopBarClearButtonFg;
+	numbersTextFgOver: ktgTopBarClearButtonFgOver;
+	textBg: ktgTopBarClearButtonBg;
+	textBgOver: ktgTopBarClearButtonBgOver;
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarClearButtonBgRipple;
+	}
+}
