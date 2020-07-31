@@ -82,7 +82,7 @@ public:
 	using MaskedInputField::MaskedInputField;
 
 	void setMaxValue(int value);
-	void setWheelStep(int value);
+	void setWheelStep(int value, int ctrlValue, int shiftValue);
 
 	rpl::producer<> erasePrevious() const;
 	rpl::producer<QChar> putNext() const;
@@ -106,6 +106,8 @@ private:
 	int _maxValue = 0;
 	int _maxDigits = 0;
 	int _wheelStep = 0;
+	int _wheelStepCtrl = 0;
+	int _wheelStepShift = 0;
 	rpl::event_stream<> _erasePrevious;
 	rpl::event_stream<QChar> _putNext;
 
@@ -214,8 +216,10 @@ void TimePart::setMaxValue(int value) {
 	}
 }
 
-void TimePart::setWheelStep(int value) {
+void TimePart::setWheelStep(int value, int ctrlValue, int shiftValue) {
 	_wheelStep = value;
+	_wheelStepCtrl = ctrlValue;
+	_wheelStepShift = shiftValue;
 }
 
 rpl::producer<> TimePart::erasePrevious() const {
@@ -263,7 +267,16 @@ bool TimePart::remove(int value) {
 void TimePart::keyPressEvent(QKeyEvent *e) {
 	const auto isBackspace = (e->key() == Qt::Key_Backspace);
 	const auto isBeginning = (cursorPosition() == 0);
-	if (isBackspace && isBeginning && !hasSelectedText()) {
+	const auto step = (e->modifiers().testFlag(Qt::ShiftModifier))
+			? _wheelStepShift
+			: (e->modifiers().testFlag(Qt::ControlModifier))
+				? _wheelStepCtrl
+				: _wheelStep;
+	if (e->key() == Qt::Key_Up) {
+		add(step);
+	} else if (e->key() == Qt::Key_Down) {
+		remove(step);
+	} else if (isBackspace && isBeginning && !hasSelectedText()) {
 		_erasePrevious.fire({});
 	} else {
 		MaskedInputField::keyPressEvent(e);
@@ -272,7 +285,12 @@ void TimePart::keyPressEvent(QKeyEvent *e) {
 
 void TimePart::wheelEvent(QWheelEvent *e) {
 	const auto direction = ProcessWheelEvent(e);
-	add(direction * _wheelStep);
+	const auto step = (e->modifiers().testFlag(Qt::ShiftModifier))
+			? _wheelStepShift
+			: (e->modifiers().testFlag(Qt::ControlModifier))
+				? _wheelStepCtrl
+				: _wheelStep;
+	add(direction * step);
 }
 
 void TimePart::correctValue(
@@ -366,7 +384,7 @@ TimeInput::TimeInput(QWidget *parent, const QString &value)
 	connect(_hour, &Ui::MaskedInputField::changed, changed);
 	connect(_minute, &Ui::MaskedInputField::changed, changed);
 	_hour->setMaxValue(23);
-	_hour->setWheelStep(1);
+	_hour->setWheelStep(1, 5, 12);
 	_hour->putNext() | rpl::start_with_next([=](QChar ch) {
 		putNext(_minute, ch);
 	}, lifetime());
@@ -378,7 +396,7 @@ TimeInput::TimeInput(QWidget *parent, const QString &value)
 		return true;
 	});
 	_minute->setMaxValue(59);
-	_minute->setWheelStep(10);
+	_minute->setWheelStep(1, 10, 30);
 	_minute->erasePrevious() | rpl::start_with_next([=] {
 		erasePrevious(_hour);
 	}, lifetime());
@@ -699,11 +717,16 @@ void ScheduleBox(
 	base::install_event_filter(dayViewport, [=](not_null<QEvent*> event) {
 		if (event->type() == QEvent::Wheel) {
 			const auto e = static_cast<QWheelEvent*>(event.get());
+			const auto step = (e->modifiers().testFlag(Qt::ShiftModifier))
+					? 14
+					: (e->modifiers().testFlag(Qt::ControlModifier))
+						? 7
+						: 1;
 			const auto direction = ProcessWheelEvent(e);
 			if (!direction) {
 				return base::EventFilterResult::Continue;
 			}
-			const auto d = date->current().addDays(direction);
+			const auto d = date->current().addDays(direction * step);
 			*date = std::clamp(d, minDate, maxDate);
 			return base::EventFilterResult::Cancel;
 		}
