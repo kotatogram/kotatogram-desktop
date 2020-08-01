@@ -206,6 +206,7 @@ public:
 	int countHeight();
 	void setDateChosenCallback(Fn<void(QDate)> callback);
 	void selectBeginning();
+	void selectEnd();
 
 	~Inner();
 
@@ -437,6 +438,10 @@ void CalendarBox::Inner::selectBeginning() {
 	_dateChosenCallback(_context->dateFromIndex(_context->minDayIndex()));
 }
 
+void CalendarBox::Inner::selectEnd() {
+	_dateChosenCallback(_context->dateFromIndex(_context->maxDayIndex()));
+}
+
 CalendarBox::Inner::~Inner() = default;
 
 class CalendarBox::Title : public TWidget, private base::Subscriber {
@@ -588,6 +593,8 @@ void CalendarBox::keyPressEvent(QKeyEvent *e) {
 		e->ignore();
 	} else if (e->key() == Qt::Key_Home) {
 		_inner->selectBeginning();
+	} else if (e->key() == Qt::Key_End) {
+		_inner->selectEnd();
 	} else if (e->key() == Qt::Key_Left) {
 		goPreviousMonth();
 	} else if (e->key() == Qt::Key_Right) {
