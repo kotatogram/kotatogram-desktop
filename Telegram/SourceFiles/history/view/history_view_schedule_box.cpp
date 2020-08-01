@@ -668,7 +668,7 @@ void FillSendUntilOnlineMenu(
 } // namespace
 
 TimeId DefaultScheduleTime() {
-	return base::unixtime::now() + 600;
+	return base::unixtime::now() + 60;
 }
 
 bool CanScheduleUntilOnline(not_null<PeerData*> peer) {
