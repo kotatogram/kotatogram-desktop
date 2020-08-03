@@ -60,6 +60,7 @@ enum class Command {
 	SupportHistoryForward,
 
 	SaveDraft,
+	JumpToDate,
 };
 
 constexpr auto kShowFolder = {

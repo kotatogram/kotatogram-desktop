@@ -1644,6 +1644,10 @@ void HistoryWidget::setupShortcuts() {
 				onCloudDraftSave();
 				return true;
 			});
+			request->check(Command::JumpToDate, 1) && request->handle([=] {
+				controller()->showJumpToDate(Dialogs::Key(_history), QDate());
+				return true;
+			});
 		}
 	}, lifetime());
 }

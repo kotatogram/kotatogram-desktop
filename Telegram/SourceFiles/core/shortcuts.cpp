@@ -96,6 +96,7 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	//
 
 	{ qsl("save_draft")        , Command::SaveDraft },
+	{ qsl("jump_to_date")      , Command::JumpToDate },
 
 	{ qsl("pinned_1")          , Command::ChatPinned1 },
 	{ qsl("pinned_2")          , Command::ChatPinned2 },
@@ -153,6 +154,7 @@ const auto CommandNames = base::flat_map<Command, QString>{
 	{ Command::ShowArchive    , qsl("show_archive") },
 
 	{ Command::SaveDraft      , qsl("save_draft") },
+	{ Command::JumpToDate     , qsl("jump_to_date") },
 
 	{ Command::ChatPinned1    , qsl("pinned_1") },
 	{ Command::ChatPinned2    , qsl("pinned_2") },
@@ -410,6 +412,7 @@ void Manager::fillDefaults() {
 	set(qsl("ctrl+9"), Command::ShowArchive);
 
 	set(qsl("ctrl+s"), Command::SaveDraft);
+	set(qsl("ctrl+j"), Command::JumpToDate);
 }
 
 void Manager::writeDefaultFile() {
