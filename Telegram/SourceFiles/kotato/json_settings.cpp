@@ -88,6 +88,42 @@ bool ReadObjectOption(QJsonObject obj, QString key, std::function<void(QJsonObje
 	return (readValueResult && readResult);
 }
 
+bool ReadAccountObjectOption(QJsonObject obj, QString key, std::function<void(int, QJsonValue)> callback, std::function<bool(QJsonValue)> test) {
+	auto readResult = false;
+	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
+		if (!v.isObject()) {
+			return;
+		}
+
+		auto vObj = v.toObject();
+
+		if (vObj.isEmpty()) {
+			return;
+		}
+
+		bool isInt;
+
+		for (auto i = vObj.begin(), e = vObj.end(); i != e; ++i) {
+			if (!test(i.value())) {
+				continue;
+			}
+
+			auto key = i.key();
+			if (key.startsWith("test_")) {
+				key = key.mid(5).prepend("-");
+			}
+
+			auto account_id = key.toInt(&isInt, 10);
+
+			if (isInt) {
+				callback(account_id, i.value());
+				readResult = true;
+			}
+		}
+	});
+	return (readValueResult && readResult);
+}
+
 bool ReadArrayOption(QJsonObject obj, QString key, std::function<void(QJsonArray)> callback) {
 	auto readResult = false;
 	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
@@ -467,30 +503,10 @@ bool Manager::readCustomFile() {
 		});
 
 		if (!isDefaultFilterRead) {
-			ReadObjectOption(o, "default", [&](auto f) {
-				if (f.empty()) {
-					return;
-				}
-				bool isInt;
-
-				for (auto i = f.begin(), e = f.end(); i != e; ++i) {
-					auto value = i.value().toInt(0);
-
-					if (value == 0) {
-						continue;
-					}
-
-					auto key = i.key();
-					if (key.startsWith("test_")) {
-						key = key.mid(5).prepend("-");
-					}
-
-					auto account_id = key.toInt(&isInt, 10);
-
-					if (isInt) {
-						SetDefaultFilterId(account_id, value);
-					}
-				}
+			ReadAccountObjectOption(o, "default", [&](auto account_id, auto value) {
+				SetDefaultFilterId(account_id, value.toInt(0));
+			}, [](auto v) {
+				return v.toInt(0) != 0;
 			});
 		}
 
