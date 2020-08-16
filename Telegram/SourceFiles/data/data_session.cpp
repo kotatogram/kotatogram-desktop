@@ -1619,7 +1619,10 @@ int Session::pinnedChatsLimit(
 	const auto i = ranges::find(list, filterId, &Data::ChatFilter::id);
 	const auto pinned = (i != end(list)) ? i->pinned().size() : 0;
 	const auto already = (i != end(list)) ? i->always().size() : 0;
-	return Data::ChatFilter::kPinnedLimit + pinned - already;
+	const auto limit = (i != end(list) && i->isLocal())
+		? std::numeric_limits<int>::max()
+		: Data::ChatFilter::kPinnedLimit;
+	return limit + pinned - already;
 }
 
 const std::vector<Dialogs::Key> &Session::pinnedChatsOrder(

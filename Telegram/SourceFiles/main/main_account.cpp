@@ -607,6 +607,25 @@ void Account::setDefaultFilterId(int id) {
 	}
 }
 
+bool Account::isCurrent(int id) {
+	Expects(_mtp != nullptr);
+	Expects(_session != nullptr);
+
+	return id == (_mtp->isTestMode()
+			? -session().userId()
+			: session().userId());
+}
+
+void Account::addToRecent(PeerId id) {
+	if (!_recent.contains(id)) {
+		_recent << id;
+	}
+}
+
+bool Account::isRecent(PeerId id) {
+	return _recent.contains(id);
+}
+
 void Account::resetAuthorizationKeys() {
 	Expects(_mtp != nullptr);
 

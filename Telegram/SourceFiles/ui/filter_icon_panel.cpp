@@ -51,11 +51,27 @@ constexpr auto kIcons = std::array{
 	FilterIcon::Setup,
 };
 
+constexpr auto kLocalIcons = std::array{
+	FilterIcon::LocalBook,
+	FilterIcon::LocalBrackets,
+	FilterIcon::LocalCandle,
+	FilterIcon::LocalCity,
+	FilterIcon::LocalDesktop,
+	FilterIcon::LocalEarth,
+	FilterIcon::LocalMusic,
+	FilterIcon::LocalNews,
+	FilterIcon::LocalPhone,
+	FilterIcon::LocalSmile,
+	FilterIcon::LocalSun,
+	FilterIcon::LocalVideo,
+};
+
 } // namespace
 
-FilterIconPanel::FilterIconPanel(QWidget *parent)
+FilterIconPanel::FilterIconPanel(QWidget *parent, bool isLocal)
 : RpWidget(parent)
-, _inner(Ui::CreateChild<Ui::RpWidget>(this)) {
+, _inner(Ui::CreateChild<Ui::RpWidget>(this))
+, _isLocal(isLocal) {
 	setup();
 }
 
@@ -88,7 +104,9 @@ void FilterIconPanel::setup() {
 }
 
 void FilterIconPanel::setupInner() {
-	const auto count = kIcons.size();
+	const auto count = kIcons.size() + (_isLocal
+		? kLocalIcons.size()
+		: 0);
 	const auto rows = (count / kIconsPerRow)
 		+ ((count % kIconsPerRow) ? 1 : 0);
 	const auto single = st::windowFilterIconSingle;
@@ -130,6 +148,25 @@ void FilterIconPanel::setupInner() {
 			}
 			const auto icon = LookupFilterIcon(kIcons[i]).normal;
 			icon->paintInCenter(p, rect, st::emojiIconFg->c);
+		}
+		if (_isLocal) {
+			const auto cloudSize = kIcons.size();
+			const auto fullSize = kIcons.size() + kLocalIcons.size();
+			for (auto i = cloudSize; i != fullSize; ++i) {
+				const auto rect = countRect(i);
+				if (!rect.intersects(clip)) {
+					continue;
+				}
+				if (i == selected) {
+					App::roundRect(
+						p,
+						rect,
+						st::emojiPanHover,
+						StickerHoverCorners);
+				}
+				const auto icon = LookupFilterIcon(kLocalIcons[i-cloudSize]).normal;
+				icon->paintInCenter(p, rect, st::emojiIconFg->c);
+			}
 		}
 	}, _inner->lifetime());
 
@@ -203,7 +240,11 @@ void FilterIconPanel::mouseMove(QPoint position) {
 		const auto column = point.x() / st::windowFilterIconSingle.width();
 		const auto row = point.y() / st::windowFilterIconSingle.height();
 		const auto index = row * kIconsPerRow + column;
-		setSelected(index < kIcons.size() ? index : -1);
+		const auto size = kIcons.size()
+			+ (_isLocal
+				? kLocalIcons.size()
+				: 0);
+		setSelected(index < size ? index : -1);
 	}
 }
 
@@ -221,8 +262,12 @@ void FilterIconPanel::mouseRelease(Qt::MouseButton button) {
 	const auto pressed = _pressed;
 	setPressed(-1);
 	if (pressed == _selected && pressed >= 0) {
-		Assert(pressed < kIcons.size());
-		_chosen.fire_copy(kIcons[pressed]);
+		Assert(pressed < kIcons.size() + (_isLocal
+				? kLocalIcons.size()
+				: 0));
+		_chosen.fire_copy(pressed < kIcons.size()
+			? kIcons[pressed]
+			: kLocalIcons[pressed-kIcons.size()]);
 	}
 }
 

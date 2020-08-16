@@ -22,7 +22,7 @@ class Session;
 
 class ChatFilter final {
 public:
-	enum class Flag : uchar {
+	enum class Flag : ushort {
 		Contacts    = 0x01,
 		NonContacts = 0x02,
 		Groups      = 0x04,
@@ -31,6 +31,14 @@ public:
 		NoMuted     = 0x20,
 		NoRead      = 0x40,
 		NoArchived  = 0x80,
+
+		// Local flags
+		Owned       = 0x0100,
+		Admin       = 0x0200,
+		NotOwned    = 0x0400,
+		NotAdmin    = 0x0800,
+		Recent      = 0x1000,
+		NoFilter    = 0x2000,
 	};
 	friend constexpr inline bool is_flag_type(Flag) { return true; };
 	using Flags = base::flags<Flag>;
@@ -38,7 +46,7 @@ public:
 	static constexpr int kPinnedLimit = 100;
 
 	ChatFilter() = default;
-	ChatFilter(FilterId id);
+	ChatFilter(FilterId id, bool isLocal = false);
 	ChatFilter(
 		FilterId id,
 		const QString &title,
@@ -47,12 +55,19 @@ public:
 		base::flat_set<not_null<History*>> always,
 		std::vector<not_null<History*>> pinned,
 		base::flat_set<not_null<History*>> never,
-		bool isDefault = false);
+		bool isDefault = false,
+		bool isLocal = false);
+
+	[[nodiscard]] static ChatFilter local(
+		const LocalFolder &data,
+		not_null<Session*> owner);
 
 	[[nodiscard]] static ChatFilter FromTL(
 		const MTPDialogFilter &data,
-		not_null<Session*> owner);
+		not_null<Session*> owner,
+		bool isLocal = false);
 	[[nodiscard]] MTPDialogFilter tl(FilterId replaceId = 0) const;
+	[[nodiscard]] LocalFolder toLocal(int cloudOrder, FilterId replaceId = 0) const;
 
 	[[nodiscard]] FilterId id() const;
 	[[nodiscard]] QString title() const;
@@ -65,6 +80,8 @@ public:
 
 	[[nodiscard]] bool contains(not_null<History*> history) const;
 
+	[[nodiscard]] bool isLocal() const;
+
 private:
 	FilterId _id = 0;
 	QString _title;
@@ -74,6 +91,7 @@ private:
 	base::flat_set<not_null<History*>> _never;
 	Flags _flags;
 	bool _isDefault = false;
+	bool _isLocal = false;
 
 };
 
@@ -128,6 +146,8 @@ public:
 	[[nodiscard]] auto suggestedFilters() const
 		-> const std::vector<SuggestedFilter> &;
 	[[nodiscard]] rpl::producer<> suggestedUpdated() const;
+
+	void saveLocal(FilterId filterId);
 
 private:
 	void load(bool force);

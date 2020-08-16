@@ -224,3 +224,5 @@ bool gForwardQuoted = true;
 bool gForwardCaptioned = true;
 bool gForwardAlbumsAsIs = true;
 bool gForwardGrouped = false;
+
+LocalFolderVector gLocalFolders;

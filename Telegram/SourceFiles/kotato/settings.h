@@ -134,3 +134,35 @@ DeclareSetting(bool, ForwardQuoted);
 DeclareSetting(bool, ForwardCaptioned);
 DeclareSetting(bool, ForwardAlbumsAsIs);
 DeclareSetting(bool, ForwardGrouped);
+
+struct LocalFolder {
+	struct Peer {
+		enum Type {
+			User    = 0,
+			Chat    = 1,
+			Channel = 2,
+		};
+
+		Type type;
+		int32 id;
+		uint64 accessHash = 0;
+
+		inline bool operator==(const Peer& other) {
+			return type == other.type
+				&& id == other.id;
+		}
+	};
+
+	int id;
+	int ownerId;
+	int cloudOrder;
+	QString name;
+	QString emoticon;
+	std::vector<Peer> always;
+	std::vector<Peer> never;
+	std::vector<Peer> pinned;
+	ushort flags;
+};
+
+using LocalFolderVector = std::vector<LocalFolder>;
+DeclareRefSetting(LocalFolderVector, LocalFolders);

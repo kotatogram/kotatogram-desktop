@@ -191,6 +191,22 @@
 	"ktg_forward_subtitle_group_all_media": "as albums",
 	"ktg_forward_subtitle_separate_messages": "one by one",
 	"ktg_profile_mention_user": "Mention user",
+	"ktg_filters_exclude_not_owned": "Not owned",
+	"ktg_filters_exclude_not_admin": "Not administrated",
+	"ktg_filters_exclude_owned": "Owned",
+	"ktg_filters_exclude_admin": "Administrated",
+	"ktg_filters_exclude_not_recent": "Not opened in this session",
+	"ktg_filters_exclude_filtered": "From other folders",
+	"ktg_filters_create_cloud": "Create cloud folder",
+	"ktg_filters_create_local": "Create local folder",
+	"ktg_filters_description": "Cloud folders are synced between all your Telegram apps, but local folders have more features to offer.",
+	"ktg_filters_new_cloud": "New cloud folder",
+	"ktg_filters_new_local": "New local folder",
+	"ktg_filters_edit_cloud": "Edit cloud folder",
+	"ktg_filters_edit_local": "Edit local folder",
+	"ktg_filters_local": "local folder",
+	"ktg_filters_cloud": "cloud folder",
+	"ktg_filters_cloud_limit": "Sorry, you can't create more cloud folders. You can create local folder instead.",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

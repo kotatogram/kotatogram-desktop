@@ -191,6 +191,22 @@
 	"ktg_forward_subtitle_group_all_media": "альбомами",
 	"ktg_forward_subtitle_separate_messages": "по одному",
 	"ktg_profile_mention_user": "Упомянуть пользователя",
+	"ktg_filters_exclude_not_owned": "Без прав владельца",
+	"ktg_filters_exclude_not_admin": "Без прав админа",
+	"ktg_filters_exclude_owned": "С правами владельца",
+	"ktg_filters_exclude_admin": "С правами админа",
+	"ktg_filters_exclude_not_recent": "Не открытые за сессию",
+	"ktg_filters_exclude_filtered": "Из других папок",
+	"ktg_filters_create_cloud": "Создать облачную папку",
+	"ktg_filters_create_local": "Создать локальную папку",
+	"ktg_filters_description": "Облачные папки синхронизируются со остальными вашими приложениями Telegram, но у локальных папок больше функций.",
+	"ktg_filters_new_cloud": "Новая облачная папка",
+	"ktg_filters_new_local": "Новая локальная папка",
+	"ktg_filters_edit_cloud": "Изменить облачную папку",
+	"ktg_filters_edit_local": "Изменить локальную папку",
+	"ktg_filters_local": "локальная папка",
+	"ktg_filters_cloud": "облачная папка",
+	"ktg_filters_cloud_limit": "Вы создали максимальное число облачных папок. Вместо этого можно создать локальную папку.",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

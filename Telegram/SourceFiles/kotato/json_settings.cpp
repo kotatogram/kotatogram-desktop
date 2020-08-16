@@ -14,6 +14,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "base/parse_helper.h"
 #include "facades.h"
 #include "ui/widgets/input_fields.h"
+#include "data/data_chat_filters.h"
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -25,6 +26,7 @@ namespace Kotato {
 namespace JsonSettings {
 namespace {
 
+constexpr auto kFiltersLimit = 10;
 constexpr auto kWriteJsonTimeout = crl::time(5000);
 
 QString DefaultFilePath() {
@@ -185,6 +187,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	auto settingsFonts = QJsonObject();
 	auto settingsFolders = QJsonObject();
 	auto settingsFoldersDefault = QJsonObject();
+	auto settingsFoldersLocal = QJsonObject();
 	auto settingsScales = QJsonArray();
 	auto settingsReplaces = QJsonArray();
 
@@ -237,6 +240,128 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 
 			settingsFoldersDefault.insert(key, value);
 		}
+
+		using PeerType = LocalFolder::Peer::Type;
+
+		auto peerTypeToStr = [](PeerType type) {
+			return (type == PeerType::Channel)
+				? qsl("channel")
+				: (type == PeerType::Chat)
+				? qsl("chat")
+				: qsl("user");
+		};
+
+		auto &localFolders = cRefLocalFolders();
+		for (auto folder : localFolders) {
+
+			// We can't allow to use cloud IDs for local folders.
+			if (folder.id <= kFiltersLimit) {
+				continue;
+			}
+
+			auto accountId = QString::number(std::abs(folder.ownerId));
+			auto flags = base::flags<Data::ChatFilter::Flag>::from_raw(folder.flags);
+
+			if (folder.ownerId < 0) {
+				accountId.prepend("test_");
+			}
+
+			if (!settingsFoldersLocal.contains(accountId)) {
+				settingsFoldersLocal.insert(accountId, QJsonArray());
+			}
+
+			auto accountRef = settingsFoldersLocal.find(accountId).value();
+			auto accountArray = accountRef.toArray();
+
+			auto folderObject = QJsonObject();
+
+			folderObject.insert(qsl("id"), folder.id);
+			folderObject.insert(qsl("order"), folder.cloudOrder);
+			folderObject.insert(qsl("name"), folder.name);
+			folderObject.insert(qsl("emoticon"), folder.emoticon);
+
+			if (flags & Data::ChatFilter::Flag::Contacts) {
+				folderObject.insert(qsl("include_contacts"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::NonContacts) {
+				folderObject.insert(qsl("include_non_contacts"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::Groups) {
+				folderObject.insert(qsl("include_groups"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::Channels) {
+				folderObject.insert(qsl("include_channels"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::Bots) {
+				folderObject.insert(qsl("include_bots"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::NoMuted) {
+				folderObject.insert(qsl("exclude_muted"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::NoRead) {
+				folderObject.insert(qsl("exclude_read"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::NoArchived) {
+				folderObject.insert(qsl("exclude_archived"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::Owned) {
+				folderObject.insert(qsl("exclude_not_owned"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::Admin) {
+				folderObject.insert(qsl("exclude_not_admin"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::NotOwned) {
+				folderObject.insert(qsl("exclude_owned"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::NotAdmin) {
+				folderObject.insert(qsl("exclude_admin"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::Recent) {
+				folderObject.insert(qsl("exclude_non_recent"), true);
+			}
+			if (flags & Data::ChatFilter::Flag::NoFilter) {
+				folderObject.insert(qsl("exclude_filtered"), true);
+			}
+
+			auto folderNever = QJsonArray();
+			for (auto peer : folder.never) {
+				auto peerObj = QJsonObject();
+				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
+				peerObj.insert(qsl("id"), peer.id);
+				if (peer.accessHash != 0) {
+					peerObj.insert(qsl("hash"), QString::number(peer.accessHash));
+				}
+				folderNever << peerObj;
+			}
+			folderObject.insert(qsl("never"), folderNever);
+
+			auto folderPinned = QJsonArray();
+			for (auto peer : folder.pinned) {
+				auto peerObj = QJsonObject();
+				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
+				peerObj.insert(qsl("id"), peer.id);
+				if (peer.accessHash != 0) {
+					peerObj.insert(qsl("hash"), QString::number(peer.accessHash));
+				}
+				folderPinned << peerObj;
+			}
+			folderObject.insert(qsl("pinned"), folderPinned);
+
+			auto folderAlways = QJsonArray();
+			for (auto peer : folder.always) {
+				auto peerObj = QJsonObject();
+				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
+				peerObj.insert(qsl("id"), peer.id);
+				if (peer.accessHash != 0) {
+					peerObj.insert(qsl("hash"), QString::number(peer.accessHash));
+				}
+				folderAlways << peerObj;
+			}
+			folderObject.insert(qsl("always"), folderAlways);
+
+			accountArray << folderObject;
+			accountRef = accountArray;
+		}
 	}
 
 	settings.insert(qsl("sticker_height"), StickerHeight());
@@ -270,6 +395,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settingsFolders.insert(qsl("hide_edit_button"), cHideFilterEditButton());
 	settingsFolders.insert(qsl("hide_names"), cHideFilterNames());
 	settingsFolders.insert(qsl("hide_all_chats"), cHideFilterAllChats());
+	settingsFolders.insert(qsl("local"), settingsFoldersLocal);
 
 	settings.insert(qsl("fonts"), settingsFonts);
 	settings.insert(qsl("folders"), settingsFolders);
@@ -535,6 +661,252 @@ bool Manager::readCustomFile() {
 
 		ReadBoolOption(o, "hide_all_chats", [&](auto v) {
 			cSetHideFilterAllChats(v);
+		});
+
+		ReadAccountObjectOption(o, "local", [&](auto account_id, auto value) {
+			auto v = value.toArray();
+			auto &folderOptionRef = cRefLocalFolders();
+			for (auto i = v.constBegin(), e = v.constEnd(); i != e; ++i) {
+				if (!(*i).isObject()) {
+					continue;
+				}
+
+				const auto folderObject = (*i).toObject();
+				LocalFolder folderStruct;
+				folderStruct.ownerId = account_id;
+				auto flags = base::flags<Data::ChatFilter::Flag>(0);
+
+				ReadIntOption(folderObject, "id", [&](auto id) {
+					folderStruct.id = id;
+				});
+
+				// We can't allow to use cloud IDs for local folders.
+				if (folderStruct.id <= kFiltersLimit) {
+					continue;
+				}
+
+				ReadIntOption(folderObject, "order", [&](auto order) {
+					folderStruct.cloudOrder = order;
+				});
+
+				ReadStringOption(folderObject, "name", [&](auto name) {
+					folderStruct.name = name;
+				});
+
+				ReadStringOption(folderObject, "emoticon", [&](auto emoticon) {
+					folderStruct.emoticon = emoticon;
+				});
+
+				ReadBoolOption(folderObject, "include_contacts", [&](auto include_contacts) {
+					if (include_contacts) {
+						flags |= Data::ChatFilter::Flag::Contacts;
+					}
+				});
+
+				ReadBoolOption(folderObject, "include_non_contacts", [&](auto include_non_contacts) {
+					if (include_non_contacts) {
+						flags |= Data::ChatFilter::Flag::NonContacts;
+					}
+				});
+
+				ReadBoolOption(folderObject, "include_groups", [&](auto include_groups) {
+					if (include_groups) {
+						flags |= Data::ChatFilter::Flag::Groups;
+					}
+				});
+
+				ReadBoolOption(folderObject, "include_channels", [&](auto include_channels) {
+					if (include_channels) {
+						flags |= Data::ChatFilter::Flag::Channels;
+					}
+				});
+
+				ReadBoolOption(folderObject, "include_bots", [&](auto include_bots) {
+					if (include_bots) {
+						flags |= Data::ChatFilter::Flag::Bots;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_muted", [&](auto exclude_muted) {
+					if (exclude_muted) {
+						flags |= Data::ChatFilter::Flag::NoMuted;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_read", [&](auto exclude_read) {
+					if (exclude_read) {
+						flags |= Data::ChatFilter::Flag::NoRead;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_archived", [&](auto exclude_archived) {
+					if (exclude_archived) {
+						flags |= Data::ChatFilter::Flag::NoArchived;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_not_owned", [&](auto exclude_not_owned) {
+					if (exclude_not_owned) {
+						flags |= Data::ChatFilter::Flag::Owned;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_not_admin", [&](auto exclude_not_admin) {
+					if (exclude_not_admin) {
+						flags |= Data::ChatFilter::Flag::Admin;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_owned", [&](auto exclude_owned) {
+					if (exclude_owned) {
+						flags |= Data::ChatFilter::Flag::NotOwned;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_admin", [&](auto exclude_admin) {
+					if (exclude_admin) {
+						flags |= Data::ChatFilter::Flag::NotAdmin;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_non_recent", [&](auto exclude_non_recent) {
+					if (exclude_non_recent) {
+						flags |= Data::ChatFilter::Flag::Recent;
+					}
+				});
+
+				ReadBoolOption(folderObject, "exclude_filtered", [&](auto exclude_filtered) {
+					if (exclude_filtered) {
+						flags |= Data::ChatFilter::Flag::NoFilter;
+					}
+				});
+
+				folderStruct.flags = flags.value();
+
+				ReadArrayOption(folderObject, "never", [&](auto never) {
+					for (auto j = never.constBegin(), z = never.constEnd(); j != z; ++j) {
+						if (!(*j).isObject()) {
+							continue;
+						}
+
+						auto peer = (*j).toObject();
+						LocalFolder::Peer peerStruct;
+
+						auto isPeerIdRead = ReadIntOption(peer, "id", [&](auto id) {
+							peerStruct.id = id;
+						});
+
+						if (peerStruct.id == 0 || !isPeerIdRead) {
+							continue;
+						}
+
+						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
+							peerStruct.type = type.toLower() == qsl("channel")
+								? LocalFolder::Peer::Type::Channel
+								: type.toLower() == qsl("chat")
+								? LocalFolder::Peer::Type::Chat
+								: LocalFolder::Peer::Type::User;
+						});
+
+						if (!isPeerTypeRead) {
+							peerStruct.type = LocalFolder::Peer::Type::User;
+						}
+
+						ReadStringOption(peer, "hash", [&](auto hashString) {
+							const auto hash = hashString.toULongLong();
+							if (hash) {
+								peerStruct.accessHash = hash;
+							}
+						});
+
+						folderStruct.never.push_back(peerStruct);
+					}
+				});
+
+				ReadArrayOption(folderObject, "pinned", [&](auto pinned) {
+					for (auto j = pinned.constBegin(), z = pinned.constEnd(); j != z; ++j) {
+						if (!(*j).isObject()) {
+							continue;
+						}
+
+						auto peer = (*j).toObject();
+						LocalFolder::Peer peerStruct;
+
+						auto isPeerIdRead = ReadIntOption(peer, "id", [&](auto id) {
+							peerStruct.id = id;
+						});
+
+						if (peerStruct.id == 0 || !isPeerIdRead) {
+							continue;
+						}
+
+						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
+							peerStruct.type = type.toLower() == qsl("channel")
+								? LocalFolder::Peer::Type::Channel
+								: type.toLower() == qsl("chat")
+								? LocalFolder::Peer::Type::Chat
+								: LocalFolder::Peer::Type::User;
+						});
+
+						if (!isPeerTypeRead) {
+							peerStruct.type = LocalFolder::Peer::Type::User;
+						}
+
+						ReadStringOption(peer, "hash", [&](auto hashString) {
+							const auto hash = hashString.toULongLong();
+							if (hash) {
+								peerStruct.accessHash = hash;
+							}
+						});
+
+						folderStruct.pinned.push_back(peerStruct);
+					}
+				});
+
+				ReadArrayOption(folderObject, "always", [&](auto always) {
+					for (auto j = always.constBegin(), z = always.constEnd(); j != z; ++j) {
+						if (!(*j).isObject()) {
+							continue;
+						}
+
+						auto peer = (*j).toObject();
+						LocalFolder::Peer peerStruct;
+
+						auto isPeerIdRead = ReadIntOption(peer, "id", [&](auto id) {
+							peerStruct.id = id;
+						});
+
+						if (peerStruct.id == 0 || !isPeerIdRead) {
+							continue;
+						}
+
+						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
+							peerStruct.type = type.toLower() == qsl("channel")
+								? LocalFolder::Peer::Type::Channel
+								: type.toLower() == qsl("chat")
+								? LocalFolder::Peer::Type::Chat
+								: LocalFolder::Peer::Type::User;
+						});
+
+						if (!isPeerTypeRead) {
+							peerStruct.type = LocalFolder::Peer::Type::User;
+						}
+
+						ReadStringOption(peer, "hash", [&](auto hashString) {
+							const auto hash = hashString.toULongLong();
+							if (hash) {
+								peerStruct.accessHash = hash;
+							}
+						});
+
+						folderStruct.always.push_back(peerStruct);
+					}
+				});
+
+				folderOptionRef.push_back(folderStruct);
+			}
+		}, [](auto v) {
+			return v.isArray();
 		});
 	});
 

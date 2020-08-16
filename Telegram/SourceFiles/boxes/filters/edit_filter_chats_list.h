@@ -45,7 +45,8 @@ public:
 		rpl::producer<QString> title,
 		Flags options,
 		Flags selected,
-		const base::flat_set<not_null<History*>> &peers);
+		const base::flat_set<not_null<History*>> &peers,
+		bool isLocal);
 
 	[[nodiscard]] Main::Session &session() const override;
 	[[nodiscard]] Flags chosenOptions() const {
@@ -69,6 +70,7 @@ private:
 	base::flat_set<not_null<History*>> _peers;
 	Flags _options;
 	Flags _selected;
+	bool _isLocal;
 
 	Fn<void(PeerListRowId)> _deselectOption;
 

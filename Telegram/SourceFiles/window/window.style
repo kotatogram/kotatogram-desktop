@@ -334,6 +334,12 @@ windowFilterTypeBots: icon {{ "filters/filters_type_bots", historyPeerUserpicFg 
 windowFilterTypeNoMuted: icon {{ "filters/filters_type_muted", historyPeerUserpicFg }};
 windowFilterTypeNoArchived: icon {{ "filters/filters_type_archived", historyPeerUserpicFg }};
 windowFilterTypeNoRead: icon {{ "filters/filters_type_read", historyPeerUserpicFg }};
+windowFilterTypeOwned: icon {{ "filters/filters_type_not_owner", historyPeerUserpicFg }};
+windowFilterTypeAdmin: icon {{ "filters/filters_type_not_admin", historyPeerUserpicFg }};
+windowFilterTypeNotOwned: icon {{ "filters/filters_type_owner", historyPeerUserpicFg }};
+windowFilterTypeNotAdmin: icon {{ "filters/filters_type_admin", historyPeerUserpicFg }};
+windowFilterTypeRecent: icon {{ "filters/filters_type_recent", historyPeerUserpicFg }};
+windowFilterTypeNoFilter: icon {{ "filters/filters_type_filtered", historyPeerUserpicFg }};
 windowFilterChatsSectionSubtitle: FlatLabel(defaultFlatLabel) {
 	style: TextStyle(defaultTextStyle) {
 		font: searchedBarFont;

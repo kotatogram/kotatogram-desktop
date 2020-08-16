@@ -402,21 +402,41 @@ void FiltersMenu::showRemoveBox(FilterId id) {
 
 void FiltersMenu::remove(FilterId id) {
 	const auto defaultFilterId = _session->session().account().defaultFilterId();
-	_session->session().data().chatsFilters().apply(MTP_updateDialogFilter(
-		MTP_flags(MTPDupdateDialogFilter::Flag(0)),
-		MTP_int(id),
-		MTPDialogFilter()));
-	_session->session().api().request(MTPmessages_UpdateDialogFilter(
-		MTP_flags(MTPmessages_UpdateDialogFilter::Flag(0)),
-		MTP_int(id),
-		MTPDialogFilter()
-	)).send();
+	const auto filters = &_session->session().data().chatsFilters();
+	const auto &list = filters->list();
+	const auto i = ranges::find(list, id, &Data::ChatFilter::id);
+	Assert(i != end(list));
+	bool needSave = false;
+	if (i->isLocal()) {
+		const auto account = &_session->session().account();
+		auto &localFolders = cRefLocalFolders();
+		const auto j = ranges::find_if(localFolders, [id, account](LocalFolder localFolder) {
+			return (id == localFolder.id
+				&& account->isCurrent(localFolder.ownerId));
+		});
+		filters->remove(id);
+		localFolders.erase(j);
+		needSave = true;
+	} else {
+		_session->session().data().chatsFilters().apply(MTP_updateDialogFilter(
+			MTP_flags(MTPDupdateDialogFilter::Flag(0)),
+			MTP_int(id),
+			MTPDialogFilter()));
+		_session->session().api().request(MTPmessages_UpdateDialogFilter(
+			MTP_flags(MTPmessages_UpdateDialogFilter::Flag(0)),
+			MTP_int(id),
+			MTPDialogFilter()
+		)).send();
+	}
 	if (id == defaultFilterId) {
+		needSave = true;
 		_session->session().account().setDefaultFilterId(0);
-		Kotato::JsonSettings::Write();
 		if (id == _session->activeChatsFilterCurrent()) {
 			_session->setActiveChatsFilter(0);
 		}
+	}
+	if (needSave) {
+		Kotato::JsonSettings::Write();
 	}
 }
 
@@ -447,6 +467,7 @@ void FiltersMenu::applyReorder(
 	_ignoreRefresh = true;
 	filters->saveOrder(order);
 	_ignoreRefresh = false;
+	Kotato::JsonSettings::Write();
 }
 
 } // namespace Window

@@ -63,6 +63,7 @@ settingsIconEmoji: icon {{ "settings_emoji", menuIconFg }};
 settingsIconThemes: icon {{ "settings_themes", menuIconFg }};
 settingsIconKotato: icon {{ "settings_kotato", menuIconFg }};
 settingsIconKotatoOld: icon {{ "settings_kotato_old", menuIconFg }};
+settingsIconCloud: icon {{ "settings_cloud", menuIconFg }};
 
 settingsSetPhotoSkip: 7px;
 

@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_chat_filters.h"
 #include "main/main_session.h"
+#include "kotato/json_settings.h"
 #include "apiwrap.h"
 
 namespace Api {
@@ -24,11 +25,16 @@ void SaveNewFilterPinned(
 	const auto &filter = filters.applyUpdatedPinned(
 		filterId,
 		order);
-	session->api().request(MTPmessages_UpdateDialogFilter(
-		MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
-		MTP_int(filterId),
-		filter.tl()
-	)).send();
+	if (filter.isLocal()) {
+		filters.saveLocal(filterId);
+		Kotato::JsonSettings::Write();
+	} else {
+		session->api().request(MTPmessages_UpdateDialogFilter(
+			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
+			MTP_int(filterId),
+			filter.tl()
+		)).send();
+	}
 
 }
 

@@ -112,6 +112,11 @@ public:
 	}
 	void setDefaultFilterId(int id);
 
+	[[nodiscard]] bool isCurrent(int id);
+
+	void addToRecent(PeerId id);
+	[[nodiscard]] bool isRecent(PeerId id);
+
 private:
 	static constexpr auto kDefaultSaveDelay = crl::time(1000);
 	enum class DestroyReason {
@@ -158,6 +163,8 @@ private:
 	MTP::AuthKeysList _mtpKeysToDestroy;
 	bool _loggingOut = false;
 	int _defaultFilterId = 0;
+
+	QSet<PeerId> _recent;
 
 	rpl::lifetime _lifetime;
 
