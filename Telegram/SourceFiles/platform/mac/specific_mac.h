@@ -22,12 +22,6 @@ void RemoveQuarantine(const QString &path);
 
 [[nodiscard]] bool IsDarkMenuBar();
 
-inline void FallbackFontConfigCheckBegin() {
-}
-
-inline void FallbackFontConfigCheckEnd() {
-}
-
 inline QImage GetImageFromClipboard() {
 	return {};
 }
@@ -37,6 +31,10 @@ inline bool StartSystemMove(QWindow *window) {
 }
 
 inline bool StartSystemResize(QWindow *window, Qt::Edges edges) {
+	return false;
+}
+
+inline bool ShowWindowMenu(QWindow *window) {
 	return false;
 }
 

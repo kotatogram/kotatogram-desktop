@@ -17,10 +17,11 @@ You will need GCC 8 installed. To install them and all the required dependencies
     libgtk2.0-dev libice-dev libsm-dev libicu-dev libdrm-dev dh-autoreconf \
     autoconf automake build-essential libxml2-dev libass-dev libfreetype6-dev \
     libgpac-dev libsdl1.2-dev libtheora-dev libtool libva-dev libvdpau-dev \
-    libvorbis-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-screensaver0-dev \
+    libvorbis-dev libxcb1-dev libxcb-image0-dev libxcb-shm0-dev \
+    libxcb-screensaver0-dev ninja-build libegl1-mesa-dev \
     libxcb-xfixes0-dev libxcb-keysyms1-dev libxcb-icccm4-dev libatspi2.0-dev \
     libxcb-render-util0-dev libxcb-util0-dev libxcb-xkb-dev libxrender-dev \
-    libasound-dev libpulse-dev libxcb-sync0-dev libxcb-randr0-dev libegl1-mesa-dev \
+    libasound-dev libpulse-dev libxcb-sync0-dev libxcb-randr0-dev \
     libx11-xcb-dev libffi-dev libncurses5-dev pkg-config texi2html bison yasm \
     zlib1g-dev xutils-dev python-xcbgen chrpath gperf -y --force-yes && \
     sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
@@ -54,7 +55,7 @@ Go to ***BuildPath*** and run
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 7df6fdd
+    git checkout ddd4084
     cd ../
 
     git clone https://github.com/xiph/opus
@@ -68,14 +69,14 @@ Go to ***BuildPath*** and run
 
     git clone https://github.com/01org/libva.git
     cd libva
-    ./autogen.sh --enable-static
+    CFLAGS=-fPIC CPPFLAGS=-fPIC LDFLAGS=-fPIC ./autogen.sh --enable-static
     make $MAKE_THREADS_CNT
     sudo make install
     cd ..
 
     git clone https://gitlab.freedesktop.org/vdpau/libvdpau.git --depth=1 -b libvdpau-1.2
     cd libvdpau
-    ./autogen.sh --enable-static
+    CFLAGS=-fPIC CPPFLAGS=-fPIC LDFLAGS=-fPIC ./autogen.sh --enable-static
     make $MAKE_THREADS_CNT
     sudo make install
     cd ..
@@ -85,6 +86,9 @@ Go to ***BuildPath*** and run
     git checkout release/3.4
 
     ./configure \
+    --extra-cflags="-fPIC" \
+    --extra-cxxflags="-fPIC" \
+    --extra-ldflags="-fPIC" \
     --disable-programs \
     --disable-doc \
     --disable-network \
@@ -236,9 +240,9 @@ Go to ***BuildPath*** and run
 
     git clone git://code.qt.io/qt/qt5.git qt_5_12_8
     cd qt_5_12_8
-    perl init-repository --module-subset=qtbase,qtwayland,qtimageformats,qtsvg,qtx11extras
+    perl init-repository --module-subset=qtbase,qtwayland,qtimageformats,qtsvg
     git checkout v5.12.8
-    git submodule update qtbase qtwayland qtimageformats qtsvg qtx11extras
+    git submodule update qtbase qtwayland qtimageformats qtsvg
     cd qtbase
     find ../../patches/qtbase_5_12_8 -type f -print0 | sort -z | xargs -r0 git apply
     cd ..
@@ -269,6 +273,33 @@ Go to ***BuildPath*** and run
     make $MAKE_THREADS_CNT
     sudo make install
     cd ..
+
+    git clone https://github.com/desktop-app/tg_owt.git
+    cd tg_owt
+    mkdir out
+    cd out
+    mkdir Debug
+    cd Debug
+    cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DTG_OWT_SPECIAL_TARGET=linux \
+    -DTG_OWT_LIBJPEG_INCLUDE_PATH=`pwd`/../../../qt_5_12_8/qtbase/src/3rdparty/libjpeg \
+    -DTG_OWT_OPENSSL_INCLUDE_PATH=/usr/local/desktop-app/openssl-1.1.1/include \
+    -DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
+    -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include ../..
+    ninja
+    cd ..
+    mkdir Release
+    cd Release
+    cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DTG_OWT_SPECIAL_TARGET=linux \
+    -DTG_OWT_LIBJPEG_INCLUDE_PATH=`pwd`/../../../qt_5_12_8/qtbase/src/3rdparty/libjpeg \
+    -DTG_OWT_OPENSSL_INCLUDE_PATH=/usr/local/desktop-app/openssl-1.1.1/include \
+    -DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
+    -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include ../..
+    ninja
+    cd ../../..
 
     git clone https://chromium.googlesource.com/external/gyp
     cd gyp
@@ -301,7 +332,7 @@ Go to ***BuildPath*** and run
 
 Go to ***BuildPath*/tdesktop/Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-    ./configure.sh -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF
+    ./configure.sh -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
 
 To make Debug version go to ***BuildPath*/tdesktop/out/Debug** and run
 

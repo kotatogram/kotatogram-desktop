@@ -71,6 +71,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/tabbed_section.h"
 #include "chat_helpers/bot_keyboard.h"
 #include "chat_helpers/message_field.h"
+#include "chat_helpers/send_context_menu.h"
 #include "platform/platform_specific.h"
 #include "mtproto/mtproto_config.h"
 #include "lang/lang_keys.h"
@@ -309,7 +310,7 @@ HistoryWidget::HistoryWidget(
 	_fieldBarCancel->addClickHandler([=] { cancelFieldAreaState(); });
 	_send->addClickHandler([=] { sendButtonClicked(); });
 
-	SetupSendMenuAndShortcuts(
+	SendMenu::SetupMenuAndShortcuts(
 		_send,
 		[=] { return sendButtonMenuType(); },
 		[=] { sendSilent(); },
@@ -383,15 +384,33 @@ HistoryWidget::HistoryWidget(
 
 	InitMessageField(controller, _field);
 	_fieldAutocomplete->hide();
-	connect(_fieldAutocomplete, &FieldAutocomplete::mentionChosen, this, [=](not_null<UserData*> user, FieldAutocomplete::ChooseMethod method) {
-		onMentionInsert(user, method);
+
+	_fieldAutocomplete->mentionChosen(
+	) | rpl::start_with_next([=](FieldAutocomplete::MentionChosen data) {
+		onMentionInsert(data.user, data.method);
+	}, lifetime());
+
+	_fieldAutocomplete->hashtagChosen(
+	) | rpl::start_with_next([=](FieldAutocomplete::HashtagChosen data) {
+		onHashtagOrBotCommandInsert(data.hashtag, data.method);
+	}, lifetime());
+
+	_fieldAutocomplete->botCommandChosen(
+	) | rpl::start_with_next([=](FieldAutocomplete::BotCommandChosen data) {
+		onHashtagOrBotCommandInsert(data.command, data.method);
+	}, lifetime());
+
+	_fieldAutocomplete->stickerChosen(
+	) | rpl::start_with_next([=](FieldAutocomplete::StickerChosen data) {
+		sendExistingDocument(data.sticker, data.options);
+	}, lifetime());
+
+	_fieldAutocomplete->setModerateKeyActivateCallback([=](int key) {
+		return _keyboard->isHidden()
+			? false
+			: _keyboard->moderateKeyActivate(key);
 	});
-	connect(_fieldAutocomplete, SIGNAL(hashtagChosen(QString,FieldAutocomplete::ChooseMethod)), this, SLOT(onHashtagOrBotCommandInsert(QString,FieldAutocomplete::ChooseMethod)));
-	connect(_fieldAutocomplete, SIGNAL(botCommandChosen(QString,FieldAutocomplete::ChooseMethod)), this, SLOT(onHashtagOrBotCommandInsert(QString,FieldAutocomplete::ChooseMethod)));
-	connect(_fieldAutocomplete, &FieldAutocomplete::stickerChosen, this, [=](not_null<DocumentData*> document) {
-		sendExistingDocument(document);
-	});
-	connect(_fieldAutocomplete, SIGNAL(moderateKeyActivate(int,bool*)), this, SLOT(onModerateKeyActivate(int,bool*)));
+
 	if (_supportAutocomplete) {
 		supportInitAutocomplete();
 	}
@@ -876,23 +895,25 @@ void HistoryWidget::initTabbedSelector() {
 	selector->fileChosen(
 	) | rpl::filter([=] {
 		return !isHidden();
-	}) | rpl::start_with_next([=](not_null<DocumentData*> document) {
-		sendExistingDocument(document);
+	}) | rpl::start_with_next([=](TabbedSelector::FileChosen data) {
+		sendExistingDocument(data.document, data.options);
 	}, lifetime());
 
 	selector->photoChosen(
 	) | rpl::filter([=] {
 		return !isHidden();
-	}) | rpl::start_with_next([=](not_null<PhotoData*> photo) {
-		sendExistingPhoto(photo);
+	}) | rpl::start_with_next([=](TabbedSelector::PhotoChosen data) {
+		sendExistingPhoto(data.photo, data.options);
 	}, lifetime());
 
 	selector->inlineResultChosen(
 	) | rpl::filter([=] {
 		return !isHidden();
 	}) | rpl::start_with_next([=](TabbedSelector::InlineChosen data) {
-		sendInlineResult(data.result, data.bot);
+		sendInlineResult(data.result, data.bot, data.options);
 	}, lifetime());
+
+	selector->setSendMenuType([=] { return sendMenuType(); });
 }
 
 void HistoryWidget::supportInitAutocomplete() {
@@ -1274,8 +1295,9 @@ void HistoryWidget::applyInlineBotQuery(UserData *bot, const QString &query) {
 			_inlineResults.create(this, controller());
 			_inlineResults->setResultSelectedCallback([=](
 					InlineBots::Result *result,
-					UserData *bot) {
-				sendInlineResult(result, bot);
+					UserData *bot,
+					Api::SendOptions options) {
+				sendInlineResult(result, bot, options);
 			});
 			_inlineResults->requesting(
 			) | rpl::start_with_next([=](bool requesting) {
@@ -3070,8 +3092,17 @@ void HistoryWidget::showNextUnreadMention() {
 }
 
 void HistoryWidget::saveEditMsg() {
-	if (_saveEditMsgRequestId) return;
+	Expects(_history != nullptr);
 
+	if (_saveEditMsgRequestId) {
+		return;
+	}
+
+	const auto item = session().data().message(_channel, _editMsgId);
+	if (!item) {
+		cancelEdit();
+		return;
+	}
 	const auto webPageId = _previewCancelled
 		? CancelledWebPageId
 		: ((_previewData && _previewData->pendingTill >= 0)
@@ -3088,15 +3119,9 @@ void HistoryWidget::saveEditMsg() {
 		TextUtilities::ConvertTextTagsToEntities(textWithTags.tags) };
 	TextUtilities::PrepareForSending(left, prepareFlags);
 
-	const auto item = session().data().message(_channel, _editMsgId);
 	if (!TextUtilities::CutPart(sending, left, MaxMessageSize)) {
-		if (item) {
-			const auto suggestModerateActions = false;
-			Ui::show(Box<DeleteMessagesBox>(item, suggestModerateActions));
-		} else {
-			_field->selectAll();
-			_field->setFocus();
-		}
+		const auto suggestModerateActions = false;
+		Ui::show(Box<DeleteMessagesBox>(item, suggestModerateActions));
 		return;
 	} else if (!left.text.isEmpty()) {
 		Ui::show(Box<InformBox>(tr::lng_edit_too_long(tr::now)));
@@ -3245,14 +3270,14 @@ void HistoryWidget::sendScheduled() {
 		Ui::LayerOption::KeepOther);
 }
 
-SendMenuType HistoryWidget::sendMenuType() const {
+SendMenu::Type HistoryWidget::sendMenuType() const {
 	return !_peer
-		? SendMenuType::Disabled
+		? SendMenu::Type::Disabled
 		: _peer->isSelf()
-		? SendMenuType::Reminder
+		? SendMenu::Type::Reminder
 		: HistoryView::CanScheduleUntilOnline(_peer)
-		? SendMenuType::ScheduledToUser
-		: SendMenuType::Scheduled;
+		? SendMenu::Type::ScheduledToUser
+		: SendMenu::Type::Scheduled;
 }
 
 auto HistoryWidget::computeSendButtonType() const {
@@ -3268,10 +3293,10 @@ auto HistoryWidget::computeSendButtonType() const {
 	return Type::Send;
 }
 
-SendMenuType HistoryWidget::sendButtonMenuType() const {
+SendMenu::Type HistoryWidget::sendButtonMenuType() const {
 	return (computeSendButtonType() == Ui::SendButton::Type::Send)
 		? sendMenuType()
-		: SendMenuType::Disabled;
+		: SendMenu::Type::Disabled;
 }
 
 void HistoryWidget::unblockUser() {
@@ -4017,10 +4042,6 @@ void HistoryWidget::onMembersDropdownShow() {
 		_membersDropdown->setHiddenCallback([this] { _membersDropdown.destroyDelayed(); });
 	}
 	_membersDropdown->otherEnter();
-}
-
-void HistoryWidget::onModerateKeyActivate(int index, bool *outHandled) {
-	*outHandled = _keyboard->isHidden() ? false : _keyboard->moderateKeyActivate(index);
 }
 
 bool HistoryWidget::pushTabbedSelectorToThirdSection(
@@ -5328,7 +5349,8 @@ void HistoryWidget::onFieldTabbed() {
 
 void HistoryWidget::sendInlineResult(
 		not_null<InlineBots::Result*> result,
-		not_null<UserData*> bot) {
+		not_null<UserData*> bot,
+		Api::SendOptions options) {
 	if (!_peer || !_peer->canWrite()) {
 		return;
 	} else if (showSlowmodeError()) {
@@ -5343,6 +5365,7 @@ void HistoryWidget::sendInlineResult(
 
 	auto action = Api::SendAction(_history);
 	action.replyTo = replyToId();
+	action.options = std::move(options);
 	action.generateLocal = true;
 	session().api().sendInlineResult(bot, result, action);
 
@@ -5516,7 +5539,9 @@ void HistoryWidget::destroyPinnedBar() {
 	_inPinnedMsg = false;
 }
 
-bool HistoryWidget::sendExistingDocument(not_null<DocumentData*> document) {
+bool HistoryWidget::sendExistingDocument(
+		not_null<DocumentData*> document,
+		Api::SendOptions options) {
 	const auto error = _peer
 		? Data::RestrictionError(_peer, ChatRestriction::f_send_stickers)
 		: std::nullopt;
@@ -5530,6 +5555,7 @@ bool HistoryWidget::sendExistingDocument(not_null<DocumentData*> document) {
 	}
 
 	auto message = Api::MessageToSend(_history);
+	message.action.options = std::move(options);
 	message.action.replyTo = replyToId();
 	Api::SendExistingDocument(std::move(message), document);
 
@@ -5547,7 +5573,9 @@ bool HistoryWidget::sendExistingDocument(not_null<DocumentData*> document) {
 	return true;
 }
 
-bool HistoryWidget::sendExistingPhoto(not_null<PhotoData*> photo) {
+bool HistoryWidget::sendExistingPhoto(
+		not_null<PhotoData*> photo,
+		Api::SendOptions options) {
 	const auto error = _peer
 		? Data::RestrictionError(_peer, ChatRestriction::f_send_media)
 		: std::nullopt;
@@ -5562,6 +5590,7 @@ bool HistoryWidget::sendExistingPhoto(not_null<PhotoData*> photo) {
 
 	auto message = Api::MessageToSend(_history);
 	message.action.replyTo = replyToId();
+	message.action.options = std::move(options);
 	Api::SendExistingPhoto(std::move(message), photo);
 
 	hideSelectorControlsAnimated();
@@ -5860,7 +5889,9 @@ int HistoryWidget::countMembersDropdownHeightMax() const {
 }
 
 void HistoryWidget::cancelEdit() {
-	if (!_editMsgId) return;
+	if (!_editMsgId) {
+		return;
+	}
 
 	_replyEditMsg = nullptr;
 	_editMsgId = 0;

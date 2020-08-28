@@ -18,6 +18,7 @@ endif()
 add_subdirectory(lib_storage)
 add_subdirectory(lib_lottie)
 add_subdirectory(lib_qr)
+add_subdirectory(lib_webrtc)
 add_subdirectory(codegen)
 
 include(CheckCXXSourceCompiles)
@@ -34,6 +35,7 @@ include(cmake/lib_ffmpeg.cmake)
 include(cmake/lib_mtproto.cmake)
 include(cmake/lib_scheme.cmake)
 include(cmake/lib_tgvoip.cmake)
+include(cmake/lib_tgcalls.cmake)
 
 set(style_files
     boxes/boxes.style
@@ -67,6 +69,35 @@ generate_numbers(Telegram ${res_loc}/numbers.txt)
 
 set_target_properties(Telegram PROPERTIES AUTOMOC ON AUTORCC ON)
 
+target_link_libraries(Telegram
+PRIVATE
+    tdesktop::lib_tgcalls_legacy
+    tdesktop::lib_tgcalls
+    tdesktop::lib_tgvoip
+    tdesktop::lib_mtproto
+    tdesktop::lib_scheme
+    tdesktop::lib_export
+    desktop-app::lib_webrtc
+    desktop-app::lib_base
+    desktop-app::lib_crl
+    desktop-app::lib_ui
+    desktop-app::lib_tl
+    desktop-app::lib_storage
+    desktop-app::lib_lottie
+    desktop-app::lib_qr
+    desktop-app::lib_ffmpeg
+    desktop-app::external_lz4
+    desktop-app::external_rlottie
+    desktop-app::external_zlib
+    desktop-app::external_minizip
+    desktop-app::external_qt
+    desktop-app::external_qr_code_generator
+    desktop-app::external_crash_reports
+    desktop-app::external_auto_updates
+    desktop-app::external_openssl
+    desktop-app::external_openal
+)
+
 if (LINUX)
     target_link_libraries(Telegram
     PRIVATE
@@ -93,49 +124,17 @@ if (LINUX)
             desktop-app::external_hime_qt
         )
     endif()
-endif()
 
-if (add_hunspell_library)
-    target_link_libraries(Telegram PRIVATE desktop-app::external_hunspell)
-endif()
+    if (DESKTOP_APP_USE_PACKAGED AND Qt5WaylandClient_VERSION VERSION_LESS 5.13.0)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
 
-target_link_libraries(Telegram
-PRIVATE
-    tdesktop::lib_mtproto
-    tdesktop::lib_scheme
-    tdesktop::lib_export
-    tdesktop::lib_tgvoip
-    desktop-app::lib_base
-    desktop-app::lib_crl
-    desktop-app::lib_ui
-    desktop-app::lib_tl
-    desktop-app::lib_storage
-    desktop-app::lib_lottie
-    desktop-app::lib_qr
-    desktop-app::lib_ffmpeg
-    desktop-app::external_lz4
-    desktop-app::external_rlottie
-    desktop-app::external_zlib
-    desktop-app::external_minizip
-    desktop-app::external_qt
-    desktop-app::external_qr_code_generator
-    desktop-app::external_crash_reports
-    desktop-app::external_auto_updates
-    desktop-app::external_openssl
-    desktop-app::external_openal
-)
+        target_include_directories(Telegram
+        PRIVATE
+            ${WAYLAND_CLIENT_INCLUDE_DIRS}
+        )
+    endif()
 
-if (LINUX AND DESKTOP_APP_USE_PACKAGED AND Qt5WaylandClient_VERSION VERSION_LESS 5.13.0)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
-
-    target_include_directories(Telegram
-    PRIVATE
-        ${WAYLAND_CLIENT_INCLUDE_DIRS}
-    )
-endif()
-
-if (LINUX)
     if (DESKTOP_APP_USE_PACKAGED)
         find_package(PkgConfig REQUIRED)
         pkg_check_modules(XCB_SCREENSAVER REQUIRED IMPORTED_TARGET xcb-screensaver)
@@ -150,34 +149,39 @@ if (LINUX)
         target_link_static_libraries(Telegram PRIVATE xcb-screensaver)
         target_link_libraries(Telegram PRIVATE xcb)
     endif()
-endif()
 
-if (LINUX AND NOT TDESKTOP_DISABLE_GTK_INTEGRATION)
     find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GLIB2 REQUIRED IMPORTED_TARGET glib-2.0)
+    pkg_check_modules(GOBJECT REQUIRED IMPORTED_TARGET gobject-2.0)
+    pkg_check_modules(GIO REQUIRED IMPORTED_TARGET gio-2.0)
+
+    target_link_libraries(Telegram
+    PRIVATE
+        PkgConfig::GLIB2
+        PkgConfig::GOBJECT
+        PkgConfig::GIO
+    )
+
+    target_compile_definitions(Telegram PRIVATE G_LOG_DOMAIN="Telegram")
     target_compile_options(Telegram PRIVATE -Wno-register)
 
-    if (DESKTOP_APP_USE_PACKAGED AND NOT DESKTOP_APP_USE_PACKAGED_LAZY)
-        pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
-        pkg_check_modules(GOBJECT2 REQUIRED IMPORTED_TARGET gobject-2.0)
-        pkg_check_modules(GLIB2 REQUIRED IMPORTED_TARGET glib-2.0)
-        pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
+    if (NOT TDESKTOP_DISABLE_GTK_INTEGRATION)
+        find_package(PkgConfig REQUIRED)
 
-        target_link_libraries(Telegram
-        PRIVATE
-            PkgConfig::X11
-            PkgConfig::GOBJECT2
-            PkgConfig::GLIB2
-            PkgConfig::GTK3
-        )
-    else()
-        pkg_search_module(GTK REQUIRED gtk+-2.0 gtk+-3.0)
-        target_link_libraries(Telegram
-        PRIVATE
-            X11
-            gobject-2.0
-            glib-2.0
-        )
-        target_include_directories(Telegram PRIVATE ${GTK_INCLUDE_DIRS})
+        if (DESKTOP_APP_USE_PACKAGED AND NOT DESKTOP_APP_USE_PACKAGED_LAZY)
+            pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
+            pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
+
+            target_link_libraries(Telegram
+            PRIVATE
+                PkgConfig::GTK3
+                PkgConfig::X11
+            )
+        else()
+            pkg_search_module(GTK REQUIRED gtk+-2.0 gtk+-3.0)
+            target_include_directories(Telegram PRIVATE ${GTK_INCLUDE_DIRS})
+            target_link_libraries(Telegram PRIVATE X11)
+        endif()
     endif()
 endif()
 
@@ -213,6 +217,8 @@ PRIVATE
     api/api_single_message_search.h
     api/api_text_entities.cpp
     api/api_text_entities.h
+    api/api_toggling_media.cpp
+    api/api_toggling_media.h
     api/api_updates.cpp
     api/api_updates.h
     boxes/filters/edit_filter_box.cpp
@@ -313,17 +319,20 @@ PRIVATE
     calls/calls_box_controller.h
     calls/calls_call.cpp
     calls/calls_call.h
-    calls/calls_controller.cpp
-    calls/calls_controller.h
-    calls/calls_controller_tgvoip.h
     calls/calls_emoji_fingerprint.cpp
     calls/calls_emoji_fingerprint.h
     calls/calls_instance.cpp
     calls/calls_instance.h
     calls/calls_panel.cpp
     calls/calls_panel.h
+    calls/calls_signal_bars.cpp
+    calls/calls_signal_bars.h
     calls/calls_top_bar.cpp
     calls/calls_top_bar.h
+    calls/calls_userpic.cpp
+    calls/calls_userpic.h
+    calls/calls_video_bubble.cpp
+    calls/calls_video_bubble.h
     chat_helpers/bot_keyboard.cpp
     chat_helpers/bot_keyboard.h
     chat_helpers/emoji_keywords.cpp
@@ -340,6 +349,8 @@ PRIVATE
     chat_helpers/gifs_list_widget.h
     chat_helpers/message_field.cpp
     chat_helpers/message_field.h
+    chat_helpers/send_context_menu.cpp
+    chat_helpers/send_context_menu.h
     chat_helpers/spellchecker_common.cpp
     chat_helpers/spellchecker_common.h
     chat_helpers/stickers_emoji_image_loader.cpp

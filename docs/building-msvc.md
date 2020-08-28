@@ -33,7 +33,7 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     cd ThirdParty
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 7df6fdd
+    git checkout ddd4084
     cd ../
     git clone https://chromium.googlesource.com/external/gyp
     cd gyp
@@ -65,7 +65,7 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 7df6fdd
+    git checkout ddd4084
     cd ..
 
     git clone https://github.com/desktop-app/lzma.git
@@ -163,11 +163,38 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     jom -j4 install
     cd ..
 
+    git clone https://github.com/desktop-app/tg_owt.git
+    cd tg_owt
+    mkdir out
+    cd out
+    mkdir Debug
+    cd Debug
+    cmake -G Ninja ^
+    -DCMAKE_BUILD_TYPE=Debug ^
+    -DTG_OWT_SPECIAL_TARGET=win ^
+    -DTG_OWT_LIBJPEG_INCLUDE_PATH=%cd%/../../../qt_5_12_8/qtbase/src/3rdparty/libjpeg ^
+    -DTG_OWT_OPENSSL_INCLUDE_PATH=%cd%/../../../openssl_1_1_1/include ^
+    -DTG_OWT_OPUS_INCLUDE_PATH=%cd%/../../../opus/include ^
+    -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ../..
+    ninja
+    cd ..
+    mkdir Release
+    cd Release
+    cmake -G Ninja ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DTG_OWT_SPECIAL_TARGET=win ^
+    -DTG_OWT_LIBJPEG_INCLUDE_PATH=%cd%/../../../qt_5_12_8/qtbase/src/3rdparty/libjpeg ^
+    -DTG_OWT_OPENSSL_INCLUDE_PATH=%cd%/../../../openssl_1_1_1/include ^
+    -DTG_OWT_OPUS_INCLUDE_PATH=%cd%/../../../opus/include ^
+    -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ../..
+    ninja
+    cd ..\..\..
+
 ## Build the project
 
 Go to ***BuildPath*\\tdesktop\\Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-    configure.bat -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF
+    configure.bat -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
 
 * Open ***BuildPath*\\tdesktop\\out\\Telegram.sln** in Visual Studio 2019
 * Select Telegram project and press Build > Build Telegram (Debug and Release configurations)

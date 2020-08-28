@@ -509,10 +509,10 @@ void WrapWidget::addProfileCallsButton() {
 			if (cConfirmBeforeCall()) {
 				Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
 					Ui::hideLayer();
-					Core::App().calls().startOutgoingCall(user);
+					Core::App().calls().startOutgoingCall(user, false);
 				}));
 			} else {
-				Core::App().calls().startOutgoingCall(user);
+				Core::App().calls().startOutgoingCall(user, false);
 			}
 		});
 	}, _topBar->lifetime());

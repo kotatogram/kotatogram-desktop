@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
 #include <QtGui/QDesktopServices>
+#include <QtGui/QWindow>
 #include <qpa/qplatformnativeinterface.h>
 
 #include <Shobjidl.h>
@@ -418,6 +419,18 @@ bool AutostartSupported() {
 	return !IsWindowsStoreBuild();
 }
 
+bool ShowWindowMenu(QWindow *window) {
+	const auto pos = QCursor::pos();
+
+	SendMessage(
+		HWND(window->winId()),
+		WM_SYSCOMMAND,
+		SC_MOUSEMENU,
+		MAKELPARAM(pos.x(), pos.y()));
+
+	return true;
+}
+
 Window::ControlsLayout WindowControlsLayout() {
 	Window::ControlsLayout controls;
 	controls.right = {
@@ -589,6 +602,7 @@ bool OpenSystemSettings(SystemSettingsType type) {
 	if (type == SystemSettingsType::Audio) {
 		crl::on_main([] {
 			WinExec("control.exe mmsys.cpl", SW_SHOW);
+			//QDesktopServices::openUrl(QUrl("ms-settings:sound"));
 		});
 	}
 	return true;

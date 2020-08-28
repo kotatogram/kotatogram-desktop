@@ -43,6 +43,11 @@ public:
 		Missed,
 	};
 
+	enum class CallType {
+		Voice,
+		Video,
+	};
+
 	bool canAddItem(not_null<const HistoryItem*> item) const {
 		return (ComputeType(item) == _type)
 			&& (ItemDateTime(item).date() == _date);
@@ -91,7 +96,7 @@ public:
 		return 0;
 	}
 	QSize actionSize() const override {
-		return peer()->isUser() ? QSize(st::callReDial.width, st::callReDial.height) : QSize();
+		return peer()->isUser() ? QSize(_st->width, _st->height) : QSize();
 	}
 	QMargins actionMargins() const override {
 		return QMargins(
@@ -111,10 +116,12 @@ public:
 private:
 	void refreshStatus() override;
 	static Type ComputeType(not_null<const HistoryItem*> item);
+	static CallType ComputeCallType(not_null<const HistoryItem*> item);
 
 	std::vector<not_null<HistoryItem*>> _items;
 	QDate _date;
 	Type _type;
+	not_null<const style::IconButton*> _st;
 
 	std::unique_ptr<Ui::RippleAnimation> _actionRipple;
 
@@ -124,7 +131,10 @@ BoxController::Row::Row(not_null<HistoryItem*> item)
 : PeerListRow(item->history()->peer, item->id)
 , _items(1, item)
 , _date(ItemDateTime(item).date())
-, _type(ComputeType(item)) {
+, _type(ComputeType(item))
+, _st(ComputeCallType(item) == CallType::Voice
+		? &st::callReDial
+		: &st::callCameraReDial) {
 	refreshStatus();
 }
 
@@ -154,12 +164,18 @@ void BoxController::Row::paintAction(
 		bool actionSelected) {
 	auto size = actionSize();
 	if (_actionRipple) {
-		_actionRipple->paint(p, x + st::callReDial.rippleAreaPosition.x(), y + st::callReDial.rippleAreaPosition.y(), outerWidth);
+		_actionRipple->paint(
+			p,
+			x + _st->rippleAreaPosition.x(),
+			y + _st->rippleAreaPosition.y(),
+			outerWidth);
 		if (_actionRipple->empty()) {
 			_actionRipple.reset();
 		}
 	}
-	st::callReDial.icon.paintInCenter(p, style::rtlrect(x, y, size.width(), size.height(), outerWidth));
+	_st->icon.paintInCenter(
+		p,
+		style::rtlrect(x, y, size.width(), size.height(), outerWidth));
 }
 
 void BoxController::Row::refreshStatus() {
@@ -202,12 +218,28 @@ BoxController::Row::Type BoxController::Row::ComputeType(
 	return Type::In;
 }
 
+BoxController::Row::CallType BoxController::Row::ComputeCallType(
+		not_null<const HistoryItem*> item) {
+	if (auto media = item->media()) {
+		if (const auto call = media->call()) {
+			if (call->video) {
+				return CallType::Video;
+			}
+		}
+	}
+	return CallType::Voice;
+}
+
 void BoxController::Row::addActionRipple(QPoint point, Fn<void()> updateCallback) {
 	if (!_actionRipple) {
-		auto mask = Ui::RippleAnimation::ellipseMask(QSize(st::callReDial.rippleAreaSize, st::callReDial.rippleAreaSize));
-		_actionRipple = std::make_unique<Ui::RippleAnimation>(st::callReDial.ripple, std::move(mask), std::move(updateCallback));
+		auto mask = Ui::RippleAnimation::ellipseMask(
+			QSize(_st->rippleAreaSize, _st->rippleAreaSize));
+		_actionRipple = std::make_unique<Ui::RippleAnimation>(
+			_st->ripple,
+			std::move(mask),
+			std::move(updateCallback));
 	}
-	_actionRipple->add(point - st::callReDial.rippleAreaPosition);
+	_actionRipple->add(point - _st->rippleAreaPosition);
 }
 
 void BoxController::Row::stopLastActionRipple() {
@@ -321,10 +353,10 @@ void BoxController::rowActionClicked(not_null<PeerListRow*> row) {
 	if (cConfirmBeforeCall()) {
 		Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
 			Ui::hideLayer();
-			Core::App().calls().startOutgoingCall(user);
+			Core::App().calls().startOutgoingCall(user, false);
 		}));
 	} else {
-		Core::App().calls().startOutgoingCall(user);
+		Core::App().calls().startOutgoingCall(user, false);
 	}
 }
 

@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_context_menu.h"
 
 #include "api/api_editing.h"
+#include "api/api_toggling_media.h" // Api::ToggleFavedSticker
 #include "base/unixtime.h"
 #include "history/view/history_view_list_widget.h"
 #include "history/view/history_view_cursor_state.h"
@@ -22,7 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image.h"
 #include "ui/toast/toast.h"
 #include "ui/ui_utility.h"
-#include "chat_helpers/message_field.h"
+#include "chat_helpers/send_context_menu.h"
 #include "boxes/confirm_box.h"
 #include "boxes/sticker_set_box.h"
 #include "data/data_photo.h"
@@ -128,10 +129,7 @@ void ShowStickerPackInfo(not_null<DocumentData*> document) {
 void ToggleFavedSticker(
 		not_null<DocumentData*> document,
 		FullMsgId contextId) {
-	document->session().api().toggleFavedSticker(
-		document,
-		contextId,
-		!document->owner().stickers().isFaved(document));
+	Api::ToggleFavedSticker(document, contextId);
 }
 
 void AddPhotoActions(
@@ -435,12 +433,12 @@ bool AddRescheduleMessageAction(
 
 		const auto peer = item->history()->peer;
 		const auto sendMenuType = !peer
-			? SendMenuType::Disabled
+			? SendMenu::Type::Disabled
 			: peer->isSelf()
-			? SendMenuType::Reminder
+			? SendMenu::Type::Reminder
 			: HistoryView::CanScheduleUntilOnline(peer)
-			? SendMenuType::ScheduledToUser
-			: SendMenuType::Scheduled;
+			? SendMenu::Type::ScheduledToUser
+			: SendMenu::Type::Scheduled;
 
 		using S = Data::ScheduledMessages;
 		const auto date = (item->date() == S::kScheduledUntilOnlineTimestamp)

@@ -67,6 +67,7 @@ jobs:
       VC: "call vcvars32.bat && cd Libraries"
       GIT: "https://github.com"
       QT: "5_12_8"
+      QT_VER: "5.12.8"
       OPENSSL_VER: "1_1_1"
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
@@ -127,6 +128,20 @@ jobs:
           git clone $GIT/desktop-app/patches.git
           cd Patches
           eval $checkoutCommit
+
+      - name: Find any version of Python 2.
+        shell: cmd
+        run: |
+          echo Find any version of Python 2.
+          for /D %%a in (C:\hostedtoolcache\windows\Python\2.*) do (
+            SET PY2=%%a\x64
+          )
+          if [%PY2%] == [] (
+            echo Python 2 is not found.
+            exit 1
+          )
+          echo Found %PY2%.
+          echo ::set-env name=PY2::%PY2%
 
       - name: LZMA.
         shell: cmd
@@ -221,16 +236,6 @@ jobs:
         run: |
           cd %LibrariesPath%
 
-          echo Find any version of Python 2.
-          for /D %%a in (C:\hostedtoolcache\windows\Python\2.*) do (
-            SET PY2=%%a\x64
-          )
-          IF [%PY2%] == [] (
-            echo Python 2 is not found.
-            exit 1
-          )
-          echo Found %PY2%.
-
           git clone %GIT%/telegramdesktop/gyp.git
           cd gyp
           SET PATH=%PY2%;%cd%;%PATH%
@@ -300,7 +305,7 @@ jobs:
         id: cache-qt
         uses: actions/cache@v2
         with:
-          path: ${{ env.LibrariesPath }}/Qt-5.12.8
+          path: ${{ env.LibrariesPath }}/Qt-${{ env.QT_VER }}
           key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qtbase_5_12_8/*') }}
       - name: Configure Qt 5.12.8.
         if: steps.cache-qt.outputs.cache-hit != 'true'
@@ -311,18 +316,18 @@ jobs:
           git clone git://code.qt.io/qt/qt5.git qt_%QT%
           cd qt_%QT%
           perl init-repository --module-subset=qtbase,qtimageformats
-          git checkout v5.12.8
+          git checkout v%QT_VER%
           git submodule update qtbase
           git submodule update qtimageformats
           cd qtbase
           for /r %%i in (..\..\patches\qtbase_%QT%\*) do git apply %%i
           cd ..
 
-          SET SSL=%LibrariesPath%\openssl_1_1_1
+          SET SSL=%LibrariesPath%\openssl_%OPENSSL_VER%
           SET LIBS=libcrypto.lib Ws2_32.lib Gdi32.lib Advapi32.lib Crypt32.lib User32.lib
 
           configure ^
-          -prefix "%LibrariesPath%\Qt-5.12.8" ^
+          -prefix "%LibrariesPath%\Qt-%QT_VER%" ^
           -debug ^
           -force-debug-info ^
           -opensource ^
@@ -348,6 +353,57 @@ jobs:
           jom -j%NUMBER_OF_PROCESSORS% install
 
           cd ..
+          rmdir /S /Q qt_%QT%
+
+      - name: WebRTC cache.
+        id: cache-webrtc
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}
+      - name: WebRTC.
+        if: steps.cache-webrtc.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          %VC%
+
+          :: Qt libjpeg.
+          mkdir qt_%QT%
+          cd qt_%QT%
+          git clone -b %QT_VER% https://github.com/qt/qtbase
+
+          move qtbase\src\3rdparty\libjpeg ..
+          cd ..
+          dir
+          rmdir /S /Q qt_%QT%
+          mkdir qt_%QT%\qtbase\src\3rdparty\
+          move libjpeg qt_%QT%\qtbase\src\3rdparty\
+
+          :: WebRTC.
+          cd %LibrariesPath%
+
+          git clone %GIT%/desktop-app/tg_owt.git
+          mkdir tg_owt\out\Debug
+          cd tg_owt\out\Debug
+          cmake -G Ninja ^
+          -DCMAKE_BUILD_TYPE=Debug ^
+          -DTG_OWT_SPECIAL_TARGET=win ^
+          -DTG_OWT_LIBJPEG_INCLUDE_PATH=%cd%/../../../qt_%QT%/qtbase/src/3rdparty/libjpeg ^
+          -DTG_OWT_OPENSSL_INCLUDE_PATH=%cd%/../../../openssl_%OPENSSL_VER%/include ^
+          -DTG_OWT_OPUS_INCLUDE_PATH=%cd%/../../../opus/include ^
+          -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ^
+          ../..
+
+          ninja
+
+          :: Cleanup.
+          cd %LibrariesPath%\tg_owt
+          move out\Debug\tg_owt.lib tg_owt.lib
+          rmdir /S /Q out
+          mkdir out\Debug
+          move tg_owt.lib out\Debug\tg_owt.lib
+
+          cd %LibrariesPath%
           rmdir /S /Q qt_%QT%
 
       - name: Read defines.

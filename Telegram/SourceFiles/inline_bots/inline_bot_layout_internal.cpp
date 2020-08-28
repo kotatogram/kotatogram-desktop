@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_photo_media.h"
 #include "data/data_document_media.h"
 #include "data/stickers/data_stickers.h"
+#include "chat_helpers/gifs_list_widget.h" // ChatHelpers::DeleteSavedGif
 #include "chat_helpers/stickers_lottie.h"
 #include "inline_bots/inline_bot_result.h"
 #include "lottie/lottie_single_player.h"
@@ -22,10 +23,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "media/player/media_player_instance.h"
 #include "history/history_location_manager.h"
 #include "history/view/history_view_cursor_state.h"
-#include "storage/storage_account.h"
 #include "ui/image/image.h"
 #include "main/main_session.h"
-#include "apiwrap.h"
 #include "lang/lang_keys.h"
 #include "app.h"
 #include "styles/style_overview.h"
@@ -126,17 +125,7 @@ void Gif::setPosition(int32 position) {
 }
 
 void DeleteSavedGifClickHandler::onClickImpl() const {
-	_data->session().api().toggleSavedGif(
-		_data,
-		Data::FileOriginSavedGifs(),
-		false);
-
-	const auto index = _data->owner().stickers().savedGifs().indexOf(_data);
-	if (index >= 0) {
-		_data->owner().stickers().savedGifsRef().remove(index);
-		_data->session().local().writeSavedGifs();
-	}
-	_data->owner().stickers().notifySavedGifsUpdated();
+	ChatHelpers::DeleteSavedGif(_data);
 }
 
 int Gif::resizeGetHeight(int width) {
@@ -1168,15 +1157,15 @@ Article::Article(
 void Article::initDimensions() {
 	_maxw = st::emojiPanWidth - st::emojiScroll.width - st::inlineResultsLeft;
 	int32 textWidth = _maxw - (_withThumb ? (st::inlineThumbSize + st::inlineThumbSkip) : 0);
-	TextParseOptions titleOpts = { 0, _maxw, 2 * st::semiboldFont->height, Qt::LayoutDirectionAuto };
+	TextParseOptions titleOpts = { 0, textWidth, 2 * st::semiboldFont->height, Qt::LayoutDirectionAuto };
 	_title.setText(st::semiboldTextStyle, TextUtilities::SingleLine(_result->getLayoutTitle()), titleOpts);
-	int32 titleHeight = qMin(_title.countHeight(_maxw), 2 * st::semiboldFont->height);
+	int32 titleHeight = qMin(_title.countHeight(textWidth), 2 * st::semiboldFont->height);
 
 	int32 descriptionLines = (_withThumb || _url) ? 2 : 3;
 	QString description = _result->getLayoutDescription();
-	TextParseOptions descriptionOpts = { TextParseMultiline, _maxw, descriptionLines * st::normalFont->height, Qt::LayoutDirectionAuto };
+	TextParseOptions descriptionOpts = { TextParseMultiline, textWidth, descriptionLines * st::normalFont->height, Qt::LayoutDirectionAuto };
 	_description.setText(st::defaultTextStyle, description, descriptionOpts);
-	int32 descriptionHeight = qMin(_description.countHeight(_maxw), descriptionLines * st::normalFont->height);
+	int32 descriptionHeight = qMin(_description.countHeight(textWidth), descriptionLines * st::normalFont->height);
 
 	_minh = titleHeight + descriptionHeight;
 	if (_url) _minh += st::normalFont->height;
