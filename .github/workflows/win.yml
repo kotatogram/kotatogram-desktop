@@ -438,17 +438,6 @@ jobs:
           cd ..\out
           msbuild Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
 
-
-      - name: Re-run build on failure.
-        if: failure()
-        shell: cmd
-        timeout-minutes: 30
-        run: |
-          cd %REPO_NAME%\out
-          call vcvars32.bat
-
-          msbuild Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
-
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         shell: cmd
@@ -456,7 +445,6 @@ jobs:
           cd %REPO_NAME%\out\Debug
           mkdir artifact
           move Kotatogram.exe artifact/
-          move Updater.exe artifact/
       - uses: actions/upload-artifact@master
         name: Upload artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
