@@ -162,7 +162,7 @@ if (LINUX)
         PkgConfig::GIO
     )
 
-    target_compile_definitions(Telegram PRIVATE G_LOG_DOMAIN="Telegram")
+    target_compile_definitions(Telegram PRIVATE G_LOG_DOMAIN="Kotatogram")
     target_compile_options(Telegram PRIVATE -Wno-register)
 
     if (NOT TDESKTOP_DISABLE_GTK_INTEGRATION)
