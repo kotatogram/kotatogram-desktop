@@ -46,6 +46,18 @@ inline bool TrayIconSupported() {
 	return true;
 }
 
+inline bool SetWindowExtents(QWindow *window, const QMargins &extents) {
+	return false;
+}
+
+inline bool UnsetWindowExtents(QWindow *window) {
+	return false;
+}
+
+inline bool WindowsNeedShadow() {
+	return false;
+}
+
 NSImage *ToNSImage(const QPixmap &pixmap);
 
 namespace ThirdParty {

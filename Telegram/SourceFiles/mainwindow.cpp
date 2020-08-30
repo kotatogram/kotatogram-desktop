@@ -39,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "api/api_updates.h"
 #include "settings/settings_intro.h"
+#include "platform/platform_specific.h"
 #include "platform/platform_notifications_manager.h"
 #include "base/platform/base_platform_info.h"
 #include "base/call_delayed.h"
@@ -102,7 +103,12 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	}, lifetime());
 
 	setAttribute(Qt::WA_NoSystemBackground);
-	setAttribute(Qt::WA_OpaquePaintEvent);
+
+	if (Platform::WindowsNeedShadow()) {
+		setAttribute(Qt::WA_TranslucentBackground);
+	} else {
+		setAttribute(Qt::WA_OpaquePaintEvent);
+	}
 }
 
 void MainWindow::initHook() {
@@ -761,7 +767,9 @@ void MainWindow::handleTrayIconActication(
 	}
 	if (reason == QSystemTrayIcon::Context) {
 		updateTrayMenu(true);
-		QTimer::singleShot(1, this, SLOT(psShowTrayMenu()));
+		base::call_delayed(1, this, [=] {
+			psShowTrayMenu();
+		});
 	} else if (!skipTrayClick()) {
 		if (Platform::IsWayland() ? isVisible() : isActive()) {
 			minimizeToTray();

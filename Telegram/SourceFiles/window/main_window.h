@@ -102,11 +102,14 @@ public:
 
 	void clearWidgets();
 
+	QRect inner() const;
 	int computeMinWidth() const;
 	int computeMinHeight() const;
 
 	void recountGeometryConstraints();
 	virtual void updateControlsGeometry();
+
+	bool hasShadow() const;
 
 public slots:
 	bool minimizeToTray();
@@ -115,6 +118,7 @@ public slots:
 	}
 
 protected:
+	void paintEvent(QPaintEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
 	void leaveEventHook(QEvent *e) override;
 
@@ -180,6 +184,7 @@ protected:
 private:
 	void refreshTitleWidget();
 	void updateMinimumSize();
+	void updateShadowSize();
 	void updatePalette();
 	void initSize();
 
@@ -200,6 +205,7 @@ private:
 	bool _usingSupportIcon = false;
 	int _customIconId = 0;
 	QString _titleText;
+	style::margins _padding;
 
 	bool _isActive = false;
 
