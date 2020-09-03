@@ -9,9 +9,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #ifndef OS_OSX
 
-#import <AppKit/NSTextField.h>
+#include "platform/platform_specific.h"
 
-NSImage *qt_mac_create_nsimage(const QPixmap &pm);
+#import <AppKit/NSTextField.h>
 
 namespace TouchBar {
 
@@ -24,7 +24,7 @@ NSImage *CreateNSImageFromStyleIcon(const style::icon &icon, int size) {
 	const auto instance = icon.instance(QColor(255, 255, 255, 255), 100);
 	auto pixmap = QPixmap::fromImage(instance);
 	pixmap.setDevicePixelRatio(cRetinaFactor());
-	NSImage *image = [qt_mac_create_nsimage(pixmap) autorelease];
+	NSImage *image = [Platform::ToNSImage(pixmap) autorelease];
 	[image setSize:NSMakeSize(size, size)];
 	return image;
 }
