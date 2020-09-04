@@ -115,6 +115,7 @@ if (NOT DESKTOP_APP_DISABLE_WEBRTC_INTEGRATION)
     target_link_libraries(lib_tgcalls
     PRIVATE
         desktop-app::external_webrtc
+        desktop-app::external_openssl
     )
 endif()
 

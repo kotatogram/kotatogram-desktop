@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_sending.h"
 #include "base/call_delayed.h"
 #include "base/platform/mac/base_utilities_mac.h"
+#include "platform/platform_specific.h"
 #include "boxes/confirm_box.h"
 #include "chat_helpers/emoji_list_widget.h"
 #include "core/sandbox.h"
@@ -43,7 +44,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #import <AppKit/NSSegmentedControl.h>
 #import <AppKit/NSTextField.h>
 
-NSImage *qt_mac_create_nsimage(const QPixmap &pm);
 using TouchBar::kCircleDiameter;
 using TouchBar::CreateNSImageFromStyleIcon;
 
@@ -154,7 +154,7 @@ NSImage *CreateNSImageFromEmoji(EmojiPtr emoji) {
 		Ui::Emoji::GetSizeTouchbar(),
 		0,
 		0);
-	return [qt_mac_create_nsimage(pixmap) autorelease];
+	return [Platform::ToNSImage(pixmap) autorelease];
 }
 
 auto ActiveChat(not_null<Window::Controller*> controller) {
@@ -421,7 +421,7 @@ void AppendEmojiPacks(
 		PickerScrubberItemView *itemView = [scrubber
 			makeItemWithIdentifier:kStickerItemIdentifier
 			owner:self];
-		itemView.imageView.image = [qt_mac_create_nsimage(item.qpixmap)
+		itemView.imageView.image = [Platform::ToNSImage(item.qpixmap)
 			autorelease];
 		itemView->documentId = document->id;
 		return itemView;
