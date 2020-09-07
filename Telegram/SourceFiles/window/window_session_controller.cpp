@@ -286,11 +286,20 @@ void SessionController::reloadFiltersMenu() {
 		) | rpl::start_with_next([=] {
 			toggleFiltersMenu(true);
 			if (previousFilter) {
-				setActiveChatsFilter(previousFilter);
+				if (activeChatsFilterCurrent() != previousFilter) {
+					resetFakeUnreadWhileOpened();
+				}
+				_activeChatsFilter.force_assign(previousFilter);
+				if (previousFilter) {
+					closeFolder(true);
+				}
 			}
 		}, lifetime());
 
-		setActiveChatsFilter(0);
+		if (activeChatsFilterCurrent() != 0) {
+			resetFakeUnreadWhileOpened();
+		}
+		_activeChatsFilter.force_assign(0);
 		toggleFiltersMenu(false);
 	}
 }
