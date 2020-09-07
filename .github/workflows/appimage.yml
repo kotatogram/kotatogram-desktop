@@ -167,7 +167,7 @@ jobs:
           git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
             $GIT/openssl/openssl $opensslDir
           cd $opensslDir
-          ./config
+          ./config no-tests
           make -j$(nproc)
           sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
           cd ..
@@ -221,7 +221,7 @@ jobs:
           git clone -b v5.69.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
           cd extra-cmake-modules
           cmake . -DCMAKE_BUILD_TYPE=Release
-          cmake --build . -- -j$(nproc)
+          cmake --build . -j$(nproc)
           sudo cmake --install .
           cd ..
           rm -rf extra-cmake-modules
