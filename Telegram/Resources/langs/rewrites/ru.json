@@ -207,6 +207,10 @@
 	"ktg_filters_local": "локальная папка",
 	"ktg_filters_cloud": "облачная папка",
 	"ktg_filters_cloud_limit": "Вы создали максимальное число облачных папок. Вместо этого можно создать локальную папку.",
+	"ktg_filters_hide_folder": "Скрыть папку",
+	"ktg_filters_hide_button": "Скрыть кнопку",
+	"ktg_filters_hide_all_chats_toast": "Папка «Все чаты» скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
+	"ktg_filters_hide_edit_toast": "Кнопка изменения скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""

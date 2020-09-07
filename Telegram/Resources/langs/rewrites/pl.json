@@ -208,6 +208,10 @@
 	"ktg_filters_local": "local folder",
 	"ktg_filters_cloud": "cloud folder",
 	"ktg_filters_cloud_limit": "Sorry, you can't create more cloud folders. You can create local folder instead.",
+	"ktg_filters_hide_folder": "Hide folder",
+	"ktg_filters_hide_button": "Hide button",
+	"ktg_filters_hide_all_chats_toast": "\"All Chats\" folder is hidden.\nYou can enable it back in Kotatogram Settings.",
+	"ktg_filters_hide_edit_toast": "Edit button is hidden.\nYou can enable it back in Kotatogram Settings.",
 
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
