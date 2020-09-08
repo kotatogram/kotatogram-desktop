@@ -5,7 +5,8 @@ on:
     paths:
       - 'Telegram/Resources/langs/rewrites/*.json'
       - '.github/workflows/language-test.yml'
-    pull_request:
+  pull_request:
+    paths:
       - 'Telegram/Resources/langs/rewrites/*.json'
       - '.github/workflows/language-test.yml'
 
