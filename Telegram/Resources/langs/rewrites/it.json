@@ -174,12 +174,12 @@
 
 	// New strings
 	"ktg_forward_menu_quoted": "Citato",
-	"ktg_forward_menu_unquoted": "Non citato con didascalia",
-	"ktg_forward_menu_uncaptioned": "Non citato senza didascalia",
+	"ktg_forward_menu_unquoted": "Senza citazione e con didascalia",
+	"ktg_forward_menu_uncaptioned": "Senza citazione e senza didascalia",
 	"ktg_forward_menu_default_albums": "Preserva gli album",
 	"ktg_forward_menu_group_all_media": "Raggruppa tutti i media",
 	"ktg_forward_menu_separate_messages": "Separa i messaggi",
-	"ktg_forward_subtitle_unquoted": "non citato",
+	"ktg_forward_subtitle_unquoted": "senza citazione",
 	"ktg_forward_subtitle_uncaptioned": "senza didascalia",
 	"ktg_forward_subtitle_group_all_media": "come album",
 	"ktg_forward_subtitle_separate_messages": "uno ad uno",
