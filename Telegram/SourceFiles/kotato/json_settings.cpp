@@ -801,9 +801,9 @@ bool Manager::readCustomFile() {
 						}
 
 						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
-							peerStruct.type = type.toLower() == qsl("channel")
+							peerStruct.type = QString::compare(type.toLower(), "channel")
 								? LocalFolder::Peer::Type::Channel
-								: type.toLower() == qsl("chat")
+								: QString::compare(type.toLower(), "chat")
 								? LocalFolder::Peer::Type::Chat
 								: LocalFolder::Peer::Type::User;
 						});
