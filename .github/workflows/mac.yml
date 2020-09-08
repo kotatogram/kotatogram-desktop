@@ -70,7 +70,7 @@ jobs:
       LIBICONV_VER: "libiconv-1.16"
       UPLOAD_ARTIFACT: "false"
       ONLY_CACHE: "false"
-      MANUAL_CACHING: "3"
+      MANUAL_CACHING: "4"
       DOC_PATH: "docs/building-xcode.md"
       AUTO_CACHING: "1"
 
