@@ -199,7 +199,7 @@
 	"ktg_filters_exclude_filtered": "Из других папок",
 	"ktg_filters_create_cloud": "Создать облачную папку",
 	"ktg_filters_create_local": "Создать локальную папку",
-	"ktg_filters_description": "Облачные папки синхронизируются со остальными вашими приложениями Telegram, но у локальных папок больше функций.",
+	"ktg_filters_description": "Облачные папки синхронизируются между всеми вашими устройствами, но у локальных папок больше функций.",
 	"ktg_filters_new_cloud": "Новая облачная папка",
 	"ktg_filters_new_local": "Новая локальная папка",
 	"ktg_filters_edit_cloud": "Изменить облачную папку",
