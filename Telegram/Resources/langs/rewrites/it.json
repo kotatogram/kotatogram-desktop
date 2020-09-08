@@ -173,6 +173,7 @@
 	"ktg_settings_forward_chat_on_click_description": "Puoi tenere premuto Ctrl per selezionare più chat insieme indipendentemente da questa opzione.",
 
 	// New strings
+
 	"ktg_forward_menu_quoted": "Citato",
 	"ktg_forward_menu_unquoted": "Senza citazione e con didascalia",
 	"ktg_forward_menu_uncaptioned": "Senza citazione e senza didascalia",
@@ -204,7 +205,6 @@
 	"ktg_filters_hide_button": "Nascondi bottone",
 	"ktg_filters_hide_all_chats_toast": "La cartella \"Tutte le chat\" è nascosta.\nPuoi riattivarla nelle Impostazioni di Kotatogram.",
 	"ktg_filters_hide_edit_toast": "Il pulsante Modifica è nascosto.\nPuoi riattivarlo nelle Impostazioni di Kotatogram.",
-	
 	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }
