@@ -1,3 +1,26 @@
+1.3.9 (9.09.2020)
+- Updated TDesktop sources to 2.3.2.
+- Ability to forward messages without author.
+- Local folders.
+- Ability to set API ID and hash by start parameter or environment variable.
+- Use checkboxes in polls with multiple answers.
+- Reworked admins info.
+- Show group type in chat lists.
+- Show star icon for groups where you're an admin.
+- Do not notify when pinning by default.
+- Ability to mention user from context menu in members list.
+- Open pop-up emoji panel on RMB when disabled by hover.
+- Improved theme keys search.
+- Experimental top bar customization.
+- Reworked changning time when scheduling messages.
+- Improved keyboard navigation for calendar.
+- Italian translation (by alsoGAMER and CrisMystik).
+- Ability to jump to date in chat (Ctrl+J by default).
+- Use ghost icon from Android app.
+- Hide Edit and All Chats from context menu.
+- Show button to remove recent sticker.
+- Portuguese (Brasil) translation (by lipetst).
+
 1.3.8 (10.07.2020)
 - Updated TDesktop sources to 2.1.18.
 - Restored one-click forward to Saved Messages.

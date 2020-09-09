@@ -35,6 +35,34 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.3.9" date="2020-09-09">
+            <description>
+                <p>TDesktop sources were updated to 2.3.2.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Ability to forward messages without author.</li>
+                    <li>Local folders.</li>
+                    <li>Ability to set API ID and hash by start parameter or environment variable.</li>
+                    <li>Use checkboxes in polls with multiple answers.</li>
+                    <li>Reworked admins info.</li>
+                    <li>Show group type in chat lists.</li>
+                    <li>Show star icon for groups where you're an admin.</li>
+                    <li>Do not notify when pinning by default.</li>
+                    <li>Ability to mention user from context menu in members list.</li>
+                    <li>Open pop-up emoji panel on RMB when disabled by hover.</li>
+                    <li>Improved theme keys search.</li>
+                    <li>Experimental top bar customization.</li>
+                    <li>Reworked changning time when scheduling messages.</li>
+                    <li>Improved keyboard navigation for calendar.</li>
+                    <li>Italian translation (by alsoGAMER and CrisMystik).</li>
+                    <li>Ability to jump to date in chat (Ctrl+J by default).</li>
+                    <li>Use ghost icon from Android app.</li>
+                    <li>Hide Edit and All Chats from context menu.</li>
+                    <li>Show button to remove recent sticker.</li>
+                    <li>Portuguese (Brasil) translation (by lipetst).</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.3.8" date="2020-07-10">
             <description>
                 <p>TDesktop sources were updated to 2.1.18.</p>
