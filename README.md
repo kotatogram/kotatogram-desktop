@@ -4,6 +4,7 @@
 [![GitHub Workflow Status: Windows](https://github.com/kotatogram/kotatogram-desktop/workflows/Windows./badge.svg?event=push)][actions]
 [![GitHub Workflow Status: Linux](https://github.com/kotatogram/kotatogram-desktop/workflows/Linux./badge.svg?event=push)][actions]
 [![GitHub Workflow Status: AppImage](https://github.com/kotatogram/kotatogram-desktop/workflows/AppImage./badge.svg?event=push)][actions]
+[![Crowdin](https://badges.crowdin.net/kotatogram-desktop/localized.svg)](https://crowdin.com/project/kotatogram-desktop)
 
 [![Preview of Kotatogram Desktop][preview_image]][preview_image_url]
 
@@ -16,6 +17,8 @@ Original README with build instructions and licenses could be found in [Telegram
   * Other repositories:<br>[![Packaging status](https://repology.org/badge/vertical-allrepos/kotatogram-desktop.svg)][repology]
 
 ## Features
+* Local folders
+* Forward to multiple chats and forward without author
 * Custom font
 * Compact chat list
 * Custom text replaces
@@ -32,7 +35,11 @@ Read [CONTRIBUTING.md][contributing].
 * Website: https://kotatogram.github.io
 * English Telegram channel: https://t.me/kotatogram
 * Russian Telegram channel: https://t.me/kotatogram_ru
-* Trello (on Russian): https://trello.com/b/G6zetXOH/kotatogram-desktop
+* Trello (on Russian, abandoned): https://trello.com/b/G6zetXOH/kotatogram-desktop
+
+## Attribution
+* Ghost icon (for deleted accounts) is taken from [official Android app](https://github.com/DrKLO/Telegram).
+* Icons for local folders mostly are [Material Design Icons](https://materialdesignicons.com/).
 
 [//]: # (LINKS)
 [telegram_desktop]: https://desktop.telegram.org
