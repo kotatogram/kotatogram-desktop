@@ -5,6 +5,7 @@ This document describes how you can contribute to Kotatogram Desktop. Please rea
 **Table of Contents**
 
 * [What contributions are accepted](#what-contributions-are-accepted)
+* [Contributing translations](#contributing-translations)
 * [Build instructions](#build-instructions)
 * [Pull upstream changes into your fork regularly](#pull-upstream-changes-into-your-fork-regularly)
 * [How to get your pull request accepted](#how-to-get-your-pull-request-accepted)
@@ -37,6 +38,12 @@ If you are submitting a new feature, please note that:
 * It **must not** confilct with exsiting features. If it's an alternative way of making this feature (e.g. showing text in other place), you should improve existing feature, and give user a choice unless there is no logical reasons for making a choice.
 * It **must** look as good and refined as possible. I can accept some "dirty" solutions, but in that case they should be optional, and disabled by default. Still, too "dirty" solution won't be accepted.
 * It **must not** violate [Telegram API Terms of Service][api_tos], e.g. features like Ghost Mode won't be implemented.
+
+## Contributing translations
+
+Translation contributions are currently accepted on [Crowdin](https://crowdin.com/project/kotatogram-desktop). Even though you can open an issue about translation here (e.g. requesting a new language) or submit a PR, Crowdin is the prefered way.
+
+Please note: if you submit a PR with translation, it won't be merged. Instead it will be updated on Crowdin.
 
 ## Build instructions
 
