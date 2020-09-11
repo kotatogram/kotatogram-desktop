@@ -421,7 +421,10 @@ public:
 
 	void cancelLocalItem(not_null<HistoryItem*> item);
 
-	void sendMessage(MessageToSend &&message);
+	void sendMessage(
+		MessageToSend &&message,
+		Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback = nullptr,
+		bool forwarding = false);
 	void sendBotStart(not_null<UserData*> bot, PeerData *chat = nullptr);
 	void sendInlineResult(
 		not_null<UserData*> bot,

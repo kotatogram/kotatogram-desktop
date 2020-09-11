@@ -4086,7 +4086,9 @@ void ApiWrap::forwardMessages(
 			++shared->requestsLeft;
 		}
 		auto medias = QVector<MTPInputSingleMedia>();
+		auto mediaRefs = QVector<QByteArray>();
 		medias.reserve(ids.size());
+		mediaRefs.reserve(ids.size());
 
 		for (auto i = fromIter, e = toIter; i != e; i++) {
 			const auto item = *i;
@@ -4125,33 +4127,74 @@ void ApiWrap::forwardMessages(
 				: MTPmessages_SendMultiMedia::Flag(0));
 
 		const auto requestType = Data::Histories::RequestType::Send;
-		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
-			history->sendRequestId = request(MTPmessages_SendMultiMedia(
-				MTP_flags(finalFlags),
-				peer->input,
-				MTPint(),
-				MTP_vector<MTPInputSingleMedia>(medias),
-				MTP_int(action.options.scheduled)
-			)).done([=](const MTPUpdates &result) {
-				applyUpdates(result);
-				if (shared && !--shared->requestsLeft) {
-					shared->callback();
-				}
-				finish();
-			}).fail([=, ids = localIds](const RPCError &error) {
-				if (ids) {
-					for (const auto &[randomId, itemId] : *ids) {
-						sendMessageFail(error, peer, randomId, itemId);
+		auto performRequest = [=, &mediaRefs, &histories](const auto &repeatRequest) -> void {
+			mediaRefs.clear();
+			for (auto i = fromIter, e = toIter; i != e; i++) {
+				const auto item = *i;
+				const auto media = item->media();
+				mediaRefs.push_back(media->photo()
+					? media->photo()->fileReference()
+					: media->document()->fileReference());
+			}
+			histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+				history->sendRequestId = request(MTPmessages_SendMultiMedia(
+					MTP_flags(finalFlags),
+					peer->input,
+					MTPint(),
+					MTP_vector<MTPInputSingleMedia>(medias),
+					MTP_int(action.options.scheduled)
+				)).done([=](const MTPUpdates &result) {
+					applyUpdates(result);
+					if (shared && !--shared->requestsLeft) {
+						shared->callback();
 					}
-				} else {
-					sendMessageFail(error, peer);
-				}
-				finish();
-			}).afterRequest(
-				history->sendRequestId
-			).send();
-			return history->sendRequestId;
-		});
+					finish();
+				}).fail([=, ids = localIds](const RPCError &error) {
+					if (error.code() == 400
+						&& error.type().startsWith(qstr("FILE_REFERENCE_"))) {
+						auto refreshRequests = mediaRefs.size();
+						auto index = 0;
+						for (auto i = fromIter, e = toIter; i != e; i++) {
+							const auto item = *i;
+							const auto media = item->media();
+							const auto origin = media->document()
+									? media->document()->stickerOrGifOrigin()
+									: Data::FileOrigin();
+							const auto usedFileReference = mediaRefs.value(index);
+							
+							refreshFileReference(origin, [=, &refreshRequests](const auto &result) {
+								if (refreshRequests > 0) {
+									refreshRequests--;
+									return;
+								}
+
+								const auto currentMediaReference = media->photo()
+									? media->photo()->fileReference()
+									: media->document()->fileReference();
+
+								if (currentMediaReference != usedFileReference) {
+									repeatRequest(repeatRequest);
+								} else {
+									sendMessageFail(error, peer);
+								}
+							});
+							index++;
+						}
+					} else if (ids) {
+						for (const auto &[randomId, itemId] : *ids) {
+							sendMessageFail(error, peer, randomId, itemId);
+						}
+					} else {
+						sendMessageFail(error, peer);
+					}
+					finish();
+				}).afterRequest(
+					history->sendRequestId
+				).send();
+				return history->sendRequestId;
+			});
+		};
+		performRequest(performRequest);
 	};
 
 	const auto forwardMediaUnquoted = [&] (not_null<HistoryItem *> item) {
@@ -4160,86 +4203,62 @@ void ApiWrap::forwardMessages(
 		}
 		const auto media = item->media();
 
-		auto newSendFlags = MTPmessages_SendMedia::Flags(0)
-			| (action.options.silent
-				? MTPmessages_SendMedia::Flag::f_silent
-				: MTPmessages_SendMedia::Flag(0))
-			| (action.options.scheduled
-				? MTPmessages_SendMedia::Flag::f_schedule_date
-				: MTPmessages_SendMedia::Flag(0));
+		auto message = ApiWrap::MessageToSend(history);
+		const auto caption = (cForwardCaptioned()
+			&& !media->geoPoint()
+			&& !media->sharedContact())
+				? item->originalText()
+				: TextWithEntities();
 
-		auto caption = (cForwardCaptioned()
-				&& !media->geoPoint()
-				&& !media->sharedContact())
-					? item->originalText()
-					: TextWithEntities();
+		message.textWithTags = TextWithTags{
+			caption.text,
+			TextUtilities::ConvertEntitiesToTextTags(caption.entities)
+		};
+		message.action.options = action.options;
+		message.action.clearDraft = false;
 
-		auto sentEntities = Api::EntitiesToMTP(
-			_session,
-			caption.entities,
-			Api::ConvertOption::SkipLocal);
-		if (!sentEntities.v.isEmpty()) {
-			newSendFlags |= MTPmessages_SendMedia::Flag::f_entities;
+		auto doneCallback = [=] () {
+			if (shared && !--shared->requestsLeft) {
+				shared->callback();
+			}
+		};
+
+		if (media->poll()) {
+			const auto poll = *(media->poll());
+			createPoll(
+				poll,
+				message.action,
+				std::move(doneCallback),
+				nullptr);
+		} else if (media->geoPoint()) {
+			const auto location = *(media->geoPoint());
+			Api::SendLocationPoint(
+				location,
+				message.action,
+				std::move(doneCallback),
+				nullptr);
+		} else if (media->sharedContact()) {
+			const auto contact = media->sharedContact();
+			shareContact(
+				contact->phoneNumber,
+				contact->firstName,
+				contact->lastName,
+				message.action);
+		} else if (media->photo()) {
+			Api::SendExistingPhoto(
+				std::move(message),
+				media->photo(),
+				std::move(doneCallback),
+				true); // forwarding
+		} else if (media->document()) {
+			Api::SendExistingDocument(
+				std::move(message),
+				media->document(),
+				std::move(doneCallback),
+				true); // forwarding
+		} else {
+			Unexpected("Media type in ApiWrap::forwardMessages.");
 		}
-
-		auto inputMedia = media->poll()
-			? PollDataToInputMedia(media->poll())
-			: media->geoPoint()
-				? MTP_inputMediaGeoPoint(
-					MTP_inputGeoPoint(
-						MTP_double(media->geoPoint()->lat()),
-						MTP_double(media->geoPoint()->lon())))
-				: media->sharedContact()
-					? MTP_inputMediaContact(
-						MTP_string(media->sharedContact()->phoneNumber),
-						MTP_string(media->sharedContact()->firstName),
-						MTP_string(media->sharedContact()->lastName),
-						MTPstring())
-					: media->photo()
-						? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
-						: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint());
-
-		const auto requestType = Data::Histories::RequestType::Send;
-		const auto currentRandomId = randomIds.takeFirst();
-		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
-			history->sendRequestId = request(MTPmessages_SendMedia(
-				MTP_flags(newSendFlags),
-				peer->input,
-				MTPint(),
-				inputMedia,
-				MTP_string(caption.text),
-				currentRandomId,
-				MTPReplyMarkup(),
-				sentEntities,
-				MTP_int(action.options.scheduled)
-			)).done([=](const MTPUpdates &result) {
-				applyUpdates(result);
-				if (shared && !--shared->requestsLeft) {
-					shared->callback();
-				}
-				finish();
-			}).fail([=, ids = localIds](const RPCError &error) {
-				if (ids) {
-					auto found = false;
-					for (const auto &[randomId, itemId] : *ids) {
-						if (currentRandomId == MTP_long(randomId)) {
-							sendMessageFail(error, peer, randomId, itemId);
-							found = true;
-							break;
-						}
-					}
-					if (!found) {
-						sendMessageFail(error, peer);
-					}
-				} else {
-					sendMessageFail(error, peer);
-				}
-				finish();
-			}).afterRequest(
-				history->sendRequestId
-			).send();
-			return history->sendRequestId;
-		});
 	};
 
 	const auto forwardMessageUnquoted = [&] (not_null<HistoryItem *> item) {
@@ -4248,65 +4267,27 @@ void ApiWrap::forwardMessages(
 		}
 		const auto media = item->media();
 
-		auto newSendFlags = MTPmessages_SendMessage::Flag(0)
-			| (!media || !media->webpage()
-				? MTPmessages_SendMessage::Flag::f_no_webpage
-				: MTPmessages_SendMessage::Flag(0))
-			| (action.options.silent
-				? MTPmessages_SendMessage::Flag::f_silent
-				: MTPmessages_SendMessage::Flag(0))
-			| (action.options.scheduled
-				? MTPmessages_SendMessage::Flag::f_schedule_date
-				: MTPmessages_SendMessage::Flag(0));
+		const auto webPageId = (!media || !media->webpage())
+			? CancelledWebPageId
+			: media->webpage()->id;
 
-		auto sentEntities = Api::EntitiesToMTP(
-			_session,
-			item->originalText().entities,
-			Api::ConvertOption::SkipLocal);
-		if (!sentEntities.v.isEmpty()) {
-			newSendFlags |= MTPmessages_SendMessage::Flag::f_entities;
-		}
+		auto message = ApiWrap::MessageToSend(history);
+		message.textWithTags = TextWithTags{
+			item->originalText().text,
+			TextUtilities::ConvertEntitiesToTextTags(item->originalText().entities)
+		};
+		message.action.options = action.options;
+		message.action.clearDraft = false;
+		message.webPageId = webPageId;
 
-		const auto requestType = Data::Histories::RequestType::Send;
-		const auto currentRandomId = randomIds.takeFirst();
-		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
-			history->sendRequestId = request(MTPmessages_SendMessage(
-				MTP_flags(newSendFlags),
-				peer->input,
-				MTPint(),
-				MTP_string(item->originalText().text),
-				currentRandomId,
-				MTPReplyMarkup(),
-				sentEntities,
-				MTP_int(action.options.scheduled)
-			)).done([=](const MTPUpdates &result) {
-				applyUpdates(result);
+		session().api().sendMessage(
+			std::move(message),
+			[=] (const MTPUpdates &result, mtpRequestId requestId) {
 				if (shared && !--shared->requestsLeft) {
 					shared->callback();
 				}
-				finish();
-			}).fail([=, ids = localIds](const RPCError &error) {
-				if (ids) {
-					auto found = false;
-					for (const auto &[randomId, itemId] : *ids) {
-						if (currentRandomId == MTP_long(randomId)) {
-							sendMessageFail(error, peer, randomId, itemId);
-							found = true;
-							break;
-						}
-					}
-					if (!found) {
-						sendMessageFail(error, peer);
-					}
-				} else {
-					sendMessageFail(error, peer);
-				}
-				finish();
-			}).afterRequest(
-				history->sendRequestId
-			).send();
-			return history->sendRequestId;
-		});
+			},
+			true); // forwarding
 	};
 
 	const auto sendAccumulated = [&] {
@@ -4650,7 +4631,10 @@ void ApiWrap::cancelLocalItem(not_null<HistoryItem*> item) {
 	}
 }
 
-void ApiWrap::sendMessage(MessageToSend &&message) {
+void ApiWrap::sendMessage(
+	MessageToSend &&message,
+	Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback,
+	bool forwarding) {
 	const auto history = message.action.history;
 	const auto peer = history->peer;
 	auto &textWithTags = message.textWithTags;
@@ -4779,9 +4763,12 @@ void ApiWrap::sendMessage(MessageToSend &&message) {
 				MTPReplyMarkup(),
 				sentEntities,
 				MTP_int(action.options.scheduled)
-			)).done([=](const MTPUpdates &result) {
+			)).done([=](const MTPUpdates &result, mtpRequestId requestId) {
 				applyUpdates(result, randomId);
 				history->clearSentDraftText(QString());
+				if (doneCallback) {
+					doneCallback(result, requestId);
+				}
 				finish();
 			}).fail([=](const RPCError &error) {
 				if (error.type() == qstr("MESSAGE_EMPTY")) {
@@ -4797,7 +4784,9 @@ void ApiWrap::sendMessage(MessageToSend &&message) {
 		});
 	}
 
-	finishForwarding(action);
+	if (!forwarding) {
+		finishForwarding(action);
+	}
 }
 
 void ApiWrap::sendBotStart(not_null<UserData*> bot, PeerData *chat) {
@@ -5621,7 +5610,9 @@ void ApiWrap::createPoll(
 			done();
 			finish();
 		}).fail([=](const RPCError &error) mutable {
-			fail(error);
+			if (fail) {
+				fail(error);
+			}
 			finish();
 		}).afterRequest(history->sendRequestId
 		).send();

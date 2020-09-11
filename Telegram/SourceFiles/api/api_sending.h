@@ -11,6 +11,11 @@ class History;
 class PhotoData;
 class DocumentData;
 struct FileLoadResult;
+class RPCError;
+
+namespace Data {
+class LocationPoint;
+} // namespace Data
 
 namespace Api {
 
@@ -19,11 +24,15 @@ struct SendAction;
 
 void SendExistingDocument(
 	Api::MessageToSend &&message,
-	not_null<DocumentData*> document);
+	not_null<DocumentData*> document,
+	Fn<void()> doneCallback = nullptr,
+	bool forwarding = false);
 
 void SendExistingPhoto(
 	Api::MessageToSend &&message,
-	not_null<PhotoData*> photo);
+	not_null<PhotoData*> photo,
+	Fn<void()> doneCallback = nullptr,
+	bool forwarding = false);
 
 bool SendDice(Api::MessageToSend &message);
 
@@ -36,5 +45,11 @@ void SendConfirmedFile(
 	not_null<Main::Session*> session,
 	const std::shared_ptr<FileLoadResult> &file,
 	const std::optional<FullMsgId> &oldId);
+
+void SendLocationPoint(
+	const Data::LocationPoint &data,
+	const SendAction &action,
+	Fn<void()> done,
+	Fn<void(const RPCError &error)> fail);
 
 } // namespace Api
