@@ -104,7 +104,22 @@ void Userpic::paint() {
 			_mutePosition.y() - _muteSize / 2,
 			_muteSize,
 			_muteSize);
-		p.drawEllipse(rect);
+		switch (cUserpicCornersType()) {
+			case 0:
+				p.drawRoundedRect(rect, 0, 0);
+				break;
+
+			case 1:
+				p.drawRoundedRect(rect, st::buttonRadius, st::buttonRadius);
+				break;
+
+			case 2:
+				p.drawRoundedRect(rect, st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(rect);
+		}
 		st::callMutedPeerIcon.paintInCenter(p, rect);
 	}
 }
