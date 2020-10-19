@@ -43,7 +43,7 @@ private:
 	void updateButtons();
 	bool showMenu(not_null<Ui::IconButton*> button);
 	void addStickers();
-	void shareStickers();
+	void copyStickersLink();
 	void copyTitle();
 
 	const not_null<Window::SessionController*> _controller;

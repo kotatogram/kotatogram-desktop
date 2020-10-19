@@ -521,7 +521,7 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 			updateAdditionalTitle();
 		});
 	}
-	if (_hasMediaMessages) {
+	if (!cForwardQuoted() && _hasMediaMessages) {
 		_menu->addSeparator();
 		if (!cForwardAlbumsAsIs()) {
 			_menu->addAction(tr::ktg_forward_menu_default_albums(tr::now), [=] {
@@ -566,7 +566,7 @@ void ShareBox::updateAdditionalTitle() {
 			: tr::ktg_forward_subtitle_uncaptioned(tr::now));
 	}
 
-	if (_hasMediaMessages && !cForwardAlbumsAsIs()) {
+	if (!cForwardQuoted() && _hasMediaMessages && !cForwardAlbumsAsIs()) {
 		if (!result.isEmpty()) {
 			result += ", ";
 		}
@@ -784,7 +784,11 @@ void ShareBox::Inner::updateChat(not_null<PeerData*> peer) {
 void ShareBox::Inner::updateChatName(
 		not_null<Chat*> chat,
 		not_null<PeerData*> peer) {
-	const auto text = peer->isSelf() ? tr::lng_saved_messages(tr::now) : peer->name;
+	const auto text = peer->isSelf()
+		? tr::lng_saved_messages(tr::now)
+		: peer->isRepliesChat()
+		? tr::lng_replies_messages(tr::now)
+		: peer->name;
 	chat->name.setText(st::shareNameStyle, text, Ui::NameTextOptions());
 }
 

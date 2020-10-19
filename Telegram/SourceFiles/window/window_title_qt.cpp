@@ -24,13 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Window {
 namespace {
 
-// If we toggle frameless window hint in maximized window, and
-// show it back too quickly, the mouse position inside the window
-// won't be correct (from Qt-s point of view) until we Alt-Tab from
-// that window. If we show the window back with this delay it works.
-constexpr auto kShowAfterFramelessToggleDelay = crl::time(1000);
-
-style::margins ShadowExtents() {
+[[nodiscard]] style::margins ShadowExtents() {
 	return st::callShadow.extend;
 }
 
@@ -103,7 +97,7 @@ void TitleWidgetQt::toggleFramelessWindow(bool enabled) {
 	top->setWindowFlag(Qt::FramelessWindowHint, enabled);
 	if (!hidden) {
 		base::call_delayed(
-			kShowAfterFramelessToggleDelay,
+			kShowAfterWindowFlagChangeDelay,
 			top,
 			[=] { top->show(); });
 	}
@@ -252,14 +246,6 @@ void TitleWidgetQt::mouseDoubleClickEvent(QMouseEvent *e) {
 }
 
 bool TitleWidgetQt::eventFilter(QObject *obj, QEvent *e) {
-	// I tried to listen only QEvent::Move and QEvent::Resize
-	// but that doesn't work on Wayland
-	if (obj->isWidgetType()
-		&& window() == static_cast<QWidget*>(obj)
-		&& Platform::IsWayland()) {
-		updateWindowExtents();
-	}
-
 	if (e->type() == QEvent::MouseMove
 		|| e->type() == QEvent::MouseButtonPress) {
 		if (window()->isAncestorOf(static_cast<QWidget*>(obj))) {

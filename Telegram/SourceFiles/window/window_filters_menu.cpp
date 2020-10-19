@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "window/window_main_menu.h"
+#include "window/window_peer_menu.h"
 #include "main/main_session.h"
 #include "main/main_account.h"
 #include "data/data_session.h"
@@ -344,9 +345,21 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 	}
 	const auto defaultFilterId = _session->session().account().defaultFilterId();
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(i->second.get());
-	_popupMenu->addAction(
+	const auto addAction = [&](const QString &text, Fn<void()> callback) {
+		return _popupMenu->addAction(
+			text,
+			crl::guard(&_outer, std::move(callback)));
+	};
+
+	addAction(
 		tr::lng_filters_context_edit(tr::now),
 		crl::guard(&_outer, [=] { showEditBox(id); }));
+	auto filteredChats = [=] {
+		return _session->session().data().chatsFilters().chatsList(id);
+	};
+	Window::MenuAddMarkAsReadChatListAction(
+		std::move(filteredChats),
+		addAction);
 	if (defaultFilterId != id) {
 		_popupMenu->addAction(
 			tr::ktg_filters_context_make_default(tr::now),
@@ -358,7 +371,7 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 	}
 	_popupMenu->addAction(
 		tr::lng_filters_context_remove(tr::now),
-		crl::guard(&_outer, [=] { showRemoveBox(id); }));
+		[=] { showRemoveBox(id); });
 	_popupMenu->popup(position);
 }
 
@@ -428,11 +441,10 @@ void FiltersMenu::showEditBox(FilterId id) {
 }
 
 void FiltersMenu::showRemoveBox(FilterId id) {
-	const auto box = std::make_shared<QPointer<Ui::BoxContent>>();
-	*box = _session->window().show(Box<ConfirmBox>(
+	_session->window().show(Box<ConfirmBox>(
 		tr::lng_filters_remove_sure(tr::now),
 		tr::lng_filters_remove_yes(tr::now),
-		[=] { (*box)->closeBox(); remove(id); }));
+		[=](Fn<void()> &&close) { close(); remove(id); }));
 }
 
 void FiltersMenu::remove(FilterId id) {

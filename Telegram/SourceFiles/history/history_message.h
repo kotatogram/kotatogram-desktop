@@ -9,28 +9,39 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "history/history_item.h"
 
+namespace Api {
+struct SendAction;
+} // namespace Api
+
 namespace HistoryView {
 class Message;
 } // namespace HistoryView
 
 struct HistoryMessageEdited;
+struct HistoryMessageReply;
+struct HistoryMessageViews;
 
-Fn<void(ChannelData*, MsgId)> HistoryDependentItemCallback(
+[[nodiscard]] Fn<void(ChannelData*, MsgId)> HistoryDependentItemCallback(
 	not_null<HistoryItem*> item);
-MTPDmessage::Flags NewMessageFlags(not_null<PeerData*> peer);
-MTPDmessage_ClientFlags NewMessageClientFlags();
-QString GetErrorTextForSending(
+[[nodiscard]] MTPDmessage::Flags NewMessageFlags(not_null<PeerData*> peer);
+[[nodiscard]] MTPDmessage_ClientFlags NewMessageClientFlags();
+[[nodiscard]] MsgId LookupReplyToTop(
+	not_null<History*> history,
+	MsgId replyToId);
+[[nodiscard]] MTPMessageReplyHeader NewMessageReplyHeader(
+	const Api::SendAction &action);
+[[nodiscard]] QString GetErrorTextForSending(
 	not_null<PeerData*> peer,
 	const HistoryItemsList &items,
 	bool ignoreSlowmodeCountdown = false);
-QString GetErrorTextForSending(
+[[nodiscard]] QString GetErrorTextForSending(
 	not_null<PeerData*> peer,
 	const HistoryItemsList &items,
 	const TextWithTags &comment,
 	bool ignoreSlowmodeCountdown = false);
 void FastShareMessage(not_null<HistoryItem*> item);
 
-class HistoryMessage : public HistoryItem {
+class HistoryMessage final : public HistoryItem {
 public:
 	HistoryMessage(
 		not_null<History*> history,
@@ -46,7 +57,7 @@ public:
 		MTPDmessage::Flags flags,
 		MTPDmessage_ClientFlags clientFlags,
 		TimeId date,
-		UserId from,
+		PeerId from,
 		const QString &postAuthor,
 		not_null<HistoryMessage*> original); // local forwarded
 	HistoryMessage(
@@ -57,7 +68,7 @@ public:
 		MsgId replyTo,
 		UserId viaBotId,
 		TimeId date,
-		UserId from,
+		PeerId from,
 		const QString &postAuthor,
 		const TextWithEntities &textWithEntities); // local message
 	HistoryMessage(
@@ -68,7 +79,7 @@ public:
 		MsgId replyTo,
 		UserId viaBotId,
 		TimeId date,
-		UserId from,
+		PeerId from,
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
@@ -81,7 +92,7 @@ public:
 		MsgId replyTo,
 		UserId viaBotId,
 		TimeId date,
-		UserId from,
+		PeerId from,
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
@@ -94,7 +105,7 @@ public:
 		MsgId replyTo,
 		UserId viaBotId,
 		TimeId date,
-		UserId from,
+		PeerId from,
 		const QString &postAuthor,
 		not_null<GameData*> game,
 		const MTPReplyMarkup &markup); // local game
@@ -112,21 +123,19 @@ public:
 	[[nodiscard]] bool allowsEdit(TimeId now) const override;
 	[[nodiscard]] bool uploading() const;
 
-	[[nodiscard]] const Ui::Text::String &messageBadge() const {
-		return _messageBadge;
-	}
-	[[nodiscard]] bool hasMessageBadge() const {
-		return !_messageBadge.isEmpty();
-	}
 	[[nodiscard]] bool hideEditedBadge() const {
 		return (_flags & MTPDmessage::Flag::f_edit_hide);
 	}
 
-	void applyGroupAdminChanges(
-		const base::flat_set<UserId> &changes) override;
-
-	void setViewsCount(int32 count) override;
+	void setViewsCount(int count) override;
+	void setForwardsCount(int count) override;
+	void setReplies(const MTPMessageReplies &data) override;
+	void clearReplies() override;
+	void changeRepliesCount(int delta, PeerId replier) override;
+	void setReplyToTop(MsgId replyToTop) override;
+	void setPostAuthor(const QString &author) override;
 	void setRealId(MsgId newId) override;
+	void incrementReplyToTopCounter() override;
 
 	void dependencyItemRemoved(HistoryItem *dependency) override;
 
@@ -144,7 +153,7 @@ public:
 	void contributeToSlowmode(TimeId realDate = 0) override;
 
 	void addToUnreadMentions(UnreadMentionType type) override;
-	void eraseFromUnreadMentions() override;
+	void destroyHistoryEntry() override;
 	[[nodiscard]] Storage::SharedMediaTypesMask sharedMediaTypes() const override;
 
 	void setText(const TextWithEntities &textWithEntities) override;
@@ -154,6 +163,22 @@ public:
 	[[nodiscard]] bool textHasLinks() const override;
 
 	[[nodiscard]] int viewsCount() const override;
+	[[nodiscard]] int repliesCount() const override;
+	[[nodiscard]] bool repliesAreComments() const override;
+	[[nodiscard]] bool externalReply() const override;
+
+	[[nodiscard]] MsgId repliesInboxReadTill() const override;
+	void setRepliesInboxReadTill(MsgId readTillId) override;
+	[[nodiscard]] MsgId computeRepliesInboxReadTillFull() const override;
+	[[nodiscard]] MsgId repliesOutboxReadTill() const override;
+	void setRepliesOutboxReadTill(MsgId readTillId) override;
+	[[nodiscard]] MsgId computeRepliesOutboxReadTillFull() const override;
+	void setRepliesMaxId(MsgId maxId) override;
+	void setRepliesPossibleMaxId(MsgId possibleMaxId) override;
+	[[nodiscard]] bool areRepliesUnread() const override;
+
+	[[nodiscard]] FullMsgId commentsItemId() const override;
+	void setCommentsItemId(FullMsgId id) override;
 	bool updateDependencyItem() override;
 	[[nodiscard]] MsgId dependencyMsgId() const override {
 		return replyToId();
@@ -180,6 +205,8 @@ private:
 		return _flags & MTPDmessage::Flag::f_legacy;
 	}
 
+	[[nodiscard]] bool checkCommentsLinkedChat(ChannelId id) const;
+
 	void clearIsolatedEmoji();
 	void checkIsolatedEmoji();
 
@@ -193,18 +220,21 @@ private:
 	void createComponentsHelper(MTPDmessage::Flags flags, MsgId replyTo, UserId viaBotId, const QString &postAuthor, const MTPReplyMarkup &markup);
 	void createComponents(const CreateConfig &config);
 	void setupForwardedComponent(const CreateConfig &config);
+	void changeReplyToTopCounter(
+		not_null<HistoryMessageReply*> reply,
+		int delta);
+	void refreshRepliesText(
+		not_null<HistoryMessageViews*> views,
+		bool forceResize = false);
 
 	static void FillForwardedInfo(
 		CreateConfig &config,
 		const MTPDmessageFwdHeader &data);
 
-	void refreshMessageBadge();
 	[[nodiscard]] bool generateLocalEntitiesByReply() const;
 	[[nodiscard]] TextWithEntities withLocalEntities(
 		const TextWithEntities &textWithEntities) const;
 	void reapplyText();
-
-	Ui::Text::String _messageBadge;
 
 	QString _timeText;
 	int _timeWidth = 0;

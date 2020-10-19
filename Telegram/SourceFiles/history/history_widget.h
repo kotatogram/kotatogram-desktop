@@ -301,8 +301,6 @@ signals:
 public slots:
 	void onScroll();
 
-	void onBroadcastSilentChange();
-
 	void activate();
 	void onTextChange();
 
@@ -318,10 +316,6 @@ public slots:
 	void onDraftSaveDelayed();
 	void onDraftSave(bool delayed = false);
 	void onCloudDraftSave();
-
-	void onRecordError();
-	void onRecordDone(QByteArray result, VoiceWaveform waveform, qint32 samples);
-	void onRecordUpdate(quint16 level, qint32 samples);
 
 	void onUpdateHistoryItems();
 
@@ -422,6 +416,8 @@ private:
 
 	void animationCallback();
 	void updateOverStates(QPoint pos);
+	void recordDone(QByteArray result, VoiceWaveform waveform, int samples);
+	void recordUpdate(ushort level, int samples);
 	void recordStartCallback();
 	void recordStopCallback(bool active);
 	void recordUpdateCallback(QPoint globalPos);
@@ -718,6 +714,7 @@ private:
 	bool _inClickable = false;
 	int _recordingSamples = 0;
 	int _recordCancelWidth;
+	rpl::lifetime _recordingLifetime;
 
 	// This can animate for a very long time (like in music playing),
 	// so it should be a Basic, not a Simple animation.

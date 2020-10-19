@@ -438,8 +438,8 @@ void CloudManager::sendSwitchingToLanguageRequest() {
 		const auto finalize = [=] {
 			if (canApplyWithoutRestart(language.id)) {
 				performSwitchAndAddToRecent(language);
-				Lang::Current().fillDefaultJson();
-				Lang::Current().fillFromJson();
+				Lang::GetInstance().fillDefaultJson();
+				Lang::GetInstance().fillFromJson();
 			} else {
 				performSwitchAndRestart(language);
 			}
@@ -475,8 +475,8 @@ void CloudManager::switchToLanguage(const Language &data) {
 		performSwitchToCustom();
 	} else if (canApplyWithoutRestart(data.id)) {
 		performSwitchAndAddToRecent(data);
-		Lang::Current().fillDefaultJson();
-		Lang::Current().fillFromJson();
+		Lang::GetInstance().fillDefaultJson();
+		Lang::GetInstance().fillFromJson();
 	} else {
 		QVector<MTPstring> keys;
 		keys.reserve(3);
@@ -530,8 +530,8 @@ void CloudManager::performSwitchToCustom() {
 			}
 			if (canApplyWithoutRestart(qsl("#custom"))) {
 				_langpack.switchToCustomFile(filePath);
-				Lang::Current().fillDefaultJson();
-				Lang::Current().fillFromJson();
+				Lang::GetInstance().fillDefaultJson();
+				Lang::GetInstance().fillFromJson();
 			} else {
 				const auto values = loader.found();
 				const auto getValue = [&](ushort key) {

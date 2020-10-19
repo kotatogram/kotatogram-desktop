@@ -39,10 +39,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 PaintRoundImageCallback PaintUserpicCallback(
 		not_null<PeerData*> peer,
 		bool respectSavedMessagesChat) {
-	if (respectSavedMessagesChat && peer->isSelf()) {
-		return [](Painter &p, int x, int y, int outerWidth, int size) {
-			Ui::EmptyUserpic::PaintSavedMessages(p, x, y, outerWidth, size);
-		};
+	if (respectSavedMessagesChat) {
+		if (peer->isSelf()) {
+			return [](Painter &p, int x, int y, int outerWidth, int size) {
+				Ui::EmptyUserpic::PaintSavedMessages(p, x, y, outerWidth, size);
+			};
+		} else if (peer->isRepliesChat()) {
+			return [](Painter &p, int x, int y, int outerWidth, int size) {
+				Ui::EmptyUserpic::PaintRepliesMessages(p, x, y, outerWidth, size);
+			};
+		}
 	}
 	auto userpic = std::shared_ptr<Data::CloudImageView>();
 	return [=](Painter &p, int x, int y, int outerWidth, int size) mutable {
@@ -321,6 +327,8 @@ void PeerListBox::addSelectItem(
 	const auto respect = _controller->respectSavedMessagesChat();
 	const auto text = (respect && peer->isSelf())
 		? tr::lng_saved_short(tr::now)
+		: (respect && peer->isRepliesChat())
+		? tr::lng_replies_messages(tr::now)
 		: peer->shortName();
 	addSelectItem(
 		peer->id,
@@ -403,14 +411,16 @@ PeerListRow::PeerListRow(not_null<PeerData*> peer, PeerListRowId id)
 , _peer(peer)
 , _initialized(false)
 , _isSearchResult(false)
-, _isSavedMessagesChat(false) {
+, _isSavedMessagesChat(false)
+, _isRepliesMessagesChat(false) {
 }
 
 PeerListRow::PeerListRow(PeerListRowId id)
 : _id(id)
 , _initialized(false)
 , _isSearchResult(false)
-, _isSavedMessagesChat(false) {
+, _isSavedMessagesChat(false)
+, _isRepliesMessagesChat(false) {
 }
 
 PeerListRow::~PeerListRow() = default;
@@ -483,6 +493,8 @@ void PeerListRow::refreshName(const style::PeerListItem &st) {
 	}
 	const auto text = _isSavedMessagesChat
 		? tr::lng_saved_messages(tr::now)
+		: _isRepliesMessagesChat
+		? tr::lng_replies_messages(tr::now)
 		: generateName();
 	_name.setText(st.nameStyle, text, Ui::NameTextOptions());
 }
@@ -494,6 +506,8 @@ QString PeerListRow::generateName() {
 QString PeerListRow::generateShortName() {
 	return _isSavedMessagesChat
 		? tr::lng_saved_short(tr::now)
+		: _isRepliesMessagesChat
+		? tr::lng_replies_messages(tr::now)
 		: peer()->shortName();
 }
 
@@ -506,11 +520,14 @@ std::shared_ptr<Data::CloudImageView> PeerListRow::ensureUserpicView() {
 
 PaintRoundImageCallback PeerListRow::generatePaintUserpicCallback() {
 	const auto saved = _isSavedMessagesChat;
+	const auto replies = _isRepliesMessagesChat;
 	const auto peer = this->peer();
 	auto userpic = saved ? nullptr : ensureUserpicView();
 	return [=](Painter &p, int x, int y, int outerWidth, int size) mutable {
 		if (saved) {
 			Ui::EmptyUserpic::PaintSavedMessages(p, x, y, outerWidth, size);
+		} else if (replies) {
+			Ui::EmptyUserpic::PaintRepliesMessages(p, x, y, outerWidth, size);
 		} else {
 			peer->paintUserpicLeft(p, userpic, x, y, outerWidth, size);
 		}
@@ -696,6 +713,8 @@ void PeerListRow::paintDisabledCheckUserpic(
 
 	if (_isSavedMessagesChat) {
 		Ui::EmptyUserpic::PaintSavedMessages(p, userpicLeft, userpicTop, outerWidth, userpicRadius * 2);
+	} else if (_isRepliesMessagesChat) {
+		Ui::EmptyUserpic::PaintRepliesMessages(p, userpicLeft, userpicTop, outerWidth, userpicRadius * 2);
 	} else {
 		peer()->paintUserpicLeft(p, _userpic, userpicLeft, userpicTop, outerWidth, userpicRadius * 2);
 	}
@@ -845,10 +864,12 @@ void PeerListContent::changeCheckState(
 }
 
 void PeerListContent::addRowEntry(not_null<PeerListRow*> row) {
-	if (_controller->respectSavedMessagesChat()
-		&& !row->special()
-		&& row->peer()->isSelf()) {
-		row->setIsSavedMessagesChat(true);
+	if (_controller->respectSavedMessagesChat() && !row->special()) {
+		if (row->peer()->isSelf()) {
+			row->setIsSavedMessagesChat(true);
+		} else if (row->peer()->isRepliesChat()) {
+			row->setIsRepliesMessagesChat(true);
+		}
 	}
 	_rowsById.emplace(row->id(), row);
 	if (!row->special()) {

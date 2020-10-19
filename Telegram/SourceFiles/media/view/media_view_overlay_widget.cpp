@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/platform/ui_platform_utility.h"
 #include "ui/toast/toast.h"
+#include "ui/text/format_values.h"
 #include "ui/text_options.h"
 #include "ui/ui_utility.h"
 #include "boxes/confirm_box.h"
@@ -321,7 +322,10 @@ OverlayWidget::OverlayWidget()
 , _stateAnimation([=](crl::time now) { return stateAnimationCallback(now); })
 , _dropdown(this, st::mediaviewDropdownMenu)
 , _dropdownShowTimer(this) {
-	subscribe(Lang::Current().updated(), [this] { refreshLang(); });
+	Lang::Updated(
+	) | rpl::start_with_next([=] {
+		refreshLang();
+	}, lifetime());
 
 	_lastPositiveVolume = (Core::App().settings().videoVolume() > 0.)
 		? Core::App().settings().videoVolume()
@@ -588,7 +592,7 @@ void OverlayWidget::updateDocSize() {
 		}
 		_docSize = tr::lng_media_save_progress(tr::now, lt_ready, readyStr, lt_total, totalStr, lt_mb, mb);
 	} else {
-		_docSize = formatSizeText(_document->size);
+		_docSize = Ui::FormatSizeText(_document->size);
 	}
 	_docSizeWidth = st::mediaviewFont->width(_docSize);
 	int32 maxw = st::mediaviewFileSize.width() - st::mediaviewFileIconSize - st::mediaviewFilePadding * 3;
@@ -1116,7 +1120,7 @@ void OverlayWidget::clearSession() {
 	clearStreaming();
 	delete _menu;
 	_menu = nullptr;
-	setContext(std::nullopt);
+	setContext(v::null);
 	_from = nullptr;
 	_fromName = QString();
 	assignMediaPointer(nullptr);
@@ -1485,32 +1489,33 @@ void OverlayWidget::onForward() {
 }
 
 void OverlayWidget::onDelete() {
-	const auto session = _session;
-	if (!session) {
+	if (!_session) {
 		return;
 	}
 
-	close();
-	const auto deletingPeerPhoto = [this] {
+	const auto session = _session;
+	const auto photo = _photo;
+	const auto msgid = _msgid;
+	const auto deletingPeerPhoto = [&] {
 		if (!_msgid) {
 			return true;
-		}
-		if (_photo && _history) {
+		} else if (_photo && _history) {
 			if (_history->peer->userpicPhotoId() == _photo->id) {
 				return _firstOpenedPeerPhoto;
 			}
 		}
 		return false;
-	};
+	}();
+	close();
 
-	Core::App().domain().activate(&_session->account());
-	const auto &active = _session->windows();
+	Core::App().domain().activate(&session->account());
+	const auto &active = session->windows();
 	if (active.empty()) {
 		return;
 	}
-	if (deletingPeerPhoto()) {
-		active.front()->content()->deletePhotoLayer(_photo);
-	} else if (const auto item = session->data().message(_msgid)) {
+	if (deletingPeerPhoto) {
+		active.front()->content()->deletePhotoLayer(photo);
+	} else if (const auto item = session->data().message(msgid)) {
 		const auto suggestModerateActions = true;
 		Ui::show(Box<DeleteMessagesBox>(item, suggestModerateActions));
 	}
@@ -1540,15 +1545,15 @@ void OverlayWidget::onCopy() {
 
 void OverlayWidget::onAttachedStickers() {
 	const auto session = _session;
-	if (!session) {
+	if (!session || !_photo) {
 		return;
 	}
 	const auto &active = _session->windows();
 	if (active.empty()) {
 		return;
 	}
-	close();
 	active.front()->requestAttachedStickerSets(_photo);
+	close();
 }
 
 auto OverlayWidget::sharedMediaType() const
@@ -1589,7 +1594,7 @@ auto OverlayWidget::sharedMediaKey() const -> std::optional<SharedMediaKey> {
 			_history->peer->id,
 			_migrated ? _migrated->peer->id : 0,
 			SharedMediaType::ChatPhoto,
-			_peer->userpicPhotoId()
+			_photo
 		};
 	}
 	if (!IsServerMsgId(_msgid.msg)) {
@@ -1621,10 +1626,10 @@ Data::FileOrigin OverlayWidget::fileOrigin() const {
 Data::FileOrigin OverlayWidget::fileOrigin(const Entity &entity) const {
 	if (const auto item = entity.item) {
 		return item->fullId();
-	} else if (!entity.data.is<not_null<PhotoData*>>()) {
+	} else if (!v::is<not_null<PhotoData*>>(entity.data)) {
 		return Data::FileOrigin();
 	}
-	const auto photo = entity.data.get_unchecked<not_null<PhotoData*>>();
+	const auto photo = v::get<not_null<PhotoData*>>(entity.data);
 	if (_user) {
 		return Data::FileOriginUserPhoto(_user->bareId(), photo->id);
 	} else if (_peer && _peer->userpicPhotoId() == photo->id) {
@@ -1947,12 +1952,12 @@ void OverlayWidget::initGroupThumbs() {
 	_groupThumbs->activateRequests(
 	) | rpl::start_with_next([this](View::GroupThumbs::Key key) {
 		using CollageKey = View::GroupThumbs::CollageKey;
-		if (const auto photoId = base::get_if<PhotoId>(&key)) {
+		if (const auto photoId = std::get_if<PhotoId>(&key)) {
 			const auto photo = _session->data().photo(*photoId);
 			moveToEntity({ photo, nullptr });
-		} else if (const auto itemId = base::get_if<FullMsgId>(&key)) {
+		} else if (const auto itemId = std::get_if<FullMsgId>(&key)) {
 			moveToEntity(entityForItemId(*itemId));
-		} else if (const auto collageKey = base::get_if<CollageKey>(&key)) {
+		} else if (const auto collageKey = std::get_if<CollageKey>(&key)) {
 			if (_collageData) {
 				moveToEntity(entityForCollage(collageKey->index));
 			}
@@ -1990,7 +1995,7 @@ void OverlayWidget::showPhoto(
 	if (context) {
 		setContext(context);
 	} else {
-		setContext(std::nullopt);
+		setContext(v::null);
 	}
 
 	clearControlsState();
@@ -2039,7 +2044,7 @@ void OverlayWidget::showDocument(
 	if (context) {
 		setContext(context);
 	} else {
-		setContext(std::nullopt);
+		setContext(v::null);
 	}
 
 	clearControlsState();
@@ -2137,7 +2142,7 @@ void OverlayWidget::displayDocument(
 	_themeCloudData = cloud;
 	_radial.stop();
 
-	_touchbarDisplay.fire(TouchBarItemType::None);	
+	_touchbarDisplay.fire(TouchBarItemType::None);
 
 	refreshMediaViewer();
 	if (_document) {
@@ -2490,7 +2495,7 @@ QImage OverlayWidget::transformStaticContent(QPixmap content) const {
 void OverlayWidget::handleStreamingUpdate(Streaming::Update &&update) {
 	using namespace Streaming;
 
-	update.data.match([&](Information &update) {
+	v::match(update.data, [&](Information &update) {
 		streamingReady(std::move(update));
 	}, [&](const PreloadedVideo &update) {
 		updatePlaybackState();
@@ -3539,29 +3544,29 @@ OverlayWidget::Entity OverlayWidget::entityForUserPhotos(int index) const {
 	Expects(_session != nullptr);
 
 	if (index < 0 || index >= _userPhotosData->size()) {
-		return { std::nullopt, nullptr };
+		return { v::null, nullptr };
 	}
 	const auto id = (*_userPhotosData)[index];
 	if (const auto photo = _session->data().photo(id)) {
 		return { photo, nullptr };
 	}
-	return { std::nullopt, nullptr };
+	return { v::null, nullptr };
 }
 
 OverlayWidget::Entity OverlayWidget::entityForSharedMedia(int index) const {
 	Expects(_sharedMediaData.has_value());
 
 	if (index < 0 || index >= _sharedMediaData->size()) {
-		return { std::nullopt, nullptr };
+		return { v::null, nullptr };
 	}
 	auto value = (*_sharedMediaData)[index];
-	if (const auto photo = base::get_if<not_null<PhotoData*>>(&value)) {
+	if (const auto photo = std::get_if<not_null<PhotoData*>>(&value)) {
 		// Last peer photo.
 		return { *photo, nullptr };
-	} else if (const auto itemId = base::get_if<FullMsgId>(&value)) {
+	} else if (const auto itemId = std::get_if<FullMsgId>(&value)) {
 		return entityForItemId(*itemId);
 	}
-	return { std::nullopt, nullptr };
+	return { v::null, nullptr };
 }
 
 OverlayWidget::Entity OverlayWidget::entityForCollage(int index) const {
@@ -3571,14 +3576,14 @@ OverlayWidget::Entity OverlayWidget::entityForCollage(int index) const {
 	const auto item = _session->data().message(_msgid);
 	const auto &items = _collageData->items;
 	if (!item || index < 0 || index >= items.size()) {
-		return { std::nullopt, nullptr };
+		return { v::null, nullptr };
 	}
-	if (const auto document = base::get_if<DocumentData*>(&items[index])) {
+	if (const auto document = std::get_if<DocumentData*>(&items[index])) {
 		return { *document, item };
-	} else if (const auto photo = base::get_if<PhotoData*>(&items[index])) {
+	} else if (const auto photo = std::get_if<PhotoData*>(&items[index])) {
 		return { *photo, item };
 	}
-	return { std::nullopt, nullptr };
+	return { v::null, nullptr };
 }
 
 OverlayWidget::Entity OverlayWidget::entityForItemId(const FullMsgId &itemId) const {
@@ -3592,9 +3597,9 @@ OverlayWidget::Entity OverlayWidget::entityForItemId(const FullMsgId &itemId) co
 				return { document, item };
 			}
 		}
-		return { std::nullopt, item };
+		return { v::null, item };
 	}
-	return { std::nullopt, nullptr };
+	return { v::null, nullptr };
 }
 
 OverlayWidget::Entity OverlayWidget::entityByIndex(int index) const {
@@ -3605,20 +3610,21 @@ OverlayWidget::Entity OverlayWidget::entityByIndex(int index) const {
 	} else if (_collageData) {
 		return entityForCollage(index);
 	}
-	return { std::nullopt, nullptr };
+	return { v::null, nullptr };
 }
 
 void OverlayWidget::setContext(
-	base::optional_variant<
+	std::variant<
+		v::null_t,
 		not_null<HistoryItem*>,
 		not_null<PeerData*>> context) {
-	if (const auto item = base::get_if<not_null<HistoryItem*>>(&context)) {
+	if (const auto item = std::get_if<not_null<HistoryItem*>>(&context)) {
 		_msgid = (*item)->fullId();
 		_canForwardItem = (*item)->allowsForward();
 		_canDeleteItem = (*item)->canDelete();
 		_history = (*item)->history();
 		_peer = _history->peer;
-	} else if (const auto peer = base::get_if<not_null<PeerData*>>(&context)) {
+	} else if (const auto peer = std::get_if<not_null<PeerData*>>(&context)) {
 		_msgid = FullMsgId();
 		_canForwardItem = _canDeleteItem = false;
 		_history = (*peer)->owner().history(*peer);
@@ -3685,7 +3691,7 @@ bool OverlayWidget::moveToNext(int delta) {
 }
 
 bool OverlayWidget::moveToEntity(const Entity &entity, int preloadDelta) {
-	if (!entity.data && !entity.item) {
+	if (v::is_null(entity.data) && !entity.item) {
 		return false;
 	}
 	if (const auto item = entity.item) {
@@ -3693,13 +3699,13 @@ bool OverlayWidget::moveToEntity(const Entity &entity, int preloadDelta) {
 	} else if (_peer) {
 		setContext(_peer);
 	} else {
-		setContext(std::nullopt);
+		setContext(v::null);
 	}
 	clearStreaming();
 	_streamingStartPaused = false;
-	if (auto photo = base::get_if<not_null<PhotoData*>>(&entity.data)) {
+	if (auto photo = std::get_if<not_null<PhotoData*>>(&entity.data)) {
 		displayPhoto(*photo, entity.item);
-	} else if (auto document = base::get_if<not_null<DocumentData*>>(&entity.data)) {
+	} else if (auto document = std::get_if<not_null<DocumentData*>>(&entity.data)) {
 		displayDocument(*document, entity.item);
 	} else {
 		displayDocument(nullptr, entity.item);
@@ -3720,11 +3726,11 @@ void OverlayWidget::preloadData(int delta) {
 	auto documents = base::flat_set<std::shared_ptr<Data::DocumentMedia>>();
 	for (auto index = from; index != till + 1; ++index) {
 		auto entity = entityByIndex(index);
-		if (auto photo = base::get_if<not_null<PhotoData*>>(&entity.data)) {
+		if (auto photo = std::get_if<not_null<PhotoData*>>(&entity.data)) {
 			const auto [i, ok] = photos.emplace((*photo)->createMediaView());
 			(*i)->wanted(Data::PhotoSize::Small, fileOrigin(entity));
 			(*photo)->load(fileOrigin(entity), LoadFromCloudOrLocal, true);
-		} else if (auto document = base::get_if<not_null<DocumentData*>>(
+		} else if (auto document = std::get_if<not_null<DocumentData*>>(
 				&entity.data)) {
 			const auto [i, ok] = documents.emplace(
 				(*document)->createMediaView());
@@ -4165,6 +4171,9 @@ void OverlayWidget::setVisibleHook(bool visible) {
 		_userPhotosData = std::nullopt;
 		_collage = nullptr;
 		_collageData = std::nullopt;
+		assignMediaPointer(nullptr);
+		_preloadPhotos.clear();
+		_preloadDocuments.clear();
 		if (_menu) _menu->hideMenu(true);
 		_controlsHideTimer.stop();
 		_controlsState = ControlsShown;

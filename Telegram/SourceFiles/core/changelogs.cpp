@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "storage/localstorage.h"
 #include "lang/lang_keys.h"
+#include "lang/lang_instance.h"
 #include "core/application.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
@@ -99,20 +100,6 @@ std::map<int, const char*> BetaLogs() {
 	};
 };
 
-QString FormatVersionDisplay(int version) {
-	return QString::number(version / 1000000)
-		+ '.' + QString::number((version % 1000000) / 1000)
-		+ ((version % 1000)
-			? ('.' + QString::number(version % 1000))
-			: QString());
-}
-
-QString FormatVersionPrecise(int version) {
-	return QString::number(version / 1000000)
-		+ '.' + QString::number((version % 1000000) / 1000)
-		+ '.' + QString::number(version % 1000);
-}
-
 } // namespace
 
 Changelogs::Changelogs(not_null<Main::Session*> session, int oldVersion, int oldKotatoVersion)
@@ -144,8 +131,8 @@ std::unique_ptr<Changelogs> Changelogs::Create(
 void Changelogs::addKotatoLogs() {
 	_chatsSubscription.destroy();
 	
-	auto baseLang = Lang::Current().baseId();
-	auto currentLang = Lang::Current().id();
+	auto baseLang = Lang::GetInstance().baseId();
+	auto currentLang = Lang::Id();
 	QString channelLink;
 
 	for (const auto language : { "ru", "uk", "be" }) {
@@ -249,6 +236,20 @@ void Changelogs::addBetaLog(int changeVersion, const char *changes) {
 	const auto version = FormatVersionDisplay(changeVersion);
 	const auto log = qsl("New in version %1:\n\n").arg(version) + text;
 	addLocalLog(log);
+}
+
+QString FormatVersionDisplay(int version) {
+	return QString::number(version / 1000000)
+		+ '.' + QString::number((version % 1000000) / 1000)
+		+ ((version % 1000)
+			? ('.' + QString::number(version % 1000))
+			: QString());
+}
+
+QString FormatVersionPrecise(int version) {
+	return QString::number(version / 1000000)
+		+ '.' + QString::number((version % 1000000) / 1000)
+		+ '.' + QString::number(version % 1000);
 }
 
 } // namespace Core

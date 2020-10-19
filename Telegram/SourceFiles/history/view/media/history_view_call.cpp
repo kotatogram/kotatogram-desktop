@@ -9,7 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "boxes/confirm_box.h"
 #include "lang/lang_keys.h"
-#include "layout.h"
+#include "ui/text/format_values.h"
+#include "layout.h" // FullSelection
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/history_view_element.h"
@@ -51,7 +52,7 @@ Call::Call(
 			lt_time,
 			_status,
 			lt_duration,
-			formatDurationWords(_duration));
+			Ui::FormatDurationWords(_duration));
 	}
 }
 

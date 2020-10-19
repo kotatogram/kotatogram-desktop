@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/platform/ui_platform_utility.h"
 #include "history/history.h"
 #include "window/themes/window_theme.h"
+#include "window/window_title_qt.h" // kShowAfterWindowFlagChangeDelay
 #include "window/window_session_controller.h"
 #include "window/window_lock_widgets.h"
 #include "window/window_outdated_bar.h"
@@ -265,6 +266,11 @@ void MainWindow::init() {
 		&QWindow::windowStateChanged,
 		this,
 		[=](Qt::WindowState state) { handleStateChanged(state); });
+	connect(
+		windowHandle(),
+		&QWindow::visibleChanged,
+		this,
+		[=](bool visible) { handleVisibleChanged(visible); });
 
 	updatePalette();
 
@@ -305,6 +311,19 @@ void MainWindow::handleActiveChanged() {
 		updateTrayMenu();
 		handleActiveChangedHook();
 	});
+}
+
+void MainWindow::handleVisibleChanged(bool visible) {
+	if (visible) {
+		if (_maximizedBeforeHide) {
+			DEBUG_LOG(("Window Pos: Window was maximized before hidding, setting maximized."));
+			setWindowState(Qt::WindowMaximized);
+		}
+	} else {
+		_maximizedBeforeHide = cWindowPos().maximized;
+	}
+
+	handleVisibleChangedHook(visible);
 }
 
 void MainWindow::updatePalette() {
@@ -374,6 +393,21 @@ void MainWindow::refreshTitleWidget() {
 		_title->init();
 		_titleShadow.destroy();
 	}
+
+#ifdef Q_OS_LINUX
+	// setWindowFlag calls setParent(parentWidget(), newFlags), which
+	// always calls hide() explicitly, we have to show() the window back.
+	const auto hidden = isHidden();
+	const auto withShadow = hasShadow();
+	setWindowFlag(Qt::NoDropShadowWindowHint, withShadow);
+	setAttribute(Qt::WA_OpaquePaintEvent, !withShadow);
+	if (!hidden) {
+		base::call_delayed(
+			kShowAfterWindowFlagChangeDelay,
+			this,
+			[=] { show(); });
+	}
+#endif // Q_OS_LINUX
 }
 
 void MainWindow::updateMinimumSize() {
@@ -388,12 +422,6 @@ void MainWindow::updateShadowSize() {
 }
 
 void MainWindow::recountGeometryConstraints() {
-#ifdef Q_OS_LINUX
-	const auto hasShadow = this->hasShadow();
-	setWindowFlag(Qt::NoDropShadowWindowHint, hasShadow);
-	setAttribute(Qt::WA_OpaquePaintEvent, !hasShadow);
-#endif // Q_OS_LINUX
-
 	updateShadowSize();
 	updateMinimumSize();
 	updateControlsGeometry();
@@ -551,8 +579,15 @@ void MainWindow::updateUnreadCounter() {
 }
 
 void MainWindow::savePosition(Qt::WindowState state) {
-	if (state == Qt::WindowActive) state = windowHandle()->windowState();
-	if (state == Qt::WindowMinimized || !positionInited()) return;
+	if (state == Qt::WindowActive) {
+		state = windowHandle()->windowState();
+	}
+
+	if (state == Qt::WindowMinimized
+		|| !isVisible()
+		|| !positionInited()) {
+		return;
+	}
 
 	auto savedPosition = cWindowPos();
 	auto realPosition = savedPosition;
@@ -710,6 +745,17 @@ void MainWindow::launchDrag(std::unique_ptr<QMimeData> data) {
 
 MainWindow::~MainWindow() {
 	_title.destroy();
+
+	// Otherwise:
+	// ~QWidget
+	// QWidgetPrivate::close_helper
+	// QWidgetPrivate::setVisible
+	// QWidgetPrivate::hide_helper
+	// QWidgetPrivate::hide_sys
+	// QWindowPrivate::setVisible
+	// QMetaObject::activate
+	// Window::MainWindow::handleVisibleChanged on a destroyed MainWindow.
+	hide();
 }
 
 } // namespace Window

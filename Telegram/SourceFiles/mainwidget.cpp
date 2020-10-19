@@ -534,8 +534,9 @@ bool MainWidget::shareUrl(
 }
 
 void MainWidget::replyToItem(not_null<HistoryItem*> item) {
-	if (_history->peer() == item->history()->peer
-		|| _history->peer() == item->history()->peer->migrateTo()) {
+	if ((!_mainSection || !_mainSection->replyToMessage(item))
+		&& (_history->peer() == item->history()->peer
+			|| _history->peer() == item->history()->peer->migrateTo())) {
 		_history->replyToMessage(item);
 	}
 }
@@ -717,8 +718,9 @@ void MainWidget::cancelUploadLayer(not_null<HistoryItem*> item) {
 		auto &data = session().data();
 		if (const auto item = data.message(itemId)) {
 			if (!item->isEditingMedia()) {
+				const auto history = item->history();
 				item->destroy();
-				item->history()->requestChatListMessage();
+				history->requestChatListMessage();
 			} else {
 				item->returnSavedMedia();
 				session().uploader().cancel(item->fullId());
@@ -1229,10 +1231,6 @@ Image *MainWidget::newBackgroundThumb() {
 		: nullptr;
 }
 
-void MainWidget::pushReplyReturn(not_null<HistoryItem*> item) {
-	_history->pushReplyReturn(item);
-}
-
 void MainWidget::setInnerFocus() {
 	if (_hider || !_history->peer()) {
 		if (!_hider && _mainSection) {
@@ -1284,7 +1282,7 @@ void MainWidget::viewsIncrement() {
 			i->first->input,
 			MTP_vector<MTPint>(ids),
 			MTP_bool(true)
-		)).done([=](const MTPVector<MTPint> &result, mtpRequestId requestId) {
+		)).done([=](const MTPmessages_MessageViews &result, mtpRequestId requestId) {
 			viewsIncrementDone(ids, result, requestId);
 		}).fail([=](const RPCError &error, mtpRequestId requestId) {
 			viewsIncrementFail(error, requestId);
@@ -1295,16 +1293,32 @@ void MainWidget::viewsIncrement() {
 	}
 }
 
-void MainWidget::viewsIncrementDone(QVector<MTPint> ids, const MTPVector<MTPint> &result, mtpRequestId requestId) {
-	auto &v = result.v;
+void MainWidget::viewsIncrementDone(
+		QVector<MTPint> ids,
+		const MTPmessages_MessageViews &result,
+		mtpRequestId requestId) {
+	const auto &data = result.c_messages_messageViews();
+	session().data().processUsers(data.vusers());
+	session().data().processChats(data.vchats());
+	auto &v = data.vviews().v;
 	if (ids.size() == v.size()) {
 		for (auto i = _viewsIncrementRequests.begin(); i != _viewsIncrementRequests.cend(); ++i) {
 			if (i->second == requestId) {
 				const auto peer = i->first;
-				ChannelId channel = peerToChannel(peer->id);
+				const auto channel = peerToChannel(peer->id);
 				for (int32 j = 0, l = ids.size(); j < l; ++j) {
-					if (HistoryItem *item = session().data().message(channel, ids.at(j).v)) {
-						item->setViewsCount(v.at(j).v);
+					if (const auto item = session().data().message(channel, ids[j].v)) {
+						v[j].match([&](const MTPDmessageViews &data) {
+							if (const auto views = data.vviews()) {
+								item->setViewsCount(views->v);
+							}
+							if (const auto forwards = data.vforwards()) {
+								item->setForwardsCount(forwards->v);
+							}
+							if (const auto replies = data.vreplies()) {
+								item->setReplies(*replies);
+							}
+						});
 					}
 				}
 				_viewsIncrementRequests.erase(i);
@@ -1365,6 +1379,20 @@ void MainWidget::ui_showPeerHistory(
 				Ui::show(Box<InformBox>(unavailable));
 			}
 			return;
+		}
+	}
+	if (IsServerMsgId(showAtMsgId)
+		&& _mainSection
+		&& _mainSection->showMessage(peerId, params, showAtMsgId)) {
+		return;
+	}
+
+	using OriginMessage = SectionShow::OriginMessage;
+	if (const auto origin = std::get_if<OriginMessage>(&params.origin)) {
+		if (const auto returnTo = session().data().message(origin->id)) {
+			if (returnTo->history()->peer->id == peerId) {
+				_history->pushReplyReturn(returnTo);
+			}
 		}
 	}
 
@@ -2133,7 +2161,11 @@ void MainWidget::updateControlsGeometry() {
 			const auto active = _controller->activeChatCurrent();
 			if (const auto peer = active.peer()) {
 				if (Core::App().settings().tabbedSelectorSectionEnabled()) {
-					_history->pushTabbedSelectorToThirdSection(peer, params);
+					if (_mainSection) {
+						_mainSection->pushTabbedSelectorToThirdSection(peer, params);
+					} else {
+						_history->pushTabbedSelectorToThirdSection(peer, params);
+					}
 				} else if (Core::App().settings().thirdSectionInfoEnabled()) {
 					_controller->showSection(
 						Info::Memento::Default(peer),
@@ -2181,7 +2213,7 @@ void MainWidget::updateControlsGeometry() {
 		accumulate_min(dialogsWidth, width() - st::columnMinimalWidthMain);
 		auto mainSectionWidth = width() - dialogsWidth - thirdSectionWidth;
 
-		_dialogs->setGeometryWithTopMoved({ 0, 0, dialogsWidth, height() }, _contentScrollAddToY);
+		_dialogs->setGeometryToLeft(0, 0, dialogsWidth, height());
 		const auto shadowTop = _controller->window().verticalShadowTop();
 		const auto shadowHeight = height() - shadowTop;
 		_sideShadow->setGeometryToLeft(
@@ -2392,7 +2424,9 @@ void MainWidget::updateThirdColumnToCurrentChat(
 	};
 	auto switchTabbedFast = [&](not_null<PeerData*> peer) {
 		saveOldThirdSection();
-		return _history->pushTabbedSelectorToThirdSection(peer, params);
+		return _mainSection
+			? _mainSection->pushTabbedSelectorToThirdSection(peer, params)
+			: _history->pushTabbedSelectorToThirdSection(peer, params);
 	};
 	if (Adaptive::ThreeColumn()
 		&& settings.tabbedSelectorSectionEnabled()
@@ -2577,7 +2611,6 @@ void MainWidget::searchInChat(Dialogs::Key chat) {
 		_dialogs->setInnerFocus();
 	}
 }
-
 void MainWidget::mentionUser(PeerData *peer) {
 	if (!_history->peer() || !_history->peer()->canWrite()) {
 		return;
@@ -2586,169 +2619,10 @@ void MainWidget::mentionUser(PeerData *peer) {
 	_history->mentionUser(peer);
 }
 
-void MainWidget::openPeerByName(
-		const QString &username,
-		MsgId msgId,
-		const QString &startToken,
-		FullMsgId clickFromMessageId,
-		const QString &searchQuery) {
-	Core::App().hideMediaView();
-
-	if (const auto peer = session().data().peerByUsername(username)) {
-		if (msgId == ShowAtGameShareMsgId) {
-			if (peer->isUser() && peer->asUser()->isBot() && !startToken.isEmpty()) {
-				peer->asUser()->botInfo->shareGameShortName = startToken;
-				AddBotToGroupBoxController::Start(
-					_controller,
-					peer->asUser());
-			} else {
-				InvokeQueued(this, [this, peer, searchQuery] {
-					_controller->showPeerHistory(
-						peer->id,
-						SectionShow::Way::Forward);
-					if (!searchQuery.isEmpty()) {
-						App::searchByHashtag(searchQuery, peer);
-					}
-				});
-			}
-		} else if (msgId == ShowAtProfileMsgId && !peer->isChannel()) {
-			if (peer->isUser() && peer->asUser()->isBot() && !peer->asUser()->botInfo->cantJoinGroups && !startToken.isEmpty()) {
-				peer->asUser()->botInfo->startGroupToken = startToken;
-				AddBotToGroupBoxController::Start(
-					_controller,
-					peer->asUser());
-			} else if (peer->isUser() && peer->asUser()->isBot()) {
-				// Always open bot chats, even from mention links.
-				InvokeQueued(this, [this, peer, searchQuery] {
-					_controller->showPeerHistory(
-						peer->id,
-						SectionShow::Way::Forward);
-					if (!searchQuery.isEmpty()) {
-						App::searchByHashtag(searchQuery, peer);
-					}
-				});
-			} else {
-				if (searchQuery.isEmpty()) {
-					_controller->showPeerInfo(peer);
-				} else {
-					App::searchByHashtag(searchQuery, peer);
-				}
-			}
-		} else {
-			if (msgId == ShowAtProfileMsgId || !peer->isChannel()) { // show specific posts only in channels / supergroups
-				msgId = ShowAtUnreadMsgId;
-			}
-			if (peer->isUser() && peer->asUser()->isBot()) {
-				peer->asUser()->botInfo->startToken = startToken;
-				if (peer == _history->peer()) {
-					_history->updateControlsVisibility();
-					_history->updateControlsGeometry();
-				}
-			}
-			const auto returnToId = clickFromMessageId;
-			InvokeQueued(this, [=] {
-				if (const auto returnTo = session().data().message(returnToId)) {
-					if (returnTo->history()->peer == peer) {
-						pushReplyReturn(returnTo);
-					}
-				}
-				_controller->showPeerHistory(
-					peer->id,
-					SectionShow::Way::Forward,
-					msgId);
-				if (!searchQuery.isEmpty()) {
-					App::searchByHashtag(searchQuery, peer);
-				}
-			});
-		}
-	} else {
-		_api.request(MTPcontacts_ResolveUsername(
-			MTP_string(username)
-		)).done([=](const MTPcontacts_ResolvedPeer &result) {
-			usernameResolveDone(result, msgId, startToken);
-		}).fail([=](const RPCError &error) {
-			usernameResolveFail(error, username);
-		}).send();
-	}
-}
-
 bool MainWidget::contentOverlapped(const QRect &globalRect) {
 	return (_history->contentOverlapped(globalRect)
 			|| _playerPlaylist->overlaps(globalRect)
 			|| (_playerVolume && _playerVolume->overlaps(globalRect)));
-}
-
-void MainWidget::usernameResolveDone(
-		const MTPcontacts_ResolvedPeer &result,
-		MsgId msgId,
-		const QString &startToken,
-		const QString &searchQuery) {
-	Ui::hideLayer();
-	if (result.type() != mtpc_contacts_resolvedPeer) {
-		return;
-	}
-
-	const auto &d(result.c_contacts_resolvedPeer());
-	session().data().processUsers(d.vusers());
-	session().data().processChats(d.vchats());
-	const auto peerId = peerFromMTP(d.vpeer());
-	if (!peerId) {
-		return;
-	}
-
-	const auto peer = session().data().peer(peerId);
-	if (msgId == ShowAtProfileMsgId && !peer->isChannel()) {
-		if (peer->isUser() && peer->asUser()->isBot() && !peer->asUser()->botInfo->cantJoinGroups && !startToken.isEmpty()) {
-			peer->asUser()->botInfo->startGroupToken = startToken;
-			AddBotToGroupBoxController::Start(
-				_controller,
-				peer->asUser());
-		} else if (peer->isUser() && peer->asUser()->isBot()) {
-			// Always open bot chats, even from mention links.
-			InvokeQueued(this, [this, peer, searchQuery] {
-				_controller->showPeerHistory(
-					peer->id,
-					SectionShow::Way::Forward);
-				if (!searchQuery.isEmpty()) {
-					App::searchByHashtag(searchQuery, peer);
-				}
-			});
-		} else {
-			if (searchQuery.isEmpty()) {
-				_controller->showPeerInfo(peer);
-			} else {
-				App::searchByHashtag(searchQuery, peer);
-			}
-		}
-	} else {
-		// show specific posts only in channels / supergroups
-		if (msgId == ShowAtProfileMsgId || !peer->isChannel()) {
-			msgId = ShowAtUnreadMsgId;
-		}
-		if (peer->isUser() && peer->asUser()->isBot()) {
-			peer->asUser()->botInfo->startToken = startToken;
-			if (peer == _history->peer()) {
-				_history->updateControlsVisibility();
-				_history->updateControlsGeometry();
-			}
-		}
-		InvokeQueued(this, [=] {
-			_controller->showPeerHistory(
-				peer->id,
-				SectionShow::Way::Forward,
-				msgId);
-			if (!searchQuery.isEmpty()) {
-				App::searchByHashtag(searchQuery, peer);
-			}
-		});
-	}
-}
-
-void MainWidget::usernameResolveFail(const RPCError &error, const QString &username) {
-	if (error.code() == 400) {
-		Ui::show(Box<InformBox>(
-			tr::lng_username_not_found(tr::now, lt_user, username)));
-	}
 }
 
 void MainWidget::activate() {

@@ -85,8 +85,6 @@ constexpr auto kXCBFrameExtentsAtomName = "_GTK_FRAME_EXTENTS"_cs;
 
 QStringList PlatformThemes;
 
-bool IsTrayIconSupported = true;
-
 #ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 void PortalAutostart(bool autostart, bool silent = false) {
 	if (cExeName().isEmpty()) {
@@ -273,8 +271,11 @@ bool GenerateDesktopFile(
 		target.write(fileText.toUtf8());
 		target.close();
 
-		DEBUG_LOG(("App Info: removing old .desktop file"));
-		QFile(qsl("%1kotatogram.desktop").arg(targetPath)).remove();
+		if (IsStaticBinary()) {
+			DEBUG_LOG(("App Info: removing old .desktop files"));
+			QFile(qsl("%1kotatogram.desktop").arg(targetPath)).remove();
+			QFile(qsl("%1kotatogramdesktop.desktop").arg(targetPath)).remove();
+		}
 
 		return true;
 	} else {
@@ -625,6 +626,8 @@ bool StartXCBMoveResize(QWindow *window, int edges) {
 }
 
 bool StartWaylandMove(QWindow *window) {
+	// There are startSystemMove on Qt 5.15
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0) && !defined DESKTOP_APP_QT_PATCHED
 	if (const auto waylandWindow = static_cast<QWaylandWindow*>(
 		window->handle())) {
 		if (const auto seat = waylandWindow->display()->lastInputDevice()) {
@@ -633,27 +636,29 @@ bool StartWaylandMove(QWindow *window) {
 			}
 		}
 	}
+#endif // Qt < 5.15 && !DESKTOP_APP_QT_PATCHED
 
 	return false;
 }
 
 bool StartWaylandResize(QWindow *window, Qt::Edges edges) {
+	// There are startSystemResize on Qt 5.15
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0) && !defined DESKTOP_APP_QT_PATCHED
 	if (const auto waylandWindow = static_cast<QWaylandWindow*>(
 		window->handle())) {
 		if (const auto seat = waylandWindow->display()->lastInputDevice()) {
 			if (const auto shellSurface = waylandWindow->shellSurface()) {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0) || defined DESKTOP_APP_QT_PATCHED
-				return shellSurface->resize(seat, edges);
-#elif QT_VERSION >= QT_VERSION_CHECK(5, 13, 0) || defined DESKTOP_APP_QT_PATCHED // Qt >= 5.15 || DESKTOP_APP_QT_PATCHED
+#if QT_VERSION >= QT_VERSION_CHECK(5, 13, 0)
 				shellSurface->resize(seat, edges);
 				return true;
-#else // Qt >= 5.13 || DESKTOP_APP_QT_PATCHED
+#else // Qt >= 5.13
 				shellSurface->resize(seat, WlResizeFromEdges(edges));
 				return true;
-#endif // Qt < 5.13 && !DESKTOP_APP_QT_PATCHED
+#endif // Qt < 5.13
 			}
 		}
 	}
+#endif // Qt < 5.15 && !DESKTOP_APP_QT_PATCHED
 
 	return false;
 }
@@ -765,22 +770,6 @@ bool UnsetXCBFrameExtents(QWindow *window) {
 		*frameExtentsAtom);
 
 	return true;
-}
-
-bool SetWaylandWindowGeometry(QWindow *window, const QRect &geometry) {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 13, 0) || defined DESKTOP_APP_QT_PATCHED
-	if (const auto waylandWindow = static_cast<QWaylandWindow*>(
-		window->handle())) {
-		if (const auto seat = waylandWindow->display()->lastInputDevice()) {
-			if (const auto shellSurface = waylandWindow->shellSurface()) {
-				shellSurface->setWindowGeometry(geometry);
-				return true;
-			}
-		}
-	}
-#endif // Qt >= 5.13 || DESKTOP_APP_QT_PATCHED
-
-	return false;
 }
 
 Window::Control GtkKeywordToWindowControl(const QString &keyword) {
@@ -946,18 +935,7 @@ QString SingleInstanceLocalServerName(const QString &hash) {
 
 QString GetLauncherBasename() {
 	static const auto Result = [&] {
-		if (InSnap() && !cExeName().isEmpty()) {
-			const auto snapNameKey =
-				qEnvironmentVariableIsSet("SNAP_INSTANCE_NAME")
-					? "SNAP_INSTANCE_NAME"
-					: "SNAP_NAME";
-
-			return qsl("%1_%2")
-				.arg(QString::fromLatin1(qgetenv(snapNameKey)))
-				.arg(cExeName());
-		}
-
-		if (InAppImage() && !cExeName().isEmpty()) {
+		if ((IsStaticBinary() || InAppImage()) && !cExeName().isEmpty()) {
 			const auto appimagePath = qsl("file://%1%2")
 				.arg(cExeDir())
 				.arg(cExeName())
@@ -974,19 +952,7 @@ QString GetLauncherBasename() {
 				.arg(AppName.utf16().replace(' ', '_'));
 		}
 
-		const auto possibleBasenames = std::vector<QString>{
-			qsl(MACRO_TO_STRING(TDESKTOP_LAUNCHER_BASENAME))
-		};
-
-		for (const auto &it : possibleBasenames) {
-			if (!QStandardPaths::locate(
-				QStandardPaths::ApplicationsLocation,
-				it + qsl(".desktop")).isEmpty()) {
-				return it;
-			}
-		}
-
-		return possibleBasenames[0];
+		return qsl(MACRO_TO_STRING(TDESKTOP_LAUNCHER_BASENAME));
 	}();
 
 	return Result;
@@ -1045,7 +1011,10 @@ QImage GetImageFromClipboard() {
 
 std::optional<crl::time> LastUserInputTime() {
 	if (!IsWayland()) {
-		return XCBLastUserInputTime();
+		const auto xcbResult = XCBLastUserInputTime();
+		if (xcbResult.has_value()) {
+			return xcbResult;
+		}
 	}
 
 #ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
@@ -1095,11 +1064,9 @@ bool AutostartSupported() {
 }
 
 bool TrayIconSupported() {
-	return IsTrayIconSupported;
-}
-
-void SetTrayIconSupported(bool supported) {
-	IsTrayIconSupported = supported;
+	return App::wnd()
+		? App::wnd()->trayAvailable()
+		: false;
 }
 
 bool StartSystemMove(QWindow *window) {
@@ -1127,32 +1094,22 @@ bool ShowWindowMenu(QWindow *window) {
 }
 
 bool SetWindowExtents(QWindow *window, const QMargins &extents) {
-	if (IsWayland()) {
-		const auto geometry = QRect(QPoint(), window->size())
-			.marginsRemoved(extents);
-
-		return SetWaylandWindowGeometry(window, geometry);
-	} else {
+	if (!IsWayland()) {
 		return SetXCBFrameExtents(window, extents);
 	}
+
+	return false;
 }
 
 bool UnsetWindowExtents(QWindow *window) {
-	if (IsWayland()) {
-		const auto geometry = QRect(QPoint(), window->size());
-		return SetWaylandWindowGeometry(window, geometry);
-	} else {
+	if (!IsWayland()) {
 		return UnsetXCBFrameExtents(window);
 	}
+
+	return false;
 }
 
 bool WindowsNeedShadow() {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 13, 0) || defined DESKTOP_APP_QT_PATCHED
-	if (IsWayland()) {
-		return true;
-	}
-#endif // Qt >= 5.13 || DESKTOP_APP_QT_PATCHED
-
 	if (!IsWayland() && XCBFrameExtentsSupported()) {
 		return true;
 	}
@@ -1389,15 +1346,11 @@ void start() {
 		"this may lead to font issues.");
 #endif // DESKTOP_APP_USE_PACKAGED_FONTS
 
-	if(IsStaticBinary()
-		|| InAppImage()
-		|| InFlatpak()
-		|| InSnap()
-		|| IsQtPluginsBundled()) {
+	if (IsQtPluginsBundled()) {
 		qputenv("QT_WAYLAND_DECORATION", "material");
 	}
 
-	if((IsStaticBinary()
+	if ((IsStaticBinary()
 		|| InAppImage()
 		|| IsQtPluginsBundled())
 		// it is handled by Qt for flatpak and snap
@@ -1461,20 +1414,19 @@ void InstallMainDesktopFile() {
 }
 
 void RegisterCustomScheme(bool force) {
-#ifndef TDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME
 	if (cExeName().isEmpty()) {
 		return;
 	}
 
 	GError *error = nullptr;
 
-	const auto actualCommandlineBuilder = qsl("%1 --")
+	const auto neededCommandlineBuilder = qsl("%1 --")
 		.arg((IsStaticBinary() || InAppImage())
 			? cExeDir() + cExeName()
 			: cExeName());
 
-	const auto actualCommandline = qsl("%1 %u")
-		.arg(actualCommandlineBuilder);
+	const auto neededCommandline = qsl("%1 %u")
+		.arg(neededCommandlineBuilder);
 
 	auto currentAppInfo = g_app_info_get_default_for_type(
 		kHandlerTypeName.utf8(),
@@ -1486,13 +1438,36 @@ void RegisterCustomScheme(bool force) {
 
 		g_object_unref(currentAppInfo);
 
-		if (currentCommandline == actualCommandline) {
+		if (currentCommandline == neededCommandline) {
 			return;
 		}
 	}
 
+	auto registeredAppInfoList = g_app_info_get_recommended_for_type(
+		kHandlerTypeName.utf8());
+
+	for (auto l = registeredAppInfoList; l != nullptr; l = l->next) {
+		const auto currentRegisteredAppInfo = reinterpret_cast<GAppInfo*>(
+			l->data);
+
+		const auto currentAppInfoId = QString(
+			g_app_info_get_id(currentRegisteredAppInfo));
+
+		const auto currentCommandline = QString(
+			g_app_info_get_commandline(currentRegisteredAppInfo));
+
+		if (currentCommandline == neededCommandline
+			&& currentAppInfoId.startsWith(qsl("userapp-"))) {
+			g_app_info_delete(currentRegisteredAppInfo);
+		}
+	}
+
+	if (registeredAppInfoList) {
+		g_list_free_full(registeredAppInfoList, g_object_unref);
+	}
+
 	auto newAppInfo = g_app_info_create_from_commandline(
-		actualCommandlineBuilder.toUtf8(),
+		neededCommandlineBuilder.toUtf8(),
 		AppName.utf8(),
 		G_APP_INFO_CREATE_SUPPORTS_URIS,
 		&error);
@@ -1510,7 +1485,6 @@ void RegisterCustomScheme(bool force) {
 		LOG(("App Error: %1").arg(error->message));
 		g_error_free(error);
 	}
-#endif // !TDESKTOP_DISABLE_REGISTER_CUSTOM_SCHEME
 }
 
 PermissionStatus GetPermissionStatus(PermissionType type) {
@@ -1555,6 +1529,9 @@ bool OpenSystemSettings(SystemSettingsType type) {
 namespace ThirdParty {
 
 void start() {
+	DEBUG_LOG(("Icon theme: %1").arg(QIcon::themeName()));
+	DEBUG_LOG(("Fallback icon theme: %1").arg(QIcon::fallbackThemeName()));
+
 	Libs::start();
 	MainWindow::LibsLoaded();
 }

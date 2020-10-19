@@ -36,6 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_translator.h"
 #include "lang/lang_cloud_manager.h"
 #include "lang/lang_hardcoded.h"
+#include "lang/lang_instance.h"
 #include "mainwidget.h"
 #include "core/file_utilities.h"
 #include "main/main_account.h"
@@ -212,8 +213,8 @@ void Application::run() {
 	_notifications = std::make_unique<Window::Notifications::System>();
 
 	startLocalStorage();
-	Lang::Current().fillDefaultJson();
-	Lang::Current().fillFromJson();
+	Lang::GetInstance().fillDefaultJson();
+	Lang::GetInstance().fillFromJson();
 	ValidateScale();
 
 	if (Local::oldSettingsVersion() < AppVersion) {

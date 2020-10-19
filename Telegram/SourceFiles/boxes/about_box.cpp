@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/about_box.h"
 
 #include "lang/lang_keys.h"
+#include "lang/lang_instance.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "boxes/confirm_box.h"
@@ -48,8 +49,8 @@ rpl::producer<TextWithEntities> Text2() {
 }
 
 rpl::producer<TextWithEntities> Text3() {
-	auto baseLang = Lang::Current().baseId();
-	auto currentLang = Lang::Current().id();
+	auto baseLang = Lang::GetInstance().baseId();
+	auto currentLang = Lang::Id();
 	QString channelLink;
 
 	for (const auto language : { "ru", "uk", "be" }) {
@@ -142,7 +143,7 @@ QString telegramFaqLink() {
 	const auto langpacked = [&](const char *language) {
 		return result + '/' + language;
 	};
-	const auto current = Lang::Current().id();
+	const auto current = Lang::Id();
 	for (const auto language : { "de", "es", "it", "ko" }) {
 		if (current.startsWith(QLatin1String(language))) {
 			return langpacked(language);

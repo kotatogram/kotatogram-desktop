@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <rpl/combine.h>
 #include <rpl/combine_previous.h>
 #include "history/history.h"
+#include "history/view/history_view_send_action.h"
 #include "boxes/add_contact_box.h"
 #include "boxes/confirm_box.h"
 #include "info/info_memento.h"
@@ -67,8 +68,12 @@ TopBarWidget::TopBarWidget(
 , _menuToggle(this, st::ktgTopBarMenuToggle)
 , _titlePeerText(st::windowMinWidth / 3)
 , _onlineUpdater([=] { updateOnlineDisplay(); }) {
-	subscribe(Lang::Current().updated(), [=] { refreshLang(); });
 	setAttribute(Qt::WA_OpaquePaintEvent);
+
+	Lang::Updated(
+	) | rpl::start_with_next([=] {
+		refreshLang();
+	}, lifetime());
 
 	_forward->setClickedCallback([=] { _forwardSelection.fire({}); });
 	_forward->setWidthChangedCallback([=] { updateControlsGeometry(); });
@@ -336,15 +341,18 @@ void TopBarWidget::paintTopBar(Painter &p) {
 
 	const auto history = _activeChat.history();
 	const auto folder = _activeChat.folder();
-	if (folder || history->peer->isSelf()) {
+	if (folder
+		|| history->peer->sharedMediaInfo()
+		|| (_section == Section::Scheduled
+			&& (history && history->peer->isSelf()))) {
 		// #TODO feed name emoji.
 		auto text = (_section == Section::Scheduled)
-			? ((history && history->peer->isSelf())
-				? tr::lng_reminder_messages(tr::now)
-				: tr::lng_scheduled_messages(tr::now))
+			? tr::lng_reminder_messages(tr::now)
 			: folder
 			? folder->chatListName()
-			: tr::lng_saved_messages(tr::now);
+			: history->peer->isSelf()
+			? tr::lng_saved_messages(tr::now)
+			: tr::lng_replies_messages(tr::now);
 		const auto textWidth = st::historySavedFont->width(text);
 		if (availableWidth < textWidth) {
 			text = st::historySavedFont->elided(text, availableWidth);
@@ -356,40 +364,31 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			(height() - st::historySavedFont->height) / 2,
 			width(),
 			text);
-	} else if (_section == Section::Scheduled) {
-		auto text = tr::lng_scheduled_messages(tr::now);
-		
+	} else if (_section == Section::Replies
+			|| _section == Section::Scheduled) {
 		p.setPen(st::ktgTopBarNameFg);
-		
-		if (history) {
-			const auto textWidth = st::msgNameFont->width(text);
-			if (availableWidth < textWidth) {
-				text = st::msgNameFont->elided(text, availableWidth);
-			}
-			p.setFont(st::msgNameFont);
-			p.drawTextLeft(
-				nameleft,
-				nametop,
-				width(),
-				text);
+		p.setFont(st::semiboldFont);
+		p.drawTextLeft(
+			nameleft,
+			nametop,
+			width(),
+			(_section == Section::Replies
+				? tr::lng_manage_discussion_group(tr::now)
+				: tr::lng_scheduled_messages(tr::now)));
 
-			auto nameText = history->peer->topBarNameText().toString();
+		p.setFont(st::dialogsTextFont);
+		if (!paintConnectingState(p, nameleft, statustop, width())
+			&& (_section != Section::Replies
+				|| !_sendAction->paint(
+					p,
+					nameleft,
+					statustop,
+					availableWidth,
+					width(),
+					st::ktgTopBarStatusFgActive,
+					crl::now()))) {
 			p.setPen(st::ktgTopBarStatusFg);
-
-			Ui::Text::String nameTextStr;
-			nameTextStr.setText(st::dialogsTextStyle, nameText, Ui::NameTextOptions());
-			nameTextStr.drawElided(p, nameleft, statustop, availableWidth);
-		} else {
-			const auto textWidth = st::historySavedFont->width(text);
-			if (availableWidth < textWidth) {
-				text = st::historySavedFont->elided(text, availableWidth);
-			}
-			p.setFont(st::historySavedFont);
-			p.drawTextLeft(
-				nameleft,
-				(height() - st::historySavedFont->height) / 2,
-				width(),
-				text);
+			p.drawTextLeft(nameleft, statustop, width(), _customTitleText);
 		}
 	} else if (const auto history = _activeChat.history()) {
 		const auto peer = history->peer;
@@ -418,18 +417,15 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			namewidth);
 
 		p.setFont(st::dialogsTextFont);
-		if (paintConnectingState(p, nameleft, statustop, width())) {
-			return;
-		} else if (history->paintSendAction(
+		if (!paintConnectingState(p, nameleft, statustop, width())
+			&& !_sendAction->paint(
 				p,
 				nameleft,
 				statustop,
-			availableWidth,
+				availableWidth,
 				width(),
 				st::ktgTopBarStatusFgActive,
 				crl::now())) {
-			return;
-		} else {
 			paintStatus(p, nameleft, statustop, availableWidth, width());
 		}
 	}
@@ -505,6 +501,10 @@ void TopBarWidget::infoClicked() {
 		_controller->showSection(Info::Memento(
 			_activeChat.peer(),
 			Info::Section(Storage::SharedMediaType::Photo)));
+	} else if (_activeChat.peer()->isRepliesChat()) {
+		_controller->showSection(Info::Memento(
+			_activeChat.peer(),
+			Info::Section(Storage::SharedMediaType::Photo)));
 	} else {
 		_controller->showPeerInfo(_activeChat.peer());
 	}
@@ -518,12 +518,16 @@ void TopBarWidget::backClicked() {
 	}
 }
 
-void TopBarWidget::setActiveChat(Dialogs::Key chat, Section section) {
+void TopBarWidget::setActiveChat(
+		Dialogs::Key chat,
+		Section section,
+		SendActionPainter *sendAction) {
 	if (_activeChat == chat && _section == section) {
 		return;
 	}
 	_activeChat = chat;
 	_section = section;
+	_sendAction = sendAction;
 	_back->clearState();
 	update();
 
@@ -536,6 +540,13 @@ void TopBarWidget::setActiveChat(Dialogs::Key chat, Section section) {
 	updateOnlineDisplay();
 	updateControlsVisibility();
 	refreshUnreadBadge();
+}
+
+void TopBarWidget::setCustomTitle(const QString &title) {
+	if (_customTitleText != title) {
+		_customTitleText = title;
+		update();
+	}
 }
 
 void TopBarWidget::refreshInfoButton() {

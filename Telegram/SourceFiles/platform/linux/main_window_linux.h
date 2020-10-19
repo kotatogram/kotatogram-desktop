@@ -16,7 +16,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QTemporaryFile>
 #include <QtDBus/QDBusObjectPath>
 #include <dbusmenuexporter.h>
-#endif
+
+typedef char gchar;
+typedef struct _GVariant GVariant;
+typedef struct _GDBusProxy GDBusProxy;
+#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 namespace Platform {
 
@@ -33,6 +37,14 @@ public:
 
 	void psShowTrayMenu();
 
+	bool trayAvailable() {
+		return _sniAvailable || QSystemTrayIcon::isSystemTrayAvailable();
+	}
+
+#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+	void handleSNIHostRegistered();
+#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+
 	static void LibsLoaded();
 
 	~MainWindow();
@@ -41,6 +53,7 @@ protected:
 	void initHook() override;
 	void unreadCounterChangedHook() override;
 	void updateGlobalMenuHook() override;
+	void handleVisibleChangedHook(bool visible) override;
 
 	void initTrayMenuHook() override;
 	bool hasTrayIcon() const override;
@@ -63,16 +76,18 @@ protected:
 		style::color color) = 0;
 
 private:
+	bool _sniAvailable = false;
 	Ui::PopupMenu *_trayIconMenuXEmbed = nullptr;
 
 	void updateIconCounters();
 	void updateWaylandDecorationColors();
-	void handleVisibleChanged(bool visible);
 
 #ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 	StatusNotifierItem *_sniTrayIcon = nullptr;
+	GDBusProxy *_sniDBusProxy = nullptr;
 	std::unique_ptr<QTemporaryFile> _trayIconFile = nullptr;
 
+	bool _appMenuSupported = false;
 	DBusMenuExporter *_mainMenuExporter = nullptr;
 	QDBusObjectPath _mainMenuPath;
 
@@ -124,6 +139,13 @@ private:
 	void psLinuxStrikeOut();
 	void psLinuxMonospace();
 	void psLinuxClearFormat();
+
+	static void sniSignalEmitted(
+		GDBusProxy *proxy,
+		gchar *sender_name,
+		gchar *signal_name,
+		GVariant *parameters,
+		MainWindow *window);
 #endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 };
