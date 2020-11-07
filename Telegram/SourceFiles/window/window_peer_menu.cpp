@@ -1535,7 +1535,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 						const auto media = item->media();
 
 						if (media && !media->webpage()) {
-							if (media->poll()
+							if ((media->poll() && !history->peer->isUser())
 								|| media->geoPoint()
 								|| media->sharedContact()
 								|| media->photo()
