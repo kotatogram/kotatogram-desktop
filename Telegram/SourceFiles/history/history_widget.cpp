@@ -5307,7 +5307,7 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 					updateForwardingTexts();
 				});
 			}
-			if (!cForwardQuoted() && hasMediaToGroup && count > 1) {
+			if (hasMediaToGroup && count > 1) {
 				_menu->addSeparator();
 				if (!cForwardAlbumsAsIs()) {
 					_menu->addAction(tr::ktg_forward_menu_default_albums(tr::now), [=] {
@@ -5317,6 +5317,9 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 				}
 				if (cForwardAlbumsAsIs() || !cForwardGrouped()) {
 					_menu->addAction(tr::ktg_forward_menu_group_all_media(tr::now), [=] {
+						if (cForwardQuoted()) {
+							cSetForwardQuoted(false);
+						}
 						cSetForwardAlbumsAsIs(false);
 						cSetForwardGrouped(true);
 						updateForwardingTexts();
@@ -5324,6 +5327,9 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 				}
 				if (cForwardAlbumsAsIs() || cForwardGrouped()) {
 					_menu->addAction(tr::ktg_forward_menu_separate_messages(tr::now), [=] {
+						if (cForwardQuoted()) {
+							cSetForwardQuoted(false);
+						}
 						cSetForwardAlbumsAsIs(false);
 						cSetForwardGrouped(false);
 						updateForwardingTexts();

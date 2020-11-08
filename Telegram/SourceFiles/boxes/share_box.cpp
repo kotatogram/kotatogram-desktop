@@ -521,7 +521,7 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 			updateAdditionalTitle();
 		});
 	}
-	if (!cForwardQuoted() && _hasMediaMessages) {
+	if (_hasMediaMessages) {
 		_menu->addSeparator();
 		if (!cForwardAlbumsAsIs()) {
 			_menu->addAction(tr::ktg_forward_menu_default_albums(tr::now), [=] {
@@ -531,6 +531,9 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 		}
 		if (cForwardAlbumsAsIs() || !cForwardGrouped()) {
 			_menu->addAction(tr::ktg_forward_menu_group_all_media(tr::now), [=] {
+				if (cForwardQuoted()) {
+					cSetForwardQuoted(false);
+				}
 				cSetForwardAlbumsAsIs(false);
 				cSetForwardGrouped(true);
 				updateAdditionalTitle();
@@ -538,6 +541,9 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 		}
 		if (cForwardAlbumsAsIs() || cForwardGrouped()) {
 			_menu->addAction(tr::ktg_forward_menu_separate_messages(tr::now), [=] {
+				if (cForwardQuoted()) {
+					cSetForwardQuoted(false);
+				}
 				cSetForwardAlbumsAsIs(false);
 				cSetForwardGrouped(false);
 				updateAdditionalTitle();
