@@ -382,6 +382,12 @@ void FiltersMenu::showAllMenu(QPoint position) {
 	}
 	const auto defaultFilterId = _session->session().account().defaultFilterId();
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(_all);
+	const auto addAction = [&](const QString &text, Fn<void()> callback) {
+		return _popupMenu->addAction(
+			text,
+			crl::guard(&_outer, std::move(callback)));
+	};
+	MenuAddMarkAsReadAllChatsAction(&_session->session().data(), addAction);
 	_popupMenu->addAction(
 		tr::ktg_filters_context_edit_all(tr::now),
 		crl::guard(&_outer, [=] { _session->showSettings(Settings::Type::Folders); }));

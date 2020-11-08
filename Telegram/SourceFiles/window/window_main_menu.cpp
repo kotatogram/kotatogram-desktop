@@ -278,6 +278,7 @@ void MainMenu::AccountButton::paintEvent(QPaintEvent *e) {
 }
 
 void MainMenu::AccountButton::contextMenuEvent(QContextMenuEvent *e) {
+	/*
 	if (!_menu && IsAltShift(e->modifiers())) {
 		_menu = base::make_unique_q<Ui::PopupMenu>(this);
 		const auto addAction = [&](const QString &text, Fn<void()> callback) {
@@ -289,13 +290,23 @@ void MainMenu::AccountButton::contextMenuEvent(QContextMenuEvent *e) {
 		_menu->popup(QCursor::pos());
 		return;
 	}
-	if (&_session->account() == &Core::App().activeAccount() || _menu) {
+	*/
+	if (_menu) {
 		return;
 	}
+	const auto isActiveAccount = &_session->account() == &Core::App().activeAccount();
 	_menu = base::make_unique_q<Ui::PopupMenu>(this);
-	_menu->addAction(tr::lng_menu_activate(tr::now), crl::guard(this, [=] {
-		Core::App().domain().activate(&_session->account());
-	}));
+	if (!isActiveAccount) {
+		_menu->addAction(tr::lng_menu_activate(tr::now), crl::guard(this, [=] {
+			Core::App().domain().activate(&_session->account());
+		}));
+	}
+	const auto addAction = [&](const QString &text, Fn<void()> callback) {
+		return _menu->addAction(
+			text,
+			crl::guard(this, std::move(callback)));
+	};
+	MenuAddMarkAsReadAllChatsAction(&_session->data(), addAction);
 	_menu->addAction(tr::lng_settings_logout(tr::now), crl::guard(this, [=] {
 		const auto session = _session;
 		const auto callback = [=](Fn<void()> &&close) {
