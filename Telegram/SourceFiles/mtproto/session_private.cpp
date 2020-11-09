@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/mtproto_rpc_sender.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "mtproto/connection_abstract.h"
+#include "platform/platform_specific.h"
 #include "base/openssl_help.h"
 #include "base/qthelp_url.h"
 #include "base/unixtime.h"
@@ -115,7 +116,7 @@ void WrapInvokeAfter(
 	auto cb = reinterpret_cast<const char*>(b);
 	volatile auto different = false;
 	for (const auto ce = ca + size; ca != ce; ++ca, ++cb) {
-		different |= (*ca != *cb);
+		different = different | (*ca != *cb);
 	}
 	return different;
 }
@@ -633,13 +634,24 @@ void SessionPrivate::tryToSend() {
 			: _instance->systemVersion();
 #if defined OS_MAC_STORE
 		const auto appVersion = QString::fromLatin1(AppKotatoVersionStr)
-			+ " mac store";
+			+ " Mac App Store";
 #elif defined OS_WIN_STORE // OS_MAC_STORE
 		const auto appVersion = QString::fromLatin1(AppKotatoVersionStr)
-			+ " win store";
-#else // OS_MAC_STORE || OS_WIN_STORE
+			+ " Microsoft Store";
+#elif defined Q_OS_UNIX && !defined Q_OS_MAC // OS_MAC_STORE || OS_WIN_STORE
+		const auto appVersion = [] {
+			if (Platform::InFlatpak()) {
+				return QString::fromLatin1(AppKotatoVersionStr)
+					+ " Flatpak";
+			} else if (Platform::InSnap()) {
+				return QString::fromLatin1(AppKotatoVersionStr)
+					+ " Snap";
+			}
+			return QString::fromLatin1(AppKotatoVersionStr);
+		}();
+#else // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
 		const auto appVersion = QString::fromLatin1(AppKotatoVersionStr);
-#endif // OS_MAC_STORE || OS_WIN_STORE
+#endif // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
 		const auto proxyType = _options->proxy.type;
 		const auto mtprotoProxy = (proxyType == ProxyData::Type::Mtproto);
 		const auto clientProxyFields = mtprotoProxy

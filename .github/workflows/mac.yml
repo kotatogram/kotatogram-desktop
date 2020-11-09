@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Get repository name.
-        run: echo ::set-env name=REPO_NAME::${GITHUB_REPOSITORY##*/}
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
 
       - name: Clone.
         uses: actions/checkout@v2
@@ -101,13 +101,13 @@ jobs:
             thisFile=$REPO_NAME/.github/workflows/mac.yml
             echo `md5 -q $thisFile` >> CACHE_KEY.txt
           fi
-          echo ::set-env name=CACHE_KEY::`md5 -q CACHE_KEY.txt`
+          echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
 
-          echo ::add-path::$PWD/Libraries/depot_tools
+          echo "$PWD/Libraries/depot_tools" >> $GITHUB_PATH
 
           mkdir -p Libraries/macos
           cd Libraries/macos
-          echo ::set-env name=LibrariesPath::`pwd`
+          echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
 
       - name: Patches.
         run: |
@@ -138,6 +138,20 @@ jobs:
           CFLAGS="$MIN_MAC $UNGUARDED" LDFLAGS="$MIN_MAC" ./configure --prefix=$PREFIX
           make -j$(nproc)
           sudo make install
+
+      - name: MozJPEG.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v4.0.1-rc2 $GIT/mozilla/mozjpeg.git
+          cd mozjpeg
+          cmake -B build . \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr/local/macos \
+          -DWITH_JPEG8=ON \
+          -DPNG_SUPPORTED=OFF
+          cmake --build build -j$(nproc)
+          sudo cmake --install build
 
       - name: OpenSSL cache.
         id: cache-openssl
@@ -176,17 +190,14 @@ jobs:
         with:
           path: ${{ env.LibrariesPath }}/opus-cache
           key: ${{ runner.OS }}-opus-${{ env.CACHE_KEY }}
-      - name: Opus clone.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v1.3 --depth=1 $GIT/xiph/opus
-      - name: Opus build.
+      - name: Opus.
         if: steps.cache-opus.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
+          git clone $GIT/xiph/opus
           cd opus
+          git checkout v1.3
           ./autogen.sh
           CFLAGS="$MIN_MAC $UNGUARDED" CPPFLAGS="$MIN_MAC $UNGUARDED" LDFLAGS="$MIN_MAC" ./configure --prefix=$PREFIX
           make -j$(nproc)
@@ -453,7 +464,10 @@ jobs:
           -securetransport \
           -nomake examples \
           -nomake tests \
-          -platform macx-clang
+          -platform macx-clang \
+          -I "/usr/local/macos/include" \
+          LIBJPEG_LIBS="/usr/local/macos/lib/libjpeg.a" \
+          ZLIB_LIBS="/usr/local/macos/lib/libz.a"
 
           make -j$(nproc)
           sudo make install
@@ -477,7 +491,7 @@ jobs:
           cd tg_owt/out/Debug
           cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug \
           -DTG_OWT_SPECIAL_TARGET=mac \
-          -DTG_OWT_LIBJPEG_INCLUDE_PATH=`pwd`/../../../qt_$QT/qtbase/src/3rdparty/libjpeg \
+          -DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/macos/include \
           -DTG_OWT_OPENSSL_INCLUDE_PATH=`pwd`/../../../openssl_$OPENSSL_VER/include \
           -DTG_OWT_OPUS_INCLUDE_PATH=$PREFIX/include/opus \
           -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include \
@@ -500,9 +514,9 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo ::set-env name=ARTIFACT_NAME::Kotatogram_${{ matrix.defines }}
+            echo "ARTIFACT_NAME=Kotatogram_${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo ::set-env name=ARTIFACT_NAME::Kotatogram
+            echo "ARTIFACT_NAME=Kotatogram" >> $GITHUB_ENV
           fi
 
           ./configure.sh \

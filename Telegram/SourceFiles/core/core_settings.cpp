@@ -18,8 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Core {
 
 Settings::Settings()
-: _sendFilesWay(SendFilesWay::Album)
-, _sendSubmitWay(Ui::InputSubmitSettings::Enter)
+: _sendSubmitWay(Ui::InputSubmitSettings::Enter)
 , _floatPlayerColumn(Window::Column::Second)
 , _floatPlayerCorner(RectPart::TopRight)
 , _dialogsWidthRatio(DefaultDialogsWidthRatio()) {
@@ -75,7 +74,7 @@ QByteArray Settings::serialize() const {
 			stream << key << value;
 		}
 		stream
-			<< qint32(_sendFilesWay)
+			<< qint32(_sendFilesWay.serialize())
 			<< qint32(_sendSubmitWay)
 			<< qint32(_includeMutedCounter ? 1 : 0)
 			<< qint32(_countUnreadMessages ? 1 : 0)
@@ -109,7 +108,8 @@ QByteArray Settings::serialize() const {
 			<< qint32(_notifyFromAll ? 1 : 0)
 			<< qint32(_nativeWindowFrame.current() ? 1 : 0)
 			<< qint32(_systemDarkModeEnabled.current() ? 1 : 0)
-			<< _callVideoInputDeviceId;
+			<< _callVideoInputDeviceId
+			<< qint32(_ipRevealWarning ? 1 : 0);
 	}
 	return result;
 }
@@ -148,7 +148,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	qint32 lastSeenWarningSeen = _lastSeenWarningSeen ? 1 : 0;
 	qint32 soundOverridesCount = 0;
 	base::flat_map<QString, QString> soundOverrides;
-	qint32 sendFilesWay = static_cast<qint32>(_sendFilesWay);
+	qint32 sendFilesWay = _sendFilesWay.serialize();
 	qint32 sendSubmitWay = static_cast<qint32>(_sendSubmitWay);
 	qint32 includeMutedCounter = _includeMutedCounter ? 1 : 0;
 	qint32 countUnreadMessages = _countUnreadMessages ? 1 : 0;
@@ -176,6 +176,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	qint32 notifyFromAll = _notifyFromAll ? 1 : 0;
 	qint32 nativeWindowFrame = _nativeWindowFrame.current() ? 1 : 0;
 	qint32 systemDarkModeEnabled = _systemDarkModeEnabled.current() ? 1 : 0;
+	qint32 ipRevealWarning = _ipRevealWarning ? 1 : 0;
 
 	stream >> themesAccentColors;
 	if (!stream.atEnd()) {
@@ -259,6 +260,9 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> callVideoInputDeviceId;
 	}
+	if (!stream.atEnd()) {
+		stream >> ipRevealWarning;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::Settings::constructFromSerialized()"));
@@ -304,12 +308,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	_callAudioDuckingEnabled = (callAudioDuckingEnabled == 1);
 	_lastSeenWarningSeen = (lastSeenWarningSeen == 1);
 	_soundOverrides = std::move(soundOverrides);
-	auto uncheckedSendFilesWay = static_cast<SendFilesWay>(sendFilesWay);
-	switch (uncheckedSendFilesWay) {
-	case SendFilesWay::Album:
-	case SendFilesWay::Photos:
-	case SendFilesWay::Files: _sendFilesWay = uncheckedSendFilesWay; break;
-	}
+	_sendFilesWay = Ui::SendFilesWay::FromSerialized(sendFilesWay).value_or(_sendFilesWay);
 	auto uncheckedSendSubmitWay = static_cast<Ui::InputSubmitSettings>(sendSubmitWay);
 	switch (uncheckedSendSubmitWay) {
 	case Ui::InputSubmitSettings::Enter:
@@ -318,6 +317,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	_includeMutedCounter = (includeMutedCounter == 1);
 	_countUnreadMessages = (countUnreadMessages == 1);
 	_exeLaunchWarning = (exeLaunchWarning == 1);
+	_ipRevealWarning = (ipRevealWarning == 1);
 	_notifyAboutPinned = (notifyAboutPinned == 1);
 	_loopAnimatedStickers = (loopAnimatedStickers == 1);
 	_largeEmoji = (largeEmoji == 1);
@@ -463,11 +463,12 @@ void Settings::resetOnLastLogout() {
 	//_themesAccentColors = Window::Theme::AccentColors();
 
 	_lastSeenWarningSeen = false;
-	_sendFilesWay = SendFilesWay::Album;
+	_sendFilesWay = Ui::SendFilesWay();
 	//_sendSubmitWay = Ui::InputSubmitSettings::Enter;
 	_soundOverrides = {};
 
 	_exeLaunchWarning = true;
+	_ipRevealWarning = true;
 	_loopAnimatedStickers = true;
 	_largeEmoji = true;
 	_replaceEmoji = true;

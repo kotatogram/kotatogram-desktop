@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/add_participants_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/share_box.h"
+#include "kotato/customboxes/unpin_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/labels.h"
@@ -497,7 +498,7 @@ void Filler::addUserActions(not_null<UserData*> user) {
 				user->session().supportHelper().editInfo(controller, user);
 			});
 		}
-		if (user->isSelf() && user->pinnedMessageId()) {
+		if (user->isSelf() && user->hasPinnedMessages()) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(user);
 			if (hasHidden) {
 				_addAction(
@@ -565,7 +566,7 @@ void Filler::addChatActions(not_null<ChatData*> chat) {
 				controller->showEditPeerBox(chat);
 			});
 		}
-		if (chat->pinnedMessageId()) {
+		if (chat->hasPinnedMessages()) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(chat);
 			if (hasHidden) {
 				_addAction(
@@ -627,7 +628,7 @@ void Filler::addChannelActions(not_null<ChannelData*> channel) {
 				navigation->showEditPeerBox(channel);
 			});
 		}
-		if (channel->pinnedMessageId()) {
+		if (channel->hasPinnedMessages()) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(channel);
 			if (hasHidden) {
 				_addAction(
@@ -818,20 +819,20 @@ void FolderFiller::addTogglesForArchive() {
 
 void PeerMenuHidePinnedMessage(not_null<PeerData*> peer) {
 	auto hidden = HistoryWidget::switchPinnedHidden(peer, true);
-	if (hidden) {
-		peer->session().changes().peerUpdated(
-			peer,
-			Data::PeerUpdate::Flag::PinnedMessage);
-	}
+	// if (hidden) {
+	// 	peer->session().changes().peerUpdated(
+	// 		peer,
+	// 		Data::PeerUpdate::Flag::PinnedMessage);
+	// }
 }
 
 void PeerMenuUnhidePinnedMessage(not_null<PeerData*> peer) {
 	auto unhidden = HistoryWidget::switchPinnedHidden(peer, false);
-	if (unhidden) {
-		peer->session().changes().peerUpdated(
-			peer,
-			Data::PeerUpdate::Flag::PinnedMessage);
-	}
+	// if (unhidden) {
+	// 	peer->session().changes().peerUpdated(
+	// 		peer,
+	// 		Data::PeerUpdate::Flag::PinnedMessage);
+	// }
 }
 
 void PeerMenuExportChat(not_null<PeerData*> peer) {
@@ -1665,6 +1666,70 @@ void PeerMenuAddChannelMembers(
 				{ already.begin(), already.end() });
 		});
 	}));
+}
+
+void ToggleMessagePinned(
+		not_null<Window::SessionNavigation*> navigation,
+		FullMsgId itemId,
+		bool pin) {
+	const auto item = navigation->session().data().message(itemId);
+	if (!item || !item->canPin()) {
+		return;
+	}
+	if (pin) {
+		Ui::show(Box<PinMessageBox>(item->history()->peer, item->id));
+	} else {
+		Ui::show(Box<UnpinMessageBox>(item->history()->peer, item->id));
+	}
+}
+
+void HidePinnedBar(
+		not_null<Window::SessionNavigation*> navigation,
+		not_null<PeerData*> peer,
+		Fn<void()> onHidden) {
+	Ui::show(Box<ConfirmBox>(tr::lng_pinned_hide_all_sure(tr::now), tr::lng_pinned_hide_all_hide(tr::now), crl::guard(navigation, [=] {
+		Ui::hideLayer();
+		auto &session = peer->session();
+		const auto migrated = peer->migrateFrom();
+		const auto top = Data::ResolveTopPinnedId(peer, migrated);
+		const auto universal = !top
+			? int32(0)
+			: (migrated && !top.channel)
+			? (top.msg - ServerMaxMsgId)
+			: top.msg;
+		if (universal) {
+			session.settings().setHiddenPinnedMessageId(peer->id, universal);
+			session.saveSettingsDelayed();
+			if (onHidden) {
+				onHidden();
+			}
+		} else {
+			session.api().requestFullPeer(peer);
+		}
+	})));
+}
+
+void UnpinAllMessages(
+		not_null<Window::SessionNavigation*> navigation,
+		not_null<History*> history) {
+	Ui::show(Box<ConfirmBox>(tr::lng_pinned_unpin_all_sure(tr::now), tr::lng_pinned_unpin(tr::now), crl::guard(navigation, [=] {
+		Ui::hideLayer();
+		const auto api = &history->session().api();
+		const auto sendRequest = [=](auto self) -> void {
+			api->request(MTPmessages_UnpinAllMessages(
+				history->peer->input
+			)).done([=](const MTPmessages_AffectedHistory &result) {
+				const auto peer = history->peer;
+				const auto offset = api->applyAffectedHistory(peer, result);
+				if (offset > 0) {
+					self(self);
+				} else {
+					history->unpinAllMessages();
+				}
+			}).send();
+		};
+		sendRequest(sendRequest);
+	})));
 }
 
 void PeerMenuAddMuteAction(

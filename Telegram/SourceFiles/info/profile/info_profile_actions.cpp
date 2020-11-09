@@ -357,11 +357,10 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			return false;
 		});
 		
-		if (user->isBot()) {
-			addInfoLine(tr::lng_info_about_label(), AboutValue(user));
-		} else {
-			addInfoLine(tr::lng_info_bio_label(), AboutValue(user));
-		}
+		auto label = user->isBot()
+			? tr::lng_info_about_label()
+			: tr::lng_info_bio_label();
+		addInfoLine(std::move(label), AboutValue(user));
 
 		auto usernameDrawableText = UsernameValue(
 			user

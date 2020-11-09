@@ -10,6 +10,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "history/history.h"
 #include "data/data_peer.h"
+#include "data/data_user.h"
+#include "base/unixtime.h"
+#include "data/data_peer_values.h"
 #include "apiwrap.h"
 
 namespace Api {
@@ -17,6 +20,7 @@ namespace {
 
 constexpr auto kCancelTypingActionTimeout = crl::time(5000);
 constexpr auto kSetMyActionForMs = 10 * crl::time(1000);
+constexpr auto kSendTypingsToOfflineFor = TimeId(30);
 
 } // namespace
 
@@ -98,6 +102,9 @@ bool SendProgressManager::updated(const Key &key, bool doing) {
 }
 
 void SendProgressManager::send(const Key &key, int progress) {
+	if (skipRequest(key)) {
+		return;
+	}
 	using Type = SendProgressType;
 	const auto action = [&]() -> MTPsendMessageAction {
 		const auto p = MTP_int(progress);
@@ -132,6 +139,26 @@ void SendProgressManager::send(const Key &key, int progress) {
 	if (key.type == Type::Typing) {
 		_stopTypingHistory = key.history;
 		_stopTypingTimer.callOnce(kCancelTypingActionTimeout);
+	}
+}
+
+bool SendProgressManager::skipRequest(const Key &key) const {
+	const auto user = key.history->peer->asUser();
+	if (!user) {
+		return false;
+	} else if (user->isSelf()) {
+		return true;
+	} else if (user->isBot() && !user->isSupport()) {
+		return true;
+	}
+	const auto recently = base::unixtime::now() - kSendTypingsToOfflineFor;
+	const auto online = user->onlineTill;
+	if (online == -2) { // last seen recently
+		return false;
+	} else if (online < 0) {
+		return (-online < recently);
+	} else {
+		return (online < recently);
 	}
 }
 

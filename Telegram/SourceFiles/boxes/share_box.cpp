@@ -22,7 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/input_fields.h"
 #include "ui/widgets/dropdown_menu.h"
 #include "ui/wrap/slide_wrap.h"
-#include "ui/text_options.h"
+#include "ui/text/text_options.h"
 #include "chat_helpers/message_field.h"
 #include "chat_helpers/send_context_menu.h"
 #include "history/history.h"
@@ -41,7 +41,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
-#include "styles/style_history.h"
+#include "styles/style_chat.h"
 #include "styles/style_info.h"
 
 class ShareBox::Inner final : public Ui::RpWidget, private base::Subscriber {

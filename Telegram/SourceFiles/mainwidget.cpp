@@ -39,7 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image.h"
 #include "ui/focus_persister.h"
 #include "ui/resize_area.h"
-#include "ui/text_options.h"
+#include "ui/text/text_options.h"
 #include "ui/emoji_config.h"
 #include "window/section_memento.h"
 #include "window/section_widget.h"
@@ -109,7 +109,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "app.h"
 #include "facades.h"
 #include "styles/style_dialogs.h"
-#include "styles/style_history.h"
+#include "styles/style_chat.h"
 #include "styles/style_boxes.h"
 
 #include <QtCore/QCoreApplication>
@@ -347,6 +347,11 @@ MainWidget::MainWidget(
 		if (type == AudioMsgId::Type::Voice) {
 			const auto songState = Media::Player::instance()->getState(AudioMsgId::Type::Song);
 			if (!songState.id || IsStoppedOrStopping(songState.state)) {
+				closeBothPlayers();
+			}
+		} else if (type == AudioMsgId::Type::Song) {
+			const auto songState = Media::Player::instance()->getState(AudioMsgId::Type::Song);
+			if (!songState.id) {
 				closeBothPlayers();
 			}
 		}
@@ -1426,7 +1431,7 @@ void MainWidget::ui_showPeerHistory(
 		if (const auto activeChat = _controller->activeChatCurrent()) {
 			if (const auto peer = activeChat.peer()) {
 				if (way == Way::Forward && peer->id == peerId) {
-					way = Way::ClearStack;
+					way = _mainSection ? Way::Backward : Way::ClearStack;
 				}
 			}
 		}

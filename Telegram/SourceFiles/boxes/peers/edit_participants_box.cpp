@@ -559,6 +559,8 @@ UserData *ParticipantsAdditionalData::applyParticipant(
 			return logBad();
 		}
 		return applyBanned(data);
+	}, [&](const MTPDchannelParticipantLeft &data) {
+		return logBad();
 	});
 }
 

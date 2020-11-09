@@ -28,7 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/dropdown_menu.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/special_buttons.h"
-#include "ui/text_options.h"
+#include "ui/text/text_options.h"
 #include "ui/unread_badge.h"
 #include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
@@ -47,7 +47,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h"
-#include "styles/style_history.h"
+#include "styles/style_chat.h"
 #include "styles/style_info.h"
 
 namespace HistoryView {
@@ -341,10 +341,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 
 	const auto history = _activeChat.history();
 	const auto folder = _activeChat.folder();
-	if (folder
-		|| history->peer->sharedMediaInfo()
-		|| (_section == Section::Scheduled
-			&& (history && history->peer->isSelf()))) {
+	if (folder || history->peer->sharedMediaInfo()) {
 		// #TODO feed name emoji.
 		auto text = (_section == Section::Scheduled)
 			? tr::lng_reminder_messages(tr::now)
@@ -365,7 +362,8 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			width(),
 			text);
 	} else if (_section == Section::Replies
-			|| _section == Section::Scheduled) {
+			|| _section == Section::Scheduled
+			|| _section == Section::Pinned) {
 		p.setPen(st::ktgTopBarNameFg);
 		p.setFont(st::semiboldFont);
 		p.drawTextLeft(
@@ -374,7 +372,9 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			width(),
 			(_section == Section::Replies
 				? tr::lng_manage_discussion_group(tr::now)
-				: tr::lng_scheduled_messages(tr::now)));
+				: history->peer->isSelf()
+				? tr::lng_saved_messages(tr::now)
+				: history->peer->topBarNameText().toString()));
 
 		p.setFont(st::dialogsTextFont);
 		if (!paintConnectingState(p, nameleft, statustop, width())

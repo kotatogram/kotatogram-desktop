@@ -338,13 +338,9 @@ public:
 
 	[[nodiscard]] bool canPinMessages() const;
 	[[nodiscard]] bool canEditMessagesIndefinitely() const;
-	[[nodiscard]] MsgId pinnedMessageId() const {
-		return _pinnedMessageId;
-	}
-	void setPinnedMessageId(MsgId messageId);
-	void clearPinnedMessage() {
-		setPinnedMessageId(0);
-	}
+
+	[[nodiscard]] bool hasPinnedMessages() const;
+	void setHasPinnedMessages(bool has);
 
 	[[nodiscard]] bool canExportChatHistory() const;
 
@@ -440,7 +436,7 @@ private:
 	base::flat_set<QChar> _nameFirstLetters;
 
 	crl::time _lastFullUpdate = 0;
-	MsgId _pinnedMessageId = 0;
+	bool _hasPinnedMessages = false;
 
 	Settings _settings = { kSettingsUnknown };
 	BlockStatus _blockStatus = BlockStatus::Unknown;
@@ -457,5 +453,16 @@ std::vector<ChatRestrictions> ListOfRestrictions();
 std::optional<QString> RestrictionError(
 	not_null<PeerData*> peer,
 	ChatRestriction restriction);
+
+void SetTopPinnedMessageId(not_null<PeerData*> peer, MsgId messageId);
+[[nodiscard]] FullMsgId ResolveTopPinnedId(
+	not_null<PeerData*> peer,
+	PeerData *migrated);
+[[nodiscard]] FullMsgId ResolveMinPinnedId(
+	not_null<PeerData*> peer,
+	PeerData *migrated);
+[[nodiscard]] std::optional<int> ResolvePinnedCount(
+	not_null<PeerData*> peer,
+	PeerData *migrated);
 
 } // namespace Data

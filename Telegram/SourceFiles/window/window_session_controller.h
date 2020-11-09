@@ -231,6 +231,7 @@ public:
 	SessionController(
 		not_null<Main::Session*> session,
 		not_null<Controller*> window);
+	~SessionController();
 
 	[[nodiscard]] Controller &window() const {
 		return *_window;
@@ -350,13 +351,9 @@ public:
 	void reloadFiltersMenu();
 	[[nodiscard]] rpl::producer<> filtersMenuChanged() const;
 
-	void requestAttachedStickerSets(not_null<PhotoData*> photo);
-
 	rpl::lifetime &lifetime() {
 		return _lifetime;
 	}
-
-	~SessionController();
 
 private:
 	void init();
@@ -409,8 +406,6 @@ private:
 	rpl::variable<Data::Folder*> _openedFolder;
 
 	rpl::event_stream<> _filtersMenuChanged;
-
-	mtpRequestId _attachedStickerSetsRequestId = 0;
 
 	rpl::lifetime _lifetime;
 

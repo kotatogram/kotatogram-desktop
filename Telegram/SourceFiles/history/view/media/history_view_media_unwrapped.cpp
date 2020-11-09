@@ -17,9 +17,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "data/data_session.h"
+#include "ui/cached_round_corners.h"
 #include "layout.h"
-#include "app.h"
-#include "styles/style_history.h"
+#include "styles/style_chat.h"
 
 namespace HistoryView {
 namespace {
@@ -217,7 +217,7 @@ void UnwrappedMedia::drawSurrounding(
 		int recty = 0;
 		if (rtl()) rectx = width() - rectx - rectw;
 
-		App::roundRect(p, rectx, recty, rectw, recth, selected ? st::msgServiceBgSelected : st::msgServiceBg, selected ? StickerSelectedCorners : StickerCorners);
+		Ui::FillRoundRect(p, rectx, recty, rectw, recth, selected ? st::msgServiceBgSelected : st::msgServiceBg, selected ? Ui::StickerSelectedCorners : Ui::StickerCorners);
 		p.setPen(st::msgServiceFg);
 		rectx += st::msgReplyPadding.left();
 		rectw -= st::msgReplyPadding.left() + st::msgReplyPadding.right();

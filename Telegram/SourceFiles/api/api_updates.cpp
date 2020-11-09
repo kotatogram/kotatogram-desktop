@@ -63,6 +63,22 @@ enum class DataIsLoadedResult {
 	Ok = 3,
 };
 
+void ProcessScheduledMessageWithElapsedTime(
+		not_null<Main::Session*> session,
+		bool needToAdd,
+		const MTPDmessage &data) {
+	if (needToAdd && !data.is_from_scheduled()) {
+		// If we still need to add a new message,
+		// we should first check if this message is in
+		// the list of scheduled messages.
+		// This is necessary to correctly update the file reference.
+		// Note that when a message is scheduled until online
+		// while the recipient is already online, the server sends
+		// an ordinary new message with skipped "from_scheduled" flag.
+		session->data().scheduledMessages().checkEntitiesAndUpdate(data);
+	}
+}
+
 bool IsForceLogoutNotification(const MTPDupdateServiceNotification &data) {
 	return qs(data.vtype()).startsWith(qstr("AUTH_KEY_DROP_"));
 }
@@ -958,17 +974,7 @@ void Updates::applyUpdateNoPtsCheck(const MTPUpdate &update) {
 				LOG(("Skipping message, because it is already in blocks!"));
 				needToAdd = false;
 			}
-			if (needToAdd && !data.is_from_scheduled()) {
-				// If we still need to add a new message,
-				// we should first check if this message is in
-				// the list of scheduled messages.
-				// This is necessary to correctly update the file reference.
-				// Note that when a message is scheduled until online
-				// while the recipient is already online, the server sends
-				// an ordinary new message with skipped "from_scheduled" flag.
-				_session->data().scheduledMessages().checkEntitiesAndUpdate(
-					data);
-			}
+			ProcessScheduledMessageWithElapsedTime(_session, needToAdd, data);
 		}
 		if (needToAdd) {
 			_session->data().addNewMessage(
@@ -1057,10 +1063,12 @@ void Updates::applyUpdateNoPtsCheck(const MTPUpdate &update) {
 		auto &d = update.c_updateNewChannelMessage();
 		auto needToAdd = true;
 		if (d.vmessage().type() == mtpc_message) { // index forwarded messages to links _overview
-			if (_session->data().checkEntitiesAndViewsUpdate(d.vmessage().c_message())) { // already in blocks
+			const auto &data = d.vmessage().c_message();
+			if (_session->data().checkEntitiesAndViewsUpdate(data)) { // already in blocks
 				LOG(("Skipping message, because it is already in blocks!"));
 				needToAdd = false;
 			}
+			ProcessScheduledMessageWithElapsedTime(_session, needToAdd, data);
 		}
 		if (needToAdd) {
 			_session->data().addNewMessage(
@@ -1073,6 +1081,17 @@ void Updates::applyUpdateNoPtsCheck(const MTPUpdate &update) {
 	case mtpc_updateEditChannelMessage: {
 		auto &d = update.c_updateEditChannelMessage();
 		_session->data().updateEditedMessage(d.vmessage());
+	} break;
+
+	case mtpc_updatePinnedChannelMessages: {
+		const auto &d = update.c_updatePinnedChannelMessages();
+		const auto channelId = d.vchannel_id().v;
+		for (const auto &msgId : d.vmessages().v) {
+			const auto item = session().data().message(channelId, msgId.v);
+			if (item) {
+				item->setIsPinned(d.is_pinned());
+			}
+		}
 	} break;
 
 	case mtpc_updateEditMessage: {
@@ -1088,6 +1107,17 @@ void Updates::applyUpdateNoPtsCheck(const MTPUpdate &update) {
 	case mtpc_updateDeleteChannelMessages: {
 		auto &d = update.c_updateDeleteChannelMessages();
 		_session->data().processMessagesDeleted(d.vchannel_id().v, d.vmessages().v);
+	} break;
+
+	case mtpc_updatePinnedMessages: {
+		const auto &d = update.c_updatePinnedMessages();
+		const auto peerId = peerFromMTP(d.vpeer());
+		for (const auto &msgId : d.vmessages().v) {
+			const auto item = session().data().message(0, msgId.v);
+			if (item) {
+				item->setIsPinned(d.is_pinned());
+			}
+		}
 	} break;
 
 	default: Unexpected("Type in applyUpdateNoPtsCheck()");
@@ -1373,6 +1403,21 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 	case mtpc_updateEditChannelMessage: {
 		auto &d = update.c_updateEditChannelMessage();
 		auto channel = session().data().channelLoaded(peerToChannel(PeerFromMessage(d.vmessage())));
+
+		if (channel && !_handlingChannelDifference) {
+			if (channel->ptsRequesting()) { // skip global updates while getting channel difference
+				return;
+			} else {
+				channel->ptsUpdateAndApply(d.vpts().v, d.vpts_count().v, update);
+			}
+		} else {
+			applyUpdateNoPtsCheck(update);
+		}
+	} break;
+
+	case mtpc_updatePinnedChannelMessages: {
+		auto &d = update.c_updatePinnedChannelMessages();
+		auto channel = session().data().channelLoaded(d.vchannel_id().v);
 
 		if (channel && !_handlingChannelDifference) {
 			if (channel->ptsRequesting()) { // skip global updates while getting channel difference
@@ -1991,28 +2036,9 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 	} break;
 
 	// Pinned message.
-	case mtpc_updateUserPinnedMessage: {
-		const auto &d = update.c_updateUserPinnedMessage();
-		if (const auto user = session().data().userLoaded(d.vuser_id().v)) {
-			user->setPinnedMessageId(d.vid().v);
-		}
-	} break;
-
-	case mtpc_updateChatPinnedMessage: {
-		const auto &d = update.c_updateChatPinnedMessage();
-		if (const auto chat = session().data().chatLoaded(d.vchat_id().v)) {
-			const auto status = chat->applyUpdateVersion(d.vversion().v);
-			if (status == ChatData::UpdateStatus::Good) {
-				chat->setPinnedMessageId(d.vid().v);
-			}
-		}
-	} break;
-
-	case mtpc_updateChannelPinnedMessage: {
-		const auto &d = update.c_updateChannelPinnedMessage();
-		if (const auto channel = session().data().channelLoaded(d.vchannel_id().v)) {
-			channel->setPinnedMessageId(d.vid().v);
-		}
+	case mtpc_updatePinnedMessages: {
+		const auto &d = update.c_updatePinnedMessages();
+		updateAndApply(d.vpts().v, d.vpts_count().v, update);
 	} break;
 
 	////// Cloud sticker sets

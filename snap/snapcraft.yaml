@@ -18,8 +18,7 @@ apps:
     common-id: io.github.kotatogram
     desktop: usr/share/applications/kotatogram-desktop_kotatogram-desktop.desktop
     environment:
-      # Use GTK3 cursor theme, icon theme and open/save file dialogs.
-      QT_QPA_PLATFORMTHEME: gtk3
+      GTK_USE_PORTAL: 1
     plugs:
       - alsa
       - audio-playback
@@ -66,9 +65,6 @@ parts:
     source: .
     source-type: git
     parse-info: [usr/share/metainfo/kotatogram-desktop_kotatogram-desktop.appdata.xml]
-    build-environment:
-      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib
-      - tg_owt_DIR: $SNAPCRAFT_STAGE/tg_owt
     build-packages:
       - python
       - qtbase5-private-dev
@@ -112,10 +108,16 @@ parts:
       version="$(git describe --tags | sed -r 's,^k([0-9]\.[0-9]),\1,')"
       snapcraftctl set-version "$version"
 
-      sed -i 's|^Icon=.*|Icon=/usr/share/icons/hicolor/512x512/apps/kotatogram.png|g' lib/xdg/kotatogramdesktop.desktop
+      sed -i 's|^Icon=.*|Icon=${SNAP}/meta/gui/icon.png|g' lib/xdg/kotatogramdesktop.desktop
+    override-build: |
+      snapcraftctl build
+      rm -rf "$SNAPCRAFT_PART_INSTALL/usr/share/icons"
+    stage:
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
     after:
       - desktop-qt5
       - ffmpeg
+      - mozjpeg
       - openal
       - qtwayland
       - webrtc
@@ -144,17 +146,29 @@ parts:
       - locales-all
       - xdg-user-dirs
       - fcitx-frontend-qt5
+    stage:
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
+    after:
+      - mozjpeg
 
   qt5-xdgdesktopportal-platform:
     plugin: nil
     stage-packages:
       - qt5-xdgdesktopportal-platformtheme
+    stage:
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
+    after:
+      - mozjpeg
 
   # Qt checks that ibus-daemon binary is present, otherwise doesn't work
   ibus:
     plugin: nil
     stage-packages:
       - ibus
+    stage:
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
+    after:
+      - mozjpeg
 
   ffmpeg:
     plugin: nil
@@ -170,6 +184,27 @@ parts:
       - libavutil56
       - libswresample3
       - libswscale5
+    stage:
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
+    after:
+      - mozjpeg
+
+  mozjpeg:
+    source: https://github.com/mozilla/mozjpeg.git
+    source-depth: 1
+    source-tag: v4.0.1-rc2
+    plugin: cmake
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DENABLE_STATIC=OFF
+      - -DWITH_JPEG8=ON
+      - -DPNG_SUPPORTED=OFF
+    prime:
+      - -./usr/bin
+      - -./usr/include
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig
+      - -./usr/share
 
   openal:
     source: https://github.com/kcat/openal-soft.git
@@ -195,8 +230,8 @@ parts:
       - -DALSOFT_CONFIG=OFF
     prime:
       - -./usr/include
-      - -./usr/lib/cmake
-      - -./usr/lib/pkgconfig
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/cmake
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig
 
   qtwayland:
     source: https://github.com/qt/qtwayland.git
@@ -215,22 +250,22 @@ parts:
   webrtc:
     source: https://github.com/desktop-app/tg_owt.git
     source-depth: 1
+    source-commit: 12f4a27f2f02f9dd40f9891d8ec6e58bc1ff5263
     plugin: cmake
     build-packages:
       - yasm
-      - libjpeg8-dev
       - libopus-dev
       - libssl-dev
     stage-packages:
-      - libjpeg8
       - libopus0
       - libssl1.1
-    override-build: |
-      cmake "$SNAPCRAFT_PART_SRC" -DCMAKE_BUILD_TYPE=Release
-      cmake --build . -- -j$(nproc)
-      cp -a . "$SNAPCRAFT_PART_INSTALL"
-    organize:
-      "*": tg_owt/
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DBUILD_SHARED_LIBS=OFF
+      - -DJPEG_LIBRARY_RELEASE=$SNAPCRAFT_STAGE/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so
+      - -DJPEG_INCLUDE_DIR=$SNAPCRAFT_STAGE/usr/include
     prime: [-./*]
     after:
       - ffmpeg
+      - mozjpeg

@@ -18,8 +18,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/shadow.h"
 #include "ui/layers/generic_box.h"
-#include "ui/text_options.h"
+#include "ui/item_text_options.h"
 #include "ui/toast/toast.h"
+#include "ui/chat/attach/attach_prepare.h"
+#include "ui/chat/attach/attach_send_files_way.h"
 #include "ui/special_buttons.h"
 #include "ui/ui_utility.h"
 #include "ui/toasts/common_toasts.h"
@@ -47,7 +49,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "facades.h"
 #include "app.h"
-#include "styles/style_history.h"
+#include "styles/style_chat.h"
 #include "styles/style_window.h"
 #include "styles/style_info.h"
 #include "styles/style_boxes.h"
@@ -101,7 +103,9 @@ ScheduledWidget::ScheduledWidget(
 		_history,
 		TopBarWidget::Section::Scheduled,
 		nullptr);
-	_topBar->setCustomTitle(_history->peer->topBarNameText().toString());
+	_topBar->setCustomTitle(_history->peer->isSelf()
+		? tr::lng_reminder_messages(tr::now)
+		: tr::lng_scheduled_messages(tr::now));
 
 	_topBar->move(0, 0);
 	_topBar->resizeToWidth(width());
@@ -248,10 +252,7 @@ void ScheduledWidget::setupComposeControls() {
 		if (action == Ui::InputField::MimeAction::Check) {
 			return CanSendFiles(data);
 		} else if (action == Ui::InputField::MimeAction::Insert) {
-			return confirmSendingFiles(
-				data,
-				CompressConfirm::Auto,
-				data->text());
+			return confirmSendingFiles(data, std::nullopt, data->text());
 		}
 		Unexpected("action in MimeData hook.");
 	});
@@ -267,11 +268,7 @@ void ScheduledWidget::chooseAttach() {
 		return;
 	}
 
-	const auto filter = FileDialog::AllFilesFilter()
-		+ qsl(";;Image files (*")
-		+ cImgExtensions().join(qsl(" *"))
-		+ qsl(")");
-
+	const auto filter = FileDialog::AllOrImagesFilter();
 	FileDialog::GetOpenPaths(this, tr::lng_choose_files(tr::now), filter, crl::guard(this, [=](
 			FileDialog::OpenResult &&result) {
 		if (result.paths.isEmpty() && result.remoteContent.isEmpty()) {
@@ -288,8 +285,7 @@ void ScheduledWidget::chooseAttach() {
 			if (!image.isNull() && !animated) {
 				confirmSendingFiles(
 					std::move(image),
-					std::move(result.remoteContent),
-					CompressConfirm::Auto);
+					std::move(result.remoteContent));
 			} else {
 				uploadFile(result.remoteContent, SendMediaType::File);
 			}
@@ -297,18 +293,14 @@ void ScheduledWidget::chooseAttach() {
 			auto list = Storage::PrepareMediaList(
 				result.paths,
 				st::sendMediaPreviewSize);
-			if (list.allFilesForCompress || list.albumIsPossible) {
-				confirmSendingFiles(std::move(list), CompressConfirm::Auto);
-			} else if (!showSendingFilesError(list)) {
-				confirmSendingFiles(std::move(list), CompressConfirm::No);
-			}
+			confirmSendingFiles(std::move(list));
 		}
 	}), nullptr);
 }
 
 bool ScheduledWidget::confirmSendingFiles(
 		not_null<const QMimeData*> data,
-		CompressConfirm compressed,
+		std::optional<bool> overrideSendImagesAsPhotos,
 		const QString &insertTextOnCancel) {
 	const auto hasImage = data->hasImage();
 
@@ -316,14 +308,12 @@ bool ScheduledWidget::confirmSendingFiles(
 		auto list = Storage::PrepareMediaList(
 			urls,
 			st::sendMediaPreviewSize);
-		if (list.error != Storage::PreparedList::Error::NonLocalUrl) {
-			if (list.error == Storage::PreparedList::Error::None
+		if (list.error != Ui::PreparedList::Error::NonLocalUrl) {
+			if (list.error == Ui::PreparedList::Error::None
 				|| !hasImage) {
 				const auto emptyTextOnCancel = QString();
-				confirmSendingFiles(
-					std::move(list),
-					compressed,
-					emptyTextOnCancel);
+				list.overrideSendImagesAsPhotos = overrideSendImagesAsPhotos;
+				confirmSendingFiles(std::move(list), emptyTextOnCancel);
 				return true;
 			}
 		}
@@ -338,7 +328,7 @@ bool ScheduledWidget::confirmSendingFiles(
 			confirmSendingFiles(
 				std::move(image),
 				QByteArray(),
-				compressed,
+				overrideSendImagesAsPhotos,
 				insertTextOnCancel);
 			return true;
 		}
@@ -347,19 +337,11 @@ bool ScheduledWidget::confirmSendingFiles(
 }
 
 bool ScheduledWidget::confirmSendingFiles(
-		Storage::PreparedList &&list,
-		CompressConfirm compressed,
+		Ui::PreparedList &&list,
 		const QString &insertTextOnCancel) {
 	if (showSendingFilesError(list)) {
 		return false;
 	}
-
-	const auto noCompressOption = (list.files.size() > 1)
-		&& !list.allFilesForCompress
-		&& !list.albumIsPossible;
-	const auto boxCompressConfirm = noCompressOption
-		? CompressConfirm::None
-		: compressed;
 
 	//const auto cursor = _field->textCursor();
 	//const auto position = cursor.position();
@@ -370,7 +352,6 @@ bool ScheduledWidget::confirmSendingFiles(
 		controller(),
 		std::move(list),
 		text,
-		boxCompressConfirm,
 		_history->peer->slowmodeApplied() ? SendLimit::One : SendLimit::Many,
 		CanScheduleUntilOnline(_history->peer)
 			? Api::SendType::ScheduledToUser
@@ -379,27 +360,17 @@ bool ScheduledWidget::confirmSendingFiles(
 	//_field->setTextWithTags({});
 
 	box->setConfirmedCallback(crl::guard(this, [=](
-			Storage::PreparedList &&list,
-			SendFilesWay way,
+			Ui::PreparedList &&list,
+			Ui::SendFilesWay way,
 			TextWithTags &&caption,
 			Api::SendOptions options,
 			bool ctrlShiftEnter) {
-		if (showSendingFilesError(list)) {
-			return;
-		}
-		const auto type = (way == SendFilesWay::Files)
-			? SendMediaType::File
-			: SendMediaType::Photo;
-		const auto album = (way == SendFilesWay::Album)
-			? std::make_shared<SendingAlbum>()
-			: nullptr;
-		uploadFilesAfterConfirmation(
+		sendingFilesConfirmed(
 			std::move(list),
-			type,
+			way,
 			std::move(caption),
-			MsgId(0),//replyToId(),
 			options,
-			album);
+			ctrlShiftEnter);
 	}));
 	//box->setCancelledCallback(crl::guard(this, [=] {
 	//	_field->setTextWithTags(text);
@@ -421,10 +392,48 @@ bool ScheduledWidget::confirmSendingFiles(
 	return true;
 }
 
+void ScheduledWidget::sendingFilesConfirmed(
+		Ui::PreparedList &&list,
+		Ui::SendFilesWay way,
+		TextWithTags &&caption,
+		Api::SendOptions options,
+		bool ctrlShiftEnter) {
+	Expects(list.filesToProcess.empty());
+
+	if (showSendingFilesError(list)) {
+		return;
+	}
+	auto groups = DivideByGroups(std::move(list), way, false);
+	const auto type = way.sendImagesAsPhotos()
+		? SendMediaType::Photo
+		: SendMediaType::File;
+	auto action = Api::SendAction(_history);
+	action.options = options;
+	action.clearDraft = false;
+	if ((groups.size() != 1 || !groups.front().sentWithCaption())
+		&& !caption.text.isEmpty()) {
+		auto message = Api::MessageToSend(_history);
+		message.textWithTags = base::take(caption);
+		message.action = action;
+		session().api().sendMessage(std::move(message));
+	}
+	for (auto &group : groups) {
+		const auto album = (group.type != Ui::AlbumType::None)
+			? std::make_shared<SendingAlbum>()
+			: nullptr;
+		session().api().sendFiles(
+			std::move(group.list),
+			type,
+			base::take(caption),
+			album,
+			action);
+	}
+}
+
 bool ScheduledWidget::confirmSendingFiles(
 		QImage &&image,
 		QByteArray &&content,
-		CompressConfirm compressed,
+		std::optional<bool> overrideSendImagesAsPhotos,
 		const QString &insertTextOnCancel) {
 	if (image.isNull()) {
 		return false;
@@ -434,40 +443,8 @@ bool ScheduledWidget::confirmSendingFiles(
 		std::move(image),
 		std::move(content),
 		st::sendMediaPreviewSize);
-	return confirmSendingFiles(
-		std::move(list),
-		compressed,
-		insertTextOnCancel);
-}
-
-void ScheduledWidget::uploadFilesAfterConfirmation(
-		Storage::PreparedList &&list,
-		SendMediaType type,
-		TextWithTags &&caption,
-		MsgId replyTo,
-		Api::SendOptions options,
-		std::shared_ptr<SendingAlbum> album) {
-	const auto isAlbum = (album != nullptr);
-	const auto compressImages = (type == SendMediaType::Photo);
-	if (_history->peer->slowmodeApplied()
-		&& ((list.files.size() > 1 && !album)
-			|| (!list.files.empty()
-				&& !caption.text.isEmpty()
-				&& !list.canAddCaption(isAlbum, compressImages)))) {
-		Ui::ShowMultilineToast({
-			.text = { tr::lng_slowmode_no_many(tr::now) },
-		});
-		return;
-	}
-	auto action = Api::SendAction(_history);
-	action.replyTo = replyTo;
-	action.options = options;
-	session().api().sendFiles(
-		std::move(list),
-		type,
-		std::move(caption),
-		album,
-		action);
+	list.overrideSendImagesAsPhotos = overrideSendImagesAsPhotos;
+	return confirmSendingFiles(std::move(list), insertTextOnCancel);
 }
 
 void ScheduledWidget::uploadFile(
@@ -485,7 +462,7 @@ void ScheduledWidget::uploadFile(
 }
 
 bool ScheduledWidget::showSendingFilesError(
-		const Storage::PreparedList &list) const {
+		const Ui::PreparedList &list) const {
 	const auto text = [&] {
 		const auto error = Data::RestrictionError(
 			_history->peer,
@@ -493,7 +470,7 @@ bool ScheduledWidget::showSendingFilesError(
 		if (error) {
 			return *error;
 		}
-		using Error = Storage::PreparedList::Error;
+		using Error = Ui::PreparedList::Error;
 		switch (list.error) {
 		case Error::None: return QString();
 		case Error::EmptyFile:
@@ -828,7 +805,7 @@ bool ScheduledWidget::showAtPositionNow(Data::MessagePosition position) {
 		const auto fullDelta = (wanted - currentScrollTop);
 		const auto limit = _scroll->height();
 		const auto scrollDelta = snap(fullDelta, -limit, limit);
-		_inner->animatedScrollTo(
+		_inner->scrollTo(
 			wanted,
 			position,
 			scrollDelta,
@@ -1192,32 +1169,11 @@ bool ScheduledWidget::listIsGoodForAroundPosition(
 }
 
 void ScheduledWidget::confirmSendNowSelected() {
-	auto items = _inner->getSelectedItems();
-	if (items.empty()) {
-		return;
-	}
-	const auto navigation = controller();
-	Window::ShowSendNowMessagesBox(
-		navigation,
-		_history,
-		std::move(items),
-		[=] { navigation->showBackFromStack(); });
+	ConfirmSendNowSelectedItems(_inner);
 }
 
 void ScheduledWidget::confirmDeleteSelected() {
-	auto items = _inner->getSelectedItems();
-	if (items.empty()) {
-		return;
-	}
-	const auto weak = Ui::MakeWeak(this);
-	const auto box = Ui::show(Box<DeleteMessagesBox>(
-		&_history->session(),
-		std::move(items)));
-	box->setDeleteConfirmedCallback([=] {
-		if (const auto strong = weak.data()) {
-			strong->clearSelected();
-		}
-	});
+	ConfirmDeleteSelectedItems(_inner);
 }
 
 void ScheduledWidget::clearSelected() {
@@ -1231,14 +1187,14 @@ void ScheduledWidget::setupDragArea() {
 		nullptr,
 		[=] { updateControlsGeometry(); });
 
-	const auto droppedCallback = [=](CompressConfirm compressed) {
+	const auto droppedCallback = [=](bool overrideSendImagesAsPhotos) {
 		return [=](const QMimeData *data) {
-			confirmSendingFiles(data, compressed);
+			confirmSendingFiles(data, overrideSendImagesAsPhotos);
 			Window::ActivateWindow(controller());
 		};
 	};
-	areas.document->setDroppedCallback(droppedCallback(CompressConfirm::No));
-	areas.photo->setDroppedCallback(droppedCallback(CompressConfirm::Yes));
+	areas.document->setDroppedCallback(droppedCallback(false));
+	areas.photo->setDroppedCallback(droppedCallback(true));
 }
 
 } // namespace HistoryView

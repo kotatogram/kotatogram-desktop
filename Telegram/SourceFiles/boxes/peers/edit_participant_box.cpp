@@ -19,7 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h"
-#include "ui/text_options.h"
+#include "ui/text/text_options.h"
 #include "ui/special_buttons.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "settings/settings_privacy_security.h"
@@ -326,7 +326,7 @@ void EditAdminBox::prepare() {
 	}, lifetime());
 
 	if (canTransferOwnership()) {
-		const auto allFlags = FullAdminRights(isGroup);
+		const auto allFlags = AdminRightsForOwnershipTransfer(isGroup);
 		setupTransferButton(
 			isGroup
 		)->toggleOn(rpl::duplicate(

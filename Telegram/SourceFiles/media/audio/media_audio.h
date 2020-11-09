@@ -8,8 +8,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "ui/effects/animation_value.h"
-#include "storage/localimageloader.h"
+#include "ui/chat/attach/attach_prepare.h"
+#include "core/file_location.h"
 #include "base/bytes.h"
+#include "base/timer.h"
 
 #include <QtCore/QTimer>
 
@@ -144,7 +146,10 @@ public:
 	// External player audio stream interface.
 	void feedFromExternal(ExternalSoundPart &&part);
 	void forceToBufferExternal(const AudioMsgId &audioId);
+
+	// Thread: Main. Locks: AudioMutex.
 	void setSpeedFromExternal(const AudioMsgId &audioId, float64 speed);
+
 	Streaming::TimePoint getExternalSyncTimePoint(
 		const AudioMsgId &audio) const;
 	crl::time getExternalCorrectedTime(
@@ -157,7 +162,7 @@ public:
 	TrackState currentState(AudioMsgId::Type type);
 
 	// Thread: Main. Must be locked: AudioMutex.
-	void detachTracks();
+	void prepareToCloseDevice();
 
 	// Thread: Main. Must be locked: AudioMutex.
 	void reattachIfNeeded();
@@ -192,11 +197,13 @@ signals:
 	void suppressAll(qint64 duration);
 
 private:
-	bool fadedStop(AudioMsgId::Type type, bool *fadedStart = 0);
-	void resetFadeStartPosition(AudioMsgId::Type type, int positionInBuffered = -1);
-	bool checkCurrentALError(AudioMsgId::Type type);
-
-	void externalSoundProgress(const AudioMsgId &audio);
+	struct SpeedEffect {
+		uint32 effect = 0;
+		uint32 effectSlot = 0;
+		uint32 filter = 0;
+		int coarseTune = 0;
+		float64 speed = 1.;
+	};
 
 	class Track {
 	public:
@@ -205,8 +212,10 @@ private:
 		// Thread: Any. Must be locked: AudioMutex.
 		void reattach(AudioMsgId::Type type);
 
+		// Thread: Main. Must be locked: AudioMutex.
 		void detach();
 		void clear();
+
 		void started();
 
 		bool isStreamCreated() const;
@@ -214,6 +223,7 @@ private:
 
 		int getNotQueuedBufferIndex();
 
+		// Thread: Main. Must be locked: AudioMutex.
 		void setExternalData(std::unique_ptr<ExternalSoundData> data);
 		void changeSpeedEffect(float64 speed);
 
@@ -221,7 +231,7 @@ private:
 
 		TrackState state;
 
-		FileLocation file;
+		Core::FileLocation file;
 		QByteArray data;
 		int64 bufferedPosition = 0;
 		int64 bufferedLength = 0;
@@ -241,13 +251,6 @@ private:
 		Stream stream;
 		std::unique_ptr<ExternalSoundData> externalData;
 
-		struct SpeedEffect {
-			uint32 effect = 0;
-			uint32 effectSlot = 0;
-			uint32 filter = 0;
-			int coarseTune = 0;
-			float64 speed = 1.;
-		};
 		std::unique_ptr<SpeedEffect> speedEffect;
 		crl::time lastUpdateWhen = 0;
 		crl::time lastUpdatePosition = 0;
@@ -262,6 +265,12 @@ private:
 
 	};
 
+	bool fadedStop(AudioMsgId::Type type, bool *fadedStart = 0);
+	void resetFadeStartPosition(AudioMsgId::Type type, int positionInBuffered = -1);
+	bool checkCurrentALError(AudioMsgId::Type type);
+
+	void externalSoundProgress(const AudioMsgId &audio);
+
 	// Thread: Any. Must be locked: AudioMutex.
 	void setStoppedState(Track *current, State state = State::Stopped);
 
@@ -270,7 +279,18 @@ private:
 	int *currentIndex(AudioMsgId::Type type);
 	const int *currentIndex(AudioMsgId::Type type) const;
 
-	not_null<Audio::Instance*> _instance;
+	// Thread: Any. Must be locked: AudioMutex.
+	void scheduleEffectDestruction(const SpeedEffect &effect);
+	void scheduleEffectsDestruction();
+
+	// Thread: Main. Must be locked: AudioMutex.
+	void destroyStaleEffects();
+	void destroyEffectsOnClose();
+
+	// Thread: Main. Locks: AudioMutex.
+	void destroyStaleEffectsSafe();
+
+	const not_null<Audio::Instance*> _instance;
 
 	int _audioCurrent = 0;
 	Track _audioTracks[kTogetherLimit];
@@ -279,6 +299,9 @@ private:
 	Track _songTracks[kTogetherLimit];
 
 	Track _videoTrack;
+
+	std::vector<std::pair<crl::time, SpeedEffect>> _effectsForDestruction;
+	base::Timer _effectsDestructionTimer;
 
 	QAtomicInt _volumeVideo;
 	QAtomicInt _volumeSong;
@@ -345,7 +368,9 @@ private:
 
 };
 
-FileMediaInformation::Song PrepareForSending(const QString &fname, const QByteArray &data);
+[[nodiscard]] Ui::PreparedFileInformation::Song PrepareForSending(
+	const QString &fname,
+	const QByteArray &data);
 
 namespace internal {
 
@@ -366,7 +391,7 @@ bool audioCheckError();
 } // namespace Player
 } // namespace Media
 
-VoiceWaveform audioCountWaveform(const FileLocation &file, const QByteArray &data);
+VoiceWaveform audioCountWaveform(const Core::FileLocation &file, const QByteArray &data);
 
 namespace Media {
 namespace Audio {

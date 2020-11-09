@@ -19,9 +19,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/shadow.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/ui_utility.h"
+#include "ui/cached_round_corners.h"
 #include "mainwindow.h"
 #include "main/main_session.h"
-#include "app.h"
 #include "styles/style_overview.h"
 #include "styles/style_widgets.h"
 #include "styles/style_media_player.h"
@@ -93,13 +93,15 @@ bool Panel::preventAutoHide() const {
 }
 
 void Panel::updateControlsGeometry() {
-	auto scrollTop = contentTop();
-	auto width = contentWidth();
-	auto scrollHeight = qMax(height() - scrollTop - contentBottom() - scrollMarginBottom(), 0);
+	const auto scrollTop = contentTop();
+	const auto width = contentWidth();
+	const auto scrollHeight = qMax(
+		height() - scrollTop - contentBottom() - scrollMarginBottom(),
+		0);
 	if (scrollHeight > 0) {
 		_scroll->setGeometryToRight(contentRight(), scrollTop, width, scrollHeight);
 	}
-	if (auto widget = static_cast<TWidget*>(_scroll->widget())) {
+	if (const auto widget = static_cast<TWidget*>(_scroll->widget())) {
 		widget->resizeToWidth(width);
 	}
 }
@@ -159,7 +161,7 @@ void Panel::paintEvent(QPaintEvent *e) {
 		| RectPart::Top;
 	Ui::Shadow::paint(p, shadowedRect, width(), st::defaultRoundShadow, shadowedSides);
 	auto parts = RectPart::Full;
-	App::roundRect(p, shadowedRect, st::menuBg, MenuCorners, nullptr, parts);
+	Ui::FillRoundRect(p, shadowedRect, st::menuBg, Ui::MenuCorners, nullptr, parts);
 }
 
 void Panel::enterEventHook(QEvent *e) {

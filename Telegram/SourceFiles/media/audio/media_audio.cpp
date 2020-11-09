@@ -34,6 +34,7 @@ namespace {
 constexpr auto kSuppressRatioAll = 0.2;
 constexpr auto kSuppressRatioSong = 0.05;
 constexpr auto kWaveformCounterBufferSize = 256 * 1024;
+constexpr auto kEffectDestructionDelay = crl::time(1000);
 
 QMutex AudioMutex;
 ALCdevice *AudioDevice = nullptr;
@@ -179,7 +180,7 @@ void ClosePlaybackDevice(not_null<Instance*> instance) {
 	LOG(("Audio Info: Closing audio playback device."));
 
 	if (Player::mixer()) {
-		Player::mixer()->detachTracks();
+		Player::mixer()->prepareToCloseDevice();
 	}
 	instance->detachTracks();
 
@@ -320,6 +321,9 @@ void Mixer::Track::createStream(AudioMsgId::Type type) {
 	alSourcei(stream.source, AL_LOOPING, 0);
 	alSourcei(stream.source, AL_SOURCE_RELATIVE, 1);
 	alSourcei(stream.source, AL_ROLLOFF_FACTOR, 0);
+	if (alIsExtensionPresent("AL_SOFT_direct_channels_remix")) {
+		alSourcei(stream.source, alGetEnumValue("AL_DIRECT_CHANNELS_SOFT"), 2);
+	}
 	alGenBuffers(3, stream.buffers);
 	if (speedEffect) {
 		applySourceSpeedEffect();
@@ -383,9 +387,11 @@ void Mixer::Track::resetSpeedEffect() {
 		if (isStreamCreated()) {
 			removeSourceSpeedEffect();
 		}
-		OpenAL::alDeleteEffects(1, &speedEffect->effect);
-		OpenAL::alDeleteAuxiliaryEffectSlots(1, &speedEffect->effectSlot);
-		OpenAL::alDeleteFilters(1, &speedEffect->filter);
+		if (Player::mixer()) {
+			// Don't destroy effect slot immediately.
+			// See https://github.com/kcat/openal-soft/issues/486
+			Player::mixer()->scheduleEffectDestruction(*speedEffect);
+		}
 	}
 	speedEffect->effect = speedEffect->effectSlot = speedEffect->filter = 0;
 }
@@ -430,7 +436,7 @@ void Mixer::Track::clear() {
 	detach();
 
 	state = TrackState();
-	file = FileLocation();
+	file = Core::FileLocation();
 	data = QByteArray();
 	bufferedPosition = 0;
 	bufferedLength = 0;
@@ -560,6 +566,7 @@ Mixer::Track::~Track() = default;
 
 Mixer::Mixer(not_null<Audio::Instance*> instance)
 : _instance(instance)
+, _effectsDestructionTimer([=] { destroyStaleEffectsSafe(); })
 , _volumeVideo(kVolumeRound)
 , _volumeSong(kVolumeRound)
 , _fader(new Fader(&_faderThread))
@@ -620,6 +627,60 @@ void Mixer::onUpdated(const AudioMsgId &audio) {
 		externalSoundProgress(audio);
 	}
 	Media::Player::Updated().notify(audio);
+}
+
+// Thread: Any. Must be locked: AudioMutex.
+void Mixer::scheduleEffectDestruction(const SpeedEffect &effect) {
+	_effectsForDestruction.emplace_back(
+		crl::now() + kEffectDestructionDelay,
+		effect);
+	scheduleEffectsDestruction();
+}
+
+// Thread: Any. Must be locked: AudioMutex.
+void Mixer::scheduleEffectsDestruction() {
+	if (_effectsForDestruction.empty()) {
+		return;
+	}
+	InvokeQueued(this, [=] {
+		if (!_effectsDestructionTimer.isActive()) {
+			_effectsDestructionTimer.callOnce(kEffectDestructionDelay + 1);
+		}
+	});
+}
+
+// Thread: Main. Locks: AudioMutex.
+void Mixer::destroyStaleEffectsSafe() {
+	QMutexLocker lock(&AudioMutex);
+	destroyStaleEffects();
+}
+
+// Thread: Main. Must be locked: AudioMutex.
+void Mixer::destroyStaleEffects() {
+	const auto now = crl::now();
+	const auto checkAndDestroy = [&](
+			const std::pair<crl::time, SpeedEffect> &pair) {
+		const auto &[when, effect] = pair;
+		if (when && when > now) {
+			return false;
+		}
+		OpenAL::alDeleteEffects(1, &effect.effect);
+		OpenAL::alDeleteAuxiliaryEffectSlots(1, &effect.effectSlot);
+		OpenAL::alDeleteFilters(1, &effect.filter);
+		return true;
+	};
+	_effectsForDestruction.erase(
+		ranges::remove_if(_effectsForDestruction, checkAndDestroy),
+		end(_effectsForDestruction));
+	scheduleEffectsDestruction();
+}
+
+// Thread: Main. Must be locked: AudioMutex.
+void Mixer::destroyEffectsOnClose() {
+	for (auto &[when, effect] : _effectsForDestruction) {
+		when = 0;
+	}
+	destroyStaleEffects();
 }
 
 void Mixer::onError(const AudioMsgId &audio) {
@@ -823,6 +884,7 @@ void Mixer::forceToBufferExternal(const AudioMsgId &audioId) {
 	_loader->forceToBufferExternal(audioId);
 }
 
+// Thread: Main. Locks: AudioMutex.
 void Mixer::setSpeedFromExternal(const AudioMsgId &audioId, float64 speed) {
 	QMutexLocker lock(&AudioMutex);
 	const auto track = trackForType(audioId.type());
@@ -1160,12 +1222,14 @@ void Mixer::setStoppedState(Track *current, State state) {
 }
 
 // Thread: Main. Must be locked: AudioMutex.
-void Mixer::detachTracks() {
+void Mixer::prepareToCloseDevice() {
 	for (auto i = 0; i != kTogetherLimit; ++i) {
 		trackForType(AudioMsgId::Type::Voice, i)->detach();
 		trackForType(AudioMsgId::Type::Song, i)->detach();
 	}
 	_videoTrack.detach();
+
+	destroyEffectsOnClose();
 }
 
 // Thread: Main. Must be locked: AudioMutex.
@@ -1519,7 +1583,7 @@ void DetachFromDevice(not_null<Audio::Instance*> instance) {
 
 class FFMpegAttributesReader : public AbstractFFMpegLoader {
 public:
-	FFMpegAttributesReader(const FileLocation &file, const QByteArray &data)
+	FFMpegAttributesReader(const Core::FileLocation &file, const QByteArray &data)
 	: AbstractFFMpegLoader(file, data, bytes::vector()) {
 	}
 
@@ -1531,15 +1595,12 @@ public:
 		int res = 0;
 		char err[AV_ERROR_MAX_STRING_SIZE] = { 0 };
 
-		int videoStreamId = av_find_best_stream(fmtContext, AVMEDIA_TYPE_VIDEO, -1, -1, &codec, 0);
-		if (videoStreamId >= 0) {
-			DEBUG_LOG(("Audio Read Error: Found video stream in file '%1', data size '%2', error %3, %4").arg(_file.name()).arg(_data.size()).arg(videoStreamId).arg(av_make_error_string(err, sizeof(err), streamId)));
-			return false;
-		}
-
 		for (int32 i = 0, l = fmtContext->nb_streams; i < l; ++i) {
 			const auto stream = fmtContext->streams[i];
 			if (stream->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+				if (!_cover.isNull()) {
+					continue;
+				}
 				const auto &packet = stream->attached_pic;
 				if (packet.size) {
 					const auto coverBytes = QByteArray(
@@ -1555,9 +1616,15 @@ public:
 					if (!_cover.isNull()) {
 						_coverBytes = coverBytes;
 						_coverFormat = format;
-						break;
 					}
 				}
+			} else if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+				DEBUG_LOG(("Audio Read Error: Found video stream in file '%1', data size '%2', error %3, %4")
+					.arg(_file.name())
+					.arg(_data.size())
+					.arg(i)
+					.arg(av_make_error_string(err, sizeof(err), streamId)));
+				return false;
 			}
 		}
 
@@ -1627,9 +1694,9 @@ private:
 
 namespace Player {
 
-FileMediaInformation::Song PrepareForSending(const QString &fname, const QByteArray &data) {
-	auto result = FileMediaInformation::Song();
-	FFMpegAttributesReader reader(FileLocation(fname), data);
+Ui::PreparedFileInformation::Song PrepareForSending(const QString &fname, const QByteArray &data) {
+	auto result = Ui::PreparedFileInformation::Song();
+	FFMpegAttributesReader reader(Core::FileLocation(fname), data);
 	const auto positionMs = crl::time(0);
 	if (reader.open(positionMs) && reader.samplesCount() > 0) {
 		result.duration = reader.samplesCount() / reader.samplesFrequency();
@@ -1644,7 +1711,7 @@ FileMediaInformation::Song PrepareForSending(const QString &fname, const QByteAr
 
 class FFMpegWaveformCounter : public FFMpegLoader {
 public:
-	FFMpegWaveformCounter(const FileLocation &file, const QByteArray &data) : FFMpegLoader(file, data, bytes::vector()) {
+	FFMpegWaveformCounter(const Core::FileLocation &file, const QByteArray &data) : FFMpegLoader(file, data, bytes::vector()) {
 	}
 
 	bool open(crl::time positionMs) override {
@@ -1729,7 +1796,7 @@ private:
 } // namespace Media
 
 VoiceWaveform audioCountWaveform(
-		const FileLocation &file,
+		const Core::FileLocation &file,
 		const QByteArray &data) {
 	Media::FFMpegWaveformCounter counter(file, data);
 	const auto positionMs = crl::time(0);

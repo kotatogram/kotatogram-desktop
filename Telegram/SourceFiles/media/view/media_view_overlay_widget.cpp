@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "media/view/media_view_overlay_widget.h"
 
 #include "apiwrap.h"
+#include "api/api_attached_stickers.h"
 #include "lang/lang_keys.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
@@ -22,8 +23,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/platform/ui_platform_utility.h"
 #include "ui/toast/toast.h"
 #include "ui/text/format_values.h"
-#include "ui/text_options.h"
+#include "ui/item_text_options.h"
 #include "ui/ui_utility.h"
+#include "ui/cached_round_corners.h"
 #include "boxes/confirm_box.h"
 #include "media/audio/media_audio.h"
 #include "media/view/media_view_playback_controls.h"
@@ -61,7 +63,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "app.h"
 #include "styles/style_media_view.h"
-#include "styles/style_history.h"
+#include "styles/style_chat.h"
 
 #ifdef Q_OS_MAC
 #include "platform/mac/touchbar/mac_touchbar_media_view.h"
@@ -345,11 +347,12 @@ OverlayWidget::OverlayWidget()
 
 	connect(QApplication::desktop(), SIGNAL(resized(int)), this, SLOT(onScreenResized(int)));
 
-#if defined Q_OS_UNIX && !defined Q_OS_MAC
-	setWindowFlags(Qt::FramelessWindowHint | Qt::MaximizeUsingFullscreenGeometryHint);
-#else // Q_OS_UNIX && !Q_OS_MAC
-	setWindowFlags(Qt::FramelessWindowHint);
-#endif // Q_OS_UNIX && !Q_OS_MAC
+	if (Platform::IsLinux()) {
+		setWindowFlags(Qt::FramelessWindowHint
+			| Qt::MaximizeUsingFullscreenGeometryHint);
+	} else {
+		setWindowFlags(Qt::FramelessWindowHint);
+	}
 	moveToScreen();
 	setAttribute(Qt::WA_NoSystemBackground, true);
 	setAttribute(Qt::WA_TranslucentBackground, true);
@@ -771,8 +774,15 @@ void OverlayWidget::updateActions() {
 	if ((_document && documentContentShown()) || (_photo && _photoMedia->loaded())) {
 		_actions.push_back({ tr::lng_mediaview_copy(tr::now), SLOT(onCopy()) });
 	}
-	if (_photo && _photo->hasSticker) {
-		_actions.push_back({ tr::lng_context_attached_stickers(tr::now), SLOT(onAttachedStickers()) });
+	if ((_photo && _photo->hasAttachedStickers())
+		|| (_document && _document->hasAttachedStickers())) {
+		auto member = _photo
+			? SLOT(onPhotoAttachedStickers())
+			: SLOT(onDocumentAttachedStickers());
+		_actions.push_back({
+			tr::lng_context_attached_stickers(tr::now),
+			std::move(member)
+		});
 	}
 	if (_canForwardItem) {
 		_actions.push_back({ tr::lng_mediaview_forward(tr::now), SLOT(onForward()) });
@@ -1543,16 +1553,31 @@ void OverlayWidget::onCopy() {
 	}
 }
 
-void OverlayWidget::onAttachedStickers() {
-	const auto session = _session;
-	if (!session || !_photo) {
+void OverlayWidget::onPhotoAttachedStickers() {
+	if (!_session || !_photo) {
 		return;
 	}
 	const auto &active = _session->windows();
 	if (active.empty()) {
 		return;
 	}
-	active.front()->requestAttachedStickerSets(_photo);
+	_session->api().attachedStickers().requestAttachedStickerSets(
+		active.front(),
+		_photo);
+	close();
+}
+
+void OverlayWidget::onDocumentAttachedStickers() {
+	if (!_session || !_document) {
+		return;
+	}
+	const auto &active = _session->windows();
+	if (active.empty()) {
+		return;
+	}
+	_session->api().attachedStickers().requestAttachedStickerSets(
+		active.front(),
+		_document);
 	close();
 }
 
@@ -2280,11 +2305,11 @@ void OverlayWidget::displayFinished() {
 	updateControls();
 	if (isHidden()) {
 		Ui::Platform::UpdateOverlayed(this);
-#if defined Q_OS_UNIX && !defined Q_OS_MAC
-		showFullScreen();
-#else // Q_OS_UNIX && !Q_OS_MAC
-		show();
-#endif // Q_OS_UNIX && !Q_OS_MAC
+		if (Platform::IsLinux()) {
+			showFullScreen();
+		} else {
+			show();
+		}
 		Ui::Platform::ShowOverAll(this);
 		activateWindow();
 		QApplication::setActiveWindow(this);
@@ -2994,7 +3019,7 @@ void OverlayWidget::paintEvent(QPaintEvent *e) {
 				_saveMsgOpacity.update(qMin(progress, 1.), anim::linear);
 				if (_saveMsgOpacity.current() > 0) {
 					p.setOpacity(_saveMsgOpacity.current());
-					App::roundRect(p, _saveMsg, st::mediaviewSaveMsgBg, MediaviewSaveCorners);
+					Ui::FillRoundRect(p, _saveMsg, st::mediaviewSaveMsgBg, Ui::MediaviewSaveCorners);
 					st::mediaviewSaveMsgCheck.paint(p, _saveMsg.topLeft() + st::mediaviewSaveMsgCheckPos, width());
 
 					p.setPen(st::mediaviewSaveMsgFg);
@@ -3674,6 +3699,14 @@ void OverlayWidget::setSession(not_null<Main::Session*> session) {
 	session->data().itemIdChanged(
 	) | rpl::start_with_next([=](const Data::Session::IdChange &change) {
 		changingMsgId(change.item, change.oldId);
+	}, _sessionLifetime);
+
+	session->data().itemRemoved(
+	) | rpl::filter([=](not_null<const HistoryItem*> item) {
+		return (_document != nullptr || _photo != nullptr)
+			&& (item->fullId() == _msgid);
+	}) | rpl::start_with_next([=] {
+		close();
 	}, _sessionLifetime);
 
 	session->account().sessionChanges(

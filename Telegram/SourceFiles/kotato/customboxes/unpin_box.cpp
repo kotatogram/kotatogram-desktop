@@ -21,9 +21,11 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 UnpinMessageBox::UnpinMessageBox(
 	QWidget*,
-	not_null<PeerData*> peer)
+	not_null<PeerData*> peer,
+	MsgId msgId)
 : _peer(peer)
 , _api(&peer->session().mtp())
+, _msgId(msgId)
 , _text(this, tr::lng_pinned_unpin_sure(tr::now), st::boxLabel) {
 }
 
@@ -57,9 +59,9 @@ void UnpinMessageBox::unpinMessage() {
 
 	//auto flags = MTPmessages_UpdatePinnedMessage::Flags(0);
 	_requestId = _api.request(MTPmessages_UpdatePinnedMessage(
-		MTP_flags(0),
+		MTP_flags(MTPmessages_UpdatePinnedMessage::Flag::f_unpin),
 		_peer->input,
-		MTP_int(0)
+		MTP_int(_msgId)
 	)).done([=](const MTPUpdates &result) {
 		_peer->session().api().applyUpdates(result);
 		Ui::hideLayer();
@@ -72,8 +74,8 @@ void UnpinMessageBox::hideMessage() {
 	if (_requestId) return;
 
 	auto hidden = HistoryWidget::switchPinnedHidden(_peer, true);
-	if (hidden) {
-		_peer->session().changes().peerUpdated(_peer, Data::PeerUpdate::Flag::PinnedMessage);
-	}
+	// if (hidden) {
+	// 	_peer->session().changes().peerUpdated(_peer, Data::PeerUpdate::Flag::PinnedMessage);
+	// }
 	Ui::hideLayer();
 }

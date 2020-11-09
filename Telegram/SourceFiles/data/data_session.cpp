@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_account.h"
 #include "storage/storage_encrypted_file.h"
 #include "media/player/media_player_instance.h" // instance()->play()
+#include "media/audio/media_audio.h"
 #include "boxes/abstract_box.h"
 #include "passport/passport_form_controller.h"
 #include "window/themes/window_theme.h"
@@ -1428,6 +1429,14 @@ rpl::producer<not_null<const HistoryItem*>> Session::itemRemoved() const {
 	return _itemRemoved.events();
 }
 
+rpl::producer<not_null<const HistoryItem*>> Session::itemRemoved(
+		FullMsgId itemId) const {
+	return itemRemoved(
+	) | rpl::filter([=](not_null<const HistoryItem*> item) {
+		return (itemId == item->fullId());
+	});
+}
+
 void Session::notifyViewRemoved(not_null<const ViewElement*> view) {
 	_viewRemoved.fire_copy(view);
 }
@@ -2285,7 +2294,7 @@ not_null<PhotoData*> Session::photo(
 		const QByteArray &fileReference,
 		TimeId date,
 		int32 dc,
-		bool hasSticker,
+		bool hasStickers,
 		const QByteArray &inlineThumbnailBytes,
 		const ImageWithLocation &small,
 		const ImageWithLocation &thumbnail,
@@ -2299,7 +2308,7 @@ not_null<PhotoData*> Session::photo(
 		fileReference,
 		date,
 		dc,
-		hasSticker,
+		hasStickers,
 		inlineThumbnailBytes,
 		small,
 		thumbnail,
@@ -2460,7 +2469,7 @@ void Session::photoApplyFields(
 		const QByteArray &fileReference,
 		TimeId date,
 		int32 dc,
-		bool hasSticker,
+		bool hasStickers,
 		const QByteArray &inlineThumbnailBytes,
 		const ImageWithLocation &small,
 		const ImageWithLocation &thumbnail,
@@ -2472,7 +2481,7 @@ void Session::photoApplyFields(
 	}
 	photo->setRemoteLocation(dc, access, fileReference);
 	photo->date = date;
-	photo->hasSticker = hasSticker;
+	photo->setHasAttachedStickers(hasStickers);
 	photo->updateImages(
 		inlineThumbnailBytes,
 		small,
@@ -3325,6 +3334,15 @@ void Session::unregisterContactItem(
 		session().changes().peerUpdated(
 			contact,
 			PeerUpdate::Flag::CanShareContact);
+	}
+}
+
+void Session::documentMessageRemoved(not_null<DocumentData*> document) {
+	if (_documentItems.find(document) != _documentItems.end()) {
+		return;
+	}
+	if (document->loading()) {
+		document->cancel();
 	}
 }
 

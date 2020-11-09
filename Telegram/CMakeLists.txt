@@ -21,9 +21,6 @@ add_subdirectory(lib_qr)
 add_subdirectory(lib_webrtc)
 add_subdirectory(codegen)
 
-include(lib_ui/cmake/generate_styles.cmake)
-include(cmake/generate_numbers.cmake)
-
 get_filename_component(src_loc SourceFiles REALPATH)
 get_filename_component(res_loc Resources REALPATH)
 
@@ -36,36 +33,6 @@ include(cmake/td_mtproto.cmake)
 include(cmake/td_lang.cmake)
 include(cmake/td_scheme.cmake)
 include(cmake/td_ui.cmake)
-
-set(style_files
-    boxes/boxes.style
-    calls/calls.style
-    chat_helpers/chat_helpers.style
-    dialogs/dialogs.style
-    export/view/export.style
-    history/history.style
-    info/info.style
-    intro/intro.style
-    media/view/media_view.style
-    media/player/media_player.style
-    overview/overview.style
-    passport/passport.style
-    profile/profile.style
-    settings/settings.style
-    ui/filter_icons.style
-    window/window.style
-)
-
-set(dependent_style_files
-    ${submodules_loc}/lib_ui/ui/colors.palette
-    ${submodules_loc}/lib_ui/ui/basic.style
-    ${submodules_loc}/lib_ui/ui/layers/layers.style
-    ${submodules_loc}/lib_ui/ui/widgets/widgets.style
-    ${src_loc}/ui/td_common.style
-)
-
-generate_styles(Telegram ${src_loc} "${style_files}" "${dependent_style_files}")
-generate_numbers(Telegram ${res_loc}/numbers.txt)
 
 set_target_properties(Telegram PROPERTIES AUTOMOC ON AUTORCC ON)
 
@@ -106,17 +73,12 @@ if (LINUX)
         desktop-app::external_materialdecoration
         desktop-app::external_nimf_qt5
         desktop-app::external_qt5ct_support
+        desktop-app::external_xcb_screensaver
+        desktop-app::external_xcb
+        desktop-app::external_glib
     )
 
     if (NOT DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
-        # conflicts with Qt static link
-        if (DESKTOP_APP_USE_PACKAGED_LAZY_PLATFORMTHEMES)
-            target_link_libraries(Telegram
-            PRIVATE
-                desktop-app::external_lxqt_qtplugin
-            )
-        endif()
-
         target_link_libraries(Telegram
         PRIVATE
             desktop-app::external_statusnotifieritem
@@ -136,35 +98,6 @@ if (LINUX)
             ${WAYLAND_CLIENT_INCLUDE_DIRS}
         )
     endif()
-
-    if (DESKTOP_APP_USE_PACKAGED)
-        find_package(PkgConfig REQUIRED)
-        pkg_check_modules(XCB_SCREENSAVER REQUIRED IMPORTED_TARGET xcb-screensaver)
-        pkg_check_modules(XCB REQUIRED IMPORTED_TARGET xcb)
-
-        target_link_libraries(Telegram
-        PRIVATE
-            PkgConfig::XCB_SCREENSAVER
-            PkgConfig::XCB
-        )
-    else()
-        target_link_static_libraries(Telegram PRIVATE xcb-screensaver)
-        target_link_libraries(Telegram PRIVATE xcb)
-    endif()
-
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GLIB2 REQUIRED IMPORTED_TARGET glib-2.0)
-    pkg_check_modules(GOBJECT REQUIRED IMPORTED_TARGET gobject-2.0)
-    pkg_check_modules(GIO REQUIRED IMPORTED_TARGET gio-2.0)
-
-    target_link_libraries(Telegram
-    PRIVATE
-        PkgConfig::GLIB2
-        PkgConfig::GOBJECT
-        PkgConfig::GIO
-    )
-
-    target_compile_definitions(Telegram PRIVATE G_LOG_DOMAIN="Kotatogram")
 
     if (NOT TDESKTOP_DISABLE_GTK_INTEGRATION)
         find_package(PkgConfig REQUIRED)
@@ -191,6 +124,8 @@ nice_target_sources(Telegram ${src_loc}
 PRIVATE
     ${style_files}
 
+    api/api_attached_stickers.cpp
+    api/api_attached_stickers.h
     api/api_authorizations.cpp
     api/api_authorizations.h
     api/api_bot.cpp
@@ -394,8 +329,6 @@ PRIVATE
     core/launcher.h
     core/local_url_handlers.cpp
     core/local_url_handlers.h
-    core/mime_type.cpp
-    core/mime_type.h
     core/sandbox.cpp
     core/sandbox.h
     core/shortcuts.cpp
@@ -573,6 +506,8 @@ PRIVATE
     history/view/media/history_view_photo.cpp
     history/view/media/history_view_poll.h
     history/view/media/history_view_poll.cpp
+    history/view/media/history_view_slot_machine.h
+    history/view/media/history_view_slot_machine.cpp
     history/view/media/history_view_sticker.h
     history/view/media/history_view_sticker.cpp
     history/view/media/history_view_theme_document.h
@@ -594,6 +529,12 @@ PRIVATE
     history/view/history_view_message.cpp
     history/view/history_view_message.h
     history/view/history_view_object.h
+    history/view/history_view_pinned_bar.cpp
+    history/view/history_view_pinned_bar.h
+    history/view/history_view_pinned_section.cpp
+    history/view/history_view_pinned_section.h
+    history/view/history_view_pinned_tracker.cpp
+    history/view/history_view_pinned_tracker.h
     history/view/history_view_replies_section.cpp
     history/view/history_view_replies_section.h
     history/view/history_view_schedule_box.cpp
@@ -768,14 +709,6 @@ PRIVATE
     media/audio/media_child_ffmpeg_loader.h
     media/audio/media_openal_functions.cpp
     media/audio/media_openal_functions.h
-    media/clip/media_clip_check_streaming.cpp
-    media/clip/media_clip_check_streaming.h
-    media/clip/media_clip_ffmpeg.cpp
-    media/clip/media_clip_ffmpeg.h
-    media/clip/media_clip_implementation.cpp
-    media/clip/media_clip_implementation.h
-    media/clip/media_clip_reader.cpp
-    media/clip/media_clip_reader.h
     media/player/media_player_button.cpp
     media/player/media_player_button.h
     media/player/media_player_float.cpp
@@ -1067,8 +1000,8 @@ PRIVATE
     ui/filter_icons.h
     ui/filter_icon_panel.cpp
     ui/filter_icon_panel.h
-    ui/grouped_layout.cpp
-    ui/grouped_layout.h
+    ui/item_text_options.cpp
+    ui/item_text_options.h
     ui/resize_area.h
     ui/search_field_controller.cpp
     ui/search_field_controller.h
@@ -1076,8 +1009,6 @@ PRIVATE
     ui/special_buttons.h
     ui/special_fields.cpp
     ui/special_fields.h
-    ui/text_options.cpp
-    ui/text_options.h
     ui/unread_badge.cpp
     ui/unread_badge.h
     window/main_window.cpp
@@ -1305,6 +1236,7 @@ target_compile_definitions(Telegram
 PRIVATE
     TDESKTOP_API_ID=${TDESKTOP_API_ID}
     TDESKTOP_API_HASH=${TDESKTOP_API_HASH}
+    G_LOG_DOMAIN="Kotatogram"
 )
 
 if (APPLE OR NOT CMAKE_EXECUTABLE_SUFFIX STREQUAL "" OR NOT "${output_name}" STREQUAL "Kotatogram")

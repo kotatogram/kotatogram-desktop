@@ -46,7 +46,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "app.h"
 #include "styles/style_dialogs.h"
-#include "styles/style_history.h"
+#include "styles/style_chat.h"
 #include "styles/style_info.h"
 #include "styles/style_window.h"
 
@@ -209,8 +209,8 @@ Widget::Widget(
 	connect(_inner, SIGNAL(completeHashtag(QString)), this, SLOT(onCompleteHashtag(QString)));
 	connect(_inner, SIGNAL(refreshHashtags()), this, SLOT(onFilterCursorMoved()));
 	connect(_inner, SIGNAL(cancelSearchInChat()), this, SLOT(onCancelSearchInChat()));
-	subscribe(_inner->searchFromUserChanged, [this](UserData *user) {
-		setSearchInChat(_searchInChat, user);
+	subscribe(_inner->searchFromUserChanged, [this](PeerData *from) {
+		setSearchInChat(_searchInChat, from);
 		applyFilterUpdate(true);
 	});
 	_inner->chosenRow(
@@ -791,7 +791,7 @@ void Widget::onDraggingScrollTimer() {
 bool Widget::onSearchMessages(bool searchCache) {
 	auto result = false;
 	auto q = _filter->getLastText().trimmed();
-	if (q.isEmpty() && !_searchFromUser) {
+	if (q.isEmpty() && !_searchFromAuthor) {
 		cancelSearchRequest();
 		_api.request(base::take(_peerSearchRequest)).cancel();
 		return true;
@@ -806,7 +806,7 @@ bool Widget::onSearchMessages(bool searchCache) {
 		const auto i = _searchCache.find(q);
 		if (i != _searchCache.end()) {
 			_searchQuery = q;
-			_searchQueryFrom = _searchFromUser;
+			_searchQueryFrom = _searchFromAuthor;
 			_searchNextRate = 0;
 			_searchFull = _searchFullMigrated = false;
 			cancelSearchRequest();
@@ -818,9 +818,9 @@ bool Widget::onSearchMessages(bool searchCache) {
 				0);
 			result = true;
 		}
-	} else if (_searchQuery != q || _searchQueryFrom != _searchFromUser) {
+	} else if (_searchQuery != q || _searchQueryFrom != _searchFromAuthor) {
 		_searchQuery = q;
-		_searchQueryFrom = _searchFromUser;
+		_searchQueryFrom = _searchFromAuthor;
 		_searchNextRate = 0;
 		_searchFull = _searchFullMigrated = false;
 		cancelSearchRequest();
@@ -838,8 +838,8 @@ bool Widget::onSearchMessages(bool searchCache) {
 					peer->input,
 					MTP_string(_searchQuery),
 					(_searchQueryFrom
-						? _searchQueryFrom->inputUser
-						: MTP_inputUserEmpty()),
+						? _searchQueryFrom->input
+						: MTP_inputPeerEmpty()),
 					MTPint(), // top_msg_id
 					MTP_inputMessagesFilterEmpty(),
 					MTP_int(0),
@@ -1018,8 +1018,8 @@ void Widget::onSearchMore() {
 					peer->input,
 					MTP_string(_searchQuery),
 					(_searchQueryFrom
-						? _searchQueryFrom->inputUser
-						: MTP_inputUserEmpty()),
+						? _searchQueryFrom->input
+						: MTP_inputPeerEmpty()),
 					MTPint(), // top_msg_id
 					MTP_inputMessagesFilterEmpty(),
 					MTP_int(0),
@@ -1112,8 +1112,8 @@ void Widget::onSearchMore() {
 				_searchInMigrated->peer->input,
 				MTP_string(_searchQuery),
 				(_searchQueryFrom
-					? _searchQueryFrom->inputUser
-					: MTP_inputUserEmpty()),
+					? _searchQueryFrom->input
+					: MTP_inputPeerEmpty()),
 				MTPint(), // top_msg_id
 				MTP_inputMessagesFilterEmpty(),
 				MTP_int(0),
@@ -1389,7 +1389,7 @@ void Widget::applyFilterUpdate(bool force) {
 
 	auto filterText = _filter->getLastText();
 	_inner->applyFilterUpdate(filterText, force);
-	if (filterText.isEmpty() && !_searchFromUser) {
+	if (filterText.isEmpty() && !_searchFromAuthor) {
 		clearSearchCache();
 	}
 	_cancelSearch->toggle(!filterText.isEmpty(), anim::type::normal);
@@ -1404,7 +1404,7 @@ void Widget::applyFilterUpdate(bool force) {
 		_peerSearchQuery = QString();
 	}
 
-	if (_chooseFromUser->toggled() || _searchFromUser) {
+	if (_chooseFromUser->toggled() || _searchFromAuthor) {
 		auto switchToChooseFrom = SwitchToChooseFromQuery();
 		if (_lastFilterText != switchToChooseFrom
 			&& switchToChooseFrom.startsWith(_lastFilterText)
@@ -1421,7 +1421,7 @@ void Widget::searchInChat(Key chat) {
 	applyFilterUpdate(true);
 }
 
-void Widget::setSearchInChat(Key chat, UserData *from) {
+void Widget::setSearchInChat(Key chat, PeerData *from) {
 	if (chat.folder()) {
 		chat = Key();
 	}
@@ -1442,13 +1442,13 @@ void Widget::setSearchInChat(Key chat, UserData *from) {
 	} else if (!_searchInChat) {
 		from = nullptr;
 	}
-	if (_searchFromUser != from || searchInPeerUpdated) {
-		_searchFromUser = from;
+	if (_searchFromAuthor != from || searchInPeerUpdated) {
+		_searchFromAuthor = from;
 		updateSearchFromVisibility();
 		clearSearchCache();
 	}
-	_inner->searchInChat(_searchInChat, _searchFromUser);
-	if (_searchFromUser && _lastFilterText == SwitchToChooseFromQuery()) {
+	_inner->searchInChat(_searchInChat, _searchFromAuthor);
+	if (_searchFromAuthor && _lastFilterText == SwitchToChooseFromQuery()) {
 		onCancelSearch();
 	}
 	_filter->setFocus();
@@ -1476,9 +1476,9 @@ void Widget::showSearchFrom() {
 		const auto chat = _searchInChat;
 		ShowSearchFromBox(
 			peer,
-			crl::guard(this, [=](not_null<UserData*> user) {
+			crl::guard(this, [=](not_null<PeerData*> from) {
 				Ui::hideLayer();
-				setSearchInChat(chat, user);
+				setSearchInChat(chat, from);
 				applyFilterUpdate(true);
 			}),
 			crl::guard(this, [=] { _filter->setFocus(); }));
@@ -1567,7 +1567,7 @@ void Widget::updateSearchFromVisibility(bool fast) {
 	auto visible = [&] {
 		if (const auto peer = _searchInChat.peer()) {
 			if (peer->isChat() || peer->isMegagroup()) {
-				return !_searchFromUser;
+				return !_searchFromAuthor;
 			}
 		}
 		return false;
@@ -1804,10 +1804,7 @@ void Widget::onCancelSearchInChat() {
 		}
 		setSearchInChat(Key());
 	}
-	_inner->clearFilter();
-	_filter->clear();
-	_filter->updatePlaceholder();
-	applyFilterUpdate();
+	applyFilterUpdate(true);
 	if (!Adaptive::OneColumn() && !controller()->selectingPeer()) {
 		emit cancelled();
 	}

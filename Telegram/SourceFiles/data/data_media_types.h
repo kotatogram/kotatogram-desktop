@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_location.h"
 
 class Image;
+class History;
 class HistoryItem;
 
 namespace base {
@@ -89,6 +90,7 @@ public:
 	virtual bool canBeGrouped() const;
 	virtual bool hasReplyPreview() const;
 	virtual Image *replyPreview() const;
+	virtual bool replyPreviewLoaded() const;
 	// Returns text with link-start and link-end commands for service-color highlighting.
 	// Example: "[link1-start]You:[link1-end] [link1-start]Photo,[link1-end] caption text"
 	virtual QString chatListText() const;
@@ -144,6 +146,7 @@ public:
 	bool canBeGrouped() const override;
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
+	bool replyPreviewLoaded() const override;
 	QString chatListText() const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
@@ -181,6 +184,7 @@ public:
 	bool canBeGrouped() const override;
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
+	bool replyPreviewLoaded() const override;
 	QString chatListText() const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
@@ -313,6 +317,7 @@ public:
 
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
+	bool replyPreviewLoaded() const override;
 	QString chatListText() const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
@@ -343,6 +348,7 @@ public:
 
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
+	bool replyPreviewLoaded() const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
@@ -379,6 +385,7 @@ public:
 
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
+	bool replyPreviewLoaded() const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
@@ -442,6 +449,11 @@ public:
 		not_null<HistoryView::Element*> message,
 		not_null<HistoryItem*> realParent,
 		HistoryView::Element *replacing = nullptr) override;
+
+	[[nodiscard]] ClickHandlerPtr makeHandler() const;
+	[[nodiscard]] static ClickHandlerPtr MakeHandler(
+		not_null<History*> history,
+		const QString &emoji);
 
 private:
 	QString _emoji;

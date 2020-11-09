@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session_settings.h"
 #include "ui/image/image.h"
 #include "ui/grouped_layout.h"
+#include "ui/cached_round_corners.h"
 #include "data/data_session.h"
 #include "data/data_streaming.h"
 #include "data/data_photo.h"
@@ -29,8 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_auto_download.h"
 #include "core/application.h"
 #include "mainwidget.h"
-#include "app.h"
-#include "styles/style_history.h"
+#include "styles/style_chat.h"
 
 namespace HistoryView {
 namespace {
@@ -274,7 +274,7 @@ void Photo::draw(Painter &p, const QRect &r, TextSelection selection, crl::time 
 				rthumb = style::rtlrect(paintx, painty, paintw, painth, width());
 			}
 		} else {
-			App::roundShadow(p, 0, 0, paintw, painth, selected ? st::msgInShadowSelected : st::msgInShadow, selected ? InSelectedShadowCorners : InShadowCorners);
+			Ui::FillRoundShadow(p, 0, 0, paintw, painth, selected ? st::msgInShadowSelected : st::msgInShadow, selected ? Ui::InSelectedShadowCorners : Ui::InShadowCorners);
 		}
 		auto inWebPage = (_parent->media() != this);
 		auto roundRadius = inWebPage ? ImageRoundRadius::Small : ImageRoundRadius::Large;
@@ -297,14 +297,15 @@ void Photo::draw(Painter &p, const QRect &r, TextSelection selection, crl::time 
 		}();
 		p.drawPixmap(rthumb.topLeft(), pix);
 		if (selected) {
-			App::complexOverlayRect(p, rthumb, roundRadius, roundCorners);
+			Ui::FillComplexOverlayRect(p, rthumb, roundRadius, roundCorners);
 		}
 	}
 	if (radial || (!loaded && !_data->loading())) {
 		const auto radialOpacity = (radial && loaded && !_data->uploading())
 			? _animation->radial.opacity() :
 			1.;
-		QRect inner(rthumb.x() + (rthumb.width() - st::msgFileSize) / 2, rthumb.y() + (rthumb.height() - st::msgFileSize) / 2, st::msgFileSize, st::msgFileSize);
+		const auto innerSize = st::msgFileLayout.thumbSize;
+		QRect inner(rthumb.x() + (rthumb.width() - innerSize) / 2, rthumb.y() + (rthumb.height() - innerSize) / 2, innerSize, innerSize);
 		p.setPen(Qt::NoPen);
 		if (selected) {
 			p.setBrush(st::msgDateImgBgSelected);
@@ -414,7 +415,8 @@ void Photo::paintUserpicFrame(
 	p.drawPixmap(rect, pix);
 
 	if (_data->videoCanBePlayed() && !_streamed) {
-		auto inner = QRect(rect.x() + (rect.width() - st::msgFileSize) / 2, rect.y() + (rect.height() - st::msgFileSize) / 2, st::msgFileSize, st::msgFileSize);
+		const auto innerSize = st::msgFileLayout.thumbSize;
+		auto inner = QRect(rect.x() + (rect.width() - innerSize) / 2, rect.y() + (rect.height() - innerSize) / 2, innerSize, innerSize);
 		p.setPen(Qt::NoPen);
 		if (selected) {
 			p.setBrush(st::msgDateImgBgSelected);
@@ -490,10 +492,14 @@ TextState Photo::textState(QPoint point, StateRequest request) const {
 	return result;
 }
 
-QSize Photo::sizeForGrouping() const {
+QSize Photo::sizeForGroupingOptimal(int maxWidth) const {
 	const auto width = _data->width();
 	const auto height = _data->height();
 	return { std::max(width, 1), std::max(height, 1) };
+}
+
+QSize Photo::sizeForGrouping(int width) const {
+	return sizeForGroupingOptimal(width);
 }
 
 void Photo::drawGrouped(
@@ -548,7 +554,7 @@ void Photo::drawGrouped(
 
 	if (selected) {
 		const auto roundRadius = ImageRoundRadius::Large;
-		App::complexOverlayRect(p, geometry, roundRadius, corners);
+		Ui::FillComplexOverlayRect(p, geometry, roundRadius, corners);
 	}
 
 	const auto displayState = radial

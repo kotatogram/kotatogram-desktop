@@ -10,7 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/filters/edit_filter_chats_list.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "ui/layers/generic_box.h"
-#include "ui/text_options.h"
+#include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"

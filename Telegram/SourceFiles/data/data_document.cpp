@@ -39,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/confirm_box.h"
 #include "ui/image/image.h"
 #include "ui/text/text_utilities.h"
+#include "ui/text/format_values.h"
 #include "base/base_file_utilities.h"
 #include "mainwindow.h"
 #include "core/application.h"
@@ -74,15 +75,15 @@ void LaunchWithWarning(
 		not_null<Main::Session*> session,
 		const QString &name,
 		HistoryItem *item) {
+	const auto isExecutable = Data::IsExecutableName(name);
+	const auto isIpReveal = Data::IsIpRevealingName(name);
+	auto &app = Core::App();
 	const auto warn = [&] {
-		if (!Data::IsExecutableName(name)) {
-			return false;
-		} else if (!Core::App().settings().exeLaunchWarning()) {
-			return false;
-		} else if (item && item->history()->peer->isVerified()) {
+		if (item && item->history()->peer->isVerified()) {
 			return false;
 		}
-		return true;
+		return (isExecutable && app.settings().exeLaunchWarning())
+			|| (isIpReveal && app.settings().ipRevealWarning());
 	}();
 	const auto extension = '.' + Data::FileExtension(name);
 	if (Platform::IsWindows() && extension == u"."_q) {
@@ -99,43 +100,31 @@ void LaunchWithWarning(
 		File::Launch(name);
 		return;
 	}
-	const auto callback = [=](bool checked) {
+	const auto callback = [=, &app](bool checked) {
 		if (checked) {
-			Core::App().settings().setExeLaunchWarning(false);
-			Core::App().saveSettingsDelayed();
+			if (isExecutable) {
+				app.settings().setExeLaunchWarning(false);
+			} else if (isIpReveal) {
+				app.settings().setIpRevealWarning(false);
+			}
+			app.saveSettingsDelayed();
 		}
 		File::Launch(name);
 	};
-	Ui::show(Box<ConfirmDontWarnBox>(
-		tr::lng_launch_exe_warning(
+	auto text = isExecutable
+		? tr::lng_launch_exe_warning(
 			lt_extension,
 			rpl::single(Ui::Text::Bold(extension)),
-			Ui::Text::WithEntities),
+			Ui::Text::WithEntities)
+		: tr::lng_launch_svg_warning(Ui::Text::WithEntities);
+	Ui::show(Box<ConfirmDontWarnBox>(
+		std::move(text),
 		tr::lng_launch_exe_dont_ask(tr::now),
-		tr::lng_launch_exe_sure(),
+		(isExecutable ? tr::lng_launch_exe_sure : tr::lng_continue)(),
 		callback));
 }
 
 } // namespace
-
-bool fileIsImage(const QString &name, const QString &mime) {
-	QString lowermime = mime.toLower(), namelower = name.toLower();
-	if (lowermime.startsWith(qstr("image/"))) {
-		return true;
-	} else if (namelower.endsWith(qstr(".bmp"))
-		|| namelower.endsWith(qstr(".jpg"))
-		|| namelower.endsWith(qstr(".jpeg"))
-		|| namelower.endsWith(qstr(".gif"))
-		|| namelower.endsWith(qstr(".webp"))
-		|| namelower.endsWith(qstr(".tga"))
-		|| namelower.endsWith(qstr(".tiff"))
-		|| namelower.endsWith(qstr(".tif"))
-		|| namelower.endsWith(qstr(".psd"))
-		|| namelower.endsWith(qstr(".png"))) {
-		return true;
-	}
-	return false;
-}
 
 QString FileNameUnsafe(
 		not_null<Main::Session*> session,
@@ -494,7 +483,9 @@ Main::Session &DocumentData::session() const {
 
 void DocumentData::setattributes(
 		const QVector<MTPDocumentAttribute> &attributes) {
-	_flags &= ~(Flag::ImageType | kStreamingSupportedMask);
+	_flags &= ~(Flag::ImageType
+		| Flag::HasAttachedStickers
+		| kStreamingSupportedMask);
 	_flags |= kStreamingSupportedUnknown;
 
 	validateLottieSticker();
@@ -572,6 +563,7 @@ void DocumentData::setattributes(
 				_filename = std::move(_filename).replace(ch, "_");
 			}
 		}, [&](const MTPDdocumentAttributeHasStickers &data) {
+			_flags |= Flag::HasAttachedStickers;
 		});
 	}
 	if (type == StickerDocument
@@ -859,7 +851,7 @@ void DocumentData::finishLoad() {
 		_flags |= Flag::DownloadCancelled;
 		return;
 	}
-	setLocation(FileLocation(_loader->fileName()));
+	setLocation(Core::FileLocation(_loader->fileName()));
 	setGoodThumbnailDataReady();
 	if (const auto media = activeMediaView()) {
 		media->setBytes(_loader->bytes());
@@ -927,7 +919,7 @@ void DocumentData::setLoadedInMediaCache(bool loaded) {
 		if (loadedInMediaCache()) {
 			session().local().writeFileLocation(
 				mediaKey(),
-				FileLocation::InMediaCacheLocation());
+				Core::FileLocation::InMediaCacheLocation());
 		} else {
 			session().local().removeFileLocation(mediaKey());
 		}
@@ -936,7 +928,7 @@ void DocumentData::setLoadedInMediaCache(bool loaded) {
 }
 
 void DocumentData::setLoadedInMediaCacheLocation() {
-	_location = FileLocation();
+	_location = Core::FileLocation();
 	_flags |= Flag::LoadedInMediaCache;
 }
 
@@ -964,10 +956,10 @@ void DocumentData::save(
 				f.write(media->bytes());
 				f.close();
 
-				setLocation(FileLocation(toFile));
+				setLocation(Core::FileLocation(toFile));
 				session().local().writeFileLocation(
 					mediaKey(),
-					FileLocation(toFile));
+					Core::FileLocation(toFile));
 			} else if (l.accessEnable()) {
 				const auto &alreadyName = l.name();
 				if (alreadyName != toFile) {
@@ -1161,7 +1153,7 @@ QByteArray documentWaveformEncode5bit(const VoiceWaveform &waveform) {
 	return result;
 }
 
-const FileLocation &DocumentData::location(bool check) const {
+const Core::FileLocation &DocumentData::location(bool check) const {
 	if (check && !_location.check()) {
 		const auto location = session().local().readFileLocation(mediaKey());
 		const auto that = const_cast<DocumentData*>(this);
@@ -1174,7 +1166,7 @@ const FileLocation &DocumentData::location(bool check) const {
 	return _location;
 }
 
-void DocumentData::setLocation(const FileLocation &loc) {
+void DocumentData::setLocation(const Core::FileLocation &loc) {
 	if (loc.inMediaCache()) {
 		setLoadedInMediaCacheLocation();
 	} else if (loc.check()) {
@@ -1217,7 +1209,7 @@ bool DocumentData::saveFromDataChecked() {
 		return false;
 	}
 	file.close();
-	_location = FileLocation(path);
+	_location = Core::FileLocation(path);
 	session().local().writeFileLocation(mediaKey(), _location);
 	return true;
 }
@@ -1256,6 +1248,15 @@ Image *DocumentData::getReplyPreview(Data::FileOrigin origin) {
 		_replyPreview = std::make_unique<Data::ReplyPreview>(this);
 	}
 	return _replyPreview->image(origin);
+}
+
+bool DocumentData::replyPreviewLoaded() const {
+	if (!hasThumbnail()) {
+		return true;
+	} else if (!_replyPreview) {
+		return false;
+	}
+	return _replyPreview->loaded();
 }
 
 StickerData *DocumentData::sticker() const {
@@ -1315,8 +1316,11 @@ bool DocumentData::useStreamingLoader() const {
 }
 
 bool DocumentData::canBeStreamed() const {
-	// For now video messages are not streamed.
-	return hasRemoteLocation() && supportsStreaming();
+	// Streaming couldn't be used with external player
+	// Maybe someone brave will implement this once upon a time...
+	return hasRemoteLocation()
+		&& supportsStreaming()
+		&& (!cUseExternalVideoPlayer() || !isVideoFile());
 }
 
 void DocumentData::setInappPlaybackFailed() {
@@ -1436,12 +1440,12 @@ uint8 DocumentData::cacheTag() const {
 
 QString DocumentData::composeNameString() const {
 	if (auto songData = song()) {
-		return ComposeNameString(
+		return Ui::ComposeNameString(
 			_filename,
 			songData->title,
 			songData->performer);
 	}
-	return ComposeNameString(_filename, QString(), QString());
+	return Ui::ComposeNameString(_filename, QString(), QString());
 }
 
 LocationType DocumentData::locationType() const {
@@ -1506,10 +1510,7 @@ bool DocumentData::isAudioFile() const {
 }
 
 bool DocumentData::isSharedMediaMusic() const {
-	if (const auto songData = song()) {
-		return (songData->duration > 0);
-	}
-	return false;
+	return isSong();
 }
 
 bool DocumentData::isVideoFile() const {
@@ -1529,6 +1530,10 @@ TimeId DocumentData::getDuration() const {
 
 bool DocumentData::isImage() const {
 	return (_flags & Flag::ImageType);
+}
+
+bool DocumentData::hasAttachedStickers() const {
+	return (_flags & Flag::HasAttachedStickers);
 }
 
 bool DocumentData::supportsStreaming() const {
@@ -1553,7 +1558,7 @@ void DocumentData::setMaybeSupportsStreaming(bool supports) {
 void DocumentData::recountIsImage() {
 	const auto isImage = !isAnimation()
 		&& !isVideoFile()
-		&& fileIsImage(filename(), mimeString());
+		&& Core::FileIsImage(filename(), mimeString());
 	if (isImage) {
 		_flags |= Flag::ImageType;
 	} else {
@@ -1579,7 +1584,7 @@ void DocumentData::setRemoteLocation(
 				} else if (_location.isEmpty() && loadedInMediaCache()) {
 					session().local().writeFileLocation(
 						mediaKey(),
-						FileLocation::InMediaCacheLocation());
+						Core::FileLocation::InMediaCacheLocation());
 				}
 			}
 		}
@@ -1609,22 +1614,6 @@ void DocumentData::collectLocalData(not_null<DocumentData*> local) {
 		_location = local->_location;
 		session().local().writeFileLocation(mediaKey(), _location);
 	}
-}
-
-QString DocumentData::ComposeNameString(
-		const QString &filename,
-		const QString &songTitle,
-		const QString &songPerformer) {
-	if (songTitle.isEmpty() && songPerformer.isEmpty()) {
-		return filename.isEmpty() ? qsl("Unknown File") : filename;
-	}
-
-	if (songPerformer.isEmpty()) {
-		return songTitle;
-	}
-
-	auto trackTitle = (songTitle.isEmpty() ? qsl("Unknown Track") : songTitle);
-	return songPerformer + QString::fromUtf8(" \xe2\x80\x93 ") + trackTitle;
 }
 
 namespace Data {
@@ -1670,18 +1659,30 @@ mpkg pkg scpt scptd xhtm webarchive");
 slp zsh");
 #else // Q_OS_MAC || Q_OS_UNIX
 			qsl("\
-ad ade adp app application appref-ms asp asx bas bat bin cdxml cer cfg chi \
-chm cmd cnt com cpl crt csh der diagcab dll drv eml exe fon fxp gadget grp \
-hlp hpj hta htt inf ini ins inx isp isu its jar jnlp job js jse ksh lnk \
-local lua mad maf mag mam manifest maq mar mas mat mau mav maw mcf mda mdb \
-mde mdt mdw mdz mht mhtml mjs mmc mof msc msg msh msh1 msh2 msh1xml msh2xml \
-mshxml msi msp mst ops osd paf pcd phar php php3 php4 php5 php7 phps php-s \
-pht phtml pif pl plg pm pod prf prg ps1 ps2 ps1xml ps2xml psc1 psc2 psd1 \
-psm1 pssc pst py py3 pyc pyd pyi pyo pyw pywz pyz rb reg rgs scf scr sct \
-search-ms settingcontent-ms sh shb shs slk sys t tmp u3p url vb vbe vbp vbs \
-vbscript vdx vsmacros vsd vsdm vsdx vss vssm vssx vst vstm vstx vsw vsx vtx \
-website ws wsc wsf wsh xbap xll xnk xs");
+ad ade adp app application appref-ms asp asx bas bat bin cab cdxml cer cfg \
+chi chm cmd cnt com cpl crt csh der diagcab dll drv eml exe fon fxp gadget \
+grp hlp hpj hta htt inf ini ins inx isp isu its jar jnlp job js jse key ksh \
+lnk local lua mad maf mag mam manifest maq mar mas mat mau mav maw mcf mda \
+mdb mde mdt mdw mdz mht mhtml mjs mmc mof msc msg msh msh1 msh2 msh1xml \
+msh2xml mshxml msi msp mst ops osd paf pcd phar php php3 php4 php5 php7 phps \
+php-s pht phtml pif pl plg pm pod prf prg ps1 ps2 ps1xml ps2xml psc1 psc2 \
+psd1 psm1 pssc pst py py3 pyc pyd pyi pyo pyw pywz pyz rb reg rgs scf scr \
+sct search-ms settingcontent-ms sh shb shs slk sys t tmp u3p url vb vbe vbp \
+vbs vbscript vdx vsmacros vsd vsdm vsdx vss vssm vssx vst vstm vstx vsw vsx \
+vtx website ws wsc wsf wsh xbap xll xnk xs");
 #endif // !Q_OS_MAC && !Q_OS_UNIX
+		const auto list = joined.split(' ');
+		return base::flat_set<QString>(list.begin(), list.end());
+	}();
+
+	return ranges::binary_search(
+		kExtensions,
+		FileExtension(filepath).toLower());
+}
+
+bool IsIpRevealingName(const QString &filepath) {
+	static const auto kExtensions = [] {
+		const auto joined = u"htm html svg"_q;
 		const auto list = joined.split(' ');
 		return base::flat_set<QString>(list.begin(), list.end());
 	}();
