@@ -43,7 +43,7 @@ on:
 jobs:
 
   linux:
-    name: Ubuntu 20.04
+    name: Ubuntu
     if: >
       !(github.event_name == 'push'
         && contains(github.event.head_commit.message, '[skip ci]'))
