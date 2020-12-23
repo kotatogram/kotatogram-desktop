@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_folder.h"
 #include "data/data_location.h"
 #include "data/data_histories.h"
+#include "data/data_group_call.h"
 #include "lang/lang_keys.h"
 #include "base/unixtime.h"
 #include "history/history.h"
@@ -49,27 +50,28 @@ ChannelData::ChannelData(not_null<Data::Session*> owner, PeerId id)
 : PeerData(owner, id)
 , inputChannel(MTP_inputChannel(MTP_int(bareId()), MTP_long(0)))
 , _ptsWaiter(&owner->session().updates()) {
-	Data::PeerFlagValue(
-		this,
-		MTPDchannel::Flag::f_megagroup
-	) | rpl::start_with_next([=](bool megagroup) {
-		if (megagroup) {
-			if (!mgInfo) {
-				mgInfo = std::make_unique<MegagroupInfo>();
+	_flags.changes(
+	) | rpl::start_with_next([=](const Flags::Change &change) {
+		if (change.diff
+			& (MTPDchannel::Flag::f_left | MTPDchannel_ClientFlag::f_forbidden)) {
+			if (const auto chat = getMigrateFromChat()) {
+				session().changes().peerUpdated(chat, UpdateFlag::Migration);
+				session().changes().peerUpdated(this, UpdateFlag::Migration);
 			}
-		} else if (mgInfo) {
-			mgInfo = nullptr;
 		}
-	}, _lifetime);
-
-	Data::PeerFlagsValue(
-		this,
-		MTPDchannel::Flag::f_left | MTPDchannel_ClientFlag::f_forbidden
-	) | rpl::distinct_until_changed(
-	) | rpl::start_with_next([=] {
-		if (const auto chat = getMigrateFromChat()) {
-			session().changes().peerUpdated(chat, UpdateFlag::Migration);
-			session().changes().peerUpdated(this, UpdateFlag::Migration);
+		if (change.diff & MTPDchannel::Flag::f_megagroup) {
+			if (change.value & MTPDchannel::Flag::f_megagroup) {
+				if (!mgInfo) {
+					mgInfo = std::make_unique<MegagroupInfo>();
+				}
+			} else if (mgInfo) {
+				mgInfo = nullptr;
+			}
+		}
+		if (change.diff & MTPDchannel::Flag::f_call_not_empty) {
+			if (const auto history = this->owner().historyLoaded(this)) {
+				history->updateChatListEntry();
+			}
 		}
 	}, _lifetime);
 }
@@ -103,13 +105,9 @@ void ChannelData::setInviteLink(const QString &newInviteLink) {
 	}
 }
 
-QString ChannelData::inviteLink() const {
-	return _inviteLink;
-}
-
 bool ChannelData::canHaveInviteLink() const {
-	return (adminRights() & AdminRight::f_invite_users)
-		|| amCreator();
+	return amCreator()
+		|| (adminRights() & AdminRight::f_invite_users);
 }
 
 void ChannelData::setLocation(const MTPChannelLocation &data) {
@@ -692,6 +690,51 @@ void ChannelData::privateErrorReceived() {
 	}
 }
 
+void ChannelData::migrateCall(std::unique_ptr<Data::GroupCall> call) {
+	Expects(_call == nullptr);
+	Expects(call != nullptr);
+
+	_call = std::move(call);
+	_call->setPeer(this);
+	session().changes().peerUpdated(this, UpdateFlag::GroupCall);
+	addFlags(MTPDchannel::Flag::f_call_active);
+}
+
+void ChannelData::setGroupCall(const MTPInputGroupCall &call) {
+	call.match([&](const MTPDinputGroupCall &data) {
+		if (_call && _call->id() == data.vid().v) {
+			return;
+		} else if (!_call && !data.vid().v) {
+			return;
+		} else if (!data.vid().v) {
+			clearGroupCall();
+			return;
+		}
+		const auto hasCall = (_call != nullptr);
+		if (hasCall) {
+			owner().unregisterGroupCall(_call.get());
+		}
+		_call = std::make_unique<Data::GroupCall>(
+			this,
+			data.vid().v,
+			data.vaccess_hash().v);
+		owner().registerGroupCall(_call.get());
+		session().changes().peerUpdated(this, UpdateFlag::GroupCall);
+		addFlags(MTPDchannel::Flag::f_call_active);
+	});
+}
+
+void ChannelData::clearGroupCall() {
+	if (!_call) {
+		return;
+	}
+	owner().unregisterGroupCall(_call.get());
+	_call = nullptr;
+	session().changes().peerUpdated(this, UpdateFlag::GroupCall);
+	removeFlags(MTPDchannel::Flag::f_call_active
+		| MTPDchannel::Flag::f_call_not_empty);
+}
+
 namespace Data {
 
 void ApplyMigration(
@@ -722,6 +765,12 @@ void ApplyChannelUpdate(
 	auto canViewAdmins = channel->canViewAdmins();
 	auto canViewMembers = channel->canViewMembers();
 	auto canEditStickers = channel->canEditStickers();
+
+	if (const auto call = update.vcall()) {
+		channel->setGroupCall(*call);
+	} else {
+		channel->clearGroupCall();
+	}
 
 	channel->setFullFlags(update.vflags().v);
 	channel->setUserpicPhoto(update.vchat_photo());

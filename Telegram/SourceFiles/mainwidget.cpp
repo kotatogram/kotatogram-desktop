@@ -140,8 +140,8 @@ public:
 	}
 
 	void setThirdSectionMemento(
-		std::unique_ptr<Window::SectionMemento> &&memento);
-	std::unique_ptr<Window::SectionMemento> takeThirdSectionMemento() {
+		std::shared_ptr<Window::SectionMemento> memento);
+	std::shared_ptr<Window::SectionMemento> takeThirdSectionMemento() {
 		return std::move(_thirdSectionMemento);
 	}
 
@@ -158,7 +158,7 @@ public:
 private:
 	PeerData *_peer = nullptr;
 	QPointer<Window::SectionWidget> _thirdSectionWeak;
-	std::unique_ptr<Window::SectionMemento> _thirdSectionMemento;
+	std::shared_ptr<Window::SectionMemento> _thirdSectionMemento;
 
 };
 
@@ -187,27 +187,27 @@ public:
 class StackItemSection : public StackItem {
 public:
 	StackItemSection(
-		std::unique_ptr<Window::SectionMemento> &&memento);
+		std::shared_ptr<Window::SectionMemento> memento);
 
 	StackItemType type() const override {
 		return SectionStackItem;
 	}
-	Window::SectionMemento *memento() const {
-		return _memento.get();
+	std::shared_ptr<Window::SectionMemento> takeMemento() {
+		return std::move(_memento);
 	}
 
 private:
-	std::unique_ptr<Window::SectionMemento> _memento;
+	std::shared_ptr<Window::SectionMemento> _memento;
 
 };
 
 void StackItem::setThirdSectionMemento(
-		std::unique_ptr<Window::SectionMemento> &&memento) {
+		std::shared_ptr<Window::SectionMemento> memento) {
 	_thirdSectionMemento = std::move(memento);
 }
 
 StackItemSection::StackItemSection(
-	std::unique_ptr<Window::SectionMemento> &&memento)
+	std::shared_ptr<Window::SectionMemento> memento)
 : StackItem(nullptr)
 , _memento(std::move(memento)) {
 }
@@ -244,11 +244,19 @@ MainWidget::MainWidget(
 	setupConnectingWidget();
 
 	connect(_dialogs, SIGNAL(cancelled()), this, SLOT(dialogsCancelled()));
-	connect(_history, &HistoryWidget::cancelled, [=] { handleHistoryBack(); });
+
+	_history->cancelRequests(
+	) | rpl::start_with_next([=] {
+		handleHistoryBack();
+	}, lifetime());
 
 	Core::App().calls().currentCallValue(
 	) | rpl::start_with_next([=](Calls::Call *call) {
 		setCurrentCall(call);
+	}, lifetime());
+	Core::App().calls().currentGroupCallValue(
+	) | rpl::start_with_next([=](Calls::GroupCall *call) {
+		setCurrentGroupCall(call);
 	}, lifetime());
 	if (_callTopBar) {
 		_callTopBar->finishAnimating();
@@ -479,7 +487,7 @@ void MainWidget::floatPlayerClosed(FullMsgId itemId) {
 		const auto voiceData = Media::Player::instance()->current(
 			AudioMsgId::Type::Voice);
 		if (voiceData.contextId() == itemId) {
-			_player->entity()->stopAndClose();
+			stopAndClosePlayer();
 		}
 	}
 }
@@ -529,7 +537,7 @@ bool MainWidget::shareUrl(
 	auto history = peer->owner().history(peer);
 	history->setLocalDraft(
 		std::make_unique<Data::Draft>(textWithTags, 0, cursor, false));
-	history->clearEditDraft();
+	history->clearLocalEditDraft();
 	if (_history->peer() == peer) {
 		_history->applyDraft();
 	} else {
@@ -558,7 +566,7 @@ bool MainWidget::inlineSwitchChosen(PeerId peerId, const QString &botAndQuery) {
 	TextWithTags textWithTags = { botAndQuery, TextWithTags::Tags() };
 	MessageCursor cursor = { botAndQuery.size(), botAndQuery.size(), QFIXED_MAX };
 	h->setLocalDraft(std::make_unique<Data::Draft>(textWithTags, 0, cursor, false));
-	h->clearEditDraft();
+	h->clearLocalEditDraft();
 	const auto opened = _history->peer() && (_history->peer() == peer);
 	if (opened) {
 		_history->applyDraft();
@@ -827,15 +835,6 @@ crl::time MainWidget::highlightStartTime(not_null<const HistoryItem*> item) cons
 	return _history->highlightStartTime(item);
 }
 
-MsgId MainWidget::currentReplyToIdFor(not_null<History*> history) const {
-	if (_history->history() == history) {
-		return _history->replyToId();
-	} else if (const auto localDraft = history->localDraft()) {
-		return localDraft->msgId;
-	}
-	return 0;
-}
-
 void MainWidget::sendBotCommand(
 		not_null<PeerData*> peer,
 		UserData *bot,
@@ -895,6 +894,12 @@ void MainWidget::closeBothPlayers() {
 	Shortcuts::ToggleMediaShortcuts(false);
 }
 
+void MainWidget::stopAndClosePlayer() {
+	if (_player) {
+		_player->entity()->stopAndClose();
+	}
+}
+
 void MainWidget::createPlayer() {
 	if (!_player) {
 		_player.create(
@@ -949,16 +954,45 @@ void MainWidget::playerHeightUpdated() {
 }
 
 void MainWidget::setCurrentCall(Calls::Call *call) {
+	if (!call && _currentGroupCall) {
+		return;
+	}
 	_currentCallLifetime.destroy();
 	_currentCall = call;
 	if (_currentCall) {
+		_callTopBar.destroy();
 		_currentCall->stateValue(
 		) | rpl::start_with_next([=](Calls::Call::State state) {
 			using State = Calls::Call::State;
-			if (state == State::Established) {
-				createCallTopBar();
-			} else {
+			if (state != State::Established) {
 				destroyCallTopBar();
+			} else if (!_callTopBar) {
+				createCallTopBar();
+			}
+		}, _currentCallLifetime);
+	} else {
+		destroyCallTopBar();
+	}
+}
+
+void MainWidget::setCurrentGroupCall(Calls::GroupCall *call) {
+	if (!call && _currentCall) {
+		return;
+	}
+	_currentCallLifetime.destroy();
+	_currentGroupCall = call;
+	if (_currentGroupCall) {
+		_callTopBar.destroy();
+		_currentGroupCall->stateValue(
+		) | rpl::start_with_next([=](Calls::GroupCall::State state) {
+			using State = Calls::GroupCall::State;
+			if (state != State::Creating
+				&& state != State::Joining
+				&& state != State::Joined
+				&& state != State::Connecting) {
+				destroyCallTopBar();
+			} else if (!_callTopBar) {
+				createCallTopBar();
 			}
 		}, _currentCallLifetime);
 	} else {
@@ -967,9 +1001,14 @@ void MainWidget::setCurrentCall(Calls::Call *call) {
 }
 
 void MainWidget::createCallTopBar() {
-	Expects(_currentCall != nullptr);
+	Expects(_currentCall != nullptr || _currentGroupCall != nullptr);
 
-	_callTopBar.create(this, object_ptr<Calls::TopBar>(this, _currentCall));
+	_callTopBar.create(
+		this,
+		(_currentCall
+			? object_ptr<Calls::TopBar>(this, _currentCall)
+			: object_ptr<Calls::TopBar>(this, _currentGroupCall)));
+	_callTopBar->entity()->initBlobsUnder(this, _callTopBar->geometryValue());
 	_callTopBar->heightValue(
 	) | rpl::start_with_next([this](int value) {
 		callTopBarHeightUpdated(value);
@@ -993,7 +1032,7 @@ void MainWidget::destroyCallTopBar() {
 }
 
 void MainWidget::callTopBarHeightUpdated(int callTopBarHeight) {
-	if (!callTopBarHeight && !_currentCall) {
+	if (!callTopBarHeight && !_currentCall && !_currentGroupCall) {
 		_callTopBar.destroyDelayed();
 	}
 	if (callTopBarHeight != _callTopBarHeight) {
@@ -1372,6 +1411,7 @@ void MainWidget::ui_showPeerHistory(
 		PeerId peerId,
 		const SectionShow &params,
 		MsgId showAtMsgId) {
+
 	if (auto peer = session().data().peerLoaded(peerId)) {
 		if (peer->migrateTo()) {
 			peer = peer->migrateTo();
@@ -1389,6 +1429,13 @@ void MainWidget::ui_showPeerHistory(
 	if (IsServerMsgId(showAtMsgId)
 		&& _mainSection
 		&& _mainSection->showMessage(peerId, params, showAtMsgId)) {
+		return;
+	}
+
+	if (!(_history->peer() && _history->peer()->id == peerId)
+		&& preventsCloseSection(
+			[=] { ui_showPeerHistory(peerId, params, showAtMsgId); },
+			params)) {
 		return;
 	}
 
@@ -1568,10 +1615,10 @@ void MainWidget::saveSectionInStack() {
 }
 
 void MainWidget::showSection(
-		Window::SectionMemento &&memento,
+		std::shared_ptr<Window::SectionMemento> memento,
 		const SectionShow &params) {
 	if (_mainSection && _mainSection->showInternal(
-			&memento,
+			memento.get(),
 			params)) {
 		if (const auto entry = _mainSection->activeChat(); entry.key) {
 			_controller->setActiveChatEntry(entry);
@@ -1587,14 +1634,18 @@ void MainWidget::showSection(
 	//	return;
 	}
 
+	if (preventsCloseSection(
+		[=] { showSection(memento, params); },
+		params)) {
+		return;
+	}
+
 	// If the window was not resized, but we've enabled
 	// tabbedSelectorSectionEnabled or thirdSectionInfoEnabled
 	// we need to update adaptive layout to Adaptive::ThirdColumn().
 	updateColumnLayout();
 
-	showNewSection(
-		std::move(memento),
-		params);
+	showNewSection(std::move(memento), params);
 }
 
 void MainWidget::updateColumnLayout() {
@@ -1689,7 +1740,7 @@ Window::SectionSlideParams MainWidget::prepareDialogsAnimation() {
 }
 
 void MainWidget::showNewSection(
-		Window::SectionMemento &&memento,
+		std::shared_ptr<Window::SectionMemento> memento,
 		const SectionShow &params) {
 	using Column = Window::Column;
 
@@ -1701,7 +1752,7 @@ void MainWidget::showNewSection(
 		st::columnMinimalWidthThird,
 		height() - thirdSectionTop);
 	auto newThirdSection = (Adaptive::ThreeColumn() && params.thirdColumn)
-		? memento.createWidget(
+		? memento->createWidget(
 			this,
 			_controller,
 			Column::Third,
@@ -1710,7 +1761,7 @@ void MainWidget::showNewSection(
 	const auto layerRect = parentWidget()->rect();
 	if (newThirdSection) {
 		saveInStack = false;
-	} else if (auto layer = memento.createLayer(_controller, layerRect)) {
+	} else if (auto layer = memento->createLayer(_controller, layerRect)) {
 		if (params.activation != anim::activation::background) {
 			Ui::hideLayer(anim::type::instant);
 		}
@@ -1735,7 +1786,7 @@ void MainWidget::showNewSection(
 		height() - mainSectionTop);
 	auto newMainSection = newThirdSection
 		? nullptr
-		: memento.createWidget(
+		: memento->createWidget(
 			this,
 			_controller,
 			Adaptive::OneColumn() ? Column::First : Column::Second,
@@ -1746,7 +1797,7 @@ void MainWidget::showNewSection(
 		if (_a_show.animating()
 			|| Core::App().passcodeLocked()
 			|| (params.animated == anim::type::instant)
-			|| memento.instant()) {
+			|| memento->instant()) {
 			return false;
 		}
 		if (!Adaptive::OneColumn() && params.way == SectionShow::Way::ClearStack) {
@@ -1849,8 +1900,30 @@ bool MainWidget::stackIsEmpty() const {
 	return _stack.empty();
 }
 
+bool MainWidget::preventsCloseSection(Fn<void()> callback) const {
+	if (Core::App().passcodeLocked()) {
+		return false;
+	}
+	auto copy = callback;
+	return (_mainSection && _mainSection->preventsClose(std::move(copy)))
+		|| (_history && _history->preventsClose(std::move(callback)));
+}
+
+bool MainWidget::preventsCloseSection(
+		Fn<void()> callback,
+		const SectionShow &params) const {
+	return params.thirdColumn
+		? false
+		: preventsCloseSection(std::move(callback));
+}
+
 void MainWidget::showBackFromStack(
 		const SectionShow &params) {
+
+	if (preventsCloseSection([=] { showBackFromStack(params); }, params)) {
+		return;
+	}
+
 	if (selectingPeer()) {
 		return;
 	}
@@ -1877,12 +1950,12 @@ void MainWidget::showBackFromStack(
 	} else if (item->type() == SectionStackItem) {
 		auto sectionItem = static_cast<StackItemSection*>(item.get());
 		showNewSection(
-			std::move(*sectionItem->memento()),
+			sectionItem->takeMemento(),
 			params.withWay(SectionShow::Way::Backward));
 	}
 	if (_thirdSectionFromStack && _thirdSection) {
 		_controller->showSection(
-			std::move(*base::take(_thirdSectionFromStack)),
+			base::take(_thirdSectionFromStack),
 			SectionShow(
 				SectionShow::Way::ClearStack,
 				anim::type::instant,
@@ -2381,15 +2454,15 @@ bool MainWidget::saveThirdSectionToStackBack() const {
 
 auto MainWidget::thirdSectionForCurrentMainSection(
 	Dialogs::Key key)
--> std::unique_ptr<Window::SectionMemento> {
+-> std::shared_ptr<Window::SectionMemento> {
 	if (_thirdSectionFromStack) {
 		return std::move(_thirdSectionFromStack);
 	} else if (const auto peer = key.peer()) {
-		return std::make_unique<Info::Memento>(
+		return std::make_shared<Info::Memento>(
 			peer,
 			Info::Memento::DefaultSection(peer));
 	//} else if (const auto feed = key.feed()) { // #feed
-	//	return std::make_unique<Info::Memento>(
+	//	return std::make_shared<Info::Memento>(
 	//		feed,
 	//		Info::Memento::DefaultSection(key));
 	}
@@ -2424,7 +2497,7 @@ void MainWidget::updateThirdColumnToCurrentChat(
 		}
 
 		_controller->showSection(
-			std::move(*thirdSectionForCurrentMainSection(key)),
+			thirdSectionForCurrentMainSection(key),
 			params.withThirdColumn());
 	};
 	auto switchTabbedFast = [&](not_null<PeerData*> peer) {

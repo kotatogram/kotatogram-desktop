@@ -102,8 +102,10 @@ PinnedWidget::PinnedWidget(
 	st::historyComposeButton))
 , _scrollDown(_scroll.get(), st::historyToDown) {
 	_topBar->setActiveChat(
-		_history,
-		TopBarWidget::Section::Pinned,
+		TopBarWidget::ActiveChat{
+			.key = _history,
+			.section = Dialogs::EntryState::Section::Pinned,
+		},
 		nullptr);
 
 	_topBar->move(0, 0);
@@ -340,8 +342,8 @@ void PinnedWidget::setInternalState(
 	restoreState(memento);
 }
 
-std::unique_ptr<Window::SectionMemento> PinnedWidget::createMemento() {
-	auto result = std::make_unique<PinnedMemento>(history());
+std::shared_ptr<Window::SectionMemento> PinnedWidget::createMemento() {
+	auto result = std::make_shared<PinnedMemento>(history());
 	saveState(result.get());
 	return result;
 }
@@ -637,6 +639,14 @@ bool PinnedWidget::listElementShownUnread(not_null<const Element*> view) {
 bool PinnedWidget::listIsGoodForAroundPosition(
 		not_null<const Element*> view) {
 	return IsServerMsgId(view->data()->id);
+}
+
+void PinnedWidget::listSendBotCommand(
+	const QString &command,
+	const FullMsgId &context) {
+}
+
+void PinnedWidget::listHandleViaClick(not_null<UserData*> bot) {
 }
 
 void PinnedWidget::confirmDeleteSelected() {

@@ -197,6 +197,11 @@ InnerWidget::InnerWidget(
 			UpdateRowSection::Default | UpdateRowSection::Filtered);
 	}, lifetime());
 
+	session().data().speakingAnimationUpdated(
+	) | rpl::start_with_next([=](not_null<History*> history) {
+		updateDialogRowCornerStatus(history);
+	}, lifetime());
+
 	setupOnlineStatusCheck();
 
 	rpl::merge(
@@ -1845,23 +1850,17 @@ void InnerWidget::contextMenuEvent(QContextMenuEvent *e) {
 		} else {
 			fillArchiveSearchMenu(_menu.get());
 		}
-	} else if (const auto history = row.key.history()) {
-		Window::FillPeerMenu(
+	} else {
+		Window::FillDialogsEntryMenu(
 			_controller,
-			history->peer,
-			_filterId,
+			Dialogs::EntryState{
+				.key = row.key,
+				.section = Dialogs::EntryState::Section::ChatsList,
+				.filterId = _filterId,
+			},
 			[&](const QString &text, Fn<void()> callback) {
 				return _menu->addAction(text, std::move(callback));
-			},
-			Window::PeerMenuSource::ChatsList);
-	} else if (const auto folder = row.key.folder()) {
-		Window::FillFolderMenu(
-			_controller,
-			folder,
-			[&](const QString &text, Fn<void()> callback) {
-				return _menu->addAction(text, std::move(callback));
-			},
-			Window::PeerMenuSource::ChatsList);
+			});
 	}
 	connect(_menu.get(), &QObject::destroyed, [=] {
 		if (_menuRow.key) {
@@ -2996,9 +2995,41 @@ MsgId InnerWidget::lastSearchMigratedId() const {
 void InnerWidget::setupOnlineStatusCheck() {
 	session().changes().peerUpdates(
 		Data::PeerUpdate::Flag::OnlineStatus
+		| Data::PeerUpdate::Flag::GroupCall
 	) | rpl::start_with_next([=](const Data::PeerUpdate &update) {
-		userOnlineUpdated(update.peer);
+		if (update.peer->isUser()) {
+			userOnlineUpdated(update.peer);
+		} else {
+			groupHasCallUpdated(update.peer);
+		}
 	}, lifetime());
+}
+
+void InnerWidget::updateDialogRowCornerStatus(not_null<History*> history) {
+	const auto user = history->peer->isUser();
+	const auto size = user
+		? st::dialogsOnlineBadgeSize
+		: st::dialogsCallBadgeSize;
+	const auto stroke = st::dialogsOnlineBadgeStroke;
+	const auto skip = user
+		? st::dialogsOnlineBadgeSkip
+		: st::dialogsCallBadgeSkip;
+	const auto updateRect = QRect(
+		DialogsPhotoSize() - skip.x() - size,
+		DialogsPhotoSize() - skip.y() - size,
+		size,
+		size
+	).marginsAdded(
+		{ stroke, stroke, stroke, stroke }
+	).translated(
+		st::dialogsPadding
+	);
+	updateDialogRow(
+		RowDescriptor(
+			history,
+			FullMsgId()),
+		updateRect,
+		UpdateRowSection::Default | UpdateRowSection::Filtered);
 }
 
 void InnerWidget::userOnlineUpdated(not_null<PeerData*> peer) {
@@ -3010,41 +3041,31 @@ void InnerWidget::userOnlineUpdated(not_null<PeerData*> peer) {
 	if (!history) {
 		return;
 	}
-	const auto size = st::dialogsOnlineBadgeSize;
-	const auto stroke = st::dialogsOnlineBadgeStroke;
-	const auto skip = st::dialogsOnlineBadgeSkip;
-	const auto edge = st::dialogsPadding.x() + DialogsPhotoSize();
-	auto onlineTop = edge - size;
-	auto onlineLeft = edge - size;
-	if (cUserpicCornersType() == 3) {
-		onlineTop = onlineTop - skip.x();
-		onlineLeft = onlineLeft - skip.y();
-	} else {
-		onlineTop = onlineTop - size;
-		onlineLeft = onlineLeft - size;
+	updateRowCornerStatusShown(history, Data::IsUserOnline(user));
+}
+
+void InnerWidget::groupHasCallUpdated(not_null<PeerData*> peer) {
+	const auto group = peer->asMegagroup();
+	if (!group) {
+		return;
 	}
-	const auto updateRect = QRect(
-		onlineTop,
-		onlineLeft,
-		size,
-		size
-	).marginsAdded(
-		{ stroke, stroke, stroke, stroke }
-	).translated(
-		st::dialogsPadding
-	);
+	const auto history = session().data().historyLoaded(group);
+	if (!history) {
+		return;
+	}
+	updateRowCornerStatusShown(history, Data::ChannelHasActiveCall(group));
+}
+
+void InnerWidget::updateRowCornerStatusShown(
+		not_null<History*> history,
+		bool shown) {
 	const auto repaint = [=] {
-		updateDialogRow(
-			RowDescriptor(
-				history,
-				FullMsgId()),
-			updateRect,
-			UpdateRowSection::Default | UpdateRowSection::Filtered);
+		updateDialogRowCornerStatus(history);
 	};
 	repaint();
 
 	const auto findRow = [&](not_null<History*> history)
-	-> std::pair<Row*, int> {
+		-> std::pair<Row*, int> {
 		if (state() == WidgetState::Default) {
 			const auto row = shownDialogs()->getRow({ history });
 			return { row, row ? defaultRowTop(row) : 0 };
@@ -3060,8 +3081,8 @@ void InnerWidget::userOnlineUpdated(not_null<PeerData*> peer) {
 	if (const auto &[row, top] = findRow(history); row != nullptr) {
 		const auto visible = (top < _visibleBottom)
 			&& (top + DialogsRowHeight() > _visibleTop);
-		row->setOnline(
-			Data::OnlineTextActive(user, base::unixtime::now()),
+		row->updateCornerBadgeShown(
+			history->peer,
 			visible ? Fn<void()>(crl::guard(this, repaint)) : nullptr);
 	}
 }

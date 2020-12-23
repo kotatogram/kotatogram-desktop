@@ -199,7 +199,7 @@ void EmptyUserpic::paintRoundedLarge(Painter &p, int x, int y, int outerWidth, i
 
 void EmptyUserpic::paintRounded(Painter &p, int x, int y, int outerWidth, int size) const {
 	paint(p, x, y, outerWidth, size, [&p, x, y, size] {
-		p.drawRoundedRect(x, y, size, size, st::buttonRadius, st::buttonRadius);
+		p.drawRoundedRect(x, y, size, size, st::roundRadiusSmall, st::roundRadiusSmall);
 	});
 }
 
@@ -332,7 +332,7 @@ void EmptyUserpic::PaintSavedMessagesRounded(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawRoundedRect(x, y, size, size, st::buttonRadius, st::buttonRadius);
+	p.drawRoundedRect(x, y, size, size, st::roundRadiusSmall, st::roundRadiusSmall);
 
 	PaintSavedMessagesInner(p, x, y, size, bg, fg);
 }
@@ -420,7 +420,7 @@ void EmptyUserpic::PaintRepliesMessagesRounded(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawRoundedRect(x, y, size, size, st::buttonRadius, st::buttonRadius);
+	p.drawRoundedRect(x, y, size, size, st::roundRadiusSmall, st::roundRadiusSmall);
 
 	PaintRepliesMessagesInner(p, x, y, size, bg, fg);
 }

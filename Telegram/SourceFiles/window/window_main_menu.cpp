@@ -770,7 +770,7 @@ void MainMenu::rebuildAccounts() {
 				}
 				auto activate = [=, guard = _accountSwitchGuard.make_guard()]{
 					if (guard) {
-						Core::App().domain().activate(account);
+						Core::App().domain().maybeActivate(account);
 					}
 				};
 				base::call_delayed(
@@ -827,7 +827,9 @@ not_null<Ui::SlideWrap<Ui::RippleButton>*> MainMenu::setupAddAccount(
 
 	const auto add = [=](MTP::Environment environment) {
 		const auto sure = [=] {
-			Core::App().domain().addActivated(environment);
+			Core::App().preventOrInvoke([=] {
+				Core::App().domain().addActivated(environment);
+			});
 		};
 		if (_accountsCount >= Main::Domain::kMaxAccountsWarn) {
 			Ui::show(

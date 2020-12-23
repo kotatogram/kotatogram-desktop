@@ -179,7 +179,7 @@ ShareBox::ShareBox(
 , _hasMediaMessages(hasMedia)
 , _select(
 	this,
-	st::contactsMultiSelect,
+	st::defaultMultiSelect,
 	tr::lng_participant_filter())
 , _comment(
 	this,

@@ -24,60 +24,6 @@ namespace {
 std::map<int, const char*> BetaLogs() {
 	return {
 	{
-		2001008,
-		"- Add support for full group message history export.\n"
-
-		"- Allow export of a single chat message history in JSON format."
-	},
-	{
-		2001014,
-		"- Support for multiple accounts."
-	},
-	{
-		2001017,
-		"- Fix messages editing in a non-active account.\n"
-
-		"- Fix large animated emoji messages editing.\n"
-
-		"- Fix high definition GIF animations opening in media viewer.\n"
-
-		"- Multiple crash fixes."
-	},
-	{
-		2001018,
-		"- Fix a possible crash in Picture-in-Picture video player.\n"
-
-		"- Fix copying links from message texts.\n"
-
-		"- Raise file size limit to 2000 MB.\n"
-
-		"- Allow using system window frame in Windows and Linux."
-	},
-	{
-		2001019,
-		"- File uploading in an inactive account correctly finishes.\n"
-
-		"- Stickers panel works correctly after switching between accounts.\n"
-
-		"- Large .webp files are not shown as stickers.\n"
-
-		"- MacBook TouchBar support was fully rewritten with fixes for multiple accounts.\n"
-
-		"- Custom window title bar works in all Linux versions.\n"
-
-		"- Passcode doesn't auto-lock while you're active in other apps on Linux X11."
-	},
-	{
-		2001021,
-		"- Edit your scheduled messages.\n"
-
-		"- See the unread messages indicator for your additional accounts on the main menu button.\n"
-
-		"- Use Auto-Night Mode to make Telegram night mode match the system Dark Mode settings.\n"
-
-		"- Enjoy dark native window frame for Telegram night mode on Windows.\n"
-	},
-	{
 		2004006,
 		"- Fix image compression option when sending files with drag-n-drop.\n"
 
@@ -86,6 +32,50 @@ std::map<int, const char*> BetaLogs() {
 		"- Fix drafts display in personal chats in the chats list.\n"
 
 		"- Bug fixes and other minor improvements.\n"
+	},
+	{
+		2004008,
+		"- Upgrade several third party libraries to latest versions.\n"
+	},
+	{
+		2004010,
+		"- Use inline bots and sticker by emoji suggestions in channel comments.\n"
+
+		"- Lock voice message recording, listen to your voice message before sending.\n"
+	},
+	{
+		2004011,
+		"- Improve locked voice message recording.\n"
+
+		"- Fix main window closing to tray on Windows.\n"
+
+		"- Fix crash in bot command sending.\n"
+
+		"- Fix adding additional photos when sending an album to a group with enabled slow mode.\n"
+	},
+	{
+		2004012,
+		"- Voice chats in groups. (alpha version)\n"
+	},
+	{
+		2004014,
+		"- Create voice chats in legacy groups.\n"
+
+		"- Fix sticker pack opening.\n"
+
+		"- Fix group status display.\n"
+		
+		"- Fix group members display.\n"
+	},
+	{
+		2004015,
+		"- Improve design of voice chats.\n"
+
+		"- Fix sending of voice messages as replies.\n"
+
+		"- Fix 'Open With' menu position in macOS.\n"
+
+		"- Fix freeze on secondary screen disconnect.\n"
 	},
 	};
 };

@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "base/bytes.h"
 #include "base/unixtime.h"
+#include "base/qt_adapters.h"
 #include "storage/localstorage.h"
 #include "core/application.h"
 #include "core/changelogs.h"
@@ -57,9 +58,6 @@ bool UpdaterIsDisabled = false;
 #endif // TDESKTOP_DISABLE_AUTOUPDATE
 
 std::weak_ptr<Updater> UpdaterInstance;
-
-using ErrorSignal = void(QNetworkReply::*)(QNetworkReply::NetworkError);
-const auto QNetworkReply_error = ErrorSignal(&QNetworkReply::error);
 
 using Progress = UpdateChecker::Progress;
 using State = UpdateChecker::State;
@@ -624,7 +622,7 @@ void HttpChecker::start() {
 	_reply->connect(_reply, &QNetworkReply::finished, [=] {
 		gotResponse();
 	});
-	_reply->connect(_reply, QNetworkReply_error, [=](auto e) {
+	_reply->connect(_reply, base::QNetworkReply_error, [=](auto e) {
 		gotFailure(e);
 	});
 }
@@ -663,7 +661,7 @@ void HttpChecker::clearSentRequest() {
 		return;
 	}
 	reply->disconnect(reply, &QNetworkReply::finished, nullptr, nullptr);
-	reply->disconnect(reply, QNetworkReply_error, nullptr, nullptr);
+	reply->disconnect(reply, base::QNetworkReply_error, nullptr, nullptr);
 	reply->abort();
 	reply->deleteLater();
 	_manager = nullptr;
@@ -817,7 +815,7 @@ void HttpLoaderActor::sendRequest() {
 		&HttpLoaderActor::partFinished);
 	connect(
 		_reply.get(),
-		QNetworkReply_error,
+		base::QNetworkReply_error,
 		this,
 		&HttpLoaderActor::partFailed);
 	connect(
@@ -1589,7 +1587,7 @@ void UpdateApplication() {
 		if (const auto window = App::wnd()) {
 			if (const auto controller = window->sessionController()) {
 				controller->showSection(
-					Info::Memento(
+					std::make_shared<Info::Memento>(
 						Info::Settings::Tag{ controller->session().user() },
 						Info::Section::SettingsType::Advanced),
 					Window::SectionShow());

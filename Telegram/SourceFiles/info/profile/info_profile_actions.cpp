@@ -645,7 +645,7 @@ void ActionsFiller::addInviteToGroupAction(
 		_wrap,
 		tr::lng_profile_invite_to_group(),
 		CanInviteBotToGroupValue(user),
-		[=] { AddBotToGroupBoxController::Start(controller, user); });
+		[=] { AddBotToGroupBoxController::Start(user); });
 }
 
 void ActionsFiller::addShareContactAction(not_null<UserData*> user) {
@@ -1137,7 +1137,7 @@ object_ptr<Ui::RpWidget> SetupChannelMembers(
 		lt_count_decimal,
 		MembersCountValue(channel) | tr::to_count());
 	auto membersCallback = [=] {
-		controller->showSection(Info::Memento(
+		controller->showSection(std::make_shared<Info::Memento>(
 			channel,
 			Section::Type::Members));
 	};

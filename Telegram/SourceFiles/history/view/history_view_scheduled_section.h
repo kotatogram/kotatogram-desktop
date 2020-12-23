@@ -60,6 +60,7 @@ public:
 
 	not_null<History*> history() const;
 	Dialogs::RowDescriptor activeChat() const override;
+	bool preventsClose(Fn<void()> &&continueCallback) const override;
 
 	bool hasTopBarShadow() const override {
 		return true;
@@ -71,7 +72,7 @@ public:
 	bool showInternal(
 		not_null<Window::SectionMemento*> memento,
 		const Window::SectionShow &params) override;
-	std::unique_ptr<Window::SectionMemento> createMemento() override;
+	std::shared_ptr<Window::SectionMemento> createMemento() override;
 
 	void setInternalState(
 		const QRect &geometry,
@@ -110,6 +111,10 @@ public:
 	bool listElementHideReply(not_null<const Element*> view) override;
 	bool listElementShownUnread(not_null<const Element*> view) override;
 	bool listIsGoodForAroundPosition(not_null<const Element *> view) override;
+	void listSendBotCommand(
+		const QString &command,
+		const FullMsgId &context) override;
+	void listHandleViaClick(not_null<UserData*> bot) override;
 
 protected:
 	void resizeEvent(QResizeEvent *e) override;

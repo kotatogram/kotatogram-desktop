@@ -60,6 +60,7 @@ class Histories;
 class DocumentMedia;
 class PhotoMedia;
 class Stickers;
+class GroupCall;
 
 class Session final {
 public:
@@ -152,6 +153,26 @@ public:
 	PeerData *processChats(const MTPVector<MTPChat> &data);
 
 	void applyMaximumChatVersions(const MTPVector<MTPChat> &data);
+
+	void registerGroupCall(not_null<GroupCall*> call);
+	void unregisterGroupCall(not_null<GroupCall*> call);
+	GroupCall *groupCall(uint64 callId) const;
+
+	[[nodiscard]] auto invitedToCallUsers(uint64 callId) const
+		-> const base::flat_set<not_null<UserData*>> &;
+	void registerInvitedToCallUser(
+		uint64 callId,
+		not_null<PeerData*> peer,
+		not_null<UserData*> user);
+	void unregisterInvitedToCallUser(uint64 callId, not_null<UserData*> user);
+
+	struct InviteToCall {
+		uint64 id = 0;
+		not_null<UserData*> user;
+	};
+	[[nodiscard]] rpl::producer<InviteToCall> invitesToCalls() const {
+		return _invitesToCalls.events();
+	}
 
 	void enumerateUsers(Fn<void(not_null<UserData*>)> action) const;
 	void enumerateGroups(Fn<void(not_null<PeerData*>)> action) const;
@@ -380,6 +401,9 @@ public:
 	[[nodiscard]] auto sendActionAnimationUpdated() const
 		-> rpl::producer<SendActionAnimationUpdate>;
 	void updateSendActionAnimation(SendActionAnimationUpdate &&update);
+	[[nodiscard]] auto speakingAnimationUpdated() const
+		-> rpl::producer<not_null<History*>>;
+	void updateSpeakingAnimation(not_null<History*> history);
 
 	using SendActionPainter = HistoryView::SendActionPainter;
 	[[nodiscard]] std::shared_ptr<SendActionPainter> repliesSendActionPainter(
@@ -906,6 +930,10 @@ private:
 
 	base::flat_set<not_null<ViewElement*>> _heavyViewParts;
 
+	base::flat_map<uint64, not_null<GroupCall*>> _groupCalls;
+	rpl::event_stream<InviteToCall> _invitesToCalls;
+	base::flat_map<uint64, base::flat_set<not_null<UserData*>>> _invitedToCallUsers;
+
 	History *_topPromoted = nullptr;
 
 	NotifySettings _defaultUserNotifySettings;
@@ -927,6 +955,7 @@ private:
 	std::unique_ptr<CredentialsWithGeneration> _passportCredentials;
 
 	rpl::event_stream<SendActionAnimationUpdate> _sendActionAnimationUpdate;
+	rpl::event_stream<not_null<History*>> _speakingAnimationUpdate;
 
 	std::vector<WallPaper> _wallpapers;
 	int32 _wallpapersHash = 0;

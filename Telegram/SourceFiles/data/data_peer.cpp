@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image.h"
 #include "ui/empty_userpic.h"
 #include "ui/text/text_options.h"
+#include "ui/toasts/common_toasts.h"
 #include "history/history.h"
 #include "history/view/history_view_element.h"
 #include "history/history_item.h"
@@ -108,9 +109,11 @@ void PeerClickHandler::onClick(ClickContext context) const {
 			&& !clickedChannel->amIn()
 			&& (!currentPeer->isChannel()
 				|| currentPeer->asChannel()->linkedChat() != clickedChannel)) {
-			Ui::show(Box<InformBox>(_peer->isMegagroup()
-				? tr::lng_group_not_accessible(tr::now)
-				: tr::lng_channel_not_accessible(tr::now)));
+			Ui::ShowMultilineToast({
+				.text = (_peer->isMegagroup()
+					? tr::lng_group_not_accessible(tr::now)
+					: tr::lng_channel_not_accessible(tr::now)),
+			});
 		} else {
 			window->showPeerHistory(
 				_peer,
@@ -920,6 +923,26 @@ bool PeerData::canSendPolls() const {
 		return channel->canSendPolls();
 	}
 	return false;
+}
+
+bool PeerData::canManageGroupCall() const {
+	if (const auto chat = asChat()) {
+		return chat->amCreator()
+			|| (chat->adminRights() & ChatAdminRight::f_manage_call);
+	} else if (const auto group = asMegagroup()) {
+		return group->amCreator()
+			|| (group->adminRights() & ChatAdminRight::f_manage_call);
+	}
+	return false;
+}
+
+Data::GroupCall *PeerData::groupCall() const {
+	if (const auto chat = asChat()) {
+		return chat->groupCall();
+	} else if (const auto group = asMegagroup()) {
+		return group->groupCall();
+	}
+	return nullptr;
 }
 
 void PeerData::setIsBlocked(bool is) {

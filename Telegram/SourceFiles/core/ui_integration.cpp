@@ -83,7 +83,7 @@ QString UiIntegration::timeFormat() {
 std::shared_ptr<ClickHandler> UiIntegration::createLinkHandler(
 		const EntityLinkData &data,
 		const std::any &context) {
-	const auto my = std::any_cast<Context>(&context);
+	const auto my = std::any_cast<MarkedTextContext>(&context);
 	switch (data.type) {
 	case EntityType::Url:
 		return (!data.data.isEmpty()
@@ -100,6 +100,7 @@ std::shared_ptr<ClickHandler> UiIntegration::createLinkHandler(
 		return std::make_shared<BotCommandClickHandler>(data.data);
 
 	case EntityType::Hashtag:
+		using HashtagMentionType = MarkedTextContext::HashtagMentionType;
 		if (my && my->type == HashtagMentionType::Twitter) {
 			return std::make_shared<UrlClickHandler>(
 				(qsl("https://twitter.com/hashtag/")
@@ -119,6 +120,7 @@ std::shared_ptr<ClickHandler> UiIntegration::createLinkHandler(
 		return std::make_shared<CashtagClickHandler>(data.data);
 
 	case EntityType::Mention:
+		using HashtagMentionType = MarkedTextContext::HashtagMentionType;
 		if (my && my->type == HashtagMentionType::Twitter) {
 			return std::make_shared<UrlClickHandler>(
 				qsl("https://twitter.com/") + data.data.mid(1),

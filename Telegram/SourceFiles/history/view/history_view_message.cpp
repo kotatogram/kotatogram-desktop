@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_message.h"
 #include "history/view/media/history_view_media.h"
 #include "history/view/media/history_view_web_page.h"
+#include "history/view/history_view_group_call_tracker.h" // UserpicInRow.
 #include "history/history.h"
 #include "ui/effects/ripple_animation.h"
 #include "core/application.h"
@@ -282,13 +283,8 @@ style::color FromNameFg(PeerId peerId, bool selected) {
 } // namespace
 
 struct Message::CommentsButton {
-	struct Userpic {
-		not_null<PeerData*> peer;
-		std::shared_ptr<Data::CloudImageView> view;
-		InMemoryKey uniqueKey;
-	};
 	std::unique_ptr<Ui::RippleAnimation> ripple;
-	std::vector<Userpic> userpics;
+	std::vector<UserpicInRow> userpics;
 	QImage cachedUserpics;
 	ClickHandlerPtr link;
 	QPoint lastPoint;
@@ -838,7 +834,7 @@ void Message::paintCommentsButton(
 			for (auto i = 0; i != count; ++i) {
 				const auto peerId = views->recentRepliers[i];
 				if (i == list.size()) {
-					list.push_back(CommentsButton::Userpic{
+					list.push_back(UserpicInRow{
 						history()->owner().peer(peerId)
 					});
 				} else if (list[i].peer->id != peerId) {
@@ -848,52 +844,12 @@ void Message::paintCommentsButton(
 			while (list.size() > count) {
 				list.pop_back();
 			}
-			const auto width = single + (limit - 1) * (single - shift);
-			if (_comments->cachedUserpics.isNull()) {
-				_comments->cachedUserpics = QImage(
-					QSize(width, single) * cIntRetinaFactor(),
-					QImage::Format_ARGB32_Premultiplied);
-			}
-			_comments->cachedUserpics.fill(Qt::transparent);
-			_comments->cachedUserpics.setDevicePixelRatio(cRetinaFactor());
-
-			auto q = Painter(&_comments->cachedUserpics);
-			auto hq = PainterHighQualityEnabler(q);
-			auto pen = QPen(Qt::transparent);
-			pen.setWidth(st::historyCommentsUserpicStroke);
-			auto x = (count - 1) * (single - shift);
-			for (auto i = count; i != 0;) {
-				auto &entry = list[--i];
-				q.setCompositionMode(QPainter::CompositionMode_SourceOver);
-				entry.peer->paintUserpic(q, entry.view, x, 0, single);
-				entry.uniqueKey = entry.peer->userpicUniqueKey(entry.view);
-				q.setCompositionMode(QPainter::CompositionMode_Source);
-				q.setBrush(Qt::NoBrush);
-				q.setPen(pen);
-				switch (cUserpicCornersType()) {
-					case 0:
-						q.drawRoundedRect(
-							QRect{ x, 0, single, single },
-							0, 0);
-						break;
-
-					case 1:
-						q.drawRoundedRect(
-							QRect{ x, 0, single, single },
-							st::buttonRadius, st::buttonRadius);
-						break;
-
-					case 2:
-						q.drawRoundedRect(
-							QRect{ x, 0, single, single },
-							st::dateRadius, st::dateRadius);
-						break;
-
-					default:
-						q.drawEllipse(x, 0, single, single);
-				}
-				x -= single - shift;
-			}
+			const auto st = UserpicsInRowStyle{
+				.size = single,
+				.shift = shift,
+				.stroke = st::historyCommentsUserpicStroke,
+			};
+			GenerateUserpicsInRow(_comments->cachedUserpics, list, st, limit);
 		}
 		p.drawImage(
 			left,

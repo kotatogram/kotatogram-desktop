@@ -432,6 +432,8 @@ void paintRow(
 	p.fillRect(fullRect, bg);
 	row->paintRipple(p, 0, 0, fullWidth, &ripple->c);
 
+	const auto history = chat.history();
+
 	if (flags & Flag::SavedMessages) {
 		Ui::EmptyUserpic::PaintSavedMessages(
 			p,
@@ -450,7 +452,8 @@ void paintRow(
 		row->paintUserpic(
 			p,
 			from,
-			(flags & Flag::AllowUserOnline),
+			(flags & Flag::AllowUserOnline) ? history : nullptr,
+			ms,
 			active,
 			fullWidth);
 	} else if (hiddenSenderInfo) {
@@ -480,7 +483,6 @@ void paintRow(
 		return;
 	}
 
-	const auto history = chat.history();
 	auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
 	auto rectForName = QRect(
 		nameleft,

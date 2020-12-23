@@ -50,8 +50,8 @@ const style::InfoTopBar &TopBarStyle(Wrap wrap) {
 } // namespace
 
 struct WrapWidget::StackItem {
-	std::unique_ptr<ContentMemento> section;
-//	std::unique_ptr<ContentMemento> anotherTab;
+	std::shared_ptr<ContentMemento> section;
+//	std::shared_ptr<ContentMemento> anotherTab;
 };
 
 WrapWidget::WrapWidget(
@@ -96,7 +96,7 @@ void WrapWidget::setupShortcuts() {
 }
 
 void WrapWidget::restoreHistoryStack(
-		std::vector<std::unique_ptr<ContentMemento>> stack) {
+		std::vector<std::shared_ptr<ContentMemento>> stack) {
 	Expects(!stack.empty());
 	Expects(!hasStackHistory());
 
@@ -188,7 +188,7 @@ void WrapWidget::injectActivePeerProfile(not_null<PeerData*> peer) {
 //}
 
 void WrapWidget::injectActiveProfileMemento(
-		std::unique_ptr<ContentMemento> memento) {
+		std::shared_ptr<ContentMemento> memento) {
 	auto injected = StackItem();
 	injected.section = std::move(memento);
 	_historyStack.insert(
@@ -587,12 +587,13 @@ void WrapWidget::showTopBarMenu() {
 		return _topBarMenu->addAction(text, std::move(callback));
 	};
 	if (const auto peer = key().peer()) {
-		Window::FillPeerMenu(
+		Window::FillDialogsEntryMenu(
 			_controller->parentController(),
-			peer,
-			FilterId(),
-			addAction,
-			Window::PeerMenuSource::Profile);
+			Dialogs::EntryState{
+				.key = peer->owner().history(peer),
+				.section = Dialogs::EntryState::Section::Profile,
+			},
+			addAction);
 	//} else if (const auto feed = key().feed()) { // #feed
 	//	Window::FillFeedMenu(
 	//		_controller->parentController(),
@@ -723,13 +724,13 @@ rpl::producer<SelectedItems> WrapWidget::selectedListValue() const {
 
 // Was done for top level tabs support.
 //
-//std::unique_ptr<ContentMemento> WrapWidget::createTabMemento(
+//std::shared_ptr<ContentMemento> WrapWidget::createTabMemento(
 //		Tab tab) {
 //	switch (tab) {
-//	case Tab::Profile: return std::make_unique<Profile::Memento>(
+//	case Tab::Profile: return std::make_shared<Profile::Memento>(
 //		_controller->peerId(),
 //		_controller->migratedPeerId());
-//	case Tab::Media: return std::make_unique<Media::Memento>(
+//	case Tab::Media: return std::make_shared<Media::Memento>(
 //		_controller->peerId(),
 //		_controller->migratedPeerId(),
 //		Media::Type::Photo);
@@ -895,8 +896,8 @@ void WrapWidget::highlightTopBar() {
 	}
 }
 
-std::unique_ptr<Window::SectionMemento> WrapWidget::createMemento() {
-	auto stack = std::vector<std::unique_ptr<ContentMemento>>();
+std::shared_ptr<Window::SectionMemento> WrapWidget::createMemento() {
+	auto stack = std::vector<std::shared_ptr<ContentMemento>>();
 	stack.reserve(_historyStack.size() + 1);
 	for (auto &stackItem : base::take(_historyStack)) {
 		stack.push_back(std::move(stackItem.section));
@@ -906,7 +907,7 @@ std::unique_ptr<Window::SectionMemento> WrapWidget::createMemento() {
 	// We're not in valid state anymore and supposed to be destroyed.
 	_controller = nullptr;
 
-	return std::make_unique<Memento>(std::move(stack));
+	return std::make_shared<Memento>(std::move(stack));
 }
 
 rpl::producer<int> WrapWidget::desiredHeightValue() const {

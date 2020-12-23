@@ -89,8 +89,7 @@ void SendExistingMedia(
 		sendFlags |= MTPmessages_SendMedia::Flag::f_reply_to_msg_id;
 	}
 	const auto anonymousPost = peer->amAnonymous();
-	const auto silentPost = message.action.options.silent
-		|| (peer->isBroadcast() && session->data().notifySilentPosts(peer));
+	const auto silentPost = ShouldSendSilent(peer, message.action.options);
 	InnerFillMessagePostFlags(message.action.options, peer, flags);
 	if (silentPost) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_silent;
@@ -193,7 +192,8 @@ void SendExistingDocument(
 		return MTP_inputMediaDocument(
 			MTP_flags(0),
 			document->mtpInput(),
-			MTPint());
+			MTPint(), // ttl_seconds
+			MTPstring()); // query
 	};
 	SendExistingMedia(
 		std::move(message),
@@ -277,8 +277,7 @@ bool SendDice(Api::MessageToSend &message) {
 	}
 	const auto replyHeader = NewMessageReplyHeader(message.action);
 	const auto anonymousPost = peer->amAnonymous();
-	const auto silentPost = message.action.options.silent
-		|| (peer->isBroadcast() && session->data().notifySilentPosts(peer));
+	const auto silentPost = ShouldSendSilent(peer, message.action.options);
 	InnerFillMessagePostFlags(message.action.options, peer, flags);
 	if (silentPost) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_silent;
@@ -419,7 +418,7 @@ void SendConfirmedFile(
 	}
 	const auto replyHeader = NewMessageReplyHeader(action);
 	const auto anonymousPost = peer->amAnonymous();
-	const auto silentPost = file->to.options.silent;
+	const auto silentPost = ShouldSendSilent(peer, file->to.options);
 	Api::FillMessagePostFlags(action, peer, flags);
 	if (silentPost) {
 		flags |= MTPDmessage::Flag::f_silent;

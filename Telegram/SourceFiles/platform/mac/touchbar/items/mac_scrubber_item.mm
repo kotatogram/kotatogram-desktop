@@ -96,32 +96,32 @@ struct PickerScrubberItem {
 	}
 
 	void updateThumbnail() {
-		if (!document || !qpixmap.isNull()) {
+		if (!document || !image.isNull()) {
 			return;
 		}
-		const auto image = mediaView->getStickerSmall();
-		if (!image) {
+		const auto sticker = mediaView->getStickerSmall();
+		if (!sticker) {
 			return;
 		}
-		const auto size = image->size()
+		const auto size = sticker->size()
 			.scaled(kCircleDiameter, kCircleDiameter, Qt::KeepAspectRatio);
-		qpixmap = image->pixSingle(
+		image = sticker->pixSingle(
 			size.width(),
 			size.height(),
 			kCircleDiameter,
 			kCircleDiameter,
-			ImageRoundRadius::None);
+			ImageRoundRadius::None).toImage();
 	}
 
 	bool isStickerLoaded() const {
-		return !qpixmap.isNull();
+		return !image.isNull();
 	}
 
 	QString title = QString();
 
 	DocumentData *document = nullptr;
 	std::shared_ptr<Data::DocumentMedia> mediaView = nullptr;
-	QPixmap qpixmap;
+	QImage image;
 
 	EmojiPtr emoji = nullptr;
 };
@@ -140,6 +140,7 @@ struct PickerScrubberItemsHolder {
 };
 
 using Platform::Q2NSString;
+using Platform::Q2NSImage;
 
 NSImage *CreateNSImageFromEmoji(EmojiPtr emoji) {
 	const auto s = kIdealIconSize * cIntRetinaFactor();

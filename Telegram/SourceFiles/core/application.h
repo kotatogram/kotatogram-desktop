@@ -287,10 +287,13 @@ public:
 
 	void handleAppActivated();
 	void handleAppDeactivated();
+	[[nodiscard]] rpl::producer<bool> appDeactivatedValue() const;
 
 	void switchDebugMode();
 	void switchFreeType();
 	void writeInstallBetaVersionsSetting();
+
+	void preventOrInvoke(Fn<void()> &&callback);
 
 	void call_handleObservables();
 

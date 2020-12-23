@@ -52,6 +52,10 @@ class RepliesList;
 
 namespace HistoryView {
 
+namespace Controls {
+struct VoiceToSend;
+} // namespace Controls
+
 class Element;
 class TopBarWidget;
 class RepliesMemento;
@@ -71,6 +75,7 @@ public:
 
 	[[nodiscard]] not_null<History*> history() const;
 	Dialogs::RowDescriptor activeChat() const override;
+	bool preventsClose(Fn<void()> &&continueCallback) const override;
 
 	bool hasTopBarShadow() const override {
 		return true;
@@ -82,7 +87,7 @@ public:
 	bool showInternal(
 		not_null<Window::SectionMemento*> memento,
 		const Window::SectionShow &params) override;
-	std::unique_ptr<Window::SectionMemento> createMemento() override;
+	std::shared_ptr<Window::SectionMemento> createMemento() override;
 	bool showMessage(
 		PeerId peerId,
 		const Window::SectionShow &params,
@@ -126,6 +131,10 @@ public:
 	bool listElementHideReply(not_null<const Element*> view) override;
 	bool listElementShownUnread(not_null<const Element*> view) override;
 	bool listIsGoodForAroundPosition(not_null<const Element*> view) override;
+	void listSendBotCommand(
+		const QString &command,
+		const FullMsgId &context) override;
+	void listHandleViaClick(not_null<UserData*> bot) override;
 
 protected:
 	void resizeEvent(QResizeEvent *e) override;
@@ -176,7 +185,7 @@ private:
 
 	void send();
 	void send(Api::SendOptions options);
-	void sendVoice(QByteArray bytes, VoiceWaveform waveform, int duration);
+	void sendVoice(Controls::VoiceToSend &&data);
 	void edit(
 		not_null<HistoryItem*> item,
 		Api::SendOptions options,
@@ -186,6 +195,7 @@ private:
 	[[nodiscard]] MsgId replyToId() const;
 	[[nodiscard]] HistoryItem *lookupRoot() const;
 	[[nodiscard]] bool computeAreComments() const;
+	void orderWidgets();
 
 	void pushReplyReturn(not_null<HistoryItem*> item);
 	void computeCurrentReplyReturn();
@@ -193,6 +203,8 @@ private:
 	void restoreReplyReturns(const std::vector<MsgId> &list);
 	void checkReplyReturns();
 	void recountChatWidth();
+	void replyToMessage(FullMsgId itemId);
+	void refreshTopBarActiveChat();
 
 	void uploadFile(const QByteArray &fileContent, SendMediaType type);
 	bool confirmSendingFiles(

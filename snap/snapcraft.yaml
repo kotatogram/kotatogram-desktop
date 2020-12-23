@@ -18,6 +18,7 @@ apps:
     common-id: io.github.kotatogram
     desktop: usr/share/applications/kotatogram-desktop_kotatogram-desktop.desktop
     environment:
+      # Tell glib to use portals on file associations handling.
       GTK_USE_PORTAL: 1
     plugs:
       - alsa
@@ -78,6 +79,8 @@ parts:
       - libqt5waylandclient5-dev
       - libssl-dev
       - libxcb1-dev
+      - libxcb-keysyms1-dev
+      - libxcb-record0-dev
       - libxcb-screensaver0-dev
       - zlib1g-dev
     stage-packages:
@@ -92,6 +95,8 @@ parts:
       - libqt5waylandclient5
       - libssl1.1
       - libxcb1
+      - libxcb-keysyms1
+      - libxcb-record0
       - libxcb-screensaver0
       - zlib1g
     cmake-parameters:
@@ -209,18 +214,14 @@ parts:
   openal:
     source: https://github.com/kcat/openal-soft.git
     source-depth: 1
-    source-tag: openal-soft-1.20.1
+    source-tag: openal-soft-1.21.0
     plugin: cmake
     build-packages:
       - libasound2-dev
       - libpulse-dev
-      - libsndio-dev
-      - portaudio19-dev
     stage-packages:
       - libasound2
       - libpulse0
-      - libportaudio2
-      - libsndio7.0
     cmake-parameters:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX=/usr
@@ -250,7 +251,7 @@ parts:
   webrtc:
     source: https://github.com/desktop-app/tg_owt.git
     source-depth: 1
-    source-commit: 12f4a27f2f02f9dd40f9891d8ec6e58bc1ff5263
+    source-commit: 75ac66937341d8a9207375aaee79b4bdc500146c
     plugin: cmake
     build-packages:
       - yasm
