@@ -135,18 +135,18 @@ private:
 	QImage iconImageDarkSelected(cWorkingDir() + "tdata/icon_dark_selected.png");
 
 
-	static const auto LightModeResult = iconImage.isNull()
+	static const auto LightModeResult = iconImageLight.isNull()
 		? WithColor({ 0, 0, 0, 180 })
 		: iconImageLight;
 	static const auto DarkModeResult = iconImageDark.isNull()
 		? WithColor({ 255, 255, 255 })
-		: iconImage.isNull()
+		: iconImageLight.isNull()
 		? iconImageDark
-		: iconImage;
+		: iconImageLight;
 	static const auto LightModeSelectedResult = iconImageLightSelected.isNull()
-		? (iconImage.isNull()
+		? (iconImageLight.isNull()
 			? DarkModeResult
-			: iconImage)
+			: iconImageLight)
 		: iconImageLightSelected;
 	static const auto DarkModeSelectedResult = iconImageDarkSelected.isNull()
 		? DarkModeResult
