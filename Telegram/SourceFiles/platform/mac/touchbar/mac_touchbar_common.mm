@@ -9,7 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #ifndef OS_OSX
 
-#include "platform/platform_specific.h"
+#include "base/platform/mac/base_utilities_mac.h"
 
 #import <AppKit/NSTextField.h>
 
@@ -21,10 +21,9 @@ int WidthFromString(NSString *s) {
 }
 
 NSImage *CreateNSImageFromStyleIcon(const style::icon &icon, int size) {
-	const auto instance = icon.instance(QColor(255, 255, 255, 255), 100);
-	auto pixmap = QPixmap::fromImage(instance);
-	pixmap.setDevicePixelRatio(cRetinaFactor());
-	NSImage *image = [Platform::ToNSImage(pixmap) autorelease];
+	auto instance = icon.instance(QColor(255, 255, 255, 255), 100);
+	instance.setDevicePixelRatio(cRetinaFactor());
+	NSImage *image = Platform::Q2NSImage(instance);
 	[image setSize:NSMakeSize(size, size)];
 	return image;
 }

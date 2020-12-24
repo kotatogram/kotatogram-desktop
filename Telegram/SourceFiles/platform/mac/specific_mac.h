@@ -10,8 +10,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/platform_specific.h"
 #include "platform/mac/specific_mac_p.h"
 
-Q_FORWARD_DECLARE_OBJC_CLASS(NSImage);
-
 namespace Data {
 class LocationPoint;
 } // namespace Data
@@ -59,8 +57,6 @@ inline bool UnsetWindowExtents(QWindow *window) {
 inline bool WindowsNeedShadow() {
 	return false;
 }
-
-NSImage *ToNSImage(const QPixmap &pixmap);
 
 namespace ThirdParty {
 

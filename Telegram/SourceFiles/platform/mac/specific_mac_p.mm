@@ -216,7 +216,7 @@ void SetApplicationIcon(const QIcon &icon) {
 	if (!icon.isNull()) {
 		auto pixmap = icon.pixmap(1024, 1024);
 		pixmap.setDevicePixelRatio(cRetinaFactor());
-		image = static_cast<NSImage*>(ToNSImage(pixmap));
+		image = Q2NSImage(pixmap.toImage());
 	}
 	[[NSApplication sharedApplication] setApplicationIconImage:image];
 }
