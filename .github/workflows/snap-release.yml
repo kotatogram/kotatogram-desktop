@@ -39,7 +39,7 @@ jobs:
       - name: Get artifact name
         run: |
           artifact_name=$(echo kotatogram-desktop_*.snap)
-          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+          echo "ARTIFACT_NAME=$artifact_name" >> $GITHUB_ENV
 
       - name: Upload Release Asset
         id: upload-release-asset

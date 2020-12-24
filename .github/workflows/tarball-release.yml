@@ -15,7 +15,7 @@ jobs:
         run: |
           tag_name=${GITHUB_REF##*/}
           version=${tag_name#k}
-          echo ::set-env name=REPO_NAME::${GITHUB_REPOSITORY##*/}-$version-full
+          echo "REPO_NAME=${GITHUB_REPOSITORY##*/}-$version-full" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -26,7 +26,7 @@ jobs:
       - name: Create tarball
         run: |
           artifact_name="$REPO_NAME.tar.gz"
-          echo ::set-env name=ARTIFACT_NAME::$artifact_name
+          echo "ARTIFACT_NAME=$artifact_name" >> $GITHUB_ENV
 
           rm -rf $REPO_NAME/.git
           tar -caf $artifact_name $REPO_NAME

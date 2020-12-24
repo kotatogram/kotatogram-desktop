@@ -79,7 +79,7 @@ jobs:
 
     steps:
       - name: Get repository name.
-        run: echo ::set-env name=REPO_NAME::${GITHUB_REPOSITORY##*/}
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
 
       - name: Disable man for further package installs.
         run: |
@@ -137,11 +137,11 @@ jobs:
             echo `md5sum $thisFile | cut -c -32` >> CACHE_KEY.txt
           fi
           md5cache=$(md5sum CACHE_KEY.txt | cut -c -32)
-          echo ::set-env name=CACHE_KEY::$md5cache
+          echo "CACHE_KEY=$md5cache" >> $GITHUB_ENV
 
           mkdir -p Libraries
           cd Libraries
-          echo ::set-env name=LibrariesPath::`pwd`
+          echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
 
       - name: Patches.
         run: |
@@ -590,9 +590,9 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo ::set-env name=ARTIFACT_NAME::Kotatogram_${{ matrix.defines }}
+            echo "ARTIFACT_NAME=Kotatogram_${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo ::set-env name=ARTIFACT_NAME::Kotatogram
+            echo "ARTIFACT_NAME=Kotatogram" >> $GITHUB_ENV
           fi
 
           ./configure.sh \
@@ -619,7 +619,7 @@ jobs:
           -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,styles/libkvantum.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
-          echo ::set-env name=APPIMAGE_NAME::$appimage_name
+          echo "APPIMAGE_NAME=$appimage_name" >> $GITHUB_ENV
 
           # We don't need AppImageLauncher's desktop integration due to bad UX
           dd if=/dev/zero of=$appimage_name bs=1 count=3 seek=8 conv=notrunc
