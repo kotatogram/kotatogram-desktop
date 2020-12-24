@@ -202,7 +202,7 @@ auto GenerateCodes() {
 		Ui::show(
 			Box<RevokePublicLinkBox>(
 				&window->session(),
-				std::move(Fn<void()>())),
+				Fn<void()>()),
 			Ui::LayerOption::KeepOther);
 	});
 
