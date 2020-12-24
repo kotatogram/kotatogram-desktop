@@ -58,6 +58,7 @@ jobs:
       - name: Clone.
         uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           submodules: recursive
 
       - name: First set up.
