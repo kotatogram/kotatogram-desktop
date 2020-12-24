@@ -132,7 +132,7 @@ bool UseNativeDecorations() {
 
 rpl::variable<int> gRecentStickersLimit = 20;
 void SetRecentStickersLimit(int limit) {
-	if (limit >= 0 || limit <= 200) {
+	if (limit >= 0 && limit <= 200) {
 		gRecentStickersLimit = limit;
 	}
 }
