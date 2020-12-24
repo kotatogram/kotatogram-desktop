@@ -238,12 +238,13 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone --depth=1 $GIT/desktop-app/tg_owt.git
+          git clone --recursive --depth=1 $GIT/desktop-app/tg_owt.git
           cd tg_owt
 
           cmake -B build . \
           -GNinja \
           -DCMAKE_BUILD_TYPE=Debug \
+          -DBUILD_SHARED_LIBS=OFF \
           -DTG_OWT_PACKAGED_BUILD_FFMPEG_STATIC=ON
 
           cmake --build build -j$(sysctl -n hw.logicalcpu)

@@ -574,9 +574,9 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone $GIT/desktop-app/tg_owt.git
+          git clone --recursive $GIT/desktop-app/tg_owt.git
           cd tg_owt
-          cmake -B build . -DCMAKE_BUILD_TYPE=Release
+          cmake -B build . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
           cmake --build build -j$(nproc)
 
       - name: Kotatogram Desktop build.
