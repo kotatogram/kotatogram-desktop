@@ -106,7 +106,7 @@ parts:
       - -DTDESKTOP_API_HASH=d524b414d21f4d37f08684c1df41ac9c
       - -DDESKTOP_APP_USE_PACKAGED_LAZY=ON
       - -DDESKTOP_APP_QTWAYLANDCLIENT_PRIVATE_HEADERS=$SNAPCRAFT_STAGE/usr/include/$SNAPCRAFT_ARCH_TRIPLET/qt5/QtWaylandClient/5.12.8
-      - -DTDESKTOP_LAUNCHER_BASENAME=telegram-desktop_telegram-desktop
+      - -DTDESKTOP_LAUNCHER_BASENAME=kotatogram-desktop_kotatogram-desktop
     override-pull: |
       snapcraftctl pull
 
