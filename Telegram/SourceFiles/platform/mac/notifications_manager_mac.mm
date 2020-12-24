@@ -265,7 +265,7 @@ void Manager::Private::showNotification(
 			: peer->isRepliesChat()
 			? Ui::EmptyUserpic::GenerateRepliesMessages(st::notifyMacPhotoSize)
 			: peer->genUserpic(userpicView, st::notifyMacPhotoSize);
-		NSImage *img = [ToNSImage(userpic) autorelease];
+		NSImage *img = Q2NSImage(userpic.toImage());
 		[notification setContentImage:img];
 	}
 

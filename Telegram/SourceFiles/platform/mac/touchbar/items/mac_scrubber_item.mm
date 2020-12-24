@@ -13,7 +13,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_sending.h"
 #include "base/call_delayed.h"
 #include "base/platform/mac/base_utilities_mac.h"
-#include "platform/platform_specific.h"
 #include "boxes/confirm_box.h"
 #include "chat_helpers/emoji_list_widget.h"
 #include "core/sandbox.h"
@@ -143,19 +142,22 @@ using Platform::Q2NSString;
 using Platform::Q2NSImage;
 
 NSImage *CreateNSImageFromEmoji(EmojiPtr emoji) {
-	const auto s = kIdealIconSize * cIntRetinaFactor();
-	auto pixmap = QPixmap(s, s);
-	pixmap.setDevicePixelRatio(cRetinaFactor());
-	pixmap.fill(Qt::black);
-	Painter paint(&pixmap);
-	PainterHighQualityEnabler hq(paint);
-	Ui::Emoji::Draw(
-		paint,
-		std::move(emoji),
-		Ui::Emoji::GetSizeTouchbar(),
-		0,
-		0);
-	return [Platform::ToNSImage(pixmap) autorelease];
+	auto image = QImage(
+		QSize(kIdealIconSize, kIdealIconSize) * cIntRetinaFactor(),
+		QImage::Format_ARGB32_Premultiplied);
+	image.setDevicePixelRatio(cRetinaFactor());
+	image.fill(Qt::black);
+	{
+		Painter paint(&image);
+		PainterHighQualityEnabler hq(paint);
+		Ui::Emoji::Draw(
+			paint,
+			emoji,
+			Ui::Emoji::GetSizeTouchbar(),
+			0,
+			0);
+	}
+	return Q2NSImage(image);
 }
 
 auto ActiveChat(not_null<Window::Controller*> controller) {
@@ -422,8 +424,7 @@ void AppendEmojiPacks(
 		PickerScrubberItemView *itemView = [scrubber
 			makeItemWithIdentifier:kStickerItemIdentifier
 			owner:self];
-		itemView.imageView.image = [Platform::ToNSImage(item.qpixmap)
-			autorelease];
+		itemView.imageView.image = Q2NSImage(item.image);
 		itemView->documentId = document->id;
 		return itemView;
 	} else if (const auto emoji = item.emoji) {
