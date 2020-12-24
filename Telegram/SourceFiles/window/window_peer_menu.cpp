@@ -1311,7 +1311,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 				const auto media = item->media();
 				const auto inputMedia = media->photo()
 					? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
-					: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint());
+					: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint(), MTPstring());
 				const auto caption = cForwardCaptioned()
 						? item->originalText()
 						: TextWithEntities();

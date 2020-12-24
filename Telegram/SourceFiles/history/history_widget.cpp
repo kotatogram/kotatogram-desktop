@@ -404,7 +404,7 @@ HistoryWidget::HistoryWidget(
 
 	_fieldAutocomplete->mentionChosen(
 	) | rpl::start_with_next([=](FieldAutocomplete::MentionChosen data) {
-		onMentionInsert(data.user, data.method);
+		insertMention(data.user, data.method);
 	}, lifetime());
 
 	_fieldAutocomplete->hashtagChosen(
@@ -1341,7 +1341,7 @@ void HistoryWidget::start() {
 	});
 }
 
-void HistoryWidget::onMentionInsert(UserData *user, FieldAutocomplete::ChooseMethod method) {
+void HistoryWidget::insertMention(UserData *user, FieldAutocomplete::ChooseMethod method) {
 	QString replacement, entityTag;
 	if (user->username.isEmpty()
 		|| method == FieldAutocomplete::ChooseMethod::ByRightClick
@@ -1730,7 +1730,7 @@ void HistoryWidget::setupShortcuts() {
 				});
 			}
 			request->check(Command::SaveDraft, 1) && request->handle([=] {
-				onCloudDraftSave();
+				saveCloudDraft();
 				return true;
 			});
 			request->check(Command::JumpToDate, 1) && request->handle([=] {

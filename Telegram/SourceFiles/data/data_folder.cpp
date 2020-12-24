@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "mainwidget.h"
 #include "styles/style_dialogs.h"
+#include "styles/style_widgets.h"
 
 namespace Data {
 namespace {

@@ -4109,7 +4109,7 @@ void ApiWrap::forwardMessages(
 			const auto media = item->media();
 			auto inputMedia = media->photo()
 				? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
-				: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint());
+				: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint(), MTPstring());
 			auto caption = cForwardCaptioned()
 					? item->originalText()
 					: TextWithEntities();
