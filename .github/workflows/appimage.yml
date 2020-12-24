@@ -63,6 +63,7 @@ jobs:
         defines:
           - ""
           - "DESKTOP_APP_DISABLE_DBUS_INTEGRATION"
+          - "DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION"
           - "TDESKTOP_DISABLE_GTK_INTEGRATION"
 
     env:
@@ -104,9 +105,10 @@ jobs:
           git wget autoconf automake build-essential libtool pkg-config bison yasm \
           libasound2-dev libpulse-dev portaudio19-dev libdrm-dev libfuse2 \
           libgtk-3-dev libgtk2.0-dev libatspi2.0-dev libgl1-mesa-dev libegl1-mesa-dev \
-          libffi-dev libxcb1-dev libxcb-keysyms1-dev libxcb-res0-dev libxcb-screensaver0-dev \
-          libxcb-xkb-dev libx11-xcb-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev \
-          xutils-dev libva-dev libvdpau-dev libjpeg-dev unzip -y --force-yes && \
+          libffi-dev libxcb1-dev libxcb-keysyms1-dev libxcb-record0-dev libxcb-res0-dev \
+          libxcb-screensaver0-dev libxcb-xkb-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+          libxi-dev libxrender-dev xutils-dev libva-dev libvdpau-dev libjpeg-dev \
+          unzip -y --force-yes && \
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           sudo apt-get update && \
           sudo apt-get install gcc-8 g++-8 -y && \
