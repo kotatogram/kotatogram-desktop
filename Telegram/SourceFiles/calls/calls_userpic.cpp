@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/empty_userpic.h"
 #include "apiwrap.h" // requestFullPeer.
 #include "styles/style_calls.h"
+#include "styles/style_widgets.h"
 
 namespace Calls {
 namespace {
