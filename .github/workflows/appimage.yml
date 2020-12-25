@@ -47,7 +47,7 @@ on:
 jobs:
 
   linux:
-    name: Ubuntu 14.04
+    name: Ubuntu 16.04
     if: >
       !(github.event_name == 'push'
         && contains(github.event.head_commit.message, '[skip ci]'))
@@ -55,7 +55,7 @@ jobs:
         && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name) 
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:trusty
+      image: ubuntu:xenial
       options: --privileged --device /dev/fuse
 
     strategy:
@@ -68,7 +68,7 @@ jobs:
 
     env:
       GIT: "https://github.com"
-      QT: "5_12_8"
+      QT: "5_15_2"
       OPENSSL_VER: "1_1_1"
       CMAKE_VER: "3.17.0"
       UPLOAD_ARTIFACT: "false"
@@ -85,9 +85,9 @@ jobs:
       - name: Disable man for further package installs.
         run: |
           cfgFile="/etc/dpkg/dpkg.cfg.d/no_man"
-          sudo touch $cfgFile
+          touch $cfgFile
           p() {
-            sudo echo "path-exclude=/usr/share/$1/*" >> $cfgFile
+            echo "path-exclude=/usr/share/$1/*" >> $cfgFile
           }
 
           p man
@@ -97,25 +97,27 @@ jobs:
       - name: Apt install.
         shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install software-properties-common -y && \
-          sudo add-apt-repository ppa:git-core/ppa -y && \
-          sudo apt-get update && \
-          sudo apt-get install libice-dev libsm-dev libicu-dev liblzma-dev zlib1g-dev \
+          apt-get update
+          apt-get install software-properties-common -y && \
+          add-apt-repository ppa:git-core/ppa -y && \
+          apt-get update && \
+          apt-get install libglib2.0-dev libicu-dev liblzma-dev zlib1g-dev \
           git wget autoconf automake build-essential libtool pkg-config bison yasm \
-          libasound2-dev libpulse-dev portaudio19-dev libdrm-dev libfuse2 \
-          libgtk-3-dev libgtk2.0-dev libatspi2.0-dev libgl1-mesa-dev libegl1-mesa-dev \
-          libffi-dev libxcb1-dev libxcb-keysyms1-dev libxcb-record0-dev libxcb-res0-dev \
-          libxcb-screensaver0-dev libxcb-xkb-dev libx11-xcb-dev libxext-dev libxfixes-dev \
-          libxi-dev libxrender-dev xutils-dev libva-dev libvdpau-dev libjpeg-dev \
-          unzip -y --force-yes && \
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
-          sudo apt-get update && \
-          sudo apt-get install gcc-8 g++-8 -y && \
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 && \
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60 && \
-          sudo update-alternatives --config gcc && \
-          sudo add-apt-repository --remove ppa:ubuntu-toolchain-r/test -y
+          libasound2-dev libpulse-dev libdrm-dev libfuse2 libgtk-3-dev libgtk2.0-dev \
+          libatspi2.0-dev libgl1-mesa-dev libegl1-mesa-dev libffi-dev libxcb1-dev \
+          libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev \
+          libxcb-randr0-dev libxcb-record0-dev libxcb-render0-dev libxcb-render-util0-dev \
+          libxcb-res0-dev libxcb-screensaver0-dev libxcb-shape0-dev libxcb-shm0-dev \
+          libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev \
+          libxcb-util0-dev libx11-xcb-dev libxext-dev libxfixes-dev libxv-dev libva-dev \
+          libvdpau-dev xutils-dev unzip -y --force-yes && \
+          add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
+          apt-get update && \
+          apt-get install gcc-8 g++-8 -y && \
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 && \
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60 && \
+          update-alternatives --config gcc && \
+          add-apt-repository --remove ppa:ubuntu-toolchain-r/test -y
 
       - name: Clone.
         uses: actions/checkout@v2
@@ -147,12 +149,10 @@ jobs:
 
       - name: Patches.
         run: |
-          echo "Find necessary commit from doc."
-          checkoutCommit=$(grep -A 1 "cd patches" $REPO_NAME/$DOC_PATH | sed -n 2p)
           cd $LibrariesPath
           git clone $GIT/desktop-app/patches.git
           cd patches
-          eval $checkoutCommit
+          git checkout 72b84de
 
       - name: OpenSSL cache.
         id: cache-openssl
@@ -171,14 +171,14 @@ jobs:
           cd $opensslDir
           ./config no-tests
           make -j$(nproc)
-          sudo make DESTDIR="$LibrariesPath/openssl-cache" install_sw
+          make DESTDIR="$LibrariesPath/openssl-cache" install_sw
           cd ..
           rm -rf $opensslDir
       - name: OpenSSL install.
         run: |
           cd $LibrariesPath
-          sudo cp -R openssl-cache/. /
-          sudo ldconfig
+          cp -R openssl-cache/. /
+          ldconfig
 
       - name: Python 3.8 cache.
         id: cache-python
@@ -195,13 +195,13 @@ jobs:
           cd cpython
           ./configure --enable-optimizations
           make -j$(nproc)
-          sudo make DESTDIR="$LibrariesPath/python-cache" install
+          make DESTDIR="$LibrariesPath/python-cache" install
           cd ..
           rm -rf cpython
       - name: Python 3.8 install.
         run: |
           cd $LibrariesPath
-          sudo cp -R python-cache/. /
+          cp -R python-cache/. /
 
       - name: CMake.
         run: |
@@ -209,9 +209,9 @@ jobs:
 
           file=cmake-$CMAKE_VER-Linux-x86_64.sh
           wget $GIT/Kitware/CMake/releases/download/v$CMAKE_VER/$file
-          sudo mkdir /opt/cmake
-          sudo sh $file --prefix=/opt/cmake --skip-license
-          sudo ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
+          mkdir /opt/cmake
+          sh $file --prefix=/opt/cmake --skip-license
+          ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
           rm $file
 
           cmake --version
@@ -224,13 +224,13 @@ jobs:
           cd extra-cmake-modules
           cmake . -DCMAKE_BUILD_TYPE=Release
           cmake --build . -j$(nproc)
-          sudo cmake --install .
+          cmake --install .
           cd ..
           rm -rf extra-cmake-modules
 
       - name: Meson.
         run: |
-          sudo python3 -m pip install meson==0.54.0
+          python3 -m pip install meson==0.54.0
           meson --version
 
       - name: Ninja.
@@ -253,8 +253,8 @@ jobs:
           ./autogen.sh
           ./configure
           make -j$(nproc)
-          sudo install nasm /usr/local/bin/nasm
-          sudo install ndisasm /usr/local/bin/ndisasm
+          install nasm /usr/local/bin/nasm
+          install ndisasm /usr/local/bin/ndisasm
           cd ..
           rm -rf nasm
 
@@ -270,10 +270,26 @@ jobs:
           -Denable_tools=false \
           -Denable_tests=false
           ninja
-          sudo ninja install
-          sudo ldconfig
+          ninja install
+          ldconfig
           cd ../..
           rm -rf dav1d
+
+      - name: MozJPEG.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v4.0.1-rc2 $GIT/mozilla/mozjpeg.git
+          cd mozjpeg
+          cmake -B build . \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr/local \
+          -DWITH_JPEG8=ON \
+          -DPNG_SUPPORTED=OFF
+          cmake --build build -j$(nproc)
+          cmake --install build
+          cd ..
+          rm -rf mozjpeg
 
       - name: Opus cache.
         id: cache-opus
@@ -294,7 +310,7 @@ jobs:
       - name: Opus install.
         run: |
           cd $LibrariesPath/opus
-          sudo make install
+          make install
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
@@ -324,6 +340,8 @@ jobs:
           --enable-libopus \
           --enable-vaapi \
           --enable-vdpau \
+          --enable-xlib \
+          --enable-libdrm \
           --enable-protocol=file \
           --enable-hwaccel=h264_vaapi \
           --enable-hwaccel=h264_vdpau \
@@ -414,14 +432,14 @@ jobs:
           --enable-muxer=opus
 
           make -j$(nproc)
-          sudo make DESTDIR="$LibrariesPath/ffmpeg-cache" install
+          make DESTDIR="$LibrariesPath/ffmpeg-cache" install
           cd ..
           rm -rf ffmpeg
       - name: FFmpeg install.
         run: |
           cd $LibrariesPath
-          sudo cp -R ffmpeg-cache/. /
-          sudo ldconfig
+          cp -R ffmpeg-cache/. /
+          ldconfig
 
       - name: OpenAL Soft.
         run: |
@@ -437,8 +455,8 @@ jobs:
           -DALSOFT_CONFIG=OFF
 
           cmake --build . -j$(nproc)
-          sudo cmake --install .
-          sudo ldconfig
+          cmake --install .
+          ldconfig
 
           cd -
           rm -rf openal-soft
@@ -453,8 +471,8 @@ jobs:
           --disable-documentation \
           --disable-dtd-validation
           make -j$(nproc)
-          sudo make install
-          sudo ldconfig
+          make install
+          ldconfig
           cd ..
           rm -rf wayland
 
@@ -470,43 +488,41 @@ jobs:
           --with-xkb-config-root=/usr/share/X11/xkb \
           --with-x-locale-root=/usr/share/X11/locale
           make -j$(nproc)
-          sudo make install
-          sudo ldconfig
+          make install
+          ldconfig
           cd ..
           rm -rf libxkbcommon
 
-      - name: Qt 5.12.8 cache.
+      - name: Qt 5.15.2 cache.
         id: cache-qt
         uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/qt-cache
-          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qt*_5_12_8/*') }}
-      - name: Qt 5.12.8 build.
+          key: ${{ runner.OS }}-qt-${{ env.CACHE_KEY }}-${{ hashFiles('**/qt*_5_15_2/*') }}
+      - name: Qt 5.15.2 build.
         if: steps.cache-qt.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
-          git clone -b v5.12.8 --depth=1 git://code.qt.io/qt/qt5.git qt_${QT}
+          git clone -b v5.15.2 --depth=1 git://code.qt.io/qt/qt5.git qt_${QT}
           cd qt_${QT}
           perl init-repository --module-subset=qtbase,qtwayland,qtimageformats,qtsvg,qttools,qtx11extras
           git submodule update qtbase qtwayland qtimageformats qtsvg qttools qtx11extras
           cd qtbase
           find ../../patches/qtbase_${QT} -type f -print0 | sort -z | xargs -r0 git apply
           cd ..
-          cd qtwayland
-          find ../../patches/qtwayland_${QT} -type f -print0 | sort -z | xargs -r0 git apply
-          cd ..
 
           ./configure -prefix /usr/local \
           -release \
           -opensource \
           -confirm-license \
-          -qt-zlib \
+          -xcb \
           -qt-libpng \
-          -qt-libjpeg \
           -qt-harfbuzz \
           -qt-pcre \
-          -qt-xcb \
+          -no-gtk \
+          -no-feature-xcb-sm \
+          -no-feature-wayland-server \
           -openssl-linked \
           OPENSSL_LIBS="-L/usr/local/lib -lssl -lcrypto" \
           QMAKE_CXX="$CXX" \
@@ -515,14 +531,14 @@ jobs:
           -nomake tests
 
           make -j$(nproc)
-          sudo make INSTALL_ROOT="$LibrariesPath/qt-cache" install
+          make INSTALL_ROOT="$LibrariesPath/qt-cache" install
           cd ..
           rm -rf qt_${QT}
-      - name: Qt 5.12.8 install.
+      - name: Qt 5.15.2 install.
         run: |
           cd $LibrariesPath
-          sudo cp -R qt-cache/. /
-          sudo ldconfig
+          cp -R qt-cache/. /
+          ldconfig
 
       - name: Qt Style Plugins.
         run: |
@@ -530,10 +546,10 @@ jobs:
 
           git clone --depth=1 git://code.qt.io/qt/qtstyleplugins.git
           cd qtstyleplugins
-          git apply ../patches/qtstyleplugins.diff
+          find ../patches/qtstyleplugins -type f -print0 | sort -z | xargs -r0 git apply
           qmake
           make -j$(nproc)
-          sudo make install
+          make install
           cd ..
           rm -rf qtstyleplugins
 
@@ -548,8 +564,8 @@ jobs:
           -DBUILD_TESTING=OFF \
           -DKDE_INSTALL_LIBDIR=lib
           cmake --build . -j$(nproc)
-          sudo cmake --install .
-          sudo ldconfig
+          cmake --install .
+          ldconfig
           cd ..
           rm -rf kwindowsystem
 
@@ -561,7 +577,7 @@ jobs:
           cd Kvantum/Kvantum
           cmake . -DCMAKE_BUILD_TYPE=Release
           cmake --build . -j$(nproc)
-          sudo cmake --install .
+          cmake --install .
           cd ../..
           rm -rf Kvantum
 
