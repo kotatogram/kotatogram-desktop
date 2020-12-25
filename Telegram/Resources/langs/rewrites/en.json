@@ -67,6 +67,7 @@
 	"ktg_net_speed_boost_medium": "Medium",
 	"ktg_net_speed_boost_big": "Big",
 	"ktg_settings_system": "System",
+	"ktg_settings_gtk_integration": "GTK integration",
 	"ktg_settings_other": "Other",
 	"ktg_profile_copy_id": "Copy ID",
 	"ktg_profile_bot_id": "Bot ID",

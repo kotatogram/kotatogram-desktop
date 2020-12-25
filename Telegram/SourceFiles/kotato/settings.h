@@ -101,6 +101,7 @@ void SetRecentStickersLimit(int limit);
 
 DeclareSetting(int, UserpicCornersType);
 DeclareSetting(bool, ShowTopBarUserpic);
+DeclareSetting(bool, GtkIntegration);
 DeclareSetting(bool, DisableTrayCounter);
 DeclareSetting(bool, UseTelegramPanelIcon);
 DeclareSetting(int, CustomAppIcon);

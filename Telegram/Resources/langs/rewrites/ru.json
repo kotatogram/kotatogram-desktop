@@ -66,6 +66,7 @@
 	"ktg_net_speed_boost_medium": "Среднее",
 	"ktg_net_speed_boost_big": "Высокое",
 	"ktg_settings_system": "Система",
+	"ktg_settings_gtk_integration": "GTK-интеграция",
 	"ktg_settings_other": "Прочие",
 	"ktg_profile_copy_id": "Копировать ID",
 	"ktg_profile_bot_id": "ID бота",

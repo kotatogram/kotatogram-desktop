@@ -378,6 +378,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
+	settings.insert(qsl("gtk_integration"), cGtkIntegration());
 	settings.insert(qsl("disable_tray_counter"), cDisableTrayCounter());
 	settings.insert(qsl("use_telegram_panel_icon"), cUseTelegramPanelIcon());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
@@ -618,6 +619,10 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "always_show_top_userpic", [&](auto v) {
 		cSetShowTopBarUserpic(v);
+	});
+
+	ReadBoolOption(settings, "gtk_integration", [&](auto v) {
+		cSetGtkIntegration(v);
 	});
 
 	ReadBoolOption(settings, "disable_tray_counter", [&](auto v) {
