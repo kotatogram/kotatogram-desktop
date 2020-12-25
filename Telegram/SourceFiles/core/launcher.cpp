@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/update_checker.h"
 #include "core/sandbox.h"
 #include "base/concurrent_timer.h"
+#include "kotato/json_settings.h"
 
 namespace Core {
 namespace {
@@ -330,6 +331,7 @@ int Launcher::exec() {
 
 	// Must be started before Platform is started.
 	Logs::start(this);
+	Kotato::JsonSettings::Start();
 
 	// Must be started before Sandbox is created.
 	Platform::start();
@@ -359,6 +361,7 @@ int Launcher::exec() {
 
 	CrashReports::Finish();
 	Platform::finish();
+	Kotato::JsonSettings::Finish();
 	Logs::finish();
 
 	return result;

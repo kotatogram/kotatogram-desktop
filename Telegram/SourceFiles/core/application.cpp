@@ -20,7 +20,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/sandbox.h"
 #include "core/local_url_handlers.h"
 #include "core/launcher.h"
-#include "kotato/json_settings.h"
 #include "core/ui_integration.h"
 #include "core/core_settings.h"
 #include "chat_helpers/emoji_keywords.h"
@@ -198,12 +197,10 @@ Application::~Application() {
 	Global::finish();
 	ThirdParty::finish();
 
-	Kotato::JsonSettings::Finish();
 	Instance = nullptr;
 }
 
 void Application::run() {
-	Kotato::JsonSettings::Start();
 	style::internal::StartFonts();
 
 	ThirdParty::start();
