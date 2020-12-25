@@ -4141,7 +4141,7 @@ void ApiWrap::forwardMessages(
 				: MTPmessages_SendMultiMedia::Flag(0));
 
 		const auto requestType = Data::Histories::RequestType::Send;
-		auto performRequest = [=, &mediaRefs, &histories](const auto &repeatRequest) -> void {
+		auto performRequest = [=, &mediaRefs, &histories, &localIds](const auto &repeatRequest) -> void {
 			mediaRefs.clear();
 			for (auto i = fromIter, e = toIter; i != e; i++) {
 				const auto item = *i;
@@ -4163,7 +4163,7 @@ void ApiWrap::forwardMessages(
 						shared->callback();
 					}
 					finish();
-				}).fail([=, ids = localIds](const RPCError &error) {
+				}).fail([=](const RPCError &error) {
 					if (error.code() == 400
 						&& error.type().startsWith(qstr("FILE_REFERENCE_"))) {
 						auto refreshRequests = mediaRefs.size();
@@ -4194,8 +4194,8 @@ void ApiWrap::forwardMessages(
 							});
 							index++;
 						}
-					} else if (ids) {
-						for (const auto &[randomId, itemId] : *ids) {
+					} else if (localIds) {
+						for (const auto &[randomId, itemId] : *localIds) {
 							sendMessageFail(error, peer, randomId, itemId);
 						}
 					} else {
