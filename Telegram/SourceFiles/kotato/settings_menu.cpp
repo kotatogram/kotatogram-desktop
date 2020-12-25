@@ -469,34 +469,34 @@ void SetupKotatoSystem(
 	}
 #endif // !TDESKTOP_DISABLE_GTK_INTEGRATION
 
-#if defined Q_OS_MAC
-	const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
-		container.get());
-	AddButton(
-		container,
-		tr::lng_settings_native_frame(),
-		st::settingsButton
-	)->toggleOn(
-		useNativeDecorationsToggled->events_starting_with_copy(cUseNativeDecorations())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cUseNativeDecorations());
-	}) | rpl::start_with_next([=](bool enabled) {
-		const auto confirmed = [=] {
-			cSetUseNativeDecorations(enabled);
-			::Kotato::JsonSettings::Write();
-			App::restart();
-		};
-		const auto cancelled = [=] {
-			useNativeDecorationsToggled->fire(cUseNativeDecorations() == true);
-		};
-		Ui::show(Box<ConfirmBox>(
-			tr::lng_settings_need_restart(tr::now),
-			tr::lng_settings_restart_now(tr::now),
-			confirmed,
-			cancelled));
-	}, container->lifetime());
-#endif // Q_OS_MAC
+	if (Platform::IsMac()) {
+		const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
+			container.get());
+		AddButton(
+			container,
+			tr::lng_settings_native_frame(),
+			st::settingsButton
+		)->toggleOn(
+			useNativeDecorationsToggled->events_starting_with_copy(cUseNativeDecorations())
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != cUseNativeDecorations());
+		}) | rpl::start_with_next([=](bool enabled) {
+			const auto confirmed = [=] {
+				cSetUseNativeDecorations(enabled);
+				::Kotato::JsonSettings::Write();
+				App::restart();
+			};
+			const auto cancelled = [=] {
+				useNativeDecorationsToggled->fire(cUseNativeDecorations() == true);
+			};
+			Ui::show(Box<ConfirmBox>(
+				tr::lng_settings_need_restart(tr::now),
+				tr::lng_settings_restart_now(tr::now),
+				confirmed,
+				cancelled));
+		}, container->lifetime());
+	}
 
 	AddButton(
 		container,
@@ -513,22 +513,22 @@ void SetupKotatoSystem(
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
-#if defined Q_OS_UNIX && !defined Q_OS_MAC
-	AddButton(
-		container,
-		tr::ktg_settings_use_telegram_panel_icon(),
-		st::settingsButton
-	)->toggleOn(
-		rpl::single(cUseTelegramPanelIcon())
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != cUseTelegramPanelIcon());
-	}) | rpl::start_with_next([controller](bool enabled) {
-		cSetUseTelegramPanelIcon(enabled);
-		controller->session().data().notifyUnreadBadgeChanged();
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
-#endif // Q_OS_UNIX && !Q_OS_MAC
+	if (Platform::IsLinux()) {
+		AddButton(
+			container,
+			tr::ktg_settings_use_telegram_panel_icon(),
+			st::settingsButton
+		)->toggleOn(
+			rpl::single(cUseTelegramPanelIcon())
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != cUseTelegramPanelIcon());
+		}) | rpl::start_with_next([controller](bool enabled) {
+			cSetUseTelegramPanelIcon(enabled);
+			controller->session().data().notifyUnreadBadgeChanged();
+			::Kotato::JsonSettings::Write();
+		}, container->lifetime());
+	}
 
 	const QMap<int, QString> trayIconOptions = {
 		{ 0, TrayIconLabel(0) },
