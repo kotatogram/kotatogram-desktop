@@ -7,6 +7,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #include "kotato/settings_menu.h"
 
+#include "base/platform/base_platform_info.h"
 #include "settings/settings_common.h"
 #include "settings/settings_chat.h"
 #include "ui/wrap/vertical_layout.h"
@@ -436,6 +437,37 @@ void SetupKotatoSystem(
 	AddDivider(container);
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
+
+#ifndef TDESKTOP_DISABLE_GTK_INTEGRATION
+	if (Platform::IsLinux()) {
+		const auto gtkIntegrationToggled = Ui::CreateChild<rpl::event_stream<bool>>(
+			container.get());
+		AddButton(
+			container,
+			tr::ktg_settings_gtk_integration(),
+			st::settingsButton
+		)->toggleOn(
+			gtkIntegrationToggled->events_starting_with_copy(cGtkIntegration())
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != cGtkIntegration());
+		}) | rpl::start_with_next([=](bool enabled) {
+			const auto confirmed = [=] {
+				cSetGtkIntegration(enabled);
+				::Kotato::JsonSettings::Write();
+				App::restart();
+			};
+			const auto cancelled = [=] {
+				gtkIntegrationToggled->fire(cGtkIntegration() == true);
+			};
+			Ui::show(Box<ConfirmBox>(
+				tr::lng_settings_need_restart(tr::now),
+				tr::lng_settings_restart_now(tr::now),
+				confirmed,
+				cancelled));
+		}, container->lifetime());
+	}
+#endif // !TDESKTOP_DISABLE_GTK_INTEGRATION
 
 #if defined Q_OS_MAC
 	const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(

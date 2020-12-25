@@ -67,7 +67,6 @@ using Platform::internal::WaylandIntegration;
 namespace Platform {
 namespace {
 
-constexpr auto kDisableGtkIntegration = "TDESKTOP_DISABLE_GTK_INTEGRATION"_cs;
 constexpr auto kIgnoreGtkIncompatibility = "TDESKTOP_I_KNOW_ABOUT_GTK_INCOMPATIBILITY"_cs;
 
 constexpr auto kDesktopFile = ":/misc/kotatogramdesktop.desktop"_cs;
@@ -583,8 +582,7 @@ bool IsStaticBinary() {
 
 bool UseGtkIntegration() {
 #ifndef TDESKTOP_DISABLE_GTK_INTEGRATION
-	static const auto Result = !qEnvironmentVariableIsSet(
-		kDisableGtkIntegration.utf8());
+	static const auto Result = cGtkIntegration();
 
 	return Result;
 #endif // !TDESKTOP_DISABLE_GTK_INTEGRATION
@@ -1008,13 +1006,6 @@ void start() {
 			"this will lead to a crash.",
 			kIgnoreGtkIncompatibility.utf8().constData());
 
-		g_message(
-			"GTK integration can be disabled by setting %s to any value. "
-			"Keep in mind that this will lead to clipboard issues "
-			"and tdesktop will be unable to get settings from GTK "
-			"(such as decoration layout, dark mode & more).",
-			kDisableGtkIntegration.utf8().constData());
-
 		qunsetenv("QT_QPA_PLATFORMTHEME");
 		qunsetenv("QT_STYLE_OVERRIDE");
 
@@ -1022,13 +1013,6 @@ void start() {
 		if (DesktopEnvironment::IsGtkBased()) {
 			QApplication::setDesktopSettingsAware(false);
 		}
-	}
-
-	if (!UseGtkIntegration()) {
-		g_warning(
-			"GTK integration was disabled on build or in runtime. "
-			"This will lead to clipboard issues and a lack of some features "
-			"(like Auto-Night Mode or system window controls layout).");
 	}
 
 #ifdef DESKTOP_APP_USE_PACKAGED_RLOTTIE

@@ -145,6 +145,7 @@ rpl::producer<int> RecentStickersLimitChanges() {
 
 int gUserpicCornersType = 3;
 bool gShowTopBarUserpic = false;
+bool gGtkIntegration = false;
 bool gDisableTrayCounter = false;
 bool gUseTelegramPanelIcon = false;
 int gCustomAppIcon = 0;
