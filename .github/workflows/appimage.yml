@@ -520,7 +520,6 @@ jobs:
           -qt-libpng \
           -qt-harfbuzz \
           -qt-pcre \
-          -no-gtk \
           -no-feature-xcb-sm \
           -no-feature-wayland-server \
           -openssl-linked \
