@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/platform/base_platform_info.h"
 #include "window/themes/window_themes_embedded.h"
 #include "window/window_controls_layout.h"
 #include "ui/chat/attach/attach_send_files_way.h"
@@ -518,7 +519,7 @@ private:
 	bool _desktopNotify = true;
 	bool _flashBounceNotify = true;
 	DBINotifyView _notifyView = dbinvShowPreview;
-	bool _nativeNotifications = false;
+	bool _nativeNotifications = Platform::IsLinux();
 	int _notificationsCount = 3;
 	ScreenCorner _notificationsCorner = ScreenCorner::BottomRight;
 	bool _includeMutedCounter = true;
@@ -561,7 +562,7 @@ private:
 	rpl::variable<float64> _dialogsWidthRatio; // per-window
 	rpl::variable<int> _thirdColumnWidth = kDefaultThirdColumnWidth; // p-w
 	bool _notifyFromAll = true;
-	rpl::variable<bool> _nativeWindowFrame = false;
+	rpl::variable<bool> _nativeWindowFrame = Platform::IsLinux();
 	rpl::variable<std::optional<bool>> _systemDarkMode = std::nullopt;
 	rpl::variable<bool> _systemDarkModeEnabled = false;
 	rpl::variable<Window::ControlsLayout> _windowControlsLayout;
