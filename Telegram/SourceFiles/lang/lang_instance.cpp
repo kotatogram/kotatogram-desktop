@@ -651,8 +651,8 @@ void Instance::loadFromJson(const QString &filename) {
 
 		if ((*value).isString()) {
 
-			const auto name = QByteArray().append(key);
-			const auto translation = QByteArray().append((*value).toString());
+			const auto name = key.toLatin1();
+			const auto translation = (*value).toString().toUtf8();
 
 			applyValue(name, translation);
 
@@ -671,8 +671,8 @@ void Instance::loadFromJson(const QString &filename) {
 					continue;
 				}
 
-				const auto name = QByteArray().append(key + "#" + plural);
-				const auto translation = QByteArray().append((*pluralValue).toString());
+				const auto name = QString(key + "#" + plural).toLatin1();
+				const auto translation = (*pluralValue).toString().toUtf8();
 
 				applyValue(name, translation);
 				if (--limit <= 0) {
