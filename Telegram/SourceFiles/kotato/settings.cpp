@@ -17,7 +17,7 @@ bool gSemiboldFontIsBold = false;
 #ifdef DESKTOP_APP_USE_PACKAGED_FONTS
 bool gUseSystemFont = true;
 #else
-bool gUseSystemFont = false;
+bool gUseSystemFont = Platform::IsLinux();
 #endif
 
 bool gUseOriginalMetrics = false;
