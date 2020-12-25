@@ -20,6 +20,8 @@ apps:
     environment:
       # Tell glib to use portals on file associations handling.
       GTK_USE_PORTAL: 1
+      # Use sandboxed ibus api
+      IBUS_USE_PORTAL: 1
     plugs:
       - alsa
       - audio-playback
@@ -75,7 +77,6 @@ parts:
       - liblzma-dev
       - libopus-dev
       - libpulse-dev
-      - libqt5svg5-dev
       - libqt5waylandclient5-dev
       - libssl-dev
       - libxcb1-dev
@@ -87,11 +88,11 @@ parts:
       - qt5-image-formats-plugins
       - qtwayland5
       - libasound2
+      - libglib2.0-0
       - libgtk-3-0
       - liblzma5
       - libopus0
       - libpulse0
-      - libqt5svg5
       - libqt5waylandclient5
       - libssl1.1
       - libxcb1
@@ -160,16 +161,6 @@ parts:
     plugin: nil
     stage-packages:
       - qt5-xdgdesktopportal-platformtheme
-    stage:
-      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
-    after:
-      - mozjpeg
-
-  # Qt checks that ibus-daemon binary is present, otherwise doesn't work
-  ibus:
-    plugin: nil
-    stage-packages:
-      - ibus
     stage:
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
     after:
