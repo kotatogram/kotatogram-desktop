@@ -7,6 +7,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #include "kotato/customboxes/fonts_box.h"
 
+#include "base/platform/base_platform_info.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
@@ -139,7 +140,7 @@ void FontsBox::resetToDefault() {
 #ifdef DESKTOP_APP_USE_PACKAGED_FONTS
 		cSetUseSystemFont(true);
 #else
-		cSetUseSystemFont(false);
+		cSetUseSystemFont(Platform::IsLinux());
 #endif
 		cSetUseOriginalMetrics(false);
 		Kotato::JsonSettings::Write();
