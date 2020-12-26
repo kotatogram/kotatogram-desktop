@@ -135,6 +135,9 @@ void BasicRow::updateCornerBadgeShown(
 		not_null<PeerData*> peer,
 		Fn<void()> updateCallback) const {
 	const auto shown = [&] {
+		if (DialogListLines() == 1) {
+			return false;
+		}
 		if (const auto user = peer->asUser()) {
 			return Data::IsUserOnline(user);
 		} else if (const auto channel = peer->asChannel()) {
@@ -176,7 +179,6 @@ void BasicRow::PaintCornerBadgeFrame(
 	const auto skip = peer->isUser()
 		? st::dialogsOnlineBadgeSkip
 		: st::dialogsCallBadgeSkip;
-	const auto edge = (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
 	const auto shrink = (size / 2) * (1. - data->shown);
 
 	auto pen = QPen(Qt::transparent);
@@ -185,18 +187,9 @@ void BasicRow::PaintCornerBadgeFrame(
 	q.setBrush(data->active
 		? st::dialogsOnlineBadgeFgActive
 		: st::dialogsOnlineBadgeFg);
-	auto onlineTop = edge - size;
-	auto onlineLeft = edge - size;
-	if (cUserpicCornersType() == 3) {
-		onlineTop = onlineTop - skip.x();
-		onlineLeft = onlineLeft - skip.y();
-	} else {
-		onlineTop = onlineTop - size;
-		onlineLeft = onlineLeft - size;
-	}
 	q.drawEllipse(QRectF(
-		onlineTop,
-		onlineLeft,
+		st::dialogsPhotoSize - size - (cUserpicCornersType() == 3 ? skip.x() : -(stroke / 2)),
+		st::dialogsPhotoSize - size - (cUserpicCornersType() == 3 ? skip.y() : -(stroke / 2)),
 		size,
 		size
 	).marginsRemoved({ shrink, shrink, shrink, shrink }));
@@ -214,7 +207,7 @@ void BasicRow::paintUserpic(
 	const auto shown = _cornerBadgeUserpic
 		? _cornerBadgeUserpic->animation.value(_cornerBadgeShown ? 1. : 0.)
 		: (_cornerBadgeShown ? 1. : 0.);
-	if (DialogListLines() == 1 || !historyForCornerBadge || shown == 0.) {
+	if (!historyForCornerBadge || shown == 0.) {
 		peer->paintUserpicLeft(
 			p,
 			_userpic,
@@ -254,12 +247,13 @@ void BasicRow::paintUserpic(
 		: st::dialogsBg;
 	const auto size = st::dialogsCallBadgeSize;
 	const auto skip = st::dialogsCallBadgeSkip;
+	const auto stroke = st::dialogsOnlineBadgeStroke;
 	p.setOpacity(shown);
 	p.translate(st::dialogsPadding);
 	actionPainter->paintSpeaking(
 		p,
-		st::dialogsPhotoSize - skip.x() - size,
-		st::dialogsPhotoSize - skip.y() - size,
+		st::dialogsPhotoSize - size - (cUserpicCornersType() == 3 ? skip.x() : -(stroke / 2)),
+		st::dialogsPhotoSize - size - (cUserpicCornersType() == 3 ? skip.y() : -(stroke / 2)),
 		fullWidth,
 		bg,
 		now);
