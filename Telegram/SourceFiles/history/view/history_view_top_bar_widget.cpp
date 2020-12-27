@@ -371,16 +371,17 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			|| _activeChat.section == Section::Scheduled
 			|| _activeChat.section == Section::Pinned) {
 		p.setPen(st::ktgTopBarNameFg);
-		p.setFont(st::semiboldFont);
-		p.drawTextLeft(
-			nameleft,
-			nametop,
-			width(),
+
+		Ui::Text::String textStr;
+		textStr.setText(
+			st::semiboldTextStyle,
 			(_activeChat.section == Section::Replies
 				? tr::lng_manage_discussion_group(tr::now)
 				: history->peer->isSelf()
 				? tr::lng_saved_messages(tr::now)
-				: history->peer->topBarNameText().toString()));
+				: history->peer->topBarNameText().toString()),
+			Ui::NameTextOptions());
+		textStr.drawElided(p, nameleft, nametop, width());
 
 		p.setFont(st::dialogsTextFont);
 		if (!paintConnectingState(p, nameleft, statustop, width())
