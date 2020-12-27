@@ -398,7 +398,7 @@ void GenerateItems(
 	const auto fromLink = from->createOpenLink();
 	const auto fromLinkText = textcmdLink(1, fromName);
 
-	auto addSimpleServiceMessage = [&](const QString &text, PhotoData *photo = nullptr) {
+	auto addSimpleServiceMessage = [&](const QString &text, PhotoData *photo = nullptr, bool showTime = true) {
 		auto message = HistoryService::PreparedText { text };
 		message.links.push_back(fromLink);
 		addPart(history->makeServiceMessage(
@@ -408,7 +408,8 @@ void GenerateItems(
 			message,
 			MTPDmessage::Flags(0),
 			peerToUser(from->id),
-			photo));
+			photo,
+			showTime));
 	};
 
 	auto createChangeTitle = [&](const MTPDchannelAdminLogEventActionChangeTitle &action) {
@@ -434,7 +435,7 @@ void GenerateItems(
 				? tr::lng_admin_log_removed_description_channel
 				: tr::lng_admin_log_changed_description_channel)
 			)(tr::now, lt_from, fromLinkText);
-		addSimpleServiceMessage(text);
+		addSimpleServiceMessage(text, nullptr, false);
 
 		auto bodyFlags = Flag::f_entities | Flag::f_from_id;
 		auto bodyClientFlags = MTPDmessage_ClientFlag::f_admin_log_entry;
@@ -469,7 +470,7 @@ void GenerateItems(
 				? tr::lng_admin_log_removed_link_channel
 				: tr::lng_admin_log_changed_link_channel)
 			)(tr::now, lt_from, fromLinkText);
-		addSimpleServiceMessage(text);
+		addSimpleServiceMessage(text, nullptr, false);
 
 		auto bodyFlags = Flag::f_entities | Flag::f_from_id;
 		auto bodyClientFlags = MTPDmessage_ClientFlag::f_admin_log_entry;
@@ -542,7 +543,7 @@ void GenerateItems(
 			auto text = (pinned
 				? tr::lng_admin_log_pinned_message
 				: tr::lng_admin_log_unpinned_message)(tr::now, lt_from, fromLinkText);
-			addSimpleServiceMessage(text);
+			addSimpleServiceMessage(text, nullptr, false);
 
 			auto detachExistingItem = false;
 			addPart(history->createItem(
@@ -569,7 +570,7 @@ void GenerateItems(
 				tr::now,
 				lt_from,
 				fromLinkText);
-		addSimpleServiceMessage(text);
+		addSimpleServiceMessage(text, nullptr, false);
 
 		auto oldValue = ExtractEditedText(session, action.vprev_message());
 		auto detachExistingItem = false;
@@ -595,7 +596,7 @@ void GenerateItems(
 
 	auto createDeleteMessage = [&](const MTPDchannelAdminLogEventActionDeleteMessage &action) {
 		auto text = tr::lng_admin_log_deleted_message(tr::now, lt_from, fromLinkText);
-		addSimpleServiceMessage(text);
+		addSimpleServiceMessage(text, nullptr, false);
 
 		auto detachExistingItem = false;
 		addPart(history->createItem(
@@ -737,7 +738,7 @@ void GenerateItems(
 
 	auto createStopPoll = [&](const MTPDchannelAdminLogEventActionStopPoll &action) {
 		auto text = tr::lng_admin_log_stopped_poll(tr::now, lt_from, fromLinkText);
-		addSimpleServiceMessage(text);
+		addSimpleServiceMessage(text, nullptr, false);
 
 		auto detachExistingItem = false;
 		addPart(history->createItem(

@@ -80,7 +80,8 @@ public:
 		const PreparedText &message,
 		MTPDmessage::Flags flags = 0,
 		PeerId from = 0,
-		PhotoData *photo = nullptr);
+		PhotoData *photo = nullptr,
+		bool showTime = true);
 
 	bool updateDependencyItem() override;
 	MsgId dependencyMsgId() const override {
@@ -113,6 +114,13 @@ public:
 		HistoryView::Element *replacing = nullptr) override;
 
 	void setServiceText(const PreparedText &prepared);
+	void setNeedTime(bool need) {
+		_needTime = need;
+	};
+
+	bool needTime() {
+		return _needTime;
+	};
 
 	~HistoryService();
 
@@ -165,6 +173,7 @@ private:
 	friend class HistoryView::Service;
 
 	Ui::Text::String _postfixedText;
+	bool _needTime = true;
 
 };
 

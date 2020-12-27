@@ -115,6 +115,7 @@ QString GenerateServiceTime(TimeId date) {
 } // namespace
 
 void HistoryService::setMessageByAction(const MTPmessageAction &action) {
+	setNeedTime(true);
 	auto prepareChatAddUserText = [this](const MTPDmessageActionChatAddUser &action) {
 		auto result = PreparedText{};
 		auto &users = action.vusers().v;
@@ -781,8 +782,10 @@ HistoryService::HistoryService(
 	const PreparedText &message,
 	MTPDmessage::Flags flags,
 	PeerId from,
-	PhotoData *photo)
+	PhotoData *photo,
+	bool showTime)
 : HistoryItem(history, id, flags, clientFlags, date, from) {
+	setNeedTime(showTime);
 	setServiceText(message);
 	if (photo) {
 		_media = std::make_unique<Data::MediaPhoto>(
@@ -837,7 +840,7 @@ void HistoryService::setServiceText(const PreparedText &prepared) {
 		Ui::ItemTextServiceOptions());
 	_postfixedText.setText(
 		st::serviceTextStyle,
-		prepared.text + GenerateServiceTime(date()),
+		(needTime() ? prepared.text + GenerateServiceTime(date()) : prepared.text),
 		Ui::ItemTextServiceOptions());
 	auto linkIndex = 0;
 	for_const (auto &link, prepared.links) {
