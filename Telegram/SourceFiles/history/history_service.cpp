@@ -833,12 +833,17 @@ ClickHandlerPtr HistoryService::fromLink() const {
 void HistoryService::setServiceText(const PreparedText &prepared) {
 	_text.setText(
 		st::serviceTextStyle,
+		prepared.text,
+		Ui::ItemTextServiceOptions());
+	_postfixedText.setText(
+		st::serviceTextStyle,
 		prepared.text + GenerateServiceTime(date()),
 		Ui::ItemTextServiceOptions());
 	auto linkIndex = 0;
 	for_const (auto &link, prepared.links) {
 		// Link indices start with 1.
 		_text.setLink(++linkIndex, link);
+		_postfixedText.setLink(linkIndex, link);
 	}
 	_textWidth = -1;
 	_textHeight = 0;

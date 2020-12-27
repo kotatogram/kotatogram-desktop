@@ -164,6 +164,8 @@ private:
 
 	friend class HistoryView::Service;
 
+	Ui::Text::String _postfixedText;
+
 };
 
 not_null<HistoryService*> GenerateJoinedMessage(
