@@ -373,9 +373,35 @@ void EmptyUserpic::PaintRepliesMessages(
 		int y,
 		int outerWidth,
 		int size) {
+	switch (cUserpicCornersType()) {
+		case 0:
+			PaintRepliesMessagesSquared(p, x, y, outerWidth, size);
+			break;
+
+		case 1:
+			PaintRepliesMessagesRounded(p, x, y, outerWidth, size);
+			break;
+
+		case 2:
+			PaintRepliesMessagesRoundedLarge(p, x, y, outerWidth, size);
+			break;
+
+		default:
+			const auto &bg = st::historyPeerSavedMessagesBg;
+			const auto &fg = st::historyPeerUserpicFg;
+			PaintRepliesMessages(p, x, y, outerWidth, size, bg, fg);
+	}
+}
+
+void EmptyUserpic::PaintRepliesMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) {
 	const auto &bg = st::historyPeerSavedMessagesBg;
 	const auto &fg = st::historyPeerUserpicFg;
-	PaintRepliesMessages(p, x, y, outerWidth, size, bg, fg);
+	PaintRepliesMessagesRoundedLarge(p, x, y, outerWidth, size, bg, fg);
 }
 
 void EmptyUserpic::PaintRepliesMessagesRounded(
@@ -387,6 +413,17 @@ void EmptyUserpic::PaintRepliesMessagesRounded(
 	const auto &bg = st::historyPeerSavedMessagesBg;
 	const auto &fg = st::historyPeerUserpicFg;
 	PaintRepliesMessagesRounded(p, x, y, outerWidth, size, bg, fg);
+}
+
+void EmptyUserpic::PaintRepliesMessagesSquared(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) {
+	const auto &bg = st::historyPeerSavedMessagesBg;
+	const auto &fg = st::historyPeerUserpicFg;
+	PaintRepliesMessagesSquared(p, x, y, outerWidth, size, bg, fg);
 }
 
 void EmptyUserpic::PaintRepliesMessages(
@@ -407,6 +444,24 @@ void EmptyUserpic::PaintRepliesMessages(
 	PaintRepliesMessagesInner(p, x, y, size, bg, fg);
 }
 
+void EmptyUserpic::PaintRepliesMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg) {
+	x = rtl() ? (outerWidth - x - size) : x;
+
+	PainterHighQualityEnabler hq(p);
+	p.setBrush(bg);
+	p.setPen(Qt::NoPen);
+	p.drawRoundedRect(x, y, size, size, st::dateRadius, st::dateRadius);
+
+	PaintRepliesMessagesInner(p, x, y, size, bg, fg);
+}
+
 void EmptyUserpic::PaintRepliesMessagesRounded(
 		Painter &p,
 		int x,
@@ -421,6 +476,24 @@ void EmptyUserpic::PaintRepliesMessagesRounded(
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
 	p.drawRoundedRect(x, y, size, size, st::roundRadiusSmall, st::roundRadiusSmall);
+
+	PaintRepliesMessagesInner(p, x, y, size, bg, fg);
+}
+
+void EmptyUserpic::PaintRepliesMessagesSquared(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg) {
+	x = rtl() ? (outerWidth - x - size) : x;
+
+	PainterHighQualityEnabler hq(p);
+	p.setBrush(bg);
+	p.setPen(Qt::NoPen);
+	p.drawRoundedRect(x, y, size, size, 0, 0);
 
 	PaintRepliesMessagesInner(p, x, y, size, bg, fg);
 }

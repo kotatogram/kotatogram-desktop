@@ -105,7 +105,19 @@ public:
 		int y,
 		int outerWidth,
 		int size);
+	static void PaintRepliesMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size);
 	static void PaintRepliesMessagesRounded(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size);
+	static void PaintRepliesMessagesSquared(
 		Painter &p,
 		int x,
 		int y,
@@ -119,7 +131,23 @@ public:
 		int size,
 		const style::color &bg,
 		const style::color &fg);
+	static void PaintRepliesMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg);
 	static void PaintRepliesMessagesRounded(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg);
+	static void PaintRepliesMessagesSquared(
 		Painter &p,
 		int x,
 		int y,
