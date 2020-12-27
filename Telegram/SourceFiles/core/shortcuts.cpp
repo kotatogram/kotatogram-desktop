@@ -420,7 +420,7 @@ void Manager::fillDefaults() {
 
 	set(qsl("ctrl+r"), Command::ReadChat);
 	set(qsl("ctrl+s"), Command::SaveDraft);
-	set(qsl("ctrl+j"), Command::JumpToDate);
+	set(qsl("ctrl+h"), Command::JumpToDate);
 }
 
 void Manager::writeDefaultFile() {
