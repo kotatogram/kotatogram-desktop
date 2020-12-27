@@ -827,6 +827,8 @@ PRIVATE
     platform/linux/linux_desktop_environment.h
     platform/linux/linux_gdk_helper.cpp
     platform/linux/linux_gdk_helper.h
+    platform/linux/linux_gsd_media_keys.cpp
+    platform/linux/linux_gsd_media_keys.h
     platform/linux/linux_libs.cpp
     platform/linux/linux_libs.h
     platform/linux/linux_wayland_integration.cpp
@@ -1113,6 +1115,13 @@ if (NOT LINUX)
     remove_target_sources(Telegram ${src_loc}
         window/window_title_qt.cpp
         window/window_title_qt.h
+    )
+endif()
+
+if (LINUX AND DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
+    remove_target_sources(Telegram ${src_loc}
+        platform/linux/linux_gsd_media_keys.cpp
+        platform/linux/linux_gsd_media_keys.h
     )
 endif()
 
