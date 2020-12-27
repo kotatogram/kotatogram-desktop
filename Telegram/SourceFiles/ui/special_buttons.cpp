@@ -793,7 +793,23 @@ void UserpicButton::setImage(QImage &&image) {
 		size * cIntRetinaFactor(),
 		Qt::IgnoreAspectRatio,
 		Qt::SmoothTransformation);
-	Images::prepareCircle(small);
+	switch (cUserpicCornersType()) {
+		case 0:
+			Images::prepareRound(small, ImageRoundRadius::None);
+			break;
+
+		case 1:
+			Images::prepareRound(small, ImageRoundRadius::Small);
+			break;
+
+		case 2:
+			Images::prepareRound(small, ImageRoundRadius::Large);
+			break;
+
+		default:
+			Images::prepareCircle(small);
+	}
+
 	_userpic = App::pixmapFromImageInPlace(std::move(small));
 	_userpic.setDevicePixelRatio(cRetinaFactor());
 	_userpicCustom = _userpicHasImage = true;
