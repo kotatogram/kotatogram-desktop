@@ -68,14 +68,12 @@ ChatFilter ChatFilter::local(
 
 		if (filterPeer.type == LocalFolder::Peer::Type::User) {
 			const auto user = owner->user(filterPeer.id);
-			user->setAccessHash(filterPeer.accessHash);
 			peer = (PeerData *)user;
 		} else if (filterPeer.type == LocalFolder::Peer::Type::Chat) {
 			const auto chat = owner->chat(filterPeer.id);
 			peer = (PeerData *)chat;
 		} else if (filterPeer.type == LocalFolder::Peer::Type::Channel) {
 			const auto channel = owner->channel(filterPeer.id);
-			channel->setAccessHash(filterPeer.accessHash);
 			peer = (PeerData *)channel;
 		}
 		return peer ? owner->history(peer).get() : nullptr;
@@ -233,8 +231,7 @@ LocalFolder ChatFilter::toLocal(int cloudOrder, FilterId replaceId) const {
 				: history->peer->isChat()
 				? LocalFolder::Peer::Type::Chat
 				: LocalFolder::Peer::Type::User,
-			.id = peerToBareInt(peer->id),
-			.accessHash = hash
+			.id = peerToBareInt(peer->id)
 		});
 		always.remove(history);
 	}
@@ -254,8 +251,7 @@ LocalFolder ChatFilter::toLocal(int cloudOrder, FilterId replaceId) const {
 				: history->peer->isChat()
 				? LocalFolder::Peer::Type::Chat
 				: LocalFolder::Peer::Type::User,
-			.id = peerToBareInt(peer->id),
-			.accessHash = hash
+			.id = peerToBareInt(peer->id)
 		});
 	}
 	auto never = std::vector<LocalFolder::Peer>();
@@ -274,8 +270,7 @@ LocalFolder ChatFilter::toLocal(int cloudOrder, FilterId replaceId) const {
 				: history->peer->isChat()
 				? LocalFolder::Peer::Type::Chat
 				: LocalFolder::Peer::Type::User,
-			.id = peerToBareInt(peer->id),
-			.accessHash = hash
+			.id = peerToBareInt(peer->id)
 		});
 	}
 	const auto &session = App::main()->session();

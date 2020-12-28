@@ -146,7 +146,6 @@ struct LocalFolder {
 
 		Type type;
 		int32 id;
-		uint64 accessHash = 0;
 
 		inline bool operator==(const Peer& other) {
 			return type == other.type

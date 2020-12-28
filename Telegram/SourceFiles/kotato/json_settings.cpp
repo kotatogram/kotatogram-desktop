@@ -328,9 +328,6 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 				auto peerObj = QJsonObject();
 				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
 				peerObj.insert(qsl("id"), peer.id);
-				if (peer.accessHash != 0) {
-					peerObj.insert(qsl("hash"), QString::number(peer.accessHash));
-				}
 				folderNever << peerObj;
 			}
 			folderObject.insert(qsl("never"), folderNever);
@@ -340,9 +337,6 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 				auto peerObj = QJsonObject();
 				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
 				peerObj.insert(qsl("id"), peer.id);
-				if (peer.accessHash != 0) {
-					peerObj.insert(qsl("hash"), QString::number(peer.accessHash));
-				}
 				folderPinned << peerObj;
 			}
 			folderObject.insert(qsl("pinned"), folderPinned);
@@ -352,9 +346,6 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 				auto peerObj = QJsonObject();
 				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
 				peerObj.insert(qsl("id"), peer.id);
-				if (peer.accessHash != 0) {
-					peerObj.insert(qsl("hash"), QString::number(peer.accessHash));
-				}
 				folderAlways << peerObj;
 			}
 			folderObject.insert(qsl("always"), folderAlways);
@@ -806,9 +797,9 @@ bool Manager::readCustomFile() {
 						}
 
 						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
-							peerStruct.type = QString::compare(type.toLower(), "channel")
+							peerStruct.type = (QString::compare(type.toLower(), "channel") == 0)
 								? LocalFolder::Peer::Type::Channel
-								: QString::compare(type.toLower(), "chat")
+								: (QString::compare(type.toLower(), "chat") == 0)
 								? LocalFolder::Peer::Type::Chat
 								: LocalFolder::Peer::Type::User;
 						});
@@ -816,13 +807,6 @@ bool Manager::readCustomFile() {
 						if (!isPeerTypeRead) {
 							peerStruct.type = LocalFolder::Peer::Type::User;
 						}
-
-						ReadStringOption(peer, "hash", [&](auto hashString) {
-							const auto hash = hashString.toULongLong();
-							if (hash) {
-								peerStruct.accessHash = hash;
-							}
-						});
 
 						folderStruct.never.push_back(peerStruct);
 					}
@@ -846,9 +830,9 @@ bool Manager::readCustomFile() {
 						}
 
 						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
-							peerStruct.type = QString::compare(type.toLower(), "channel")
+							peerStruct.type = (QString::compare(type.toLower(), "channel") == 0)
 								? LocalFolder::Peer::Type::Channel
-								: QString::compare(type.toLower(), "chat")
+								: (QString::compare(type.toLower(), "chat") == 0)
 								? LocalFolder::Peer::Type::Chat
 								: LocalFolder::Peer::Type::User;
 						});
@@ -856,13 +840,6 @@ bool Manager::readCustomFile() {
 						if (!isPeerTypeRead) {
 							peerStruct.type = LocalFolder::Peer::Type::User;
 						}
-
-						ReadStringOption(peer, "hash", [&](auto hashString) {
-							const auto hash = hashString.toULongLong();
-							if (hash) {
-								peerStruct.accessHash = hash;
-							}
-						});
 
 						folderStruct.pinned.push_back(peerStruct);
 					}
@@ -886,9 +863,9 @@ bool Manager::readCustomFile() {
 						}
 
 						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
-							peerStruct.type = QString::compare(type.toLower(), "channel")
+							peerStruct.type = (QString::compare(type.toLower(), "channel") == 0)
 								? LocalFolder::Peer::Type::Channel
-								: QString::compare(type.toLower(), "chat")
+								: (QString::compare(type.toLower(), "chat") == 0)
 								? LocalFolder::Peer::Type::Chat
 								: LocalFolder::Peer::Type::User;
 						});
@@ -896,13 +873,6 @@ bool Manager::readCustomFile() {
 						if (!isPeerTypeRead) {
 							peerStruct.type = LocalFolder::Peer::Type::User;
 						}
-
-						ReadStringOption(peer, "hash", [&](auto hashString) {
-							const auto hash = hashString.toULongLong();
-							if (hash) {
-								peerStruct.accessHash = hash;
-							}
-						});
 
 						folderStruct.always.push_back(peerStruct);
 					}
