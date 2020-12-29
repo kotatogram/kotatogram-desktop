@@ -460,6 +460,14 @@ QString ReplyMarkupClickHandler::buttonText() const {
 	return QString();
 }
 
+// Returns the full text of the corresponding button.
+QString ReplyMarkupClickHandler::buttonDataString() const {
+	if (const auto button = getButton()) {
+		return QString(button->data);
+	}
+	return QString();
+}
+
 ReplyKeyboard::Button::Button() = default;
 ReplyKeyboard::Button::Button(Button &&other) = default;
 ReplyKeyboard::Button &ReplyKeyboard::Button::operator=(

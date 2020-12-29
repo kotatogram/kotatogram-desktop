@@ -252,7 +252,7 @@ public:
 		FullMsgId context);
 
 	QString tooltip() const override {
-		return _fullDisplayed ? QString() : buttonText();
+		return _fullDisplayed ? buttonDataString() : buttonText() + "\n" + buttonDataString();
 	}
 
 	void setFullDisplayed(bool full) {
@@ -287,6 +287,9 @@ private:
 
 	// Returns the full text of the corresponding button.
 	QString buttonText() const;
+
+	// Returns the data of the corresponding button as a string.
+	QString buttonDataString() const;
 
 };
 
