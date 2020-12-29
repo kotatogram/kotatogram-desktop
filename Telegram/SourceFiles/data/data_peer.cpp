@@ -376,7 +376,12 @@ QPixmap PeerData::genUserpic(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const {
 	if (const auto userpic = currentUserpic(view)) {
-		return userpic->pixCircled(size, size);
+		switch (cUserpicCornersType()) {
+			case 0: return userpic->pixRounded(size, size, ImageRoundRadius::None);
+			case 1: return userpic->pixRounded(size, size, ImageRoundRadius::Small);
+			case 2: return userpic->pixRounded(size, size, ImageRoundRadius::Large);
+			default: return userpic->pixCircled(size, size);
+		}
 	}
 	auto result = QImage(QSize(size, size) * cIntRetinaFactor(), QImage::Format_ARGB32_Premultiplied);
 	result.setDevicePixelRatio(cRetinaFactor());
