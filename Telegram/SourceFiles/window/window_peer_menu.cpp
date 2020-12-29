@@ -799,20 +799,20 @@ void Filler::addTogglesForArchive() {
 
 void PeerMenuHidePinnedMessage(not_null<PeerData*> peer) {
 	auto hidden = HistoryWidget::switchPinnedHidden(peer, true);
-	// if (hidden) {
-	// 	peer->session().changes().peerUpdated(
-	// 		peer,
-	// 		Data::PeerUpdate::Flag::PinnedMessage);
-	// }
+	if (hidden) {
+		peer->session().changes().peerUpdated(
+			peer,
+			Data::PeerUpdate::Flag::PinnedMessages);
+	}
 }
 
 void PeerMenuUnhidePinnedMessage(not_null<PeerData*> peer) {
 	auto unhidden = HistoryWidget::switchPinnedHidden(peer, false);
-	// if (unhidden) {
-	// 	peer->session().changes().peerUpdated(
-	// 		peer,
-	// 		Data::PeerUpdate::Flag::PinnedMessage);
-	// }
+	if (unhidden) {
+		peer->session().changes().peerUpdated(
+			peer,
+			Data::PeerUpdate::Flag::PinnedMessages);
+	}
 }
 
 void PeerMenuExportChat(not_null<PeerData*> peer) {

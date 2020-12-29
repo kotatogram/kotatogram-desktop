@@ -5645,19 +5645,28 @@ bool HistoryWidget::hasHiddenPinnedMessage(not_null<PeerData*> peer) {
 bool HistoryWidget::switchPinnedHidden(not_null<PeerData*> peer, bool hidden) {
 	auto result = false;
 	auto &session = peer->session();
-	const auto migrated = peer->migrateFrom();
-	const auto top = Data::ResolveTopPinnedId(peer, migrated);
-	const auto universal = !top
-		? int32(0)
-		: (migrated && !top.channel)
-		? (top.msg - ServerMaxMsgId)
-		: top.msg;
-	if (universal) {
-		session.settings().setHiddenPinnedMessageId(peer->id, universal);
-		session.saveSettingsDelayed();
-		result = true;
+	if (hidden) {
+		const auto migrated = peer->migrateFrom();
+		const auto top = Data::ResolveTopPinnedId(peer, migrated);
+		const auto universal = !top
+			? int32(0)
+			: (migrated && !top.channel)
+			? (top.msg - ServerMaxMsgId)
+			: top.msg;
+		if (universal) {
+			session.settings().setHiddenPinnedMessageId(peer->id, universal);
+			session.saveSettingsDelayed();
+			result = true;
+		} else {
+			session.api().requestFullPeer(peer);
+		}
 	} else {
-		session.api().requestFullPeer(peer);
+		const auto hiddenId = session.settings().hiddenPinnedMessageId(peer->id);
+		if (hiddenId != 0) {
+			session.settings().setHiddenPinnedMessageId(peer->id, 0);
+			session.saveSettingsDelayed();
+			result = true;
+		}
 	}
 	return result;
 }
@@ -5673,9 +5682,7 @@ void HistoryWidget::setupPinnedTracker() {
 void HistoryWidget::checkPinnedBarState() {
 	Expects(_pinnedTracker != nullptr);
 
-	const auto hiddenId = _peer->canPinMessages()
-		? MsgId(0)
-		: session().settings().hiddenPinnedMessageId(_peer->id);
+	const auto hiddenId = session().settings().hiddenPinnedMessageId(_peer->id);
 	const auto currentPinnedId = Data::ResolveTopPinnedId(
 		_peer,
 		_migrated ? _migrated->peer.get() : nullptr);
