@@ -472,7 +472,7 @@ void Filler::addUserActions(not_null<UserData*> user) {
 				user->session().supportHelper().editInfo(controller, user);
 			});
 		}
-		if (user->isSelf() && user->hasPinnedMessages()) {
+		if (user->hasPinnedMessages()) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(user);
 			if (hasHidden) {
 				_addAction(
