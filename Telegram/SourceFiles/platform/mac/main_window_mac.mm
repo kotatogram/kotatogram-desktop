@@ -139,17 +139,15 @@ private:
 		? WithColor({ 0, 0, 0, 180 })
 		: iconImageLight;
 	static const auto DarkModeResult = iconImageDark.isNull()
-		? WithColor({ 255, 255, 255 })
-		: iconImageLight.isNull()
-		? iconImageDark
-		: iconImageLight;
-	static const auto LightModeSelectedResult = iconImageLightSelected.isNull()
 		? (iconImageLight.isNull()
-			? DarkModeResult
+			? WithColor({ 255, 255, 255 })
 			: iconImageLight)
+		: iconImageDark;
+	static const auto LightModeSelectedResult = iconImageLightSelected.isNull()
+		? DarkModeResult
 		: iconImageLightSelected;
 	static const auto DarkModeSelectedResult = iconImageDarkSelected.isNull()
-		? DarkModeResult
+		? LightModeSelectedResult
 		: iconImageDarkSelected;
 
 	auto result = darkMode
