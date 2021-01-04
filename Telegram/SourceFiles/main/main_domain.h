@@ -31,7 +31,11 @@ public:
 	};
 
 	static constexpr auto kMaxAccountsWarn = 3;
+#ifdef Q_PROCESSOR_X86_64
+	static constexpr auto kMaxAccounts = 100;
+#else
 	static constexpr auto kMaxAccounts = 10;
+#endif
 
 	explicit Domain(const QString &dataName);
 	~Domain();
