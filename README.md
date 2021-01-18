@@ -12,6 +12,11 @@ Build instructions can be found [in `docs` folder][build]. Please note: only [32
 
 Original README with licenses could be found in [Telegram Desktop repository][telegram_desktop_readme].
 
+## Download
+Binaries can be downloaded from releases: https://github.com/kotatogram/kotatogram-desktop/releases
+
+Latest stable version can be found here: https://github.com/kotatogram/kotatogram-desktop/releases/latest
+
 ## Builds
 * Windows (installer and portable)
 * Linux (64-bit)
