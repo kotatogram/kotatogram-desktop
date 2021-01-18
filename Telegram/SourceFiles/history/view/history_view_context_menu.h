@@ -19,7 +19,6 @@ class SessionNavigation;
 
 namespace HistoryView {
 
-enum class Context : char;
 enum class PointState : char;
 class ListWidget;
 class Element;
@@ -44,10 +43,7 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 	not_null<ListWidget*> list,
 	const ContextMenuRequest &request);
 
-void CopyPostLink(
-	not_null<Main::Session*> session,
-	FullMsgId itemId,
-	Context context);
-void StopPoll(not_null<Main::Session*> session, FullMsgId itemId);
+void CopyPostLink(FullMsgId itemId, bool forcePrivate = false);
+void StopPoll(FullMsgId itemId);
 
 } // namespace
