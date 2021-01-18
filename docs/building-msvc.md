@@ -56,7 +56,7 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
     SET PATH=%cd%\ThirdParty\Strawberry\perl\bin;%cd%\ThirdParty\Python27;%cd%\ThirdParty\NASM;%cd%\ThirdParty\jom;%cd%\ThirdParty\cmake\bin;%cd%\ThirdParty\yasm;%PATH%
 
-    git clone --recursive https://github.com/telegramdesktop/tdesktop.git
+    git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git
 
     mkdir Libraries
     cd Libraries
@@ -120,22 +120,6 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     msbuild OpenAL.vcxproj /property:Configuration=Debug
     msbuild OpenAL.vcxproj /property:Configuration=RelWithDebInfo
     cd ..\..
-
-    git clone https://github.com/google/breakpad
-    cd breakpad
-    git checkout a1dbcdcb43
-    git apply ../patches/breakpad.diff
-    cd src
-    git clone https://github.com/google/googletest testing
-    cd client\windows
-    gyp --no-circular-check breakpad_client.gyp --format=ninja
-    cd ..\..
-    ninja -C out/Debug common crash_generation_client exception_handler
-    ninja -C out/Release common crash_generation_client exception_handler
-    cd tools\windows\dump_syms
-    gyp dump_syms.gyp
-    msbuild dump_syms.vcxproj /property:Configuration=Release
-    cd ..\..\..\..\..
 
     git clone https://github.com/telegramdesktop/opus.git
     cd opus
@@ -222,15 +206,36 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     ninja
     cd ..\..\..
 
+You can also build Breakpad in case you want to build with crash reporter:
+
+    git clone https://github.com/google/breakpad
+    cd breakpad
+    git checkout a1dbcdcb43
+    git apply ../patches/breakpad.diff
+    cd src
+    git clone https://github.com/google/googletest testing
+    cd client\windows
+    gyp --no-circular-check breakpad_client.gyp --format=ninja
+    cd ..\..
+    ninja -C out/Debug common crash_generation_client exception_handler
+    ninja -C out/Release common crash_generation_client exception_handler
+    cd tools\windows\dump_syms
+    gyp dump_syms.gyp
+    msbuild dump_syms.vcxproj /property:Configuration=Release
+    cd ..\..\..\..\..
+
+
 ## Build the project
 
-Go to ***BuildPath*\\tdesktop\\Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
+Go to ***BuildPath*\\kotatogram-desktop\\Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-    configure.bat -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
+    configure.bat -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
 
-* Open ***BuildPath*\\tdesktop\\out\\Telegram.sln** in Visual Studio 2019
+If you want to build with crash reporter, use `-D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF` instead of `-D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON`.
+
+* Open ***BuildPath*\\kotatogram-desktop\\out\\Telegram.sln** in Visual Studio 2019
 * Select Telegram project and press Build > Build Telegram (Debug and Release configurations)
-* The result Telegram.exe will be located in **D:\TBuild\tdesktop\out\Debug** (and **Release**)
+* The result Kotatogram.exe will be located in **D:\TBuild\kotatogram-desktop\out\Debug** (and **Release**)
 
 ### Qt Visual Studio Tools
 

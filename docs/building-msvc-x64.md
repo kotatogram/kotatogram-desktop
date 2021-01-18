@@ -33,7 +33,7 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     cd ThirdParty
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 9fb66f2
+    git checkout 41ead72
     cd ../
     git clone https://chromium.googlesource.com/external/gyp
     cd gyp
@@ -56,14 +56,14 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
     SET PATH=%cd%\ThirdParty\Strawberry\perl\bin;%cd%\ThirdParty\Python27;%cd%\ThirdParty\NASM;%cd%\ThirdParty\jom;%cd%\ThirdParty\cmake\bin;%cd%\ThirdParty\yasm;%PATH%
 
-    git clone --recursive https://github.com/telegramdesktop/tdesktop.git
+    git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git
 
-    if not exist Libraries\win64 mkdir Libraries\win64
-    cd Libraries\win64
+    mkdir Libraries64
+    cd Libraries64
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 9fb66f2
+    git checkout 41ead72
     cd ..
 
     git clone https://github.com/desktop-app/lzma.git
@@ -108,9 +108,9 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     cmake --build . --config Release
     cd ..
 
-    git clone https://github.com/telegramdesktop/openal-soft.git
+    git clone https://github.com/kcat/openal-soft.git
     cd openal-soft
-    git checkout fix_mono
+    git checkout openal-soft-1.21.0
     cd build
     cmake .. ^
         -G "Visual Studio 16 2019" ^
@@ -121,22 +121,6 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     msbuild OpenAL.vcxproj /property:Configuration=RelWithDebInfo /property:Platform="x64"
     cd ..\..
 
-    git clone https://github.com/google/breakpad
-    cd breakpad
-    git checkout a1dbcdcb43
-    git apply ../patches/breakpad.diff
-    cd src
-    git clone https://github.com/google/googletest testing
-    cd client\windows
-    gyp --no-circular-check breakpad_client.gyp --format=ninja
-    cd ..\..
-    ninja -C out/Debug_x64 common crash_generation_client exception_handler
-    ninja -C out/Release_x64 common crash_generation_client exception_handler
-    cd tools\windows\dump_syms
-    gyp dump_syms.gyp
-    msbuild dump_syms.vcxproj /property:Configuration=Release /property:Platform="x64"
-    cd ..\..\..\..\..
-
     git clone https://github.com/telegramdesktop/opus.git
     cd opus
     git checkout tdesktop
@@ -144,10 +128,10 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     msbuild opus.sln /property:Configuration=Debug /property:Platform="x64"
     msbuild opus.sln /property:Configuration=Release /property:Platform="x64"
 
-    cd ..\..\..\..\..
+    cd ..\..\..\..
     SET PATH_BACKUP_=%PATH%
     SET PATH=%cd%\ThirdParty\msys64\usr\bin;%PATH%
-    cd Libraries\win64
+    cd Libraries64
 
     git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
     cd ffmpeg
@@ -161,17 +145,17 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     cd ..
 
     SET LibrariesPath=%cd%
-    git clone git://code.qt.io/qt/qt5.git qt_5_15_1
-    cd qt_5_15_1
+    git clone git://code.qt.io/qt/qt5.git qt_5_15_2
+    cd qt_5_15_2
     perl init-repository --module-subset=qtbase,qtimageformats
-    git checkout v5.15.1
+    git checkout v5.15.2
     git submodule update qtbase qtimageformats
     cd qtbase
-    for /r %i in (..\..\patches\qtbase_5_15_1\*) do git apply %i
+    for /r %i in (..\..\patches\qtbase_5_15_2\*) do git apply %i
     cd ..
 
     configure ^
-        -prefix "%LibrariesPath%\Qt-5.15.1" ^
+        -prefix "%LibrariesPath%\Qt-5.15.2" ^
         -debug-and-release ^
         -force-debug-info ^
         -opensource ^
@@ -207,7 +191,9 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
         -DTG_OWT_LIBJPEG_INCLUDE_PATH=%cd%/../../../mozjpeg ^
         -DTG_OWT_OPENSSL_INCLUDE_PATH=%cd%/../../../openssl_1_1_1/include ^
         -DTG_OWT_OPUS_INCLUDE_PATH=%cd%/../../../opus/include ^
-        -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ../..
+        -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ^
+        -DCMAKE_C_COMPILER=cl ^
+        -DCMAKE_CXX_COMPILER=cl ../..
     ninja
     cd ..
     mkdir Release
@@ -218,19 +204,42 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
         -DTG_OWT_LIBJPEG_INCLUDE_PATH=%cd%/../../../mozjpeg ^
         -DTG_OWT_OPENSSL_INCLUDE_PATH=%cd%/../../../openssl_1_1_1/include ^
         -DTG_OWT_OPUS_INCLUDE_PATH=%cd%/../../../opus/include ^
-        -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ../..
+        -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ^
+        -DCMAKE_C_COMPILER=cl ^
+        -DCMAKE_CXX_COMPILER=cl ../..
     ninja
     cd ..\..\..
 
+You can also build Breakpad in case you want to build with crash reporter:
+
+    git clone https://github.com/google/breakpad
+    cd breakpad
+    git checkout a1dbcdcb43
+    git apply ../patches/breakpad.diff
+    cd src
+    git clone https://github.com/google/googletest testing
+    cd client\windows
+    gyp --no-circular-check breakpad_client.gyp --format=ninja
+    cd ..\..
+    ninja -C out/Debug_x64 common crash_generation_client exception_handler
+    ninja -C out/Release_x64 common crash_generation_client exception_handler
+    cd tools\windows\dump_syms
+    gyp dump_syms.gyp
+    msbuild dump_syms.vcxproj /property:Configuration=Release /property:Platform="x64"
+    cd ..\..\..\..\..
+
+
 ## Build the project
 
-Go to ***BuildPath*\\tdesktop\\Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
+Go to ***BuildPath*\\kotatogram-desktop\\Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-    configure.bat x64 -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
+    configure.bat x64 -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH -D DESKTOP_APP_USE_PACKAGED=OFF -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
 
-* Open ***BuildPath*\\tdesktop\\out\\Telegram.sln** in Visual Studio 2019
+If you want to build with crash reporter, use `-D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF` instead of `-D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON`.
+
+* Open ***BuildPath*\\kotatogram-desktop\\out64\\Telegram.sln** in Visual Studio 2019
 * Select Telegram project and press Build > Build Telegram (Debug and Release configurations)
-* The result Telegram.exe will be located in **D:\TBuild\tdesktop\out\Debug** (and **Release**)
+* The result Kotatogram.exe will be located in **D:\TBuild\kotatogram-desktop\out64\Debug** (and **Release**)
 
 ### Qt Visual Studio Tools
 
