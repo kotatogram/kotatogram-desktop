@@ -539,13 +539,13 @@ void Service::updatePressed(QPoint point) {
 }
 
 TextForMimeData Service::selectedText(TextSelection selection) const {
-	return message()->_text.toTextForMimeData(selection);
+	return message()->_postfixedText.toTextForMimeData(selection);
 }
 
 TextSelection Service::adjustSelection(
 		TextSelection selection,
 		TextSelectType type) const {
-	return message()->_text.adjustSelection(selection, type);
+	return message()->_postfixedText.adjustSelection(selection, type);
 }
 
 EmptyPainter::EmptyPainter(not_null<History*> history) : _history(history) {
