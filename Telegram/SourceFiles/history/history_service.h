@@ -106,6 +106,9 @@ public:
 	bool serviceMsg() const override {
 		return true;
 	}
+
+	QString notificationText() const override;
+
 	QString inDialogsText(DrawInDialog way) const override;
 	QString inReplyText() const override;
 
@@ -172,9 +175,8 @@ private:
 
 	friend class HistoryView::Service;
 
-	Ui::Text::String _postfixedText;
+	Ui::Text::String _cleanText;
 	bool _needTime = true;
-
 };
 
 not_null<HistoryService*> GenerateJoinedMessage(

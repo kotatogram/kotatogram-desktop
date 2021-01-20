@@ -38,6 +38,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace {
 
+constexpr auto kNotificationTextLimit = 255;
 constexpr auto kPinnedMessageTextLimit = 16;
 
 QString GenerateServiceTime(TimeId date) {
@@ -807,6 +808,20 @@ bool HistoryService::needCheck() const {
 		|| Has<HistoryServiceSelfDestruct>();
 }
 
+QString HistoryService::notificationText() const {
+	const auto result = [&] {
+		if (_media) {
+			return _media->notificationText();
+		} else if (!emptyText()) {
+			return _cleanText.toString();
+		}
+		return QString();
+	}();
+	return (result.size() <= kNotificationTextLimit)
+		? result
+		: result.mid(0, kNotificationTextLimit) + qsl("...");
+}
+
 QString HistoryService::inDialogsText(DrawInDialog way) const {
 	return textcmdLink(1, TextUtilities::Clean(notificationText()));
 }
@@ -836,17 +851,16 @@ ClickHandlerPtr HistoryService::fromLink() const {
 void HistoryService::setServiceText(const PreparedText &prepared) {
 	_text.setText(
 		st::serviceTextStyle,
-		prepared.text,
+		(needTime() && !prepared.text.isEmpty() ? prepared.text + GenerateServiceTime(date()) : prepared.text),
 		Ui::ItemTextServiceOptions());
-	_postfixedText.setText(
+	_cleanText.setText(
 		st::serviceTextStyle,
-		(needTime() ? prepared.text + GenerateServiceTime(date()) : prepared.text),
+		prepared.text,
 		Ui::ItemTextServiceOptions());
 	auto linkIndex = 0;
 	for_const (auto &link, prepared.links) {
 		// Link indices start with 1.
 		_text.setLink(++linkIndex, link);
-		_postfixedText.setLink(linkIndex, link);
 	}
 	_textWidth = -1;
 	_textHeight = 0;

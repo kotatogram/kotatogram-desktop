@@ -355,7 +355,7 @@ QSize Service::performCountCurrentSize(int newWidth) {
 		auto nwidth = qMax(contentWidth - st::msgServicePadding.left() - st::msgServicePadding.right(), 0);
 		if (nwidth != item->_textWidth) {
 			item->_textWidth = nwidth;
-			item->_textHeight = item->_postfixedText.countHeight(nwidth);
+			item->_textHeight = item->_text.countHeight(nwidth);
 		}
 		if (contentWidth >= maxWidth()) {
 			newHeight += minHeight();
@@ -375,8 +375,8 @@ QSize Service::performCountOptimalSize() {
 	const auto item = message();
 	const auto media = this->media();
 
-	auto maxWidth = item->_postfixedText.maxWidth() + st::msgServicePadding.left() + st::msgServicePadding.right();
-	auto minHeight = item->_postfixedText.minHeight();
+	auto maxWidth = item->_text.maxWidth() + st::msgServicePadding.left() + st::msgServicePadding.right();
+	auto minHeight = item->_text.minHeight();
 	if (media) {
 		media->initDimensions();
 	}
@@ -449,12 +449,12 @@ void Service::draw(
 
 	auto trect = QRect(g.left(), st::msgServiceMargin.top(), g.width(), height).marginsAdded(-st::msgServicePadding);
 
-	ServiceMessagePainter::paintComplexBubble(p, g.left(), g.width(), item->_postfixedText, trect);
+	ServiceMessagePainter::paintComplexBubble(p, g.left(), g.width(), item->_text, trect);
 
 	p.setBrush(Qt::NoBrush);
 	p.setPen(st::msgServiceFg);
 	p.setFont(st::msgServiceFont);
-	item->_postfixedText.draw(p, trect.x(), trect.y(), trect.width(), Qt::AlignCenter, 0, -1, selection, false);
+	item->_text.draw(p, trect.x(), trect.y(), trect.width(), Qt::AlignCenter, 0, -1, selection, false);
 
 	p.restoreTextPalette();
 
@@ -512,7 +512,7 @@ TextState Service::textState(QPoint point, StateRequest request) const {
 	if (trect.contains(point)) {
 		auto textRequest = request.forText();
 		textRequest.align = style::al_center;
-		result = TextState(item, item->_postfixedText.getState(
+		result = TextState(item, item->_text.getState(
 			point - trect.topLeft(),
 			trect.width(),
 			textRequest));
@@ -539,13 +539,13 @@ void Service::updatePressed(QPoint point) {
 }
 
 TextForMimeData Service::selectedText(TextSelection selection) const {
-	return message()->_postfixedText.toTextForMimeData(selection);
+	return message()->_text.toTextForMimeData(selection);
 }
 
 TextSelection Service::adjustSelection(
 		TextSelection selection,
 		TextSelectType type) const {
-	return message()->_postfixedText.adjustSelection(selection, type);
+	return message()->_text.adjustSelection(selection, type);
 }
 
 EmptyPainter::EmptyPainter(not_null<History*> history) : _history(history) {
