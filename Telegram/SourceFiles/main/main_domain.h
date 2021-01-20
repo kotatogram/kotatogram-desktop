@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/timer.h"
+#include "base/build_config.h"
 
 namespace Storage {
 class Domain;
@@ -31,7 +32,7 @@ public:
 	};
 
 	static constexpr auto kMaxAccountsWarn = 3;
-#ifdef Q_PROCESSOR_X86_64
+#ifdef ARCH_CPU_64_BITS
 	static constexpr auto kMaxAccounts = 100;
 #else
 	static constexpr auto kMaxAccounts = 10;
