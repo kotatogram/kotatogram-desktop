@@ -3999,7 +3999,7 @@ void ApiWrap::forwardMessages(
 				return isLastGrouped;
 			}
 		} else {
-			return false;
+			return true;
 		}
 	};
 
