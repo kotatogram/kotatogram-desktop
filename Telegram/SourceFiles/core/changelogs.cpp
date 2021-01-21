@@ -111,6 +111,9 @@ std::unique_ptr<Changelogs> Changelogs::Create(
 void Changelogs::addKotatoLogs() {
 	_chatsSubscription.destroy();
 	
+	if (_addedSomeLocal) {
+		return;
+	}
 	auto baseLang = Lang::GetInstance().baseId();
 	auto currentLang = Lang::Id();
 	QString channelLink;
