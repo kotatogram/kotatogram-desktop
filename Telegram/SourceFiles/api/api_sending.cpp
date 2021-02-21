@@ -228,7 +228,7 @@ void SendExistingPhoto(
 		forwarding);
 }
 
-bool SendDice(Api::MessageToSend &message) {
+bool SendDice(Api::MessageToSend &message, Fn<void()> doneCallback) {
 	const auto full = message.textWithTags.text.midRef(0).trimmed();
 	auto length = 0;
 	if (!Ui::Emoji::Find(full.data(), full.data() + full.size(), &length)
@@ -337,6 +337,9 @@ bool SendDice(Api::MessageToSend &message) {
 			MTP_int(message.action.options.scheduled)
 		)).done([=](const MTPUpdates &result) {
 			api->applyUpdates(result, randomId);
+			if (doneCallback) {
+				doneCallback();
+			}
 			finish();
 		}).fail([=](const RPCError &error) {
 			api->sendMessageFail(error, peer, randomId, newId);

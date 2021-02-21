@@ -378,6 +378,10 @@ public:
 		HistoryItemsList &&items,
 		const SendAction &action,
 		FnMut<void()> &&successCallback = nullptr);
+	void forwardMessagesUnquoted(
+		HistoryItemsList &&items,
+		const SendAction &action,
+		FnMut<void()> &&successCallback = nullptr);
 	void shareContact(
 		const QString &phone,
 		const QString &firstName,

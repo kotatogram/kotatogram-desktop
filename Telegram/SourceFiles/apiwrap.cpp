@@ -3922,7 +3922,11 @@ void ApiWrap::finishForwarding(const SendAction &action) {
 			return;
 		}
 
-		forwardMessages(std::move(toForward), action);
+		if (cForwardQuoted()) {
+			forwardMessages(std::move(toForward), action);
+		} else {
+			forwardMessagesUnquoted(std::move(toForward), action);
+		}
 		_session->data().cancelForwarding(history);
 	}
 
@@ -3954,7 +3958,7 @@ void ApiWrap::forwardMessages(
 	}
 
 	const auto count = int(items.size());
-	const auto genClientSideMessage = action.generateLocal && (count < 2) && cForwardQuoted();
+	const auto genClientSideMessage = action.generateLocal && (count < 2);
 	const auto history = action.history;
 	const auto peer = history->peer;
 
@@ -3978,41 +3982,12 @@ void ApiWrap::forwardMessages(
 	}
 
 	auto forwardFrom = items.front()->history()->peer;
-	auto currentGroupId = items.front()->groupId();
-	auto isLastGrouped = false;
+	auto forwardGroupId = items.front()->groupId();
 	auto ids = QVector<MTPint>();
 	auto randomIds = QVector<MTPlong>();
 	auto localIds = std::shared_ptr<base::flat_map<uint64, FullMsgId>>();
-	auto fromIter = items.begin();
-	auto toIter = items.begin();
 
-	const auto needNextGroup = [&] (not_null<HistoryItem *> item) {
-		if (cForwardAlbumsAsIs()) {
-			const auto newFrom = item->history()->peer;
-			const auto newGroupId = item->groupId();
-			return forwardFrom != newFrom
-				|| currentGroupId != newGroupId;
-		} else if (cForwardGrouped()) {
-			if (item->media() && item->media()->canBeGrouped()) {
-				return !isLastGrouped;
-			} else {
-				return isLastGrouped;
-			}
-		} else {
-			return true;
-		}
-	};
-
-	const auto isGrouped = [&] {
-		return (cForwardAlbumsAsIs()
-				&& currentGroupId != MessageGroupId())
-			|| (!cForwardAlbumsAsIs() 
-				&& cForwardGrouped()
-				&& items.front()->media()
-				&& items.front()->media()->canBeGrouped());
-	};
-
-	const auto forwardQuoted = [&] {
+	const auto sendAccumulated = [&] {
 		if (shared) {
 			++shared->requestsLeft;
 		}
@@ -4046,6 +4021,142 @@ void ApiWrap::forwardMessages(
 			).send();
 			return history->sendRequestId;
 		});
+
+		ids.resize(0);
+		randomIds.resize(0);
+		localIds = nullptr;
+	};
+
+	ids.reserve(count);
+	randomIds.reserve(count);
+	for (const auto item : items) {
+		const auto randomId = rand_value<uint64>();
+		if (genClientSideMessage) {
+			if (const auto message = item->toHistoryMessage()) {
+				const auto newId = FullMsgId(
+					peerToChannel(peer->id),
+					_session->data().nextLocalMessageId());
+				const auto self = _session->user();
+				const auto messageFromId = anonymousPost
+					? PeerId(0)
+					: self->id;
+				const auto messagePostAuthor = peer->isBroadcast()
+					? self->name
+					: QString();
+				history->addNewLocalMessage(
+					newId.msg,
+					flags,
+					clientFlags,
+					HistoryItem::NewMessageDate(action.options.scheduled),
+					messageFromId,
+					messagePostAuthor,
+					message);
+				_session->data().registerMessageRandomId(randomId, newId);
+				if (!localIds) {
+					localIds = std::make_shared<base::flat_map<uint64, FullMsgId>>();
+				}
+				localIds->emplace(randomId, newId);
+			}
+		}
+		const auto newFrom = item->history()->peer;
+		const auto newGroupId = item->groupId();
+		if (item != items.front() &&
+			(forwardFrom != newFrom
+			|| (!cForwardAlbumsAsIs() && !cForwardGrouped())
+			|| (cForwardAlbumsAsIs() && forwardGroupId != newGroupId))) {
+			sendAccumulated();
+			forwardFrom = newFrom;
+			forwardGroupId = newGroupId;
+		}
+		ids.push_back(MTP_int(item->id));
+		randomIds.push_back(MTP_long(randomId));
+	}
+	sendAccumulated();
+	_session->data().sendHistoryChangeNotifications();
+}
+
+void ApiWrap::forwardMessagesUnquoted(
+		HistoryItemsList &&items,
+		const SendAction &action,
+		FnMut<void()> &&successCallback) {
+	Expects(!items.empty());
+
+	auto &histories = _session->data().histories();
+
+	struct SharedCallback {
+		int requestsLeft = 0;
+		FnMut<void()> callback;
+	};
+
+	enum LastGroupType {
+		None,
+		Documents,
+		Medias,
+	};
+	const auto shared = successCallback
+		? std::make_shared<SharedCallback>()
+		: std::shared_ptr<SharedCallback>();
+	if (successCallback) {
+		shared->callback = std::move(successCallback);
+	}
+
+	const auto count = int(items.size());
+	const auto history = action.history;
+	const auto peer = history->peer;
+
+	histories.readInbox(history);
+
+	const auto anonymousPost = peer->amAnonymous();
+	const auto silentPost = ShouldSendSilent(peer, action.options);
+
+	auto flags = MTPDmessage::Flags(0);
+	auto clientFlags = MTPDmessage_ClientFlags();
+	auto sendFlags = MTPmessages_ForwardMessages::Flags(0);
+	FillMessagePostFlags(action, peer, flags);
+	if (silentPost) {
+		sendFlags |= MTPmessages_ForwardMessages::Flag::f_silent;
+	}
+	if (action.options.scheduled) {
+		flags |= MTPDmessage::Flag::f_from_scheduled;
+		sendFlags |= MTPmessages_ForwardMessages::Flag::f_schedule_date;
+	} else {
+		clientFlags |= MTPDmessage_ClientFlag::f_local_history_entry;
+	}
+
+	auto forwardFrom = items.front()->history()->peer;
+	auto currentGroupId = items.front()->groupId();
+	auto lastGroup = LastGroupType::None;
+	auto ids = QVector<MTPint>();
+	auto randomIds = QVector<MTPlong>();
+	auto localIds = std::shared_ptr<base::flat_map<uint64, FullMsgId>>();
+	auto fromIter = items.begin();
+	auto toIter = items.begin();
+
+	const auto needNextGroup = [&] (not_null<HistoryItem *> item) {
+		if (cForwardAlbumsAsIs()) {
+			const auto newFrom = item->history()->peer;
+			const auto newGroupId = item->groupId();
+			return forwardFrom != newFrom
+				|| currentGroupId != newGroupId;
+		} else if (cForwardGrouped()) {
+			if (item->media() && item->media()->canBeGrouped()) {
+				if (item->media()->photo()
+					|| (item->media()->document()
+						&& item->media()->document()->isVideoFile())) {
+					return lastGroup != LastGroupType::Medias;
+				} else {
+					return lastGroup != LastGroupType::Documents;
+				}
+			} else {
+				return lastGroup != LastGroupType::None;
+			}
+		} else {
+			return true;
+		}
+	};
+
+	const auto isGrouped = [&] {
+		return lastGroup != LastGroupType::None && fromIter != toIter;
 	};
 
 	const auto forwardQuotedSingle = [&] (not_null<HistoryItem *> item) {
@@ -4275,6 +4386,32 @@ void ApiWrap::forwardMessages(
 		}
 	};
 
+	const auto forwardDiceUnquoted = [&] (not_null<HistoryItem *> item) {
+		if (shared) {
+			++shared->requestsLeft;
+		}
+		const auto dice = dynamic_cast<Data::MediaDice*>(item->media());
+		if (!dice) {
+			Unexpected("Non-dice in ApiWrap::forwardMessages.");
+		}
+
+		auto message = ApiWrap::MessageToSend(history);
+		message.textWithTags = TextWithTags{
+			dice->emoji(),
+			TextWithTags::Tags()
+		};
+		message.action.options = action.options;
+		message.action.clearDraft = false;
+
+		auto doneCallback = [=] () {
+			if (shared && !--shared->requestsLeft) {
+				shared->callback();
+			}
+		};
+
+		SendDice(message, std::move(doneCallback));
+	};
+
 	const auto forwardMessageUnquoted = [&] (not_null<HistoryItem *> item) {
 		if (shared) {
 			++shared->requestsLeft;
@@ -4305,9 +4442,7 @@ void ApiWrap::forwardMessages(
 	};
 
 	const auto sendAccumulated = [&] {
-		if (cForwardQuoted()) {
-			forwardQuoted();
-		} else if (isGrouped()) {
+		if (isGrouped()) {
 			forwardAlbumUnquoted();
 		} else {
 			for (auto i = fromIter, e = toIter; i != e; i++) {
@@ -4315,7 +4450,9 @@ void ApiWrap::forwardMessages(
 				const auto media = item->media();
 
 				if (media && !media->webpage()) {
-					if ((media->poll() && !history->peer->isUser())
+					if (const auto dice = dynamic_cast<Data::MediaDice*>(media)) {
+						forwardDiceUnquoted(item);
+					} else if ((media->poll() && !history->peer->isUser())
 						|| media->geoPoint()
 						|| media->sharedContact()
 						|| media->photo()
@@ -4340,33 +4477,6 @@ void ApiWrap::forwardMessages(
 	for (auto i = items.begin(), e = items.end(); i != e; /* ++i is in the end */) {
 		const auto item = *i;
 		const auto randomId = rand_value<uint64>();
-		if (genClientSideMessage) {
-			if (const auto message = item->toHistoryMessage()) {
-				const auto newId = FullMsgId(
-					peerToChannel(peer->id),
-					_session->data().nextLocalMessageId());
-				const auto self = _session->user();
-				const auto messageFromId = anonymousPost
-					? PeerId(0)
-					: self->id;
-				const auto messagePostAuthor = peer->isBroadcast()
-					? self->name
-					: QString();
-				history->addNewLocalMessage(
-					newId.msg,
-					flags,
-					clientFlags,
-					HistoryItem::NewMessageDate(action.options.scheduled),
-					messageFromId,
-					messagePostAuthor,
-					message);
-				_session->data().registerMessageRandomId(randomId, newId);
-				if (!localIds) {
-					localIds = std::make_shared<base::flat_map<uint64, FullMsgId>>();
-				}
-				localIds->emplace(randomId, newId);
-			}
-		}
 		if (needNextGroup(item)) {
 			sendAccumulated();
 			forwardFrom = item->history()->peer;
@@ -4376,7 +4486,15 @@ void ApiWrap::forwardMessages(
 		ids.push_back(MTP_int(item->id));
 		randomIds.push_back(MTP_long(randomId));
 		if (item->media() && item->media()->canBeGrouped()) {
-			isLastGrouped = true;
+			if (item->media()->photo()
+				|| (item->media()->document()
+					&& item->media()->document()->isVideoFile())) {
+				lastGroup = LastGroupType::Medias;
+			} else {
+				lastGroup = LastGroupType::Documents;
+			}
+		} else {
+			lastGroup = LastGroupType::None;
 		}
 		toIter = ++i;
 	}

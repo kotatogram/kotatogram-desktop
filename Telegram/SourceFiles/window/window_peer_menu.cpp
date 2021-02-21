@@ -1216,10 +1216,16 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 			auto action = Api::SendAction(history);
 			action.options = options;
 			action.clearDraft = false;
-			
-			api.forwardMessages(history->owner().idsToItems(data->msgIds), action, [=] {
-				checkAndClose();
-			});
+
+			if (cForwardQuoted()) {
+				api.forwardMessages(history->owner().idsToItems(data->msgIds), action, [=] {
+					checkAndClose();
+				});
+			} else {
+				api.forwardMessagesUnquoted(history->owner().idsToItems(data->msgIds), action, [=] {
+					checkAndClose();
+				});
+			}
 		}
 		if (data->submitCallback && !cForwardRetainSelection()) {
 			data->submitCallback();
@@ -1232,6 +1238,9 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		? Fn<void()>(std::move(copyCallback))
 		: Fn<void()>();
 	auto goToChatCallback = [navigation, data](PeerData *peer) {
+		if (data->submitCallback && !cForwardRetainSelection()) {
+			data->submitCallback();
+		}
 		navigation->parentController()->content()->setForwardDraft(peer->id, std::move(data->msgIds));
 	};
 	*weak = Ui::show(Box<ShareBox>(
