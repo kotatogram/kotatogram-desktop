@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_group_call.h"
 
+#include "calls/calls_group_common.h"
 #include "main/main_session.h"
 #include "api/api_send_progress.h"
 #include "apiwrap.h"
@@ -24,7 +25,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_group_call.h"
 #include "data/data_session.h"
 #include "base/global_shortcuts.h"
+#include "base/openssl_help.h"
 #include "webrtc/webrtc_media_devices.h"
+#include "webrtc/webrtc_create_adm.h"
 
 #include <tgcalls/group/GroupInstanceImpl.h>
 
@@ -53,7 +56,45 @@ constexpr auto kPlayConnectingEach = crl::time(1056) + 2 * crl::time(1000);
 		settings.callVideoInputDeviceId());
 }
 
+[[nodiscard]] const Data::GroupCall::Participant *LookupParticipant(
+		not_null<PeerData*> chat,
+		uint64 id,
+		not_null<UserData*> user) {
+	const auto call = chat->groupCall();
+	if (!id || !call || call->id() != id) {
+		return nullptr;
+	}
+	const auto &participants = call->participants();
+	const auto i = ranges::find(
+		participants,
+		user,
+		&Data::GroupCall::Participant::user);
+	return (i != end(participants)) ? &*i : nullptr;
+}
+
 } // namespace
+
+[[nodiscard]] bool IsGroupCallAdmin(
+		not_null<PeerData*> peer,
+		not_null<UserData*> user) {
+	if (const auto chat = peer->asChat()) {
+		return chat->admins.contains(user)
+			|| (chat->creator == user->bareId());
+	} else if (const auto group = peer->asMegagroup()) {
+		if (const auto mgInfo = group->mgInfo.get()) {
+			if (mgInfo->creator == user) {
+				return true;
+			}
+			const auto i = mgInfo->lastAdmins.find(user);
+			if (i == mgInfo->lastAdmins.end()) {
+				return false;
+			}
+			const auto &rights = i->second.rights;
+			return rights.c_chatAdminRights().is_manage_call();
+		}
+	}
+	return false;
+}
 
 GroupCall::GroupCall(
 	not_null<Delegate*> delegate,
@@ -200,7 +241,7 @@ void GroupCall::playConnectingSoundOnce() {
 void GroupCall::start() {
 	_createRequestId = _api.request(MTPphone_CreateGroupCall(
 		_peer->input,
-		MTP_int(rand_value<int32>())
+		MTP_int(openssl::RandomValue<int32>())
 	)).done([=](const MTPUpdates &result) {
 		_acceptFields = true;
 		_peer->session().api().applyUpdates(result);
@@ -211,7 +252,7 @@ void GroupCall::start() {
 		hangup();
 		if (error.type() == u"GROUPCALL_ANONYMOUS_FORBIDDEN"_q) {
 			Ui::ShowMultilineToast({
-				.text = tr::lng_group_call_no_anonymous(tr::now),
+				.text = { tr::lng_group_call_no_anonymous(tr::now) },
 			});
 		}
 	}).send();
@@ -236,11 +277,25 @@ void GroupCall::join(const MTPInputGroupCall &inputCall) {
 	using Update = Data::GroupCall::ParticipantUpdate;
 	_peer->groupCall()->participantUpdated(
 	) | rpl::filter([=](const Update &update) {
-		return (_instance != nullptr) && !update.now;
+		return (_instance != nullptr);
 	}) | rpl::start_with_next([=](const Update &update) {
-		Expects(update.was.has_value());
-
-		_instance->removeSsrcs({ update.was->ssrc });
+		if (!update.now) {
+			_instance->removeSsrcs({ update.was->ssrc });
+		} else {
+			const auto &now = *update.now;
+			const auto &was = update.was;
+			const auto volumeChanged = was
+				? (was->volume != now.volume || was->mutedByMe != now.mutedByMe)
+				: (now.volume != Group::kDefaultVolume || now.mutedByMe);
+			if (volumeChanged) {
+				_instance->setVolume(
+					now.ssrc,
+					(now.mutedByMe
+						? 0.
+						: (now.volume
+							/ float64(Group::kDefaultVolume))));
+			}
+		}
 	}, _lifetime);
 
 	SubscribeToMigration(_peer, _lifetime, [=](not_null<ChannelData*> group) {
@@ -313,13 +368,13 @@ void GroupCall::rejoin() {
 
 				hangup();
 				Ui::ShowMultilineToast({
-					.text = (type == u"GROUPCALL_ANONYMOUS_FORBIDDEN"_q
+					.text = { type == u"GROUPCALL_ANONYMOUS_FORBIDDEN"_q
 						? tr::lng_group_call_no_anonymous(tr::now)
 						: type == u"GROUPCALL_PARTICIPANTS_TOO_MUCH"_q
 						? tr::lng_group_call_too_many(tr::now)
 						: type == u"GROUPCALL_FORBIDDEN"_q
 						? tr::lng_group_not_accessible(tr::now)
-						: Lang::Hard::ServerError()),
+						: Lang::Hard::ServerError() },
 				});
 			}).send();
 		});
@@ -344,10 +399,15 @@ void GroupCall::applySelfInCallLocally() {
 	const auto lastActive = (i != end(participants))
 		? i->lastActive
 		: TimeId(0);
+	const auto volume = (i != end(participants))
+		? i->volume
+		: Group::kDefaultVolume;
 	const auto canSelfUnmute = (muted() != MuteState::ForceMuted);
 	const auto flags = (canSelfUnmute ? Flag::f_can_self_unmute : Flag(0))
 		| (lastActive ? Flag::f_active_date : Flag(0))
 		| (_mySsrc ? Flag(0) : Flag::f_left)
+		| Flag::f_volume // Without flag the volume is reset to 100%.
+		| Flag::f_volume_by_admin // Self volume can only be set by admin.
 		| ((muted() != MuteState::Active) ? Flag::f_muted : Flag(0));
 	call->applyUpdateChecked(
 		MTP_updateGroupCallParticipants(
@@ -359,7 +419,47 @@ void GroupCall::applySelfInCallLocally() {
 					MTP_int(self->bareId()),
 					MTP_int(date),
 					MTP_int(lastActive),
-					MTP_int(_mySsrc))),
+					MTP_int(_mySsrc),
+					MTP_int(volume))),
+			MTP_int(0)).c_updateGroupCallParticipants());
+}
+
+void GroupCall::applyParticipantLocally(
+		not_null<UserData*> user,
+		bool mute,
+		std::optional<int> volume) {
+	const auto participant = LookupParticipant(_peer, _id, user);
+	if (!participant || !participant->ssrc) {
+		return;
+	}
+	const auto canManageCall = _peer->canManageGroupCall();
+	const auto isMuted = participant->muted || (mute && canManageCall);
+	const auto canSelfUnmute = !canManageCall
+		? participant->canSelfUnmute
+		: (!mute || IsGroupCallAdmin(_peer, user));
+	const auto isMutedByYou = mute && !canManageCall;
+	const auto mutedCount = 0/*participant->mutedCount*/;
+	using Flag = MTPDgroupCallParticipant::Flag;
+	const auto flags = (canSelfUnmute ? Flag::f_can_self_unmute : Flag(0))
+		| Flag::f_volume // Without flag the volume is reset to 100%.
+		| ((participant->applyVolumeFromMin && !volume)
+			? Flag::f_volume_by_admin
+			: Flag(0))
+		| (participant->lastActive ? Flag::f_active_date : Flag(0))
+		| (isMuted ? Flag::f_muted : Flag(0))
+		| (isMutedByYou ? Flag::f_muted_by_you : Flag(0));
+	_peer->groupCall()->applyUpdateChecked(
+		MTP_updateGroupCallParticipants(
+			inputCall(),
+			MTP_vector<MTPGroupCallParticipant>(
+				1,
+				MTP_groupCallParticipant(
+					MTP_flags(flags),
+					MTP_int(user->bareId()),
+					MTP_int(participant->date),
+					MTP_int(participant->lastActive),
+					MTP_int(participant->ssrc),
+					MTP_int(volume.value_or(participant->volume)))),
 			MTP_int(0)).c_updateGroupCallParticipants());
 }
 
@@ -525,10 +625,29 @@ void GroupCall::handleUpdate(const MTPDupdateGroupCallParticipants &data) {
 		return;
 	}
 
+	const auto handleOtherParticipants = [=](
+			const MTPDgroupCallParticipant &data) {
+		if (data.is_min()) {
+			// No real information about mutedByMe or my custom volume.
+			return;
+		}
+		const auto user = _peer->owner().user(data.vuser_id().v);
+		const auto participant = LookupParticipant(_peer, _id, user);
+		if (!participant) {
+			return;
+		}
+		_otherParticipantStateValue.fire(Group::ParticipantState{
+			.user = user,
+			.volume = data.vvolume().value_or_empty(),
+			.mutedByMe = data.is_muted_by_you(),
+		});
+	};
+
 	const auto self = _peer->session().userId();
 	for (const auto &participant : data.vparticipants().v) {
 		participant.match([&](const MTPDgroupCallParticipant &data) {
 			if (data.vuser_id().v != self) {
+				handleOtherParticipants(data);
 				return;
 			}
 			if (data.is_left() && data.vsource().v == _mySsrc) {
@@ -547,6 +666,8 @@ void GroupCall::handleUpdate(const MTPDupdateGroupCallParticipants &data) {
 			if (data.is_muted() && !data.is_can_self_unmute()) {
 				setMuted(MuteState::ForceMuted);
 			} else if (muted() == MuteState::ForceMuted) {
+				setMuted(MuteState::Muted);
+			} else if (data.is_muted() && muted() != MuteState::Muted) {
 				setMuted(MuteState::Muted);
 			}
 		});
@@ -581,6 +702,8 @@ void GroupCall::createAndStartController() {
 		},
 		.initialInputDeviceId = _audioInputId.toStdString(),
 		.initialOutputDeviceId = _audioOutputId.toStdString(),
+		.createAudioDeviceModule = Webrtc::AudioDeviceModuleCreator(
+			settings.callAudioBackend()),
 	};
 	if (Logs::DebugEnabled()) {
 		auto callLogFolder = cWorkingDir() + qsl("DebugLogs");
@@ -602,6 +725,7 @@ void GroupCall::createAndStartController() {
 		std::move(descriptor));
 
 	updateInstanceMuteState();
+	updateInstanceVolumes();
 
 	//raw->setAudioOutputDuckingEnabled(settings.callAudioDuckingEnabled());
 }
@@ -612,6 +736,26 @@ void GroupCall::updateInstanceMuteState() {
 	const auto state = muted();
 	_instance->setIsMuted(state != MuteState::Active
 		&& state != MuteState::PushToTalk);
+}
+
+void GroupCall::updateInstanceVolumes() {
+	const auto real = _peer->groupCall();
+	if (!real || real->id() != _id) {
+		return;
+	}
+
+	const auto &participants = real->participants();
+	for (const auto &participant : participants) {
+		const auto setVolume = participant.mutedByMe
+			|| (participant.volume != Group::kDefaultVolume);
+		if (setVolume && participant.ssrc) {
+			_instance->setVolume(
+				participant.ssrc,
+				(participant.mutedByMe
+					? 0.
+					: (participant.volume / float64(Group::kDefaultVolume))));
+		}
+	}
 }
 
 void GroupCall::audioLevelsUpdated(const tgcalls::GroupLevelsUpdate &data) {
@@ -752,7 +896,8 @@ void GroupCall::sendMutedUpdate() {
 			? MTPphone_EditGroupCallMember::Flag::f_muted
 			: MTPphone_EditGroupCallMember::Flag(0)),
 		inputCall(),
-		MTP_inputUserSelf()
+		MTP_inputUserSelf(),
+		MTP_int(100000) // volume
 	)).done([=](const MTPUpdates &result) {
 		_updateMuteRequestId = 0;
 		_peer->session().api().applyUpdates(result);
@@ -783,16 +928,40 @@ void GroupCall::setCurrentAudioDevice(bool input, const QString &deviceId) {
 	}
 }
 
-void GroupCall::toggleMute(not_null<UserData*> user, bool mute) {
-	if (!_id) {
+void GroupCall::toggleMute(const Group::MuteRequest &data) {
+	if (data.locallyOnly) {
+		applyParticipantLocally(data.user, data.mute, std::nullopt);
+	} else {
+		editParticipant(data.user, data.mute, std::nullopt);
+	}
+}
+
+void GroupCall::changeVolume(const Group::VolumeRequest &data) {
+	if (data.locallyOnly) {
+		applyParticipantLocally(data.user, false, data.volume);
+	} else {
+		editParticipant(data.user, false, data.volume);
+	}
+}
+
+void GroupCall::editParticipant(
+		not_null<UserData*> user,
+		bool mute,
+		std::optional<int> volume) {
+	const auto participant = LookupParticipant(_peer, _id, user);
+	if (!participant) {
 		return;
 	}
+	applyParticipantLocally(user, mute, volume);
+
+	using Flag = MTPphone_EditGroupCallMember::Flag;
+	const auto flags = (mute ? Flag::f_muted : Flag(0))
+		| (volume.has_value() ? Flag::f_volume : Flag(0));
 	_api.request(MTPphone_EditGroupCallMember(
-		MTP_flags(mute
-			? MTPphone_EditGroupCallMember::Flag::f_muted
-			: MTPphone_EditGroupCallMember::Flag(0)),
+		MTP_flags(flags),
 		inputCall(),
-		user->inputUser
+		user->inputUser,
+		MTP_int(std::clamp(volume.value_or(0), 1, Group::kMaxVolume))
 	)).done([=](const MTPUpdates &result) {
 		_peer->session().api().applyUpdates(result);
 	}).fail([=](const RPCError &error) {
@@ -916,6 +1085,11 @@ void GroupCall::pushToTalkCancel() {
 	if (muted() == MuteState::PushToTalk) {
 		setMuted(MuteState::Muted);
 	}
+}
+
+auto GroupCall::otherParticipantStateValue() const
+-> rpl::producer<Group::ParticipantState> {
+	return _otherParticipantStateValue.events();
 }
 
 //void GroupCall::setAudioVolume(bool input, float level) {

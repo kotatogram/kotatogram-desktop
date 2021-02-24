@@ -51,6 +51,13 @@ public:
 
 	bool hideNoQuit();
 
+	void showFromTray();
+	void quitFromTray();
+	void activate();
+	virtual void showFromTrayMenu() {
+		showFromTray();
+	}
+
 	void init();
 	HitTestResult hitTest(const QPoint &p) const;
 
@@ -58,6 +65,10 @@ public:
 
 	bool isActive() const {
 		return _isActive;
+	}
+	virtual bool isActiveForTrayMenu() {
+		updateIsActive();
+		return isActive();
 	}
 
 	bool positionInited() const {
@@ -80,7 +91,7 @@ public:
 	// Returns how much could the window get extended.
 	int tryToExtendWidthBy(int addToWidth);
 
-	virtual void updateTrayMenu(bool force = false) {
+	virtual void updateTrayMenu() {
 	}
 	virtual void fixOrder() {
 	}
@@ -174,6 +185,10 @@ protected:
 	virtual void initShadows() {
 	}
 	virtual void firstShadowsUpdate() {
+	}
+
+	virtual bool initSizeFromSystem() {
+		return false;
 	}
 
 	// This one is overriden in Windows for historical reasons.

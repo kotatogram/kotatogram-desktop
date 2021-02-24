@@ -62,6 +62,7 @@ History::History(not_null<Data::Session*> owner, PeerId peerId)
 , peer(owner->peer(peerId))
 , cloudDraftTextCache(st::dialogsTextWidthMin)
 , _mute(owner->notifyIsMuted(peer))
+, _chatListNameSortKey(owner->nameSortKey(peer->name))
 , _sendActionPainter(this) {
 	if (const auto user = peer->asUser()) {
 		if (user->isBot()) {
@@ -215,13 +216,13 @@ void History::createLocalDraftFromCloud() {
 				draft->textWithTags,
 				draft->msgId,
 				draft->cursor,
-				draft->previewCancelled));
+				draft->previewState));
 			existing = localDraft();
 		} else if (existing != draft) {
 			existing->textWithTags = draft->textWithTags;
 			existing->msgId = draft->msgId;
 			existing->cursor = draft->cursor;
-			existing->previewCancelled = draft->previewCancelled;
+			existing->previewState = draft->previewState;
 		}
 		existing->date = draft->date;
 	}
@@ -280,7 +281,7 @@ Data::Draft *History::createCloudDraft(const Data::Draft *fromDraft) {
 			TextWithTags(),
 			0,
 			MessageCursor(),
-			false));
+			Data::PreviewState::Allowed));
 		cloudDraft()->date = TimeId(0);
 	} else {
 		auto existing = cloudDraft();
@@ -289,13 +290,13 @@ Data::Draft *History::createCloudDraft(const Data::Draft *fromDraft) {
 				fromDraft->textWithTags,
 				fromDraft->msgId,
 				fromDraft->cursor,
-				fromDraft->previewCancelled));
+				fromDraft->previewState));
 			existing = cloudDraft();
 		} else if (existing != fromDraft) {
 			existing->textWithTags = fromDraft->textWithTags;
 			existing->msgId = fromDraft->msgId;
 			existing->cursor = fromDraft->cursor;
-			existing->previewCancelled = fromDraft->previewCancelled;
+			existing->previewState = fromDraft->previewState;
 		}
 		existing->date = base::unixtime::now();
 	}
@@ -2019,6 +2020,14 @@ const QString &History::chatListName() const {
 	return peer->name;
 }
 
+const QString &History::chatListNameSortKey() const {
+	return _chatListNameSortKey;
+}
+
+void History::refreshChatListNameSortKey() {
+	_chatListNameSortKey = owner().nameSortKey(peer->name);
+}
+
 const base::flat_set<QString> &History::chatListNameWords() const {
 	return peer->nameWords();
 }
@@ -2704,15 +2713,16 @@ MsgId History::msgIdForRead() const {
 		: result;
 }
 
-HistoryItem *History::lastSentMessage() const {
+HistoryItem *History::lastEditableMessage() const {
 	if (!loadedAtBottom()) {
 		return nullptr;
 	}
+	const auto now = base::unixtime::now();
 	for (const auto &block : ranges::view::reverse(blocks)) {
 		for (const auto &message : ranges::view::reverse(block->messages)) {
 			const auto item = message->data();
-			if (item->canBeEditedFromHistory()) {
-				return item;
+			if (item->allowsEdit(now)) {
+				return owner().groups().findItemToEdit(item);
 			}
 		}
 	}

@@ -642,7 +642,10 @@ std::pair<QString, QSize> WriteImageThumb(
 		? largePath.mid(0, firstDot) + postfix + largePath.mid(firstDot)
 		: largePath + postfix;
 	const auto result = Output::File::PrepareRelativePath(basePath, thumb);
-	if (!image.save(basePath + result, finalFormat, finalQuality)) {
+	if (!image.save(
+			basePath + result,
+			finalFormat.constData(),
+			finalQuality)) {
 		return {};
 	}
 	return { result, finalSize };
@@ -1125,6 +1128,8 @@ ServiceAction ParseServiceAction(
 			content.userIds.push_back(user.v);
 		}
 		result.content = content;
+	}, [&](const MTPDmessageActionSetMessagesTTL &data) {
+		// #TODO ttl
 	}, [](const MTPDmessageActionEmpty &data) {});
 	return result;
 }

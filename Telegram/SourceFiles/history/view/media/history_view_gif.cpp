@@ -35,7 +35,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_document.h"
 #include "data/data_file_origin.h"
 #include "data/data_document_media.h"
-#include "mainwidget.h"
 #include "layout.h" // FullSelection
 #include "styles/style_chat.h"
 
@@ -162,11 +161,11 @@ QSize Gif::countOptimalSize() {
 	_thumbh = th;
 	auto maxWidth = qMax(tw, st::minPhotoSize);
 	auto minHeight = qMax(th, st::minPhotoSize);
-	accumulate_max(maxWidth, _parent->minWidthForMedia());
 	if (!activeCurrentStreamed()) {
 		accumulate_max(maxWidth, gifMaxStatusWidth(_data) + 2 * (st::msgDateImgDelta + st::msgDateImgPadding.x()));
 	}
 	if (_parent->hasBubble()) {
+		accumulate_max(maxWidth, _parent->minWidthForMedia());
 		if (!_caption.isEmpty()) {
 			if (AdaptiveBubbles()) {
 				accumulate_max(maxWidth, captionWithPaddings);
@@ -228,11 +227,11 @@ QSize Gif::countCurrentSize(int newWidth) {
 
 	newWidth = qMax(tw, st::minPhotoSize);
 	auto newHeight = qMax(th, st::minPhotoSize);
-	accumulate_max(newWidth, _parent->minWidthForMedia());
 	if (!activeCurrentStreamed()) {
 		accumulate_max(newWidth, gifMaxStatusWidth(_data) + 2 * (st::msgDateImgDelta + st::msgDateImgPadding.x()));
 	}
 	if (_parent->hasBubble()) {
+		accumulate_max(newWidth, _parent->minWidthForMedia());
 		if (!_caption.isEmpty()) {
 			if (AdaptiveBubbles()) {
 				accumulate_max(newWidth, captionWithPaddings);
@@ -921,6 +920,7 @@ void Gif::drawGrouped(
 		const QRect &geometry,
 		RectParts sides,
 		RectParts corners,
+		float64 highlightOpacity,
 		not_null<uint64*> cacheKey,
 		not_null<QPixmap*> cache) const {
 	ensureDataMediaCreated();
@@ -971,27 +971,6 @@ void Gif::drawGrouped(
 
 	const auto roundRadius = ImageRoundRadius::Large;
 
-	auto drawHighlighted = [&](auto painterCallback) {
-		const auto animms = _parent->delegate()->elementHighlightTime(_parent);
-		const auto realId = _realParent->id;
-		const auto mainWidget = App::main();
-		const auto highlightedRealId = mainWidget->highlightedOriginalId();
-		if (realId != highlightedRealId
-			&& animms
-			&& animms < st::activeFadeInDuration + st::activeFadeOutDuration) {
-			const auto dt = (animms <= st::activeFadeInDuration)
-				? ((animms / float64(st::activeFadeInDuration)))
-				: (1. - (animms - st::activeFadeInDuration)
-					/ float64(st::activeFadeOutDuration));
-			const auto o = p.opacity();
-			p.setOpacity(o - dt * 0.8);
-			painterCallback();
-			p.setOpacity(o);
-		} else {
-			painterCallback();
-		}
-	};
-
 	if (streamed) {
 		const auto paused = autoPaused;
 		auto request = ::Media::Streaming::FrameRequest();
@@ -1014,33 +993,32 @@ void Gif::drawGrouped(
 				activeOwnPlaying->frozenRequest = request;
 				activeOwnPlaying->frozenFrame = streamed->frame(request);
 			}
-
-			drawHighlighted([&]() {
-				p.drawImage(geometry, activeOwnPlaying->frozenFrame);
-			});
+			p.drawImage(geometry, activeOwnPlaying->frozenFrame);
 		} else {
 			if (activeOwnPlaying) {
 				activeOwnPlaying->frozenFrame = QImage();
 				activeOwnPlaying->frozenStatusText = QString();
 			}
-
-			drawHighlighted([&]() {
-				p.drawImage(geometry, streamed->frame(request));
-			});
-
+			p.drawImage(geometry, streamed->frame(request));
 			if (!paused) {
 				streamed->markFrameShown();
 			}
 		}
 	} else {
 		validateGroupedCache(geometry, corners, cacheKey, cache);
-		drawHighlighted([&]() {
-			p.drawPixmap(geometry, *cache);
-		});
+		p.drawPixmap(geometry, *cache);
 	}
 
-	if (selected) {
+	const auto overlayOpacity = selected
+		? (1. - highlightOpacity)
+		: highlightOpacity;
+	if (overlayOpacity > 0.) {
+		p.setOpacity(overlayOpacity);
 		Ui::FillComplexOverlayRect(p, geometry, roundRadius, corners);
+		if (!selected) {
+			Ui::FillComplexOverlayRect(p, geometry, roundRadius, corners);
+		}
+		p.setOpacity(1.);
 	}
 
 	if (radial

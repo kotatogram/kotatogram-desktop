@@ -25,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "calls/calls_panel.h"
 #include "webrtc/webrtc_video_track.h"
 #include "webrtc/webrtc_media_devices.h"
+#include "webrtc/webrtc_create_adm.h"
 #include "data/data_user.h"
 #include "data/data_session.h"
 #include "facades.h"
@@ -47,10 +48,7 @@ constexpr auto kHangupTimeoutMs = 5000;
 constexpr auto kSha256Size = 32;
 const auto kDefaultVersion = "2.4.4"_q;
 
-#ifndef DESKTOP_APP_DISABLE_WEBRTC_INTEGRATION
 const auto RegisterTag = tgcalls::Register<tgcalls::InstanceImpl>();
-//const auto RegisterTagReference = tgcalls::Register<tgcalls::InstanceImplReference>();
-#endif // DESKTOP_APP_DISABLE_WEBRTC_INTEGRATION
 const auto RegisterTagLegacy = tgcalls::Register<tgcalls::InstanceImplLegacy>();
 
 void AppendEndpoint(
@@ -231,7 +229,7 @@ void Call::startOutgoing() {
 	_api.request(MTPphone_RequestCall(
 		MTP_flags(flags),
 		_user->inputUser,
-		MTP_int(rand_value<int32>()),
+		MTP_int(openssl::RandomValue<int32>()),
 		MTP_bytes(_gaHash),
 		MTP_phoneCallProtocol(
 			MTP_flags(MTPDphoneCallProtocol::Flag::f_udp_p2p
@@ -379,7 +377,6 @@ void Call::setupOutgoingVideo() {
 			_videoOutgoing->setState(Webrtc::VideoState::Inactive);
 		} else if (state != Webrtc::VideoState::Inactive) {
 			// Paused not supported right now.
-#ifndef DESKTOP_APP_DISABLE_WEBRTC_INTEGRATION
 			Assert(state == Webrtc::VideoState::Active);
 			if (!_videoCapture) {
 				_videoCapture = _delegate->getVideoCapture();
@@ -389,7 +386,6 @@ void Call::setupOutgoingVideo() {
 				_instance->setVideoCapture(_videoCapture);
 			}
 			_videoCapture->setState(tgcalls::VideoState::Active);
-#endif // DESKTOP_APP_DISABLE_WEBRTC_INTEGRATION
 		} else if (_videoCapture) {
 			_videoCapture->setState(tgcalls::VideoState::Inactive);
 		}
@@ -779,6 +775,8 @@ void Call::createAndStartController(const MTPDphoneCall &call) {
 				sendSignalingData(bytes);
 			});
 		},
+		.createAudioDeviceModule = Webrtc::AudioDeviceModuleCreator(
+			settings.callAudioBackend()),
 	};
 	if (Logs::DebugEnabled()) {
 		auto callLogFolder = cWorkingDir() + qsl("DebugLogs");

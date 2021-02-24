@@ -67,12 +67,12 @@ PRIVATE
     desktop-app::external_auto_updates
     desktop-app::external_openssl
     desktop-app::external_openal
+    desktop-app::external_xxhash
 )
 
 if (LINUX)
     target_link_libraries(Telegram
     PRIVATE
-        desktop-app::external_xcb
         desktop-app::external_glib
     )
 
@@ -84,34 +84,38 @@ if (LINUX)
         )
     endif()
 
-    if (DESKTOP_APP_USE_PACKAGED
-        AND NOT DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION
-        AND Qt5WaylandClient_VERSION VERSION_LESS 5.13.0)
-        find_package(PkgConfig REQUIRED)
-        pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
-
-        target_include_directories(Telegram
+    if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
+        target_link_libraries(Telegram
         PRIVATE
-            ${WAYLAND_CLIENT_INCLUDE_DIRS}
+            desktop-app::external_xcb
         )
     endif()
 
-    if (NOT TDESKTOP_DISABLE_GTK_INTEGRATION)
+    if (NOT DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION)
+        target_link_libraries(Telegram
+        PRIVATE
+            desktop-app::external_kwayland
+        )
+    endif()
+
+    if (NOT DESKTOP_APP_DISABLE_GTK_INTEGRATION)
         find_package(PkgConfig REQUIRED)
 
         if (DESKTOP_APP_USE_PACKAGED AND NOT DESKTOP_APP_USE_PACKAGED_LAZY)
             pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
-            pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
+            target_link_libraries(Telegram PRIVATE PkgConfig::GTK3)
 
-            target_link_libraries(Telegram
-            PRIVATE
-                PkgConfig::GTK3
-                PkgConfig::X11
-            )
+            if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
+                pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
+                target_link_libraries(Telegram PRIVATE PkgConfig::X11)
+            endif()
         else()
             pkg_search_module(GTK REQUIRED gtk+-3.0 gtk+-2.0)
             target_include_directories(Telegram PRIVATE ${GTK_INCLUDE_DIRS})
-            target_link_libraries(Telegram PRIVATE X11)
+
+            if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
+                target_link_libraries(Telegram PRIVATE X11)
+            endif()
         endif()
     endif()
 endif()
@@ -138,6 +142,8 @@ PRIVATE
     api/api_global_privacy.h
     api/api_hash.cpp
     api/api_hash.h
+    api/api_invite_links.cpp
+    api/api_invite_links.h
     api/api_media.cpp
     api/api_media.h
     api/api_self_destruct.cpp
@@ -172,6 +178,10 @@ PRIVATE
     boxes/peers/edit_participants_box.h
     boxes/peers/edit_peer_info_box.cpp
     boxes/peers/edit_peer_info_box.h
+    boxes/peers/edit_peer_invite_link.cpp
+    boxes/peers/edit_peer_invite_link.h
+    boxes/peers/edit_peer_invite_links.cpp
+    boxes/peers/edit_peer_invite_links.h
     boxes/peers/edit_peer_type_box.cpp
     boxes/peers/edit_peer_type_box.h
     boxes/peers/edit_peer_history_visibility_box.cpp
@@ -192,8 +202,6 @@ PRIVATE
     boxes/background_box.h
     boxes/background_preview_box.cpp
     boxes/background_preview_box.h
-    boxes/calendar_box.cpp
-    boxes/calendar_box.h
     boxes/change_phone_box.cpp
     boxes/change_phone_box.h
     boxes/confirm_box.cpp
@@ -232,8 +240,6 @@ PRIVATE
     boxes/photo_crop_box.h
     boxes/rate_call_box.cpp
     boxes/rate_call_box.h
-    boxes/report_box.cpp
-    boxes/report_box.h
     boxes/self_destruction_box.cpp
     boxes/self_destruction_box.h
     boxes/send_files_box.cpp
@@ -258,6 +264,7 @@ PRIVATE
     calls/calls_call.h
     calls/calls_group_call.cpp
     calls/calls_group_call.h
+    calls/calls_group_common.h
     calls/calls_group_members.cpp
     calls/calls_group_members.h
     calls/calls_group_panel.cpp
@@ -278,6 +285,8 @@ PRIVATE
     calls/calls_userpic.h
     calls/calls_video_bubble.cpp
     calls/calls_video_bubble.h
+    calls/calls_volume_item.cpp
+    calls/calls_volume_item.h
     chat_helpers/bot_keyboard.cpp
     chat_helpers/bot_keyboard.h
     chat_helpers/emoji_keywords.cpp
@@ -486,6 +495,8 @@ PRIVATE
     history/view/controls/compose_controls_common.h
     history/view/controls/history_view_compose_controls.cpp
     history/view/controls/history_view_compose_controls.h
+    history/view/controls/history_view_ttl_button.cpp
+    history/view/controls/history_view_ttl_button.h
     history/view/controls/history_view_voice_record_bar.cpp
     history/view/controls/history_view_voice_record_bar.h
     history/view/controls/history_view_voice_record_button.cpp
@@ -829,12 +840,19 @@ PRIVATE
     platform/linux/linux_gdk_helper.h
     platform/linux/linux_gsd_media_keys.cpp
     platform/linux/linux_gsd_media_keys.h
-    platform/linux/linux_libs.cpp
-    platform/linux/linux_libs.h
+    platform/linux/linux_gtk_file_dialog.cpp
+    platform/linux/linux_gtk_file_dialog.h
+    platform/linux/linux_gtk_integration_p.h
+    platform/linux/linux_gtk_integration.cpp
+    platform/linux/linux_gtk_integration.h
+    platform/linux/linux_notification_service_watcher.cpp
+    platform/linux/linux_notification_service_watcher.h
+    platform/linux/linux_open_with_dialog.cpp
+    platform/linux/linux_open_with_dialog.h
     platform/linux/linux_wayland_integration.cpp
     platform/linux/linux_wayland_integration.h
-    platform/linux/linux_xlib_helper.cpp
-    platform/linux/linux_xlib_helper.h
+    platform/linux/linux_xdp_file_dialog.cpp
+    platform/linux/linux_xdp_file_dialog.h
     platform/linux/file_utilities_linux.cpp
     platform/linux/file_utilities_linux.h
     platform/linux/launcher_linux.cpp
@@ -845,7 +863,6 @@ PRIVATE
     platform/linux/notifications_manager_linux.h
     platform/linux/specific_linux.cpp
     platform/linux/specific_linux.h
-    platform/linux/window_title_linux.cpp
     platform/linux/window_title_linux.h
     platform/mac/file_utilities_mac.mm
     platform/mac/file_utilities_mac.h
@@ -899,7 +916,6 @@ PRIVATE
     platform/win/windows_dlls.h
     platform/win/windows_event_filter.cpp
     platform/win/windows_event_filter.h
-    platform/win/wrapper_wrl_implements_h.h
     platform/platform_audio.h
     platform/platform_file_utilities.h
     platform/platform_launcher.h
@@ -969,6 +985,8 @@ PRIVATE
     storage/storage_account.h
     storage/storage_cloud_blob.cpp
     storage/storage_cloud_blob.h
+    storage/storage_cloud_song_cover.cpp
+    storage/storage_cloud_song_cover.h
     storage/storage_domain.cpp
     storage/storage_domain.h
     storage/storage_facade.cpp
@@ -1049,7 +1067,6 @@ PRIVATE
     window/window_connecting_widget.h
     window/window_controller.cpp
     window/window_controller.h
-    window/window_controls_layout.h
     window/window_filters_menu.cpp
     window/window_filters_menu.h
     window/window_history_hider.cpp
@@ -1118,16 +1135,44 @@ if (NOT LINUX)
     )
 endif()
 
-if (LINUX AND DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
+if (DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
     remove_target_sources(Telegram ${src_loc}
         platform/linux/linux_gsd_media_keys.cpp
         platform/linux/linux_gsd_media_keys.h
+        platform/linux/linux_notification_service_watcher.cpp
+        platform/linux/linux_notification_service_watcher.h
+        platform/linux/linux_xdp_file_dialog.cpp
+        platform/linux/linux_xdp_file_dialog.h
+        platform/linux/notifications_manager_linux.cpp
+    )
+
+    nice_target_sources(Telegram ${src_loc}
+    PRIVATE
+        platform/linux/notifications_manager_linux_dummy.cpp
     )
 endif()
 
-if (LINUX AND DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION)
+if (DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION)
     remove_target_sources(Telegram ${src_loc} platform/linux/linux_wayland_integration.cpp)
     nice_target_sources(Telegram ${src_loc} PRIVATE platform/linux/linux_wayland_integration_dummy.cpp)
+endif()
+
+if (DESKTOP_APP_DISABLE_GTK_INTEGRATION)
+    remove_target_sources(Telegram ${src_loc}
+        platform/linux/linux_gdk_helper.cpp
+        platform/linux/linux_gdk_helper.h
+        platform/linux/linux_gtk_file_dialog.cpp
+        platform/linux/linux_gtk_file_dialog.h
+        platform/linux/linux_gtk_integration_p.h
+        platform/linux/linux_gtk_integration.cpp
+        platform/linux/linux_open_with_dialog.cpp
+        platform/linux/linux_open_with_dialog.h
+    )
+
+    nice_target_sources(Telegram ${src_loc}
+    PRIVATE
+        platform/linux/linux_gtk_integration_dummy.cpp
+    )
 endif()
 
 if (NOT DESKTOP_APP_USE_PACKAGED)

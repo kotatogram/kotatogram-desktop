@@ -37,10 +37,14 @@ public:
 		TimeId date = 0;
 		TimeId lastActive = 0;
 		uint32 ssrc = 0;
+		int volume = 0;
+		bool applyVolumeFromMin = true;
 		bool sounding = false;
 		bool speaking = false;
 		bool muted = false;
+		bool mutedByMe = false;
 		bool canSelfUnmute = false;
+		bool onlyMinLoaded = false;
 	};
 	struct ParticipantUpdate {
 		std::optional<Participant> was;

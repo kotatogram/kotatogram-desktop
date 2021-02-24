@@ -65,6 +65,7 @@ namespace Ui {
 class ResizeArea;
 class PlainShadow;
 class DropdownMenu;
+enum class ReportReason;
 template <typename Widget>
 class SlideWrap;
 } // namespace Ui
@@ -212,6 +213,12 @@ public:
 
 	void mentionUser(PeerData *peer);
 
+	void showChooseReportMessages(
+		not_null<PeerData*> peer,
+		Ui::ReportReason reason,
+		Fn<void(MessageIdsList)> done);
+	void clearChooseReportMessages();
+
 	void ui_showPeerHistory(
 		PeerId peer,
 		const SectionShow &params,
@@ -220,8 +227,6 @@ public:
 
 	bool notify_switchInlineBotButtonReceived(const QString &query, UserData *samePeerBot, MsgId samePeerReplyTo);
 	void notify_showScheduledButtonChanged();
-
-	MsgId highlightedOriginalId() const;
 
 	using FloatDelegate::floatPlayerAreaUpdated;
 

@@ -276,6 +276,7 @@ public:
 	MediaCall(
 		not_null<HistoryItem*> parent,
 		const MTPDmessageActionPhoneCall &call);
+	~MediaCall();
 
 	std::unique_ptr<Media> clone(not_null<HistoryItem*> parent) override;
 

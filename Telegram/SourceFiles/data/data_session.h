@@ -78,6 +78,8 @@ public:
 		return *_session;
 	}
 
+	[[nodiscard]] QString nameSortKey(const QString &name) const;
+
 	[[nodiscard]] Groups &groups() {
 		return _groups;
 	}
@@ -325,8 +327,15 @@ public:
 		const Dialogs::Key &key1,
 		const Dialogs::Key &key2);
 
+	void setSuggestToGigagroup(not_null<ChannelData*> group, bool suggest);
+	[[nodiscard]] bool suggestToGigagroup(
+		not_null<ChannelData*> group) const;
+
 	void registerMessage(not_null<HistoryItem*> item);
 	void unregisterMessage(not_null<HistoryItem*> item);
+
+	void registerMessageTTL(TimeId when, not_null<HistoryItem*> item);
+	void unregisterMessageTTL(TimeId when, not_null<HistoryItem*> item);
 
 	// Returns true if item found and it is not detached.
 	bool checkEntitiesAndViewsUpdate(const MTPDmessage &data);
@@ -357,6 +366,8 @@ public:
 	void unregisterDependentMessage(
 		not_null<HistoryItem*> dependent,
 		not_null<HistoryItem*> dependency);
+
+	void destroyAllCallItems();
 
 	void registerMessageRandomId(uint64 randomId, FullMsgId itemId);
 	void unregisterMessageRandomId(uint64 randomId);
@@ -570,6 +581,8 @@ public:
 	void unregisterContactItem(
 		UserId contactId,
 		not_null<HistoryItem*> item);
+	void registerCallItem(not_null<HistoryItem*> item);
+	void unregisterCallItem(not_null<HistoryItem*> item);
 
 	void documentMessageRemoved(not_null<DocumentData*> document);
 
@@ -681,6 +694,9 @@ private:
 	void setupUserIsContactViewer();
 
 	void checkSelfDestructItems();
+
+	void scheduleNextTTLs();
+	void checkTTLs();
 
 	int computeUnreadBadge(const Dialogs::UnreadState &state) const;
 	bool computeUnreadBadgeMuted(const Dialogs::UnreadState &state) const;
@@ -853,6 +869,8 @@ private:
 	std::map<
 		not_null<HistoryItem*>,
 		base::flat_set<not_null<HistoryItem*>>> _dependentMessages;
+	std::map<TimeId, base::flat_set<not_null<HistoryItem*>>> _ttlMessages;
+	base::Timer _ttlCheckTimer;
 
 	base::flat_map<uint64, FullMsgId> _messageByRandomId;
 	base::flat_map<uint64, SentData> _sentMessagesData;
@@ -908,6 +926,7 @@ private:
 	std::unordered_map<
 		UserId,
 		base::flat_set<not_null<ViewElement*>>> _contactViews;
+	std::unordered_set<not_null<HistoryItem*>> _callItems;
 
 	base::flat_set<not_null<WebPageData*>> _webpagesUpdated;
 	base::flat_set<not_null<GameData*>> _gamesUpdated;
@@ -915,6 +934,7 @@ private:
 
 	rpl::event_stream<not_null<WebPageData*>> _webpageUpdates;
 	rpl::event_stream<not_null<ChannelData*>> _channelDifferenceTooLong;
+	base::flat_set<not_null<ChannelData*>> _suggestToGigagroup;
 
 	base::flat_multi_map<TimeId, not_null<PollData*>> _pollsClosings;
 	base::Timer _pollsClosingTimer;

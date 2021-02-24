@@ -34,6 +34,12 @@ class Track;
 namespace Window {
 namespace Notifications {
 
+enum class ManagerType {
+	Dummy,
+	Default,
+	Native,
+};
+
 enum class ChangeType {
 	SoundEnabled,
 	FlashBounceEnabled,
@@ -70,6 +76,8 @@ public:
 	[[nodiscard]] Main::Session *findSession(uint64 sessionId) const;
 
 	void createManager();
+	void setManager(std::unique_ptr<Manager> manager);
+	[[nodiscard]] std::optional<ManagerType> managerType() const;
 
 	void checkDelayed();
 	void schedule(not_null<HistoryItem*> item);
@@ -189,6 +197,8 @@ public:
 		const QString &title,
 		not_null<Main::Session*> session);
 
+	[[nodiscard]] virtual ManagerType type() const = 0;
+
 	virtual ~Manager() = default;
 
 protected:
@@ -221,6 +231,11 @@ private:
 };
 
 class NativeManager : public Manager {
+public:
+	[[nodiscard]] ManagerType type() const override {
+		return ManagerType::Native;
+	}
+
 protected:
 	using Manager::Manager;
 
@@ -245,6 +260,34 @@ protected:
 		const QString &msg,
 		bool hideNameAndPhoto,
 		bool hideReplyButton) = 0;
+
+};
+
+class DummyManager : public NativeManager {
+public:
+	using NativeManager::NativeManager;
+
+	[[nodiscard]] ManagerType type() const override {
+		return ManagerType::Dummy;
+	}
+
+protected:
+	void doShowNativeNotification(
+		not_null<PeerData*> peer,
+		std::shared_ptr<Data::CloudImageView> &userpicView,
+		MsgId msgId,
+		const QString &title,
+		const QString &subtitle,
+		const QString &msg,
+		bool hideNameAndPhoto,
+		bool hideReplyButton) override {
+	}
+	void doClearAllFast() override {
+	}
+	void doClearFromHistory(not_null<History*> history) override {
+	}
+	void doClearFromSession(not_null<Main::Session*> session) override {
+	}
 
 };
 

@@ -9,8 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/platform/base_platform_info.h"
 #include "window/themes/window_themes_embedded.h"
-#include "window/window_controls_layout.h"
 #include "ui/chat/attach/attach_send_files_way.h"
+#include "platform/platform_notifications_manager.h"
 
 enum class RectPart;
 
@@ -22,7 +22,23 @@ namespace Window {
 enum class Column;
 } // namespace Window
 
+namespace Webrtc {
+enum class Backend;
+} // namespace Webrtc
+
 namespace Core {
+
+struct WindowPosition {
+	WindowPosition() = default;
+
+	int32 moncrc = 0;
+	int maximized = 0;
+	int scale = 0;
+	int x = 0;
+	int y = 0;
+	int w = 0;
+	int h = 0;
+};
 
 class Settings final {
 public:
@@ -132,10 +148,12 @@ public:
 		_notifyView = value;
 	}
 	[[nodiscard]] bool nativeNotifications() const {
-		return _nativeNotifications;
+		return _nativeNotifications.value_or(Platform::Notifications::ByDefault());
 	}
 	void setNativeNotifications(bool value) {
-		_nativeNotifications = value;
+		_nativeNotifications = (value == Platform::Notifications::ByDefault())
+			? std::nullopt
+			: std::make_optional(value);
 	}
 	[[nodiscard]] int notificationsCount() const {
 		return _notificationsCount;
@@ -217,6 +235,13 @@ public:
 	}
 	void setCallAudioDuckingEnabled(bool value) {
 		_callAudioDuckingEnabled = value;
+	}
+	[[nodiscard]] Webrtc::Backend callAudioBackend() const;
+	void setDisableCalls(bool value) {
+		_disableCalls = value;
+	}
+	[[nodiscard]] bool disableCalls() const {
+		return _disableCalls;
 	}
 	[[nodiscard]] bool groupCallPushToTalk() const {
 		return _groupCallPushToTalk;
@@ -478,26 +503,25 @@ public:
 	[[nodiscard]] rpl::producer<bool> systemDarkModeEnabledChanges() const {
 		return _systemDarkModeEnabled.changes();
 	}
-	void setWindowControlsLayout(Window::ControlsLayout value) {
-		_windowControlsLayout = value;
+	[[nodiscard]] const WindowPosition &windowPosition() const {
+		return _windowPosition;
 	}
-	[[nodiscard]] Window::ControlsLayout windowControlsLayout() const {
-		return _windowControlsLayout.current();
-	}
-	[[nodiscard]] rpl::producer<Window::ControlsLayout> windowControlsLayoutValue() const {
-		return _windowControlsLayout.value();
-	}
-	[[nodiscard]] rpl::producer<Window::ControlsLayout> windowControlsLayoutChanges() const {
-		return _windowControlsLayout.changes();
+	void setWindowPosition(const WindowPosition &position) {
+		_windowPosition = position;
 	}
 
 	[[nodiscard]] static bool ThirdColumnByDefault();
 	[[nodiscard]] float64 DefaultDialogsWidthRatio();
 	[[nodiscard]] static qint32 SerializePlaybackSpeed(float64 speed) {
-		return int(std::round(std::clamp(speed * 4., 2., 8.))) - 2;
+		return int(std::round(std::clamp(speed, 0.5, 2.0) * 100));
 	}
 	[[nodiscard]] static float64 DeserializePlaybackSpeed(qint32 speed) {
-		return (std::clamp(speed, 0, 6) + 2) / 4.;
+		if (speed < 10) {
+			// The old values in settings.
+			return (std::clamp(speed, 0, 6) + 2) / 4.;
+		} else {
+			return std::clamp(speed, 50, 200) / 100.;
+		}
 	}
 
 	void resetOnLastLogout();
@@ -519,7 +543,7 @@ private:
 	bool _desktopNotify = true;
 	bool _flashBounceNotify = true;
 	DBINotifyView _notifyView = dbinvShowPreview;
-	bool _nativeNotifications = Platform::IsLinux();
+	std::optional<bool> _nativeNotifications;
 	int _notificationsCount = 3;
 	ScreenCorner _notificationsCorner = ScreenCorner::BottomRight;
 	bool _includeMutedCounter = true;
@@ -532,13 +556,14 @@ private:
 	int _callOutputVolume = 100;
 	int _callInputVolume = 100;
 	bool _callAudioDuckingEnabled = true;
+	bool _disableCalls = false;
 	bool _groupCallPushToTalk = false;
 	QByteArray _groupCallPushToTalkShortcut;
 	crl::time _groupCallPushToTalkDelay = 20;
 	Window::Theme::AccentColors _themesAccentColors;
 	bool _lastSeenWarningSeen = false;
-	Ui::SendFilesWay _sendFilesWay;
-	Ui::InputSubmitSettings _sendSubmitWay;
+	Ui::SendFilesWay _sendFilesWay = Ui::SendFilesWay();
+	Ui::InputSubmitSettings _sendSubmitWay = Ui::InputSubmitSettings();
 	base::flat_map<QString, QString> _soundOverrides;
 	bool _exeLaunchWarning = true;
 	bool _ipRevealWarning = true;
@@ -554,8 +579,8 @@ private:
 	rpl::variable<bool> _autoDownloadDictionaries = true;
 	rpl::variable<bool> _mainMenuAccountsShown = true;
 	bool _tabbedSelectorSectionEnabled = false; // per-window
-	Window::Column _floatPlayerColumn; // per-window
-	RectPart _floatPlayerCorner; // per-window
+	Window::Column _floatPlayerColumn = Window::Column(); // per-window
+	RectPart _floatPlayerCorner = RectPart(); // per-window
 	bool _thirdSectionInfoEnabled = true; // per-window
 	rpl::event_stream<bool> _thirdSectionInfoEnabledValue; // per-window
 	int _thirdSectionExtendedBy = -1; // per-window
@@ -565,7 +590,7 @@ private:
 	rpl::variable<bool> _nativeWindowFrame = Platform::IsLinux();
 	rpl::variable<std::optional<bool>> _systemDarkMode = std::nullopt;
 	rpl::variable<bool> _systemDarkModeEnabled = false;
-	rpl::variable<Window::ControlsLayout> _windowControlsLayout;
+	WindowPosition _windowPosition; // per-window
 
 	bool _tabbedReplacedWithInfo = false; // per-window
 	rpl::event_stream<bool> _tabbedReplacedWithInfoValue; // per-window

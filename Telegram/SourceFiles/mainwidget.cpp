@@ -301,13 +301,26 @@ MainWidget::MainWidget(
 
 	session().changes().historyUpdates(
 		Data::HistoryUpdate::Flag::MessageSent
+		| Data::HistoryUpdate::Flag::LocalDraftSet
 	) | rpl::start_with_next([=](const Data::HistoryUpdate &update) {
 		const auto history = update.history;
-		history->forgetScrollState();
-		if (const auto from = history->peer->migrateFrom()) {
-			if (const auto migrated = history->owner().historyLoaded(from)) {
-				migrated->forgetScrollState();
+		if (update.flags & Data::HistoryUpdate::Flag::MessageSent) {
+			history->forgetScrollState();
+			if (const auto from = history->peer->migrateFrom()) {
+				auto &owner = history->owner();
+				if (const auto migrated = owner.historyLoaded(from)) {
+					migrated->forgetScrollState();
+				}
 			}
+		}
+		if (update.flags & Data::HistoryUpdate::Flag::LocalDraftSet) {
+			const auto opened = (_history->peer() == history->peer.get());
+			if (opened) {
+				_history->applyDraft();
+			} else {
+				Ui::showPeerHistory(history, ShowAtUnreadMsgId);
+			}
+			Ui::hideLayer();
 		}
 	}, lifetime());
 
@@ -535,14 +548,15 @@ bool MainWidget::shareUrl(
 		QFIXED_MAX
 	};
 	auto history = peer->owner().history(peer);
-	history->setLocalDraft(
-		std::make_unique<Data::Draft>(textWithTags, 0, cursor, false));
+	history->setLocalDraft(std::make_unique<Data::Draft>(
+		textWithTags,
+		0,
+		cursor,
+		Data::PreviewState::Allowed));
 	history->clearLocalEditDraft();
-	if (_history->peer() == peer) {
-		_history->applyDraft();
-	} else {
-		Ui::showPeerHistory(peer, ShowAtUnreadMsgId);
-	}
+	history->session().changes().historyUpdated(
+		history,
+		Data::HistoryUpdate::Flag::LocalDraftSet);
 	return true;
 }
 
@@ -565,14 +579,15 @@ bool MainWidget::inlineSwitchChosen(PeerId peerId, const QString &botAndQuery) {
 	const auto h = peer->owner().history(peer);
 	TextWithTags textWithTags = { botAndQuery, TextWithTags::Tags() };
 	MessageCursor cursor = { botAndQuery.size(), botAndQuery.size(), QFIXED_MAX };
-	h->setLocalDraft(std::make_unique<Data::Draft>(textWithTags, 0, cursor, false));
+	h->setLocalDraft(std::make_unique<Data::Draft>(
+		textWithTags,
+		0,
+		cursor,
+		Data::PreviewState::Allowed));
 	h->clearLocalEditDraft();
-	const auto opened = _history->peer() && (_history->peer() == peer);
-	if (opened) {
-		_history->applyDraft();
-	} else {
-		Ui::showPeerHistory(peer, ShowAtUnreadMsgId);
-	}
+	h->session().changes().historyUpdated(
+		h,
+		Data::HistoryUpdate::Flag::LocalDraftSet);
 	return true;
 }
 
@@ -623,10 +638,6 @@ bool MainWidget::notify_switchInlineBotButtonReceived(const QString &query, User
 
 void MainWidget::notify_showScheduledButtonChanged() {
 	_history->notify_showScheduledButtonChanged();
-}
-
-MsgId MainWidget::highlightedOriginalId() const {
-	return _history->highlightOrigId();
 }
 
 void MainWidget::clearHider(not_null<Window::HistoryHider*> instance) {
@@ -1405,6 +1416,21 @@ void MainWidget::clearBotStartToken(PeerData *peer) {
 
 void MainWidget::ctrlEnterSubmitUpdated() {
 	_history->updateFieldSubmitSettings();
+}
+
+void MainWidget::showChooseReportMessages(
+		not_null<PeerData*> peer,
+		Ui::ReportReason reason,
+		Fn<void(MessageIdsList)> done) {
+	_history->setChooseReportMessagesDetails(reason, std::move(done));
+	ui_showPeerHistory(
+		peer->id,
+		SectionShow::Way::Forward,
+		ShowForChooseMessagesMsgId);
+}
+
+void MainWidget::clearChooseReportMessages() {
+	_history->setChooseReportMessagesDetails({}, nullptr);
 }
 
 void MainWidget::ui_showPeerHistory(
@@ -2414,7 +2440,7 @@ void MainWidget::ensureThirdColumnResizeAreaCreated() {
 		if (!Adaptive::ThreeColumn() || !_thirdSection) {
 			return;
 		}
-		Core::App().settings().setThirdColumnWidth(snap(
+		Core::App().settings().setThirdColumnWidth(std::clamp(
 			Core::App().settings().thirdColumnWidth(),
 			st::columnMinimalWidthThird,
 			st::columnMaximalWidthThird));

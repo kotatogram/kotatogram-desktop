@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
+#include "api/api_invite_links.h"
 
 namespace {
 
@@ -47,14 +48,17 @@ void ChatData::setPhoto(PhotoId photoId, const MTPChatPhoto &photo) {
 	});
 }
 
-auto ChatData::DefaultAdminRights() -> AdminRights {
+auto ChatData::defaultAdminRights(not_null<UserData*> user) -> AdminRights {
+	const auto isCreator = (creator == user->bareId())
+		|| (user->isSelf() && amCreator());
 	using Flag = AdminRight;
 	return Flag::f_change_info
 		| Flag::f_delete_messages
 		| Flag::f_ban_users
 		| Flag::f_invite_users
 		| Flag::f_pin_messages
-		| Flag::f_manage_call;
+		| Flag::f_manage_call
+		| (isCreator ? Flag::f_add_admins : Flag(0));
 }
 
 bool ChatData::canWrite() const {
@@ -78,6 +82,11 @@ bool ChatData::canEditUsername() const {
 
 bool ChatData::canEditPreHistoryHidden() const {
 	return amCreator();
+}
+
+bool ChatData::canDeleteMessages() const {
+	return amCreator()
+		|| (adminRights() & AdminRight::f_delete_messages);
 }
 
 bool ChatData::canAddMembers() const {
@@ -127,10 +136,7 @@ void ChatData::invalidateParticipants() {
 }
 
 void ChatData::setInviteLink(const QString &newInviteLink) {
-	if (newInviteLink != _inviteLink) {
-		_inviteLink = newInviteLink;
-		session().changes().peerUpdated(this, UpdateFlag::InviteLink);
-	}
+	_inviteLink = newInviteLink;
 }
 
 bool ChatData::canHaveInviteLink() const {
@@ -337,7 +343,7 @@ void ApplyChatUpdate(
 	}
 	if (user->isSelf()) {
 		chat->setAdminRights(MTP_chatAdminRights(mtpIsTrue(update.vis_admin())
-			? MTP_flags(ChatData::DefaultAdminRights())
+			? MTP_flags(chat->defaultAdminRights(user))
 			: MTP_flags(0)));
 	}
 	if (mtpIsTrue(update.vis_admin())) {
@@ -371,6 +377,7 @@ void ApplyChatUpdate(not_null<ChatData*> chat, const MTPDchatFull &update) {
 		chat->clearGroupCall();
 	}
 
+	chat->setMessagesTTL(update.vttl_period().value_or_empty());
 	if (const auto info = update.vbot_info()) {
 		for (const auto &item : info->v) {
 			item.match([&](const MTPDbotInfo &data) {
@@ -388,12 +395,11 @@ void ApplyChatUpdate(not_null<ChatData*> chat, const MTPDchatFull &update) {
 	} else {
 		chat->setUserpicPhoto(MTP_photoEmpty(MTP_long(0)));
 	}
-	chat->setInviteLink(update.vexported_invite().match([&](
-			const MTPDchatInviteExported &data) {
-		return qs(data.vlink());
-	}, [&](const MTPDchatInviteEmpty &) {
-		return QString();
-	}));
+	if (const auto invite = update.vexported_invite()) {
+		chat->session().api().inviteLinks().setMyPermanent(chat, *invite);
+	} else {
+		chat->session().api().inviteLinks().clearMyPermanent(chat);
+	}
 	if (const auto pinned = update.vpinned_msg_id()) {
 		SetTopPinnedMessageId(chat, pinned->v);
 	}
@@ -460,7 +466,7 @@ void ApplyChatUpdate(
 				chat->admins.emplace(user);
 				if (user->isSelf()) {
 					chat->setAdminRights(MTP_chatAdminRights(
-						MTP_flags(ChatData::DefaultAdminRights())));
+						MTP_flags(chat->defaultAdminRights(user))));
 				}
 			}, [](const MTPDchatParticipant &) {
 			});

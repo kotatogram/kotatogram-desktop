@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/main_window.h"
 
 #include "storage/localstorage.h"
+#include "platform/platform_specific.h"
 #include "platform/platform_window_title.h"
 #include "base/platform/base_platform_info.h"
 #include "ui/platform/ui_platform_utility.h"
@@ -31,10 +32,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "apiwrap.h"
 #include "mainwindow.h"
+#include "mainwidget.h" // session->content()->windowShown().
 #include "facades.h"
 #include "app.h"
+#include "styles/style_widgets.h"
 #include "styles/style_window.h"
-#include "styles/style_calls.h" // st::callShadow
 
 #include <QtWidgets/QDesktopWidget>
 #include <QtCore/QMimeData>
@@ -307,7 +309,6 @@ void MainWindow::handleActiveChanged() {
 		Core::App().checkMediaViewActivation();
 	}
 	base::call_delayed(1, this, [this] {
-		updateTrayMenu();
 		handleActiveChangedHook();
 	});
 }
@@ -319,10 +320,37 @@ void MainWindow::handleVisibleChanged(bool visible) {
 			setWindowState(Qt::WindowMaximized);
 		}
 	} else {
-		_maximizedBeforeHide = cWindowPos().maximized;
+		_maximizedBeforeHide = Core::App().settings().windowPosition().maximized;
 	}
 
 	handleVisibleChangedHook(visible);
+}
+
+void MainWindow::showFromTray() {
+	base::call_delayed(1, this, [this] {
+		updateGlobalMenu();
+	});
+	activate();
+	updateUnreadCounter();
+}
+
+void MainWindow::quitFromTray() {
+	App::quit();
+}
+
+void MainWindow::activate() {
+	bool wasHidden = !isVisible();
+	setWindowState(windowState() & ~Qt::WindowMinimized);
+	setVisible(true);
+	psActivateProcess();
+	raise();
+	activateWindow();
+	controller().updateIsActiveFocus();
+	if (wasHidden) {
+		if (const auto session = sessionController()) {
+			session->content()->windowShown();
+		}
+	}
 }
 
 void MainWindow::updatePalette() {
@@ -345,7 +373,7 @@ HitTestResult MainWindow::hitTest(const QPoint &p) const {
 
 bool MainWindow::hasShadow() const {
 	const auto center = geometry().center();
-	return Platform::WindowsNeedShadow()
+	return Ui::Platform::WindowExtentsSupported()
 		&& Ui::Platform::TranslucentWindowsSupported(center)
 		&& _title;
 }
@@ -419,8 +447,27 @@ void MainWindow::recountGeometryConstraints() {
 void MainWindow::initSize() {
 	updateMinimumSize();
 
-	auto position = cWindowPos();
-	DEBUG_LOG(("Window Pos: Initializing first %1, %2, %3, %4 (maximized %5)").arg(position.x).arg(position.y).arg(position.w).arg(position.h).arg(Logs::b(position.maximized)));
+	if (initSizeFromSystem()) {
+		return;
+	}
+
+	auto position = Core::App().settings().windowPosition();
+	DEBUG_LOG(("Window Pos: Initializing first %1, %2, %3, %4 "
+		"(scale %5%, maximized %6)")
+		.arg(position.x)
+		.arg(position.y)
+		.arg(position.w)
+		.arg(position.h)
+		.arg(position.scale)
+		.arg(Logs::b(position.maximized)));
+
+	if (position.scale != 0) {
+		const auto scaleFactor = cScale() / float64(position.scale);
+		position.x *= scaleFactor;
+		position.y *= scaleFactor;
+		position.w *= scaleFactor;
+		position.h *= scaleFactor;
+	}
 
 	const auto primaryScreen = QGuiApplication::primaryScreen();
 	auto geometryScreen = primaryScreen;
@@ -447,14 +494,44 @@ void MainWindow::initSize() {
 		for (auto screen : QGuiApplication::screens()) {
 			if (position.moncrc == screenNameChecksum(screen->name())) {
 				auto screenGeometry = screen->geometry();
+				auto availableGeometry = screen->availableGeometry();
 				DEBUG_LOG(("Window Pos: Screen found, screen geometry: %1, %2, %3, %4").arg(screenGeometry.x()).arg(screenGeometry.y()).arg(screenGeometry.width()).arg(screenGeometry.height()));
 
-				auto w = screenGeometry.width(), h = screenGeometry.height();
+				const auto x = availableGeometry.x() - screenGeometry.x();
+				const auto y = availableGeometry.y() - screenGeometry.y();
+				const auto w = availableGeometry.width();
+				const auto h = availableGeometry.height();
 				if (w >= st::windowMinWidth && h >= st::windowMinHeight) {
-					if (position.x < 0) position.x = 0;
-					if (position.y < 0) position.y = 0;
+					if (position.x < x) position.x = x;
+					if (position.y < y) position.y = y;
 					if (position.w > w) position.w = w;
 					if (position.h > h) position.h = h;
+					const auto rightPoint = position.x + position.w;
+					if (rightPoint > w) {
+						const auto distance = rightPoint - w;
+						const auto newXPos = position.x - distance;
+						if (newXPos >= 0) {
+							position.x = newXPos;
+						} else {
+							position.x = 0;
+							const auto newRightPoint = position.x + position.w;
+							const auto newDistance = newRightPoint - w;
+							position.w -= newDistance;
+						}
+					}
+					const auto bottomPoint = position.y + position.h;
+					if (bottomPoint > h) {
+						const auto distance = bottomPoint - h;
+						const auto newYPos = position.y - distance;
+						if (newYPos >= 0) {
+							position.y = newYPos;
+						} else {
+							position.y = 0;
+							const auto newBottomPoint = position.y + position.h;
+							const auto newDistance = newBottomPoint - h;
+							position.h -= newDistance;
+						}
+					}
 					position.x += screenGeometry.x();
 					position.y += screenGeometry.y();
 					if (position.x + st::windowMinWidth <= screenGeometry.x() + screenGeometry.width() &&
@@ -507,7 +584,6 @@ void MainWindow::attachToTrayIcon(not_null<QSystemTrayIcon*> icon) {
 			handleTrayIconActication(reason);
 		});
 	});
-	App::wnd()->updateTrayMenu();
 }
 
 void MainWindow::paintEvent(QPaintEvent *e) {
@@ -577,7 +653,7 @@ void MainWindow::savePosition(Qt::WindowState state) {
 		return;
 	}
 
-	auto savedPosition = cWindowPos();
+	const auto &savedPosition = Core::App().settings().windowPosition();
 	auto realPosition = savedPosition;
 
 	if (state == Qt::WindowMaximized) {
@@ -589,6 +665,7 @@ void MainWindow::savePosition(Qt::WindowState state) {
 		realPosition.y = r.y();
 		realPosition.w = r.width() - (_rightColumn ? _rightColumn->width() : 0);
 		realPosition.h = r.height();
+		realPosition.scale = cScale();
 		realPosition.maximized = 0;
 		realPosition.moncrc = 0;
 
@@ -608,7 +685,11 @@ void MainWindow::savePosition(Qt::WindowState state) {
 		}
 		if (chosen) {
 			auto screenGeometry = chosen->geometry();
-			DEBUG_LOG(("Window Pos: Screen found, geometry: %1, %2, %3, %4").arg(screenGeometry.x()).arg(screenGeometry.y()).arg(screenGeometry.width()).arg(screenGeometry.height()));
+			DEBUG_LOG(("Window Pos: Screen found, geometry: %1, %2, %3, %4"
+				).arg(screenGeometry.x()
+				).arg(screenGeometry.y()
+				).arg(screenGeometry.width()
+				).arg(screenGeometry.height()));
 			realPosition.x -= screenGeometry.x();
 			realPosition.y -= screenGeometry.y();
 			realPosition.moncrc = screenNameChecksum(chosen->name());
@@ -619,11 +700,18 @@ void MainWindow::savePosition(Qt::WindowState state) {
 			|| realPosition.y != savedPosition.y
 			|| realPosition.w != savedPosition.w
 			|| realPosition.h != savedPosition.h
+			|| realPosition.scale != savedPosition.scale
 			|| realPosition.moncrc != savedPosition.moncrc
 			|| realPosition.maximized != savedPosition.maximized) {
-			DEBUG_LOG(("Window Pos: Writing: %1, %2, %3, %4 (maximized %5)").arg(realPosition.x).arg(realPosition.y).arg(realPosition.w).arg(realPosition.h).arg(Logs::b(realPosition.maximized)));
-			cSetWindowPos(realPosition);
-			Local::writeSettings();
+			DEBUG_LOG(("Window Pos: Writing: %1, %2, %3, %4 (scale %5%, maximized %6)")
+				.arg(realPosition.x)
+				.arg(realPosition.y)
+				.arg(realPosition.w)
+				.arg(realPosition.h)
+				.arg(realPosition.scale)
+				.arg(Logs::b(realPosition.maximized)));
+			Core::App().settings().setWindowPosition(realPosition);
+			Core::App().saveSettingsDelayed();
 		}
 	}
 }
@@ -633,7 +721,6 @@ bool MainWindow::minimizeToTray() {
 
 	closeWithoutDestroy();
 	controller().updateIsActiveBlur();
-	updateTrayMenu();
 	updateGlobalMenu();
 	showTrayTooltip();
 	return true;

@@ -1,3 +1,62 @@
+2.6 (23.02.21)
+
+- Set messages to auto-delete for everyone 24 hours or 7 days after sending.
+- Control auto-delete settings in any of your chats, as well as in groups and channels where you are an admin.
+- To enable auto-delete, right click on the chat in the chat list > Clear History > Enable Auto-Delete.
+- Create invite links that work for a limited time or a limited number of uses.
+- See which users joined using your, or your admins', invite links.
+- Turn any invite link into a QR code users can scan with their phone cameras.
+- To manage invite links, click ... > Manage Group/Channel > Invite Links.
+- Convert groups that have reached 200,000 members into unlimited Broadcast Groups.
+
+2.5.9 (17.02.21)
+
+- Add 'Invite via Link' button to Add Members box.
+- Fix window size in Windows 10 Tablet Mode.
+- Fix layout of round video messages in channels.
+
+2.5.8 (29.01.21)
+
+- Fix OpenAL device closing in calls and voice chats.
+- Fix video chat rotation when calling from iOS.
+- Fix scheduling messages without sound.
+- Remove redundant Cancel button in ScheduleBox.
+
+2.5.7 (28.01.21)
+
+- Delete not only messages, but also groups you created and call history for all sides, without a trace.
+- Adjust volume for individual participants of a voice chat.
+- Report fake groups or channels impersonating famous people or organizations by opening their Profile > ... > Report.
+
+2.5.6 beta (22.01.21)
+
+- Press Up arrow to edit your last sent comment.
+- Add more information to date tooltips in Recent Actions and channel comments.
+- Bug and crash fixes.
+
+2.5.5 beta (10.01.21)
+
+- Fix recording of audio in voice chats.
+- Fix media viewer zoom and crashing.
+
+2.5.4 beta (07.01.21)
+
+- Implement new audio module code for calls and voice chats.
+- Allow retracting votes from polls in comments to channel posts.
+- Show small voice chat button for empty voice chats.
+- Fix media viewer updating when screen resolution is changed.
+
+2.5.3 beta (30.12.20)
+
+- Allow using mouse buttons in Push-to-Talk shortcut.
+- Fix blurred thumbnails in Shared Links section.
+
+2.5.2 beta (25.12.20)
+
+- Fix possible crash in video calls.
+- Fix possible crash in connecting to voice chats.
+- Use different audio module code on Windows in calls.
+
 2.5.1 (23.12.20)
 
 - Fix crash in voice calls.
@@ -88,7 +147,7 @@
 
 2.4.2 (02.10.20)
 
-- Allow block, report and delete all message from user from "user joined" service message context menu.
+- Allow block, report and delete all messages from a user from "user joined" service message context menu.
 - Fix admin badge display in groups.
 - Fix loading and opening of comments in channels.
 
@@ -110,7 +169,7 @@
 
 2.3.1 (21.08.20)
 
-- Fix Calls Settings for Video Calls.
+- Fix Call Settings for Video Calls.
 
 2.3 (14.08.20)
 
@@ -119,7 +178,7 @@
 2.2 (26.07.20)
 
 - Quickly switch between different Telegram accounts if you use multiple phone numbers.
-- Share and store unlimited files of any type, now up to 2'000 MB each.
+- Share and store unlimited files of any type, now up to 2000 MB each.
 - Edit your scheduled messages.
 - Use Auto-Night Mode to make Telegram night mode match the system Dark Mode settings.
 - Also added an option to switch to system window frame in Windows and Linux.

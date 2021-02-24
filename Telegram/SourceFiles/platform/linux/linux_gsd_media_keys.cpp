@@ -23,7 +23,6 @@ namespace Platform {
 namespace internal {
 namespace {
 
-constexpr auto kDBusTimeout = 30000;
 constexpr auto kService = "org.gnome.SettingsDaemon.MediaKeys"_cs;
 constexpr auto kOldService = "org.gnome.SettingsDaemon"_cs;
 constexpr auto kMATEService = "org.mate.SettingsDaemon"_cs;
@@ -104,9 +103,9 @@ GSDMediaKeys::GSDMediaKeys() {
 
 	auto reply = g_dbus_connection_call_sync(
 		_dbusConnection,
-		_service.toUtf8(),
-		_objectPath.toUtf8(),
-		_interface.toUtf8(),
+		_service.toUtf8().constData(),
+		_objectPath.toUtf8().constData(),
+		_interface.toUtf8().constData(),
 		"GrabMediaPlayerKeys",
 		g_variant_new(
 			"(su)",
@@ -114,7 +113,7 @@ GSDMediaKeys::GSDMediaKeys() {
 			0),
 		nullptr,
 		G_DBUS_CALL_FLAGS_NONE,
-		kDBusTimeout,
+		-1,
 		nullptr,
 		&error);
 
@@ -128,10 +127,10 @@ GSDMediaKeys::GSDMediaKeys() {
 
 	_signalId = g_dbus_connection_signal_subscribe(
 		_dbusConnection,
-		_service.toUtf8(),
-		_interface.toUtf8(),
+		_service.toUtf8().constData(),
+		_interface.toUtf8().constData(),
 		"MediaPlayerKeyPressed",
-		_objectPath.toUtf8(),
+		_objectPath.toUtf8().constData(),
 		nullptr,
 		G_DBUS_SIGNAL_FLAGS_NONE,
 		KeyPressed,
@@ -151,16 +150,16 @@ GSDMediaKeys::~GSDMediaKeys() {
 	if (_grabbed) {
 		auto reply = g_dbus_connection_call_sync(
 			_dbusConnection,
-			_service.toUtf8(),
-			_objectPath.toUtf8(),
-			_interface.toUtf8(),
+			_service.toUtf8().constData(),
+			_objectPath.toUtf8().constData(),
+			_interface.toUtf8().constData(),
 			"ReleaseMediaPlayerKeys",
 			g_variant_new(
 				"(s)",
 				QCoreApplication::applicationName().toUtf8().constData()),
 			nullptr,
 			G_DBUS_CALL_FLAGS_NONE,
-			kDBusTimeout,
+			-1,
 			nullptr,
 			&error);
 

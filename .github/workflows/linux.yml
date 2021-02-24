@@ -69,8 +69,9 @@ jobs:
         defines:
           - ""
           - "DESKTOP_APP_DISABLE_DBUS_INTEGRATION"
+          - "DESKTOP_APP_DISABLE_X11_INTEGRATION"
           - "DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION"
-          - "TDESKTOP_DISABLE_GTK_INTEGRATION"
+          - "DESKTOP_APP_DISABLE_GTK_INTEGRATION"
 
     env:
       UPLOAD_ARTIFACT: "false"

@@ -721,14 +721,25 @@ bool ReadSetting(
 		context.legacyRead = true;
 	} break;
 
-	case dbiWindowPosition: {
-		auto position = TWindowPos();
+	case dbiWindowPositionOld: {
+		auto position = Core::WindowPosition();
+		if (!CheckStreamStatus(stream)) {
+			return false;
+		}
 		stream >> position.x >> position.y >> position.w >> position.h;
 		stream >> position.moncrc >> position.maximized;
 		if (!CheckStreamStatus(stream)) return false;
 
-		DEBUG_LOG(("Window Pos: Read from storage %1, %2, %3, %4 (maximized %5)").arg(position.x).arg(position.y).arg(position.w).arg(position.h).arg(Logs::b(position.maximized)));
-		cSetWindowPos(position);
+		DEBUG_LOG(("Window Pos: Read from legacy storage %1, %2, %3, %4 (scale %5%, maximized %6)")
+			.arg(position.x)
+			.arg(position.y)
+			.arg(position.w)
+			.arg(position.h)
+			.arg(position.scale)
+			.arg(Logs::b(position.maximized)));
+
+		Core::App().settings().setWindowPosition(position);
+		context.legacyRead = true;
 	} break;
 
 	case dbiLoggedPhoneNumberOld: { // deprecated
@@ -1053,7 +1064,7 @@ bool ReadSetting(
 		stream >> v;
 		if (!CheckStreamStatus(stream)) return false;
 
-		Core::App().settings().setSongVolume(snap(v / 1e6, 0., 1.));
+		Core::App().settings().setSongVolume(std::clamp(v / 1e6, 0., 1.));
 		context.legacyRead = true;
 	} break;
 
@@ -1062,7 +1073,7 @@ bool ReadSetting(
 		stream >> v;
 		if (!CheckStreamStatus(stream)) return false;
 
-		Core::App().settings().setVideoVolume(snap(v / 1e6, 0., 1.));
+		Core::App().settings().setVideoVolume(std::clamp(v / 1e6, 0., 1.));
 		context.legacyRead = true;
 	} break;
 

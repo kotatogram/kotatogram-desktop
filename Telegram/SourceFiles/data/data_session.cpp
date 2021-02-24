@@ -59,6 +59,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/base_platform_info.h"
 #include "base/unixtime.h"
 #include "base/call_delayed.h"
+#include "base/openssl_help.h"
 #include "facades.h" // Notify::switchInlineBotButtonReceived
 #include "app.h"
 #include "styles/style_boxes.h" // st::backgroundSize
@@ -219,6 +220,7 @@ Session::Session(not_null<Main::Session*> session)
 	session->serverConfig().pinnedDialogsCountMax.value())
 , _contactsList(Dialogs::SortMode::Name)
 , _contactsNoChatsList(Dialogs::SortMode::Name)
+, _ttlCheckTimer([=] { checkTTLs(); })
 , _selfDestructTimer([=] { checkSelfDestructItems(); })
 , _sendActionsAnimation([=](crl::time now) {
 	return sendActionsAnimationCallback(now);
@@ -1154,6 +1156,10 @@ void Session::forgetPassportCredentials() {
 	_passportCredentials = nullptr;
 }
 
+QString Session::nameSortKey(const QString &name) const {
+	return TextUtilities::RemoveAccents(name).toLower();
+}
+
 void Session::setupMigrationViewer() {
 	session().changes().peerUpdates(
 		PeerUpdate::Flag::Migration
@@ -1201,9 +1207,13 @@ void Session::setupPeerNameViewer() {
 	session().changes().realtimeNameUpdates(
 	) | rpl::start_with_next([=](const NameUpdate &update) {
 		const auto peer = update.peer;
+		if (const auto history = historyLoaded(peer)) {
+			history->refreshChatListNameSortKey();
+		}
 		const auto &oldLetters = update.oldFirstLetters;
 		_contactsNoChatsList.peerNameChanged(peer, oldLetters);
 		_contactsList.peerNameChanged(peer, oldLetters);
+
 	}, _lifetime);
 }
 
@@ -1416,9 +1426,23 @@ rpl::producer<Session::IdChange> Session::itemIdChanged() const {
 
 void Session::requestItemRepaint(not_null<const HistoryItem*> item) {
 	_itemRepaintRequest.fire_copy(item);
-	enumerateItemViews(item, [&](not_null<const ViewElement*> view) {
-		requestViewRepaint(view);
-	});
+	auto repaintGroupLeader = false;
+	auto repaintView = [&](not_null<const ViewElement*> view) {
+		if (view->isHiddenByGroup()) {
+			repaintGroupLeader = true;
+		} else {
+			requestViewRepaint(view);
+		}
+	};
+	enumerateItemViews(item, repaintView);
+	if (repaintGroupLeader) {
+		if (const auto group = groups().find(item)) {
+			const auto leader = group->items.front();
+			if (leader != item) {
+				enumerateItemViews(leader, repaintView);
+			}
+		}
+	}
 }
 
 rpl::producer<not_null<const HistoryItem*>> Session::itemRepaintRequest() const {
@@ -1833,33 +1857,7 @@ bool Session::checkEntitiesAndViewsUpdate(const MTPDmessage &data) {
 	if (!existing) {
 		return false;
 	}
-	existing->updateSentContent({
-		qs(data.vmessage()),
-		Api::EntitiesFromMTP(
-			&session(),
-			data.ventities().value_or_empty())
-	}, data.vmedia());
-	existing->updateReplyMarkup(data.vreply_markup());
-	existing->updateForwardedInfo(data.vfwd_from());
-	existing->setViewsCount(data.vviews().value_or(-1));
-	if (const auto replies = data.vreplies()) {
-		existing->setReplies(*replies);
-	} else {
-		existing->clearReplies();
-	}
-	existing->setForwardsCount(data.vforwards().value_or(-1));
-	if (const auto reply = data.vreply_to()) {
-		reply->match([&](const MTPDmessageReplyHeader &data) {
-			existing->setReplyToTop(
-				data.vreply_to_top_id().value_or(
-					data.vreply_to_msg_id().v));
-		});
-	}
-	existing->setPostAuthor(data.vpost_author().value_or_empty());
-	existing->indexAsNewItem();
-	existing->contributeToSlowmode(data.vdate().v);
-	requestItemTextRefresh(existing);
-	updateDependentMessages(existing);
+	existing->applySentMessage(data);
 	const auto result = (existing->mainView() != nullptr);
 	if (result) {
 		stickers().checkSavedGif(existing);
@@ -1947,6 +1945,54 @@ void Session::registerMessage(not_null<HistoryItem*> item) {
 	list->emplace(itemId, item);
 }
 
+void Session::registerMessageTTL(TimeId when, not_null<HistoryItem*> item) {
+	Expects(when > 0);
+
+	auto &list = _ttlMessages[when];
+	list.emplace(item);
+
+	const auto nearest = _ttlMessages.begin()->first;
+	if (nearest < when && _ttlCheckTimer.isActive()) {
+		return;
+	}
+	scheduleNextTTLs();
+}
+
+void Session::scheduleNextTTLs() {
+	if (_ttlMessages.empty()) {
+		return;
+	}
+	const auto nearest = _ttlMessages.begin()->first;
+	const auto now = base::unixtime::now();
+	const auto timeout = (std::max(now, nearest) - now) * crl::time(1000);
+	_ttlCheckTimer.callOnce(timeout);
+}
+
+void Session::unregisterMessageTTL(
+		TimeId when,
+		not_null<HistoryItem*> item) {
+	Expects(when > 0);
+
+	const auto i = _ttlMessages.find(when);
+	if (i == end(_ttlMessages)) {
+		return;
+	}
+	auto &list = i->second;
+	list.erase(item);
+	if (list.empty()) {
+		_ttlMessages.erase(i);
+	}
+}
+
+void Session::checkTTLs() {
+	_ttlCheckTimer.cancel();
+	const auto now = base::unixtime::now();
+	while (!_ttlMessages.empty() && _ttlMessages.begin()->first <= now) {
+		_ttlMessages.begin()->second.front()->destroy();
+	}
+	scheduleNextTTLs();
+}
+
 void Session::processMessagesDeleted(
 		ChannelId channelId,
 		const QVector<MTPint> &data) {
@@ -2004,6 +2050,20 @@ MsgId Session::nextLocalMessageId() {
 	Expects(_localMessageIdCounter < EndClientMsgId);
 
 	return _localMessageIdCounter++;
+}
+
+void Session::setSuggestToGigagroup(
+		not_null<ChannelData*> group,
+		bool suggest) {
+	if (suggest) {
+		_suggestToGigagroup.emplace(group);
+	} else {
+		_suggestToGigagroup.remove(group);
+	}
+}
+
+bool Session::suggestToGigagroup(not_null<ChannelData*> group) const {
+	return _suggestToGigagroup.contains(group);
 }
 
 HistoryItem *Session::message(ChannelId channelId, MsgId itemId) const {
@@ -2430,7 +2490,7 @@ PhotoData *Session::photoFromWeb(
 		return nullptr;
 	}
 	return photo(
-		rand_value<PhotoId>(),
+		openssl::RandomValue<PhotoId>(),
 		uint64(0),
 		QByteArray(),
 		base::unixtime::now(),
@@ -2695,7 +2755,7 @@ DocumentData *Session::documentFromWeb(
 		const ImageLocation &thumbnailLocation,
 		const ImageLocation &videoThumbnailLocation) {
 	const auto result = document(
-		rand_value<DocumentId>(),
+		openssl::RandomValue<DocumentId>(),
 		uint64(0),
 		QByteArray(),
 		base::unixtime::now(),
@@ -2717,7 +2777,7 @@ DocumentData *Session::documentFromWeb(
 		const ImageLocation &thumbnailLocation,
 		const ImageLocation &videoThumbnailLocation) {
 	const auto result = document(
-		rand_value<DocumentId>(),
+		openssl::RandomValue<DocumentId>(),
 		uint64(0),
 		QByteArray(),
 		base::unixtime::now(),
@@ -3414,6 +3474,20 @@ void Session::unregisterContactItem(
 	}
 }
 
+void Session::registerCallItem(not_null<HistoryItem*> item) {
+	_callItems.emplace(item);
+}
+
+void Session::unregisterCallItem(not_null<HistoryItem*> item) {
+	_callItems.erase(item);
+}
+
+void Session::destroyAllCallItems() {
+	while (!_callItems.empty()) {
+		(*_callItems.begin())->destroy();
+	}
+}
+
 void Session::documentMessageRemoved(not_null<DocumentData*> document) {
 	if (_documentItems.find(document) != _documentItems.end()) {
 		return;
@@ -3974,7 +4048,8 @@ void Session::insertCheckedServiceNotification(
 				MTPstring(),
 				MTPlong(),
 				//MTPMessageReactions(),
-				MTPVector<MTPRestrictionReason>()),
+				MTPVector<MTPRestrictionReason>(),
+				MTPint()), // ttl_period
 			clientFlags,
 			NewMessageType::Unread);
 	}

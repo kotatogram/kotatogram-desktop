@@ -17,10 +17,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "lang/lang_keys.h"
 
-#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 #include <QtCore/QVersionNumber>
 #include <QtDBus/QDBusConnection>
+#include <QtDBus/QDBusConnectionInterface>
 #include <QtDBus/QDBusMessage>
+#include <QtDBus/QDBusPendingCall>
+#include <QtDBus/QDBusPendingCallWatcher>
+#include <QtDBus/QDBusPendingReply>
 #include <QtDBus/QDBusReply>
 #include <QtDBus/QDBusError>
 
@@ -29,128 +32,109 @@ extern "C" {
 #include <gio/gio.h>
 #define signals public
 } // extern "C"
-#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 namespace Platform {
 namespace Notifications {
-
-#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 namespace {
 
-constexpr auto kDBusTimeout = 30000;
 constexpr auto kService = "org.freedesktop.Notifications"_cs;
 constexpr auto kObjectPath = "/org/freedesktop/Notifications"_cs;
 constexpr auto kInterface = kService;
 constexpr auto kPropertiesInterface = "org.freedesktop.DBus.Properties"_cs;
-constexpr auto kImageDataType = "(iiibii@ay)"_cs;
-constexpr auto kNotifyArgsType = "(susssasa{sv}i)"_cs;
 
-bool NotificationsSupported = false;
-bool InhibitedNotSupported = false;
+struct ServerInformation {
+	QString name;
+	QString vendor;
+	QVersionNumber version;
+	QVersionNumber specVersion;
+};
 
-void ComputeSupported(bool wait = false) {
+bool ServiceRegistered = false;
+bool InhibitionSupported = false;
+std::optional<ServerInformation> CurrentServerInformation;
+QStringList CurrentCapabilities;
+
+bool GetServiceRegistered() {
+	const auto interface = QDBusConnection::sessionBus().interface();
+	const auto activatable = IsNotificationServiceActivatable();
+
+	return interface
+		? interface->isServiceRegistered(kService.utf16()) || activatable
+		: activatable;
+}
+
+void GetServerInformation(Fn<void(std::optional<ServerInformation>)> callback) {
+	using ServerInformationReply = QDBusPendingReply<
+		QString,
+		QString,
+		QString,
+		QString>;
+
 	const auto message = QDBusMessage::createMethodCall(
 		kService.utf16(),
 		kObjectPath.utf16(),
 		kInterface.utf16(),
 		qsl("GetServerInformation"));
 
-	auto async = QDBusConnection::sessionBus().asyncCall(message);
+	const auto async = QDBusConnection::sessionBus().asyncCall(message);
 	auto watcher = new QDBusPendingCallWatcher(async);
 
-	QObject::connect(
-		watcher,
-		&QDBusPendingCallWatcher::finished,
-		[=](QDBusPendingCallWatcher *call) {
-			QDBusPendingReply<
-				QString,
-				QString,
-				QString,
-				QString> reply = *call;
+	const auto finished = [=](QDBusPendingCallWatcher *call) {
+		const ServerInformationReply reply = *call;
 
-			if (reply.isValid()) {
-				NotificationsSupported = true;
-			}
+		if (reply.isValid()) {
+			crl::on_main([=] {
+				callback(ServerInformation{
+					reply.argumentAt<0>(),
+					reply.argumentAt<1>(),
+					QVersionNumber::fromString(reply.argumentAt<2>()),
+					QVersionNumber::fromString(reply.argumentAt<3>()),
+				});
+			});
+		} else {
+			LOG(("Native Notification Error: %1: %2")
+				.arg(reply.error().name())
+				.arg(reply.error().message()));
 
-			call->deleteLater();
-		});
+			crl::on_main([=] { callback(std::nullopt); });
+		}
 
-	if (wait) {
-		watcher->waitForFinished();
-	}
+		call->deleteLater();
+	};
+
+	QObject::connect(watcher, &QDBusPendingCallWatcher::finished, finished);
 }
 
-void GetSupported() {
-	static auto Checked = false;
-	if (Checked) {
-		return;
-	}
-	Checked = true;
-
-	if (Core::App().settings().nativeNotifications() && !IsWayland()) {
-		ComputeSupported(true);
-	} else {
-		ComputeSupported();
-	}
-}
-
-std::vector<QString> ComputeServerInformation() {
-	std::vector<QString> serverInformation;
-
-	const auto message = QDBusMessage::createMethodCall(
-		kService.utf16(),
-		kObjectPath.utf16(),
-		kInterface.utf16(),
-		qsl("GetServerInformation"));
-
-	const auto reply = QDBusConnection::sessionBus().call(message);
-
-	if (reply.type() == QDBusMessage::ReplyMessage) {
-		ranges::transform(
-			reply.arguments(),
-			ranges::back_inserter(serverInformation),
-			&QVariant::toString
-		);
-	} else if (reply.type() == QDBusMessage::ErrorMessage) {
-		LOG(("Native notification error: %1").arg(reply.errorMessage()));
-	} else {
-		LOG(("Native notification error: "
-			"invalid reply from GetServerInformation"));
-	}
-
-	return serverInformation;
-}
-
-std::vector<QString> GetServerInformation() {
-	static const auto Result = ComputeServerInformation();
-	return Result;
-}
-
-QStringList ComputeCapabilities() {
+void GetCapabilities(Fn<void(QStringList)> callback) {
 	const auto message = QDBusMessage::createMethodCall(
 		kService.utf16(),
 		kObjectPath.utf16(),
 		kInterface.utf16(),
 		qsl("GetCapabilities"));
 
-	const QDBusReply<QStringList> reply = QDBusConnection::sessionBus().call(
-		message);
+	const auto async = QDBusConnection::sessionBus().asyncCall(message);
+	auto watcher = new QDBusPendingCallWatcher(async);
 
-	if (reply.isValid()) {
-		return reply.value();
-	} else {
-		LOG(("Native notification error: %1").arg(reply.error().message()));
-	}
+	const auto finished = [=](QDBusPendingCallWatcher *call) {
+		const QDBusPendingReply<QStringList> reply = *call;
 
-	return {};
+		if (reply.isValid()) {
+			crl::on_main([=] { callback(reply.value()); });
+		} else {
+			LOG(("Native Notification Error: %1: %2")
+				.arg(reply.error().name())
+				.arg(reply.error().message()));
+
+			crl::on_main([=] { callback({}); });
+		}
+
+		call->deleteLater();
+	};
+
+	QObject::connect(watcher, &QDBusPendingCallWatcher::finished, finished);
 }
 
-QStringList GetCapabilities() {
-	static const auto Result = ComputeCapabilities();
-	return Result;
-}
-
-bool Inhibited() {
+void GetInhibitionSupported(Fn<void(bool)> callback) {
 	auto message = QDBusMessage::createMethodCall(
 		kService.utf16(),
 		kObjectPath.utf16(),
@@ -158,61 +142,108 @@ bool Inhibited() {
 		qsl("Get"));
 
 	message.setArguments({
-		qsl("org.freedesktop.Notifications"),
+		kInterface.utf16(),
+		qsl("Inhibited")
+	});
+
+	const auto async = QDBusConnection::sessionBus().asyncCall(message);
+	auto watcher = new QDBusPendingCallWatcher(async);
+
+	static const auto DontLogErrors = {
+		QDBusError::NoError,
+		QDBusError::InvalidArgs,
+		QDBusError::UnknownProperty,
+	};
+
+	const auto finished = [=](QDBusPendingCallWatcher *call) {
+		const auto error = QDBusPendingReply<QVariant>(*call).error();
+
+		if (!ranges::contains(DontLogErrors, error.type())) {
+			LOG(("Native Notification Error: %1: %2")
+				.arg(error.name())
+				.arg(error.message()));
+		}
+
+		crl::on_main([=] { callback(!error.isValid()); });
+		call->deleteLater();
+	};
+
+	QObject::connect(watcher, &QDBusPendingCallWatcher::finished, finished);
+}
+
+bool Inhibited() {
+	if (!Supported()
+		|| !CurrentCapabilities.contains(qsl("inhibitions"))
+		|| !InhibitionSupported) {
+		return false;
+	}
+
+	auto message = QDBusMessage::createMethodCall(
+		kService.utf16(),
+		kObjectPath.utf16(),
+		kPropertiesInterface.utf16(),
+		qsl("Get"));
+
+	message.setArguments({
+		kInterface.utf16(),
 		qsl("Inhibited")
 	});
 
 	const QDBusReply<QVariant> reply = QDBusConnection::sessionBus().call(
 		message);
 
-	static const auto NotSupportedErrors = {
-		QDBusError::ServiceUnknown,
-		QDBusError::InvalidArgs,
-	};
-
 	if (reply.isValid()) {
 		return reply.value().toBool();
-	} else if (ranges::contains(NotSupportedErrors, reply.error().type())) {
-		InhibitedNotSupported = true;
-	} else {
-		if (reply.error().type() == QDBusError::AccessDenied) {
-			InhibitedNotSupported = true;
-		}
-
-		LOG(("Native notification error: %1").arg(reply.error().message()));
 	}
+
+	LOG(("Native Notification Error: %1: %2")
+			.arg(reply.error().name())
+			.arg(reply.error().message()));
 
 	return false;
 }
 
-QVersionNumber ParseSpecificationVersion(
-		const std::vector<QString> &serverInformation) {
-	if (serverInformation.size() >= 4) {
-		return QVersionNumber::fromString(serverInformation[3]);
-	} else {
-		LOG(("Native notification error: "
-			"server information should have 4 elements"));
-	}
+bool IsQualifiedDaemon() {
+	// A list of capabilities that offer feature parity
+	// with custom notifications
+	static const auto NeededCapabilities = {
+		// To show message content
+		qsl("body"),
+		// To make the sender name bold
+		qsl("body-markup"),
+		// To have buttons on notifications
+		qsl("actions"),
+		// To have quick reply
+		qsl("inline-reply"),
+		// To not to play sound with Don't Disturb activated
+		// (no, using sound capability is not a way)
+		qsl("inhibitions"),
+	};
 
-	return QVersionNumber();
+	return ranges::all_of(NeededCapabilities, [&](const auto &capability) {
+		return CurrentCapabilities.contains(capability);
+	}) && InhibitionSupported;
+}
+
+ServerInformation CurrentServerInformationValue() {
+	return CurrentServerInformation.value_or(ServerInformation{});
 }
 
 QString GetImageKey(const QVersionNumber &specificationVersion) {
-	if (!specificationVersion.isNull()) {
-		if (specificationVersion >= QVersionNumber(1, 2)) {
-			return qsl("image-data");
-		} else if (specificationVersion == QVersionNumber(1, 1)) {
-			return qsl("image_data");
-		} else if (specificationVersion < QVersionNumber(1, 1)) {
-			return qsl("icon_data");
-		} else {
-			LOG(("Native notification error: unknown specification version"));
-		}
-	} else {
-		LOG(("Native notification error: specification version is null"));
+	const auto normalizedVersion = specificationVersion.normalized();
+
+	if (normalizedVersion.isNull()) {
+		LOG(("Native Notification Error: specification version is null"));
+		return QString();
 	}
 
-	return QString();
+	if (normalizedVersion >= QVersionNumber(1, 2)) {
+		return qsl("image-data");
+	} else if (normalizedVersion == QVersionNumber(1, 1)) {
+		return qsl("image_data");
+	}
+
+	return qsl("icon_data");
 }
 
 class NotificationData {
@@ -234,13 +265,14 @@ public:
 
 	~NotificationData();
 
-	bool show();
+	void show();
 	void close();
 	void setImage(const QString &imagePath);
 
 private:
 	GDBusConnection *_dbusConnection = nullptr;
 	base::weak_ptr<Manager> _manager;
+	GCancellable *_cancellable = nullptr;
 
 	QString _title;
 	QString _body;
@@ -258,6 +290,11 @@ private:
 	void notificationClosed(uint id, uint reason);
 	void actionInvoked(uint id, const QString &actionName);
 	void notificationReplied(uint id, const QString &text);
+
+	static void notificationShown(
+		GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data);
 
 	static void signalEmitted(
 		GDBusConnection *connection,
@@ -280,9 +317,9 @@ NotificationData::NotificationData(
 	NotificationId id,
 	bool hideReplyButton)
 : _manager(manager)
+, _cancellable(g_cancellable_new())
 , _title(title)
-, _imageKey(GetImageKey(ParseSpecificationVersion(
-	GetServerInformation())))
+, _imageKey(GetImageKey(CurrentServerInformationValue().specVersion))
 , _id(id) {
 	GError *error = nullptr;
 
@@ -292,12 +329,12 @@ NotificationData::NotificationData(
 		&error);
 
 	if (error) {
-		LOG(("Native notification error: %1").arg(error->message));
+		LOG(("Native Notification Error: %1").arg(error->message));
 		g_error_free(error);
 		return;
 	}
 
-	const auto capabilities = GetCapabilities();
+	const auto capabilities = CurrentCapabilities;
 
 	if (capabilities.contains(qsl("body-markup"))) {
 		_body = subtitle.isEmpty()
@@ -326,10 +363,10 @@ NotificationData::NotificationData(
 
 			_notificationRepliedSignalId = g_dbus_connection_signal_subscribe(
 				_dbusConnection,
-				kService.utf8(),
-				kInterface.utf8(),
+				kService.utf8().constData(),
+				kInterface.utf8().constData(),
 				"NotificationReplied",
-				kObjectPath.utf8(),
+				kObjectPath.utf8().constData(),
 				nullptr,
 				G_DBUS_SIGNAL_FLAGS_NONE,
 				signalEmitted,
@@ -343,10 +380,10 @@ NotificationData::NotificationData(
 
 		_actionInvokedSignalId = g_dbus_connection_signal_subscribe(
 			_dbusConnection,
-			kService.utf8(),
-			kInterface.utf8(),
+			kService.utf8().constData(),
+			kInterface.utf8().constData(),
 			"ActionInvoked",
-			kObjectPath.utf8(),
+			kObjectPath.utf8().constData(),
 			nullptr,
 			G_DBUS_SIGNAL_FLAGS_NONE,
 			signalEmitted,
@@ -383,14 +420,14 @@ NotificationData::NotificationData(
 
 	_hints.emplace(
 		qsl("desktop-entry"),
-		g_variant_new_string(GetLauncherBasename().toUtf8()));
+		g_variant_new_string(GetLauncherBasename().toUtf8().constData()));
 
 	_notificationClosedSignalId = g_dbus_connection_signal_subscribe(
 		_dbusConnection,
-		kService.utf8(),
-		kInterface.utf8(),
+		kService.utf8().constData(),
+		kInterface.utf8().constData(),
 		"NotificationClosed",
-		kObjectPath.utf8(),
+		kObjectPath.utf8().constData(),
 		nullptr,
 		G_DBUS_SIGNAL_FLAGS_NONE,
 		signalEmitted,
@@ -426,9 +463,12 @@ NotificationData::~NotificationData() {
 			g_variant_unref(value);
 		}
 	}
+
+	g_cancellable_cancel(_cancellable);
+	g_object_unref(_cancellable);
 }
 
-bool NotificationData::show() {
+void NotificationData::show() {
 	GVariantBuilder actionsBuilder, hintsBuilder;
 	GError *error = nullptr;
 
@@ -455,14 +495,14 @@ bool NotificationData::show() {
 		? GetIconName()
 		: QString();
 
-	auto reply = g_dbus_connection_call_sync(
+	g_dbus_connection_call(
 		_dbusConnection,
-		kService.utf8(),
-		kObjectPath.utf8(),
-		kInterface.utf8(),
+		kService.utf8().constData(),
+		kObjectPath.utf8().constData(),
+		kInterface.utf8().constData(),
 		"Notify",
 		g_variant_new(
-			kNotifyArgsType.utf8(),
+			"(susssasa{sv}i)",
 			AppName.utf8().constData(),
 			0,
 			iconName.toUtf8().constData(),
@@ -473,29 +513,55 @@ bool NotificationData::show() {
 			-1),
 		nullptr,
 		G_DBUS_CALL_FLAGS_NONE,
-		kDBusTimeout,
-		nullptr,
+		-1,
+		_cancellable,
+		notificationShown,
+		this);
+}
+
+void NotificationData::notificationShown(
+		GObject *source_object,
+		GAsyncResult *res,
+		gpointer user_data) {
+	GError *error = nullptr;
+
+	auto reply = g_dbus_connection_call_finish(
+		reinterpret_cast<GDBusConnection*>(source_object),
+		res,
 		&error);
 
-	const auto replyValid = !error;
-
-	if (replyValid) {
-		g_variant_get(reply, "(u)", &_notificationId);
-		g_variant_unref(reply);
-	} else {
-		LOG(("Native notification error: %1").arg(error->message));
+	if (error && error->code == G_IO_ERROR_CANCELLED) {
 		g_error_free(error);
+		return;
 	}
 
-	return replyValid;
+	const auto notificationData = reinterpret_cast<NotificationData*>(
+		user_data);
+
+	if (!notificationData) {
+		return;
+	}
+
+	if (!error) {
+		g_variant_get(reply, "(u)", &notificationData->_notificationId);
+		g_variant_unref(reply);
+	} else {
+		const auto manager = notificationData->_manager;
+		const auto my = notificationData->_id;
+		crl::on_main(manager, [=] {
+			manager->clearNotification(my);
+		});
+		LOG(("Native Notification Error: %1").arg(error->message));
+		g_error_free(error);
+	}
 }
 
 void NotificationData::close() {
 	g_dbus_connection_call(
 		_dbusConnection,
-		kService.utf8(),
-		kObjectPath.utf8(),
-		kInterface.utf8(),
+		kService.utf8().constData(),
+		kObjectPath.utf8().constData(),
+		kInterface.utf8().constData(),
 		"CloseNotification",
 		g_variant_new("(u)", _notificationId),
 		nullptr,
@@ -514,7 +580,7 @@ void NotificationData::setImage(const QString &imagePath) {
 	_image = QImage(imagePath).convertToFormat(QImage::Format_RGBA8888);
 
 	_hints.emplace(_imageKey, g_variant_new(
-		kImageDataType.utf8(),
+		"(iiibii@ay)",
 		_image.width(),
 		_image.height(),
 		_image.bytesPerLine(),
@@ -524,11 +590,7 @@ void NotificationData::setImage(const QString &imagePath) {
 		g_variant_new_from_data(
 			G_VARIANT_TYPE("ay"),
 			_image.constBits(),
-#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
-			_image.byteCount(),
-#else // Qt < 5.10.0
 			_image.sizeInBytes(),
-#endif // Qt >= 5.10.0
 			true,
 			nullptr,
 			nullptr)));
@@ -615,71 +677,95 @@ void NotificationData::notificationReplied(uint id, const QString &text) {
 }
 
 } // namespace
-#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 bool SkipAudio() {
-#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-	if (Supported()
-		&& GetCapabilities().contains(qsl("inhibitions"))
-		&& !InhibitedNotSupported) {
-		return Inhibited();
-	}
-#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-
-	return false;
+	return Inhibited();
 }
 
 bool SkipToast() {
-	return SkipAudio();
+	// Do not skip native notifications because of Do not disturb.
+	// They respect this setting anyway.
+	if ((Core::App().settings().nativeNotifications() && Supported())
+		|| Enforced()) {
+		return false;
+	}
+
+	return Inhibited();
 }
 
 bool SkipFlashBounce() {
-	return SkipAudio();
+	return Inhibited();
 }
 
 bool Supported() {
-#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-	return NotificationsSupported;
-#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-
-	return false;
+	return ServiceRegistered;
 }
 
-std::unique_ptr<Window::Notifications::Manager> Create(
-		Window::Notifications::System *system) {
-#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-	GetSupported();
-#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+bool Enforced() {
+	// Wayland doesn't support positioning
+	// and custom notifications don't work here
+	return IsWayland();
+}
 
-	if ((Core::App().settings().nativeNotifications() && Supported())
-		|| IsWayland()) {
-		return std::make_unique<Manager>(system);
+bool ByDefault() {
+	return IsQualifiedDaemon();
+}
+
+void Create(Window::Notifications::System *system) {
+	ServiceRegistered = GetServiceRegistered();
+
+	const auto managerSetter = [=] {
+		using ManagerType = Window::Notifications::ManagerType;
+		if ((Core::App().settings().nativeNotifications() && Supported())
+			|| Enforced()) {
+			if (!system->managerType().has_value()
+				|| *system->managerType() != ManagerType::Native) {
+				system->setManager(std::make_unique<Manager>(system));
+			}
+		} else if (!system->managerType().has_value()
+			|| *system->managerType() != ManagerType::Default) {
+			system->setManager(nullptr);
+		}
+	};
+
+	if (!ServiceRegistered) {
+		CurrentServerInformation = std::nullopt;
+		CurrentCapabilities = QStringList{};
+		InhibitionSupported = false;
+		managerSetter();
+		return;
 	}
 
-	return nullptr;
+	// There are some asserts that manager is not nullptr,
+	// avoid crashes until some real manager is created
+	if (!system->managerType().has_value()) {
+		using DummyManager = Window::Notifications::DummyManager;
+		system->setManager(std::make_unique<DummyManager>(system));
+	}
+
+	const auto counter = std::make_shared<int>(3);
+	const auto oneReady = [=] {
+		if (!--*counter) {
+			managerSetter();
+		}
+	};
+
+	GetServerInformation([=](std::optional<ServerInformation> result) {
+		CurrentServerInformation = result;
+		oneReady();
+	});
+
+	GetCapabilities([=](QStringList result) {
+		CurrentCapabilities = result;
+		oneReady();
+	});
+
+	GetInhibitionSupported([=](bool result) {
+		InhibitionSupported = result;
+		oneReady();
+	});
 }
 
-#ifdef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-class Manager::Private {
-public:
-	using Type = Window::Notifications::CachedUserpics::Type;
-	explicit Private(not_null<Manager*> manager, Type type) {}
-
-	void showNotification(
-		not_null<PeerData*> peer,
-		std::shared_ptr<Data::CloudImageView> &userpicView,
-		MsgId msgId,
-		const QString &title,
-		const QString &subtitle,
-		const QString &msg,
-		bool hideNameAndPhoto,
-		bool hideReplyButton) {}
-	void clearAll() {}
-	void clearFromHistory(not_null<History*> history) {}
-	void clearFromSession(not_null<Main::Session*> session) {}
-	void clearNotification(NotificationId id) {}
-};
-#else // DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 class Manager::Private {
 public:
 	using Type = Window::Notifications::CachedUserpics::Type;
@@ -717,21 +803,21 @@ Manager::Private::Private(not_null<Manager*> manager, Type type)
 		return;
 	}
 
-	const auto serverInformation = GetServerInformation();
-	const auto capabilities = GetCapabilities();
+	const auto serverInformation = CurrentServerInformation;
+	const auto capabilities = CurrentCapabilities;
 
-	if (!serverInformation.empty()) {
+	if (serverInformation.has_value()) {
 		LOG(("Notification daemon product name: %1")
-			.arg(serverInformation[0]));
+			.arg(serverInformation->name));
 
 		LOG(("Notification daemon vendor name: %1")
-			.arg(serverInformation[1]));
+			.arg(serverInformation->vendor));
 
 		LOG(("Notification daemon version: %1")
-			.arg(serverInformation[2]));
+			.arg(serverInformation->version.toString()));
 
 		LOG(("Notification daemon specification version: %1")
-			.arg(serverInformation[3]));
+			.arg(serverInformation->specVersion.toString()));
 	}
 
 	if (!capabilities.isEmpty()) {
@@ -787,15 +873,7 @@ void Manager::Private::showNotification(
 			base::flat_map<MsgId, Notification>()).first;
 	}
 	i->second.emplace(msgId, notification);
-	if (!notification->show()) {
-		i = _notifications.find(key);
-		if (i != _notifications.cend()) {
-			i->second.remove(msgId);
-			if (i->second.empty()) {
-				_notifications.erase(i);
-			}
-		}
-	}
+	notification->show();
 }
 
 void Manager::Private::clearAll() {
@@ -866,7 +944,6 @@ void Manager::Private::clearNotification(NotificationId id) {
 Manager::Private::~Private() {
 	clearAll();
 }
-#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 Manager::Manager(not_null<Window::Notifications::System*> system)
 : NativeManager(system)

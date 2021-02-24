@@ -48,7 +48,6 @@ void activateBotCommand(
 	int row,
 	int column);
 void searchByHashtag(const QString &tag, PeerData *inPeer, UserData *from = nullptr);
-void showSettings();
 
 } // namespace App
 

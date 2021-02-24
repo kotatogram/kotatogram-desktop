@@ -1,19 +1,21 @@
 FROM centos:7 AS builder
 
 ENV GIT https://github.com
-ENV PKG_CONFIG_PATH /usr/local/lib/pkgconfig
+ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig
 ENV QT 5_15_2
 ENV QT_TAG v5.15.2
 ENV QT_PREFIX /usr/local/desktop-app/Qt-5.15.2
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
+ENV PATH ${PATH}:${QT_PREFIX}/bin
+ENV Qt5_DIR ${QT_PREFIX}
 
 RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 RUN yum -y install https://packages.endpoint.com/rhel/7/os/x86_64/endpoint-repo-1.7-1.x86_64.rpm
 RUN yum -y install centos-release-scl
 
-RUN yum -y install git cmake3 zlib-devel gtk2-devel gtk3-devel \
-	libdrm-devel autoconf automake libtool fontconfig-devel \
+RUN yum -y install git cmake3 meson ninja-build autoconf automake libtool \
+	zlib-devel gtk2-devel gtk3-devel libdrm-devel fontconfig-devel \
 	freetype-devel libX11-devel at-spi2-core-devel alsa-lib-devel \
 	pulseaudio-libs-devel mesa-libGL-devel mesa-libEGL-devel \
 	pkgconfig bison yasm file which xorg-x11-util-macros \
@@ -27,8 +29,20 @@ ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
 
 FROM builder AS patches
-RUN git clone $GIT/desktop-app/patches.git
-RUN cd patches && git checkout 6afd91a
+ADD https://api.github.com/repos/desktop-app/patches/git/refs/heads/master patches-version.json
+RUN git clone --depth=1 $GIT/desktop-app/patches.git
+
+FROM builder AS extra-cmake-modules
+
+RUN git clone -b v5.77.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
+
+WORKDIR extra-cmake-modules
+RUN cmake3 -B build . -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+RUN cmake3 --build build -j$(nproc)
+RUN DESTDIR="$LibrariesPath/extra-cmake-modules-cache" cmake3 --install build
+
+WORKDIR ..
+RUN rm -rf extra-cmake-modules
 
 FROM builder AS libffi
 RUN git clone -b v3.3 --depth=1 $GIT/libffi/libffi.git
@@ -107,20 +121,18 @@ RUN rm -rf libxcb
 
 FROM builder AS xcb-wm
 
-RUN git clone --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-wm.git
+RUN git clone -b 0.4.1 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-wm.git
 
 WORKDIR libxcb-wm
-RUN git checkout 0.4.1
 RUN ./autogen.sh --enable-static
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/xcb-wm-cache" install
 
 FROM builder AS xcb-util
 
-RUN git clone --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-util.git
+RUN git clone -b 0.4.0 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-util.git
 
 WORKDIR libxcb-util
-RUN git checkout 0.4.0
 RUN ./autogen.sh --enable-static
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/xcb-util-cache" install
@@ -128,30 +140,27 @@ RUN make DESTDIR="$LibrariesPath/xcb-util-cache" install
 FROM builder AS xcb-image
 COPY --from=xcb-util ${LibrariesPath}/xcb-util-cache /
 
-RUN git clone --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-image.git
+RUN git clone -b 0.4.0 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-image.git
 
 WORKDIR libxcb-image
-RUN git checkout 0.4.0
 RUN ./autogen.sh --enable-static
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/xcb-image-cache" install
 
 FROM builder AS xcb-keysyms
 
-RUN git clone --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-keysyms.git
+RUN git clone -b 0.4.0 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-keysyms.git
 
 WORKDIR libxcb-keysyms
-RUN git checkout 0.4.0
 RUN ./autogen.sh --enable-static
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/xcb-keysyms-cache" install
 
 FROM builder AS xcb-render-util
 
-RUN git clone --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-render-util.git
+RUN git clone -b 0.3.9 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-render-util.git
 
 WORKDIR libxcb-render-util
-RUN git checkout 0.3.9
 RUN ./autogen.sh --enable-static
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/xcb-render-util-cache" install
@@ -208,6 +217,32 @@ RUN make DESTDIR="$LibrariesPath/wayland-cache" install
 WORKDIR ..
 RUN rm -rf wayland
 
+FROM builder AS wayland-protocols
+COPY --from=wayland ${LibrariesPath}/wayland-cache /
+
+RUN git clone -b 1.20 --depth=1 https://gitlab.freedesktop.org/wayland/wayland-protocols.git
+
+WORKDIR wayland-protocols
+RUN ./autogen.sh
+RUN make -j$(nproc)
+RUN make DESTDIR="$LibrariesPath/wayland-protocols-cache" install
+
+WORKDIR ..
+RUN rm -rf wayland-protocols
+
+FROM builder AS plasma-wayland-protocols
+COPY --from=extra-cmake-modules ${LibrariesPath}/extra-cmake-modules-cache /
+
+RUN git clone -b v1.1.1 --depth=1 $GIT/KDE/plasma-wayland-protocols.git
+
+WORKDIR plasma-wayland-protocols
+RUN cmake3 -B build . -DCMAKE_BUILD_TYPE=Release
+RUN cmake3 --build build -j$(nproc)
+RUN DESTDIR="$LibrariesPath/plasma-wayland-protocols-cache" cmake3 --install build
+
+WORKDIR ..
+RUN rm -rf plasma-wayland-protocols
+
 FROM builder AS libva
 
 COPY --from=libffi ${LibrariesPath}/libffi-cache /
@@ -215,10 +250,14 @@ COPY --from=libXext ${LibrariesPath}/libXext-cache /
 COPY --from=libXfixes ${LibrariesPath}/libXfixes-cache /
 COPY --from=wayland ${LibrariesPath}/wayland-cache /
 
-RUN git clone -b 2.9.0 --depth=1 $GIT/intel/libva.git
+RUN git clone -b 2.10.0 --depth=1 $GIT/intel/libva.git
 
 WORKDIR libva
-RUN ./autogen.sh --enable-static
+RUN ./autogen.sh \
+	--enable-static \
+	--sysconfdir=/etc \
+	--with-drivers-path=/usr/lib/dri
+
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/libva-cache" install
 
@@ -226,12 +265,19 @@ WORKDIR ..
 RUN rm -rf libva
 
 FROM builder AS libvdpau
-RUN git clone -b libvdpau-1.2 --depth=1 https://gitlab.freedesktop.org/vdpau/libvdpau.git
+RUN git clone -b 1.4 --depth=1 https://gitlab.freedesktop.org/vdpau/libvdpau.git
 
 WORKDIR libvdpau
-RUN ./autogen.sh --enable-static
-RUN make -j$(nproc)
-RUN make DESTDIR="$LibrariesPath/libvdpau-cache" install
+RUN sed -i 's/shared_library/library/g' src/meson.build
+
+RUN meson build \
+	--default-library=both \
+	--sysconfdir=/etc \
+	-Ddocumentation=false \
+	-Dmoduledir=/usr/lib/vdpau
+
+RUN meson compile -C build -j$(nproc)
+RUN DESTDIR="$LibrariesPath/libvdpau-cache" meson install -C build
 
 WORKDIR ..
 RUN rm -rf libvdpau
@@ -356,7 +402,7 @@ RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/ffmpeg-cache" install
 
 FROM builder AS openal
-RUN git clone -b openal-soft-1.21.0 --depth=1 $GIT/kcat/openal-soft.git
+RUN git clone -b fix_pulse_default --depth=1 $GIT/telegramdesktop/openal-soft.git
 
 WORKDIR openal-soft
 RUN cmake3 -B build . \
@@ -379,7 +425,12 @@ RUN git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
 	$GIT/openssl/openssl.git $opensslDir
 
 WORKDIR ${opensslDir}
-RUN ./config --prefix="$OPENSSL_PREFIX" no-tests
+RUN ./config \
+	--prefix="$OPENSSL_PREFIX" \
+	--openssldir=/etc/ssl \
+	no-tests \
+	no-dso
+
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/openssl-cache" install_sw
 
@@ -387,17 +438,22 @@ WORKDIR ..
 RUN rm -rf $opensslDir
 
 FROM builder AS xkbcommon
-RUN git clone -b xkbcommon-0.8.4 --depth=1 $GIT/xkbcommon/libxkbcommon.git
+COPY --from=xcb ${LibrariesPath}/xcb-cache /
+
+RUN git clone -b xkbcommon-1.0.3 --depth=1 $GIT/xkbcommon/libxkbcommon.git
 
 WORKDIR libxkbcommon
-RUN ./autogen.sh \
-	--disable-docs \
-	--disable-wayland \
-	--with-xkb-config-root=/usr/share/X11/xkb \
-	--with-x-locale-root=/usr/share/X11/locale
+RUN meson build \
+	--default-library=both \
+	-Denable-docs=false \
+	-Denable-wayland=false \
+	-Denable-xkbregistry=false \
+	-Dxkb-config-root=/usr/share/X11/xkb \
+	-Dxkb-config-extra-path=/etc/xkb \
+	-Dx-locale-root=/usr/share/X11/locale
 
-RUN make -j$(nproc)
-RUN make DESTDIR="$LibrariesPath/xkbcommon-cache" install
+RUN meson compile -C build -j$(nproc)
+RUN DESTDIR="$LibrariesPath/xkbcommon-cache" meson install -C build
 
 WORKDIR ..
 RUN rm -rf libxkbcommon
@@ -423,6 +479,8 @@ RUN git submodule update qtbase qtwayland qtimageformats qtsvg
 
 WORKDIR qtbase
 RUN find ../../patches/qtbase_${QT} -type f -print0 | sort -z | xargs -r0 git apply
+WORKDIR ../qtwayland
+RUN find ../../patches/qtwayland_${QT} -type f -print0 | sort -z | xargs -r0 git apply
 WORKDIR ..
 
 # I couldn't make it work with direct ./configure call :(
@@ -444,8 +502,7 @@ RUN echo './configure -prefix '$'\"''$QT_PREFIX'$'\"'' \
 	-I '$'\"''$OPENSSL_PREFIX/include'$'\"'' \
 	OPENSSL_LIBS='$'\"''$OPENSSL_PREFIX/lib/libssl.a $OPENSSL_PREFIX/lib/libcrypto.a -lz -ldl -lpthread'$'\"'' \
 	-nomake examples \
-	-nomake tests \
-	-L /usr/local/lib64' >> ./run_configure.sh
+	-nomake tests' >> ./run_configure.sh
 RUN cat ./run_configure.sh
 RUN chmod a+x ./run_configure.sh
 RUN ./run_configure.sh
@@ -456,6 +513,34 @@ RUN make INSTALL_ROOT="$LibrariesPath/qt-cache" install
 
 WORKDIR ..
 RUN rm -rf qt_${QT}
+
+FROM builder AS kwayland
+
+COPY --from=extra-cmake-modules ${LibrariesPath}/extra-cmake-modules-cache /
+COPY --from=libffi ${LibrariesPath}/libffi-cache /
+COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
+COPY --from=xcb ${LibrariesPath}/xcb-cache /
+COPY --from=xcb-wm ${LibrariesPath}/xcb-wm-cache /
+COPY --from=xcb-util ${LibrariesPath}/xcb-util-cache /
+COPY --from=xcb-image ${LibrariesPath}/xcb-image-cache /
+COPY --from=xcb-keysyms ${LibrariesPath}/xcb-keysyms-cache /
+COPY --from=xcb-render-util ${LibrariesPath}/xcb-render-util-cache /
+COPY --from=wayland ${LibrariesPath}/wayland-cache /
+COPY --from=wayland-protocols ${LibrariesPath}/wayland-protocols-cache /
+COPY --from=plasma-wayland-protocols ${LibrariesPath}/plasma-wayland-protocols-cache /
+COPY --from=openssl ${LibrariesPath}/openssl-cache /
+COPY --from=xkbcommon ${LibrariesPath}/xkbcommon-cache /
+COPY --from=qt ${LibrariesPath}/qt-cache /
+
+RUN git clone -b v5.77.0 --depth=1 $GIT/KDE/kwayland.git
+
+WORKDIR kwayland
+RUN cmake3 -B build . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF
+RUN cmake3 --build build -j$(nproc)
+RUN DESTDIR="$LibrariesPath/kwayland-cache" cmake3 --install build
+
+WORKDIR ..
+RUN rm -rf kwayland
 
 FROM patches AS breakpad
 RUN git clone https://chromium.googlesource.com/breakpad/breakpad.git
@@ -482,7 +567,7 @@ RUN make DESTDIR="$BreakpadCache" install
 
 WORKDIR src
 RUN rm -rf testing
-RUN git clone $GIT/google/googletest.git testing
+RUN git clone --depth=1 $GIT/google/googletest.git testing
 
 WORKDIR tools
 RUN sed -i 's/minidump_upload.m/minidump_upload.cc/' linux/tools_linux.gypi
@@ -503,10 +588,10 @@ COPY --from=opus ${LibrariesPath}/opus-cache /
 COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
 COPY --from=openssl ${LibrariesPath}/openssl-cache /
 
-RUN git clone --recursive $GIT/desktop-app/tg_owt.git
+ADD https://api.github.com/repos/desktop-app/tg_owt/git/refs/heads/master tg_owt-version.json
+RUN git clone --depth=1 --recursive $GIT/desktop-app/tg_owt.git
 
 WORKDIR tg_owt
-RUN git checkout 75ac669
 
 RUN cmake3 -B out/Release . \
 	-DCMAKE_BUILD_TYPE=Release \
@@ -516,7 +601,7 @@ RUN cmake3 -B out/Release . \
 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
 
-RUN cmake3 --build out/Release -- -j8
+RUN cmake3 --build out/Release -- -j$(nproc)
 
 RUN cmake3 -B out/Debug . \
 	-DCMAKE_BUILD_TYPE=Debug \
@@ -526,7 +611,7 @@ RUN cmake3 -B out/Debug . \
 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
 
-RUN cmake3 --build out/Debug -- -j8
+RUN cmake3 --build out/Debug -- -j$(nproc)
 
 FROM builder
 
@@ -552,6 +637,7 @@ COPY --from=openal ${LibrariesPath}/openal-cache /
 COPY --from=openssl ${LibrariesPath}/openssl-cache /
 COPY --from=xkbcommon ${LibrariesPath}/xkbcommon-cache /
 COPY --from=qt ${LibrariesPath}/qt-cache /
+COPY --from=kwayland ${LibrariesPath}/kwayland-cache /
 COPY --from=breakpad ${LibrariesPath}/breakpad breakpad
 COPY --from=breakpad ${LibrariesPath}/breakpad-cache /
 COPY --from=webrtc ${LibrariesPath}/tg_owt tg_owt

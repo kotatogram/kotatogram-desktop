@@ -45,6 +45,7 @@ class FormController;
 
 namespace Ui {
 class LayerWidget;
+enum class ReportReason;
 } // namespace Ui
 
 namespace Window {
@@ -326,8 +327,18 @@ public:
 		Dialogs::Key chat,
 		QDate requestedDate);
 
+	void showAddContact();
+	void showNewGroup();
+	void showNewChannel();
+
 	void showPassportForm(const Passport::FormRequest &request);
 	void clearPassportForm();
+
+	void showChooseReportMessages(
+		not_null<PeerData*> peer,
+		Ui::ReportReason reason,
+		Fn<void(MessageIdsList)> done);
+	void clearChooseReportMessages();
 
 	base::Variable<bool> &dialogsListFocused() {
 		return _dialogsListFocused;

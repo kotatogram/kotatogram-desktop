@@ -322,7 +322,8 @@ AdminLog::OwnedItem GenerateContactItem(
 		MTP_string(),
 		MTP_long(0),
 		//MTPMessageReactions(),
-		MTPVector<MTPRestrictionReason>());
+		MTPVector<MTPRestrictionReason>(),
+		MTPint()); // ttl_period
 	const auto item = history->makeMessage(
 		message.c_message(),
 		MTPDmessage_ClientFlag::f_fake_history_item);
@@ -528,7 +529,7 @@ void ConfirmContactBox::prepare() {
 	_contact->initDimensions();
 	accumulate_max(maxWidth, _contact->maxWidth());
 	maxWidth += st::boxPadding.left() + st::boxPadding.right();
-	const auto width = snap(maxWidth, st::boxWidth, st::boxWideWidth);
+	const auto width = std::clamp(maxWidth, st::boxWidth, st::boxWideWidth);
 	const auto available = width
 		- st::boxPadding.left()
 		- st::boxPadding.right();

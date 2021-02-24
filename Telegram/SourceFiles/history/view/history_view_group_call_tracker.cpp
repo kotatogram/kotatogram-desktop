@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_group_call.h"
 #include "main/main_session.h"
 #include "ui/chat/group_call_bar.h"
+#include "ui/chat/group_call_userpics.h"
 #include "ui/painter.h"
 #include "calls/calls_group_call.h"
 #include "calls/calls_instance.h"
@@ -25,7 +26,7 @@ namespace HistoryView {
 void GenerateUserpicsInRow(
 		QImage &result,
 		const std::vector<UserpicInRow> &list,
-		const UserpicsInRowStyle &st,
+		const style::GroupCallUserpics &st,
 		int maxElements) {
 	const auto count = int(list.size());
 	if (!count) {
@@ -89,7 +90,7 @@ GroupCallTracker::GroupCallTracker(not_null<PeerData*> peer)
 
 rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 		not_null<Data::GroupCall*> call,
-		const UserpicsInRowStyle &st) {
+		int userpicSize) {
 	struct State {
 		std::vector<UserpicInRow> userpics;
 		Ui::GroupCallBarContent current;
@@ -152,7 +153,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 	static const auto RegenerateUserpics = [](
 			not_null<State*> state,
 			not_null<Data::GroupCall*> call,
-			const UserpicsInRowStyle &st,
+			int userpicSize,
 			bool force = false) {
 		const auto result = FillMissingUserpics(state, call) || force;
 		if (!result) {
@@ -163,7 +164,9 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 		state->someUserpicsNotLoaded = false;
 		for (auto &userpic : state->userpics) {
 			userpic.peer->loadUserpic();
-			const auto pic = userpic.peer->genUserpic(userpic.view, st.size);
+			const auto pic = userpic.peer->genUserpic(
+				userpic.view,
+				userpicSize);
 			userpic.uniqueKey = userpic.peer->userpicUniqueKey(userpic.view);
 			state->current.users.push_back({
 				.userpic = pic.toImage(),
@@ -183,7 +186,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 			not_null<State*> state,
 			not_null<Data::GroupCall*> call,
 			not_null<UserData*> user,
-			const UserpicsInRowStyle &st) {
+			int userpicSize) {
 		const auto i = ranges::find(
 			state->userpics,
 			user,
@@ -192,7 +195,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 			return false;
 		}
 		state->userpics.erase(i);
-		RegenerateUserpics(state, call, st, true);
+		RegenerateUserpics(state, call, userpicSize, true);
 		return true;
 	};
 
@@ -200,7 +203,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 			not_null<State*> state,
 			not_null<Data::GroupCall*> call,
 			not_null<UserData*> user,
-			const UserpicsInRowStyle &st) {
+			int userpicSize) {
 		Expects(state->userpics.size() <= kLimit);
 
 		const auto &participants = call->participants();
@@ -259,7 +262,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 			}
 			Assert(state->userpics.size() <= kLimit);
 		}
-		RegenerateUserpics(state, call, st, true);
+		RegenerateUserpics(state, call, userpicSize, true);
 		return true;
 	};
 
@@ -284,12 +287,12 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 		) | rpl::start_with_next([=](const ParticipantUpdate &update) {
 			const auto user = update.now ? update.now->user : update.was->user;
 			if (!update.now) {
-				if (RemoveUserpic(state, call, user, st)) {
+				if (RemoveUserpic(state, call, user, userpicSize)) {
 					pushNext();
 				}
 			} else if (update.now->speaking
 				&& (!update.was || !update.was->speaking)) {
-				if (CheckPushToFront(state, call, user, st)) {
+				if (CheckPushToFront(state, call, user, userpicSize)) {
 					pushNext();
 				}
 			} else {
@@ -309,7 +312,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 						updateSpeakingState = false;
 					}
 				}
-				if (RegenerateUserpics(state, call, st)
+				if (RegenerateUserpics(state, call, userpicSize)
 					|| updateSpeakingState) {
 					pushNext();
 				}
@@ -318,7 +321,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 
 		call->participantsSliceAdded(
 		) | rpl::filter([=] {
-			return RegenerateUserpics(state, call, st);
+			return RegenerateUserpics(state, call, userpicSize);
 		}) | rpl::start_with_next(pushNext, lifetime);
 
 		call->peer()->session().downloaderTaskFinished(
@@ -328,18 +331,19 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 			for (const auto &userpic : state->userpics) {
 				if (userpic.peer->userpicUniqueKey(userpic.view)
 					!= userpic.uniqueKey) {
-					RegenerateUserpics(state, call, st, true);
+					RegenerateUserpics(state, call, userpicSize, true);
 					pushNext();
 					return;
 				}
 			}
 		}, lifetime);
 
-		RegenerateUserpics(state, call, st);
+		RegenerateUserpics(state, call, userpicSize);
 
 		call->fullCountValue(
 		) | rpl::start_with_next([=](int count) {
 			state->current.count = count;
+			state->current.shown = (count > 0);
 			consumer.put_next_copy(state->current);
 		}, lifetime);
 
@@ -367,12 +371,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::content() const {
 		} else if (!call->fullCount() && !call->participantsLoaded()) {
 			call->reload();
 		}
-		const auto st = UserpicsInRowStyle{
-			.size = st::historyGroupCallUserpicSize,
-			.shift = st::historyGroupCallUserpicShift,
-			.stroke = st::historyGroupCallUserpicStroke,
-		};
-		return ContentByCall(call, st);
+		return ContentByCall(call, st::historyGroupCallUserpics.size);
 	}) | rpl::flatten_latest();
 }
 

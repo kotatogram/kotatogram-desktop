@@ -121,8 +121,6 @@ Widget::Widget(
 
 	_next->entity()->setClickedCallback([=] { getStep()->submit(); });
 
-	_settings->entity()->setClickedCallback([] { App::wnd()->showSettings(); });
-
 	if (_changeLanguage) {
 		_changeLanguage->finishAnimating();
 	}
@@ -151,6 +149,10 @@ Widget::Widget(
 			checkUpdateStatus();
 		}, lifetime());
 	}
+}
+
+rpl::producer<> Widget::showSettingsRequested() const {
+	return _settings->entity()->clicks() | rpl::to_empty;
 }
 
 not_null<Media::Player::FloatDelegate*> Widget::floatPlayerDelegate() {
@@ -478,10 +480,17 @@ void Widget::resetAccount() {
 			_resetRequest = 0;
 
 			Ui::hideLayer();
-			moveToStep(
-				new SignupWidget(this, _account, getData()),
-				StackAction::Replace,
-				Animate::Forward);
+			if (getData()->phone.isEmpty()) {
+				moveToStep(
+					new QrWidget(this, _account, getData()),
+					StackAction::Replace,
+					Animate::Back);
+			} else {
+				moveToStep(
+					new SignupWidget(this, _account, getData()),
+					StackAction::Replace,
+					Animate::Forward);
+			}
 		}).fail([=](const RPCError &error) {
 			_resetRequest = 0;
 

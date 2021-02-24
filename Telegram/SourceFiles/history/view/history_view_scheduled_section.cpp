@@ -234,23 +234,15 @@ void ScheduledWidget::setupComposeControls() {
 		showAtPosition(pos);
 	}, lifetime());
 
-	_composeControls->keyEvents(
+	_composeControls->scrollKeyEvents(
 	) | rpl::start_with_next([=](not_null<QKeyEvent*> e) {
-		if (e->key() == Qt::Key_Up) {
-			if (!_composeControls->isEditingMessage()) {
-				auto &messages = session().data().scheduledMessages();
-				if (const auto item = messages.lastSentMessage(_history)) {
-					_inner->editMessageRequestNotify(item->fullId());
-				} else {
-					_scroll->keyPressEvent(e);
-				}
-			} else {
-				_scroll->keyPressEvent(e);
-			}
-			e->accept();
-		} else if (e->key() == Qt::Key_Down) {
+		_scroll->keyPressEvent(e);
+	}, lifetime());
+
+	_composeControls->editLastMessageRequests(
+	) | rpl::start_with_next([=](not_null<QKeyEvent*> e) {
+		if (!_inner->lastMessageEditRequestNotify()) {
 			_scroll->keyPressEvent(e);
-			e->accept();
 		}
 	}, lifetime());
 
@@ -361,21 +353,16 @@ bool ScheduledWidget::confirmSendingFiles(
 		return false;
 	}
 
-	//const auto cursor = _field->textCursor();
-	//const auto position = cursor.position();
-	//const auto anchor = cursor.anchor();
-	const auto text = _composeControls->getTextWithAppliedMarkdown();//_field->getTextWithTags();
 	using SendLimit = SendFilesBox::SendLimit;
 	auto box = Box<SendFilesBox>(
 		controller(),
 		std::move(list),
-		text,
+		_composeControls->getTextWithAppliedMarkdown(),
 		_history->peer->slowmodeApplied() ? SendLimit::One : SendLimit::Many,
 		CanScheduleUntilOnline(_history->peer)
 			? Api::SendType::ScheduledToUser
 			: Api::SendType::Scheduled,
 		SendMenu::Type::Disabled);
-	//_field->setTextWithTags({});
 
 	box->setConfirmedCallback(crl::guard(this, [=](
 			Ui::PreparedList &&list,
@@ -390,18 +377,8 @@ bool ScheduledWidget::confirmSendingFiles(
 			options,
 			ctrlShiftEnter);
 	}));
-	//box->setCancelledCallback(crl::guard(this, [=] {
-	//	_field->setTextWithTags(text);
-	//	auto cursor = _field->textCursor();
-	//	cursor.setPosition(anchor);
-	//	if (position != anchor) {
-	//		cursor.setPosition(position, QTextCursor::KeepAnchor);
-	//	}
-	//	_field->setTextCursor(cursor);
-	//	if (!insertTextOnCancel.isEmpty()) {
-	//		_field->textCursor().insertText(insertTextOnCancel);
-	//	}
-	//}));
+	box->setCancelledCallback(_composeControls->restoreTextCallback(
+		insertTextOnCancel));
 
 	//ActivateWindow(controller());
 	const auto shown = Ui::show(std::move(box));
@@ -525,11 +502,7 @@ void ScheduledWidget::send() {
 }
 
 void ScheduledWidget::send(Api::SendOptions options) {
-	const auto webPageId = _composeControls->webPageId();/* _previewCancelled
-		? CancelledWebPageId
-		: ((_previewData && _previewData->pendingTill >= 0)
-			? _previewData->id
-			: WebPageId(0));*/
+	const auto webPageId = _composeControls->webPageId();
 
 	auto message = ApiWrap::MessageToSend(_history);
 	message.textWithTags = _composeControls->getTextWithAppliedMarkdown();
@@ -812,10 +785,13 @@ void ScheduledWidget::showAtPosition(Data::MessagePosition position) {
 bool ScheduledWidget::showAtPositionNow(Data::MessagePosition position) {
 	if (const auto scrollTop = _inner->scrollTopForPosition(position)) {
 		const auto currentScrollTop = _scroll->scrollTop();
-		const auto wanted = snap(*scrollTop, 0, _scroll->scrollTopMax());
+		const auto wanted = std::clamp(
+			*scrollTop,
+			0,
+			_scroll->scrollTopMax());
 		const auto fullDelta = (wanted - currentScrollTop);
 		const auto limit = _scroll->height();
-		const auto scrollDelta = snap(fullDelta, -limit, limit);
+		const auto scrollDelta = std::clamp(fullDelta, -limit, limit);
 		_inner->scrollTo(
 			wanted,
 			position,

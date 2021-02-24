@@ -54,7 +54,6 @@ System::System()
 , _waitForAllGroupedTimer([=] { showGrouped(); }) {
 	subscribe(settingsChanged(), [=](ChangeType type) {
 		if (type == ChangeType::DesktopEnabled) {
-			App::wnd()->updateTrayMenu();
 			clearAll();
 		} else if (type == ChangeType::SoundEnabled) {
 			App::wnd()->updateTrayMenu();
@@ -68,10 +67,21 @@ System::System()
 }
 
 void System::createManager() {
-	_manager = Platform::Notifications::Create(this);
+	Platform::Notifications::Create(this);
+}
+
+void System::setManager(std::unique_ptr<Manager> manager) {
+	_manager = std::move(manager);
 	if (!_manager) {
 		_manager = std::make_unique<Default::Manager>(this);
 	}
+}
+
+std::optional<ManagerType> System::managerType() const {
+	if (_manager) {
+		return _manager->type();
+	}
+	return std::nullopt;
 }
 
 Main::Session *System::findSession(uint64 sessionId) const {
@@ -96,6 +106,12 @@ System::SkipState System::skipNotification(
 		return { SkipState::Skip };
 	}
 	const auto scheduled = item->out() && item->isFromScheduled();
+
+	if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
+		if (forwarded->imported) {
+			return { SkipState::Skip };
+		}
+	}
 
 	history->owner().requestNotifySettings(history->peer);
 	if (notifyBy) {

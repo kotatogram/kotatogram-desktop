@@ -128,7 +128,11 @@ void PeerListBox::prepare() {
 
 	_controller->setDelegate(this);
 
-	setDimensions(_controller->contentWidth(), st::boxMaxListHeight);
+	_controller->boxHeightValue(
+	) | rpl::start_with_next([=](int height) {
+		setDimensions(_controller->contentWidth(), height);
+	}, lifetime());
+
 	if (_select) {
 		_select->finishAnimating();
 		Ui::SendPendingMoveResizeEvents(_select);
@@ -295,7 +299,6 @@ void PeerListController::setDescriptionText(const QString &text) {
 	if (text.isEmpty()) {
 		setDescription(nullptr);
 	} else {
-		const auto &st = _listSt ? *_listSt : st::peerListBox;
 		setDescription(object_ptr<Ui::FlatLabel>(nullptr, text, computeListSt().about));
 	}
 }
@@ -333,6 +336,14 @@ void PeerListController::restoreState(
 
 int PeerListController::contentWidth() const {
 	return st::boxWideWidth;
+}
+
+rpl::producer<int> PeerListController::boxHeightValue() const {
+	return rpl::single(st::boxMaxListHeight);
+}
+
+int PeerListController::descriptionTopSkipMin() const {
+	return computeListSt().item.height;
 }
 
 void PeerListBox::addSelectItem(
@@ -1065,6 +1076,7 @@ int PeerListContent::fullRowsCount() const {
 
 not_null<PeerListRow*> PeerListContent::rowAt(int index) const {
 	Expects(index >= 0 && index < _rows.size());
+
 	return _rows[index].get();
 }
 
@@ -1234,7 +1246,10 @@ int PeerListContent::resizeGetHeight(int newWidth) {
 			_aboveHeight = _aboveSearchWidget->height();
 		}
 	}
-	const auto labelTop = rowsTop() + qMax(1, shownRowsCount()) * _rowHeight;
+	const auto labelTop = rowsTop()
+		+ std::max(
+			shownRowsCount() * _rowHeight,
+			_controller->descriptionTopSkipMin());
 	const auto labelWidth = newWidth - 2 * st::contactsPadding.left();
 	if (_description) {
 		_description->resizeToWidth(labelWidth);
@@ -1275,11 +1290,7 @@ void PeerListContent::enterEventHook(QEvent *e) {
 
 void PeerListContent::leaveEventHook(QEvent *e) {
 	setMouseTracking(false);
-	if (_mouseSelection) {
-		setSelected(Selected());
-		_mouseSelection = false;
-		_lastMousePosition = std::nullopt;
-	}
+	mouseLeftGeometry();
 }
 
 void PeerListContent::mouseMoveEvent(QMouseEvent *e) {
@@ -1569,7 +1580,10 @@ PeerListContent::SkipResult PeerListContent::selectSkip(int direction) {
 	}
 
 	// Snap the index.
-	newSelectedIndex = snap(newSelectedIndex, firstEnabled - 1, lastEnabled);
+	newSelectedIndex = std::clamp(
+		newSelectedIndex,
+		firstEnabled - 1,
+		lastEnabled);
 
 	// Skip the disabled rows.
 	if (newSelectedIndex < firstEnabled) {
@@ -1624,6 +1638,14 @@ bool PeerListContent::hasPressed() const {
 
 void PeerListContent::clearSelection() {
 	setSelected(Selected());
+}
+
+void PeerListContent::mouseLeftGeometry() {
+	if (_mouseSelection) {
+		setSelected(Selected());
+		_mouseSelection = false;
+		_lastMousePosition = std::nullopt;
+	}
 }
 
 void PeerListContent::loadProfilePhotos() {

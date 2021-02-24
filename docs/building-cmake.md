@@ -18,7 +18,7 @@ Go to the `kotatogram-desktop` directory and run
 
 Make sure that you're still in the `kotatogram-desktop` directory and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-    docker run --rm \
+    docker run --rm -it \
         -v $PWD:/usr/src/tdesktop \
         kotatogram-desktop:centos_env \
         /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
@@ -29,7 +29,7 @@ Make sure that you're still in the `kotatogram-desktop` directory and run (using
 
 Or, to create a debug build, run (also using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-    docker run --rm \
+    docker run --rm -it \
         -v $PWD:/usr/src/tdesktop \
         -e DEBUG=1 \
         kotatogram-desktop:centos_env \

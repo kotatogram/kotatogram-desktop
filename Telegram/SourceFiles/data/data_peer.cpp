@@ -110,9 +110,9 @@ void PeerClickHandler::onClick(ClickContext context) const {
 			&& (!currentPeer->isChannel()
 				|| currentPeer->asChannel()->linkedChat() != clickedChannel)) {
 			Ui::ShowMultilineToast({
-				.text = (_peer->isMegagroup()
+				.text = { _peer->isMegagroup()
 					? tr::lng_group_not_accessible(tr::now)
-					: tr::lng_channel_not_accessible(tr::now)),
+					: tr::lng_channel_not_accessible(tr::now) },
 			});
 		} else {
 			window->showPeerHistory(
@@ -789,12 +789,25 @@ bool PeerData::isScam() const {
 	return false;
 }
 
+bool PeerData::isFake() const {
+	if (const auto user = asUser()) {
+		return user->isFake();
+	} else if (const auto channel = asChannel()) {
+		return channel->isFake();
+	}
+	return false;
+}
+
 bool PeerData::isMegagroup() const {
-	return isChannel() ? asChannel()->isMegagroup() : false;
+	return isChannel() && asChannel()->isMegagroup();
 }
 
 bool PeerData::isBroadcast() const {
-	return isChannel() ? asChannel()->isBroadcast() : false;
+	return isChannel() && asChannel()->isBroadcast();
+}
+
+bool PeerData::isGigagroup() const {
+	return isChannel() && asChannel()->isGigagroup();
 }
 
 bool PeerData::isRepliesChat() const {
@@ -867,6 +880,12 @@ bool PeerData::canRevokeFullHistory() const {
 			&& (!user->isBot() || user->isSupport())
 			&& session().serverConfig().revokePrivateInbox
 			&& (session().serverConfig().revokePrivateTimeLimit == 0x7FFFFFFF);
+	} else if (const auto chat = asChat()) {
+		return chat->amCreator();
+	} else if (const auto megagroup = asMegagroup()) {
+		return megagroup->amCreator()
+			&& megagroup->membersCountKnown()
+			&& megagroup->canDelete();
 	}
 	return false;
 }
@@ -970,6 +989,19 @@ void PeerData::setIsBlocked(bool is) {
 
 void PeerData::setLoadedStatus(LoadedStatus status) {
 	_loadedStatus = status;
+}
+
+TimeId PeerData::messagesTTL() const {
+	return _ttlPeriod;
+}
+
+void PeerData::setMessagesTTL(TimeId period) {
+	if (_ttlPeriod != period) {
+		_ttlPeriod = period;
+		session().changes().peerUpdated(
+			this,
+			Data::PeerUpdate::Flag::MessagesTTL);
+	}
 }
 
 namespace Data {

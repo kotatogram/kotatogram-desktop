@@ -9,25 +9,18 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "platform/platform_specific.h"
 
-#include <signal.h>
-
 namespace Data {
 class LocationPoint;
 } // namespace Data
 
 namespace Platform {
 
-inline void SetWatchingMediaKeys(bool watching) {
-}
-
 bool InFlatpak();
 bool InSnap();
-bool IsStaticBinary();
 bool AreQtPluginsBundled();
-bool UseGtkIntegration();
-bool IsGtkIntegrationForced();
 bool UseXDGDesktopPortal();
 bool CanOpenDirectoryWithPortal();
+bool IsNotificationServiceActivatable();
 
 QString AppRuntimeDirectory();
 QString GetLauncherBasename();

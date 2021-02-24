@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "window/themes/window_theme.h"
 #include "platform/mac/touchbar/mac_touchbar_manager.h"
+#include "platform/platform_specific.h"
 #include "platform/platform_notifications_manager.h"
 #include "base/platform/base_platform_info.h"
 #include "boxes/peer_list_controllers.h"
@@ -549,6 +550,18 @@ void MainWindow::stateChangedHook(Qt::WindowState state) {
 
 void MainWindow::handleActiveChangedHook() {
 	InvokeQueued(this, [this] { _private->updateNativeTitle(); });
+
+	// On macOS just remove trayIcon menu if the window is not active.
+	// So we will activate the window on click instead of showing the menu.
+	if (isActiveForTrayMenu()) {
+		if (trayIcon
+			&& trayIconMenu
+			&& trayIcon->contextMenu() != trayIconMenu) {
+			trayIcon->setContextMenu(trayIconMenu);
+		}
+	} else if (trayIcon) {
+		trayIcon->setContextMenu(nullptr);
+	}
 }
 
 void MainWindow::initHook() {
@@ -579,16 +592,6 @@ void MainWindow::psShowTrayMenu() {
 }
 
 void MainWindow::psTrayMenuUpdated() {
-	// On macOS just remove trayIcon menu if the window is not active.
-	// So we will activate the window on click instead of showing the menu.
-	if (isActive()) {
-		if (trayIcon && trayIconMenu
-			&& trayIcon->contextMenu() != trayIconMenu) {
-			trayIcon->setContextMenu(trayIconMenu);
-		}
-	} else if (trayIcon) {
-		trayIcon->setContextMenu(nullptr);
-	}
 }
 
 void MainWindow::psSetupTrayIcon() {
@@ -597,6 +600,11 @@ void MainWindow::psSetupTrayIcon() {
 		trayIcon->setIcon(generateIconForTray(
 			Core::App().unreadBadge(),
 			Core::App().unreadBadgeMuted()));
+		if (isActiveForTrayMenu()) {
+			trayIcon->setContextMenu(trayIconMenu);
+		} else {
+			trayIcon->setContextMenu(nullptr);
+		}
 		attachToTrayIcon(trayIcon);
 	} else {
 		updateIconCounters();
@@ -710,23 +718,52 @@ void MainWindow::initShadows() {
 }
 
 void MainWindow::createGlobalMenu() {
+	const auto ensureWindowShown = [=] {
+		if (isHidden()) {
+			showFromTray();
+		}
+	};
+
 	auto main = psMainMenu.addMenu(qsl("Kotatogram"));
-	auto about = main->addAction(tr::lng_mac_menu_about_telegram(tr::now, lt_telegram, qsl("Kotatogram")));
-	connect(about, &QAction::triggered, about, [] {
-		if (App::wnd() && App::wnd()->isHidden()) App::wnd()->showFromTray();
-		Ui::show(Box<AboutBox>());
-	});
-	about->setMenuRole(QAction::AboutQtRole);
+	{
+		auto callback = [=] {
+			ensureWindowShown();
+			controller().show(Box<AboutBox>());
+		};
+		main->addAction(
+			tr::lng_mac_menu_about_telegram(
+				tr::now,
+				lt_telegram,
+				qsl("Kotatogram")),
+			std::move(callback))
+		->setMenuRole(QAction::AboutQtRole);
+	}
 
 	main->addSeparator();
-	QAction *prefs = main->addAction(tr::lng_mac_menu_preferences(tr::now), App::wnd(), SLOT(showSettings()), QKeySequence(Qt::ControlModifier | Qt::Key_Comma));
-	prefs->setMenuRole(QAction::PreferencesRole);
+	{
+		auto callback = [=] {
+			ensureWindowShown();
+			controller().showSettings();
+		};
+		main->addAction(
+			tr::lng_mac_menu_preferences(tr::now),
+			this,
+			std::move(callback),
+			QKeySequence(Qt::ControlModifier | Qt::Key_Comma))
+		->setMenuRole(QAction::PreferencesRole);
+	}
 
 	QMenu *file = psMainMenu.addMenu(tr::lng_mac_menu_file(tr::now));
-	psLogout = file->addAction(tr::lng_mac_menu_logout(tr::now));
-	connect(psLogout, &QAction::triggered, psLogout, [] {
-		if (App::wnd()) App::wnd()->showLogoutConfirmation();
-	});
+	{
+		auto callback = [=] {
+			ensureWindowShown();
+			controller().showLogoutConfirmation();
+		};
+		psLogout = file->addAction(
+			tr::lng_mac_menu_logout(tr::now),
+			this,
+			std::move(callback));
+	}
 
 	QMenu *edit = psMainMenu.addMenu(tr::lng_mac_menu_edit(tr::now));
 	psUndo = edit->addAction(tr::lng_mac_menu_undo(tr::now), this, SLOT(psMacUndo()), QKeySequence::Undo);
@@ -755,19 +792,52 @@ void MainWindow::createGlobalMenu() {
 	psContacts = window->addAction(tr::lng_mac_menu_contacts(tr::now));
 	connect(psContacts, &QAction::triggered, psContacts, crl::guard(this, [=] {
 		if (isHidden()) {
-			App::wnd()->showFromTray();
+			showFromTray();
 		}
 		if (!sessionController()) {
 			return;
 		}
 		Ui::show(PrepareContactsBox(sessionController()));
 	}));
-	psAddContact = window->addAction(tr::lng_mac_menu_add_contact(tr::now), App::wnd(), SLOT(onShowAddContact()));
+	{
+		auto callback = [=] {
+			Expects(sessionController() != nullptr);
+			ensureWindowShown();
+			sessionController()->showAddContact();
+		};
+		psAddContact = window->addAction(
+			tr::lng_mac_menu_add_contact(tr::now),
+			this,
+			std::move(callback));
+	}
 	window->addSeparator();
-	psNewGroup = window->addAction(tr::lng_mac_menu_new_group(tr::now), App::wnd(), SLOT(onShowNewGroup()));
-	psNewChannel = window->addAction(tr::lng_mac_menu_new_channel(tr::now), App::wnd(), SLOT(onShowNewChannel()));
+	{
+		auto callback = [=] {
+			Expects(sessionController() != nullptr);
+			ensureWindowShown();
+			sessionController()->showNewGroup();
+		};
+		psNewGroup = window->addAction(
+			tr::lng_mac_menu_new_group(tr::now),
+			this,
+			std::move(callback));
+	}
+	{
+		auto callback = [=] {
+			Expects(sessionController() != nullptr);
+			ensureWindowShown();
+			sessionController()->showNewChannel();
+		};
+		psNewChannel = window->addAction(
+			tr::lng_mac_menu_new_channel(tr::now),
+			this,
+			std::move(callback));
+	}
 	window->addSeparator();
-	psShowTelegram = window->addAction(tr::ktg_mac_menu_show(tr::now), App::wnd(), SLOT(showFromTray()));
+	psShowTelegram = window->addAction(
+		tr::ktg_mac_menu_show(tr::now),
+		this,
+		[=] { showFromTray(); });
 
 	updateGlobalMenu();
 }
@@ -829,7 +899,9 @@ void MainWindow::psMacClearFormat() {
 }
 
 void MainWindow::updateGlobalMenuHook() {
-	if (!App::wnd() || !positionInited()) return;
+	if (!positionInited()) {
+		return;
+	}
 
 	auto focused = QApplication::focusWidget();
 	bool canUndo = false, canRedo = false, canCut = false, canCopy = false, canPaste = false, canDelete = false, canSelectAll = false;
@@ -860,7 +932,7 @@ void MainWindow::updateGlobalMenuHook() {
 
 	_canApplyMarkdown = canApplyMarkdown;
 
-	App::wnd()->updateIsActive();
+	updateIsActive();
 	const auto logged = (sessionController() != nullptr);
 	const auto inactive = !logged || controller().locked();
 	const auto support = logged && account().session().supportMode();
@@ -876,7 +948,7 @@ void MainWindow::updateGlobalMenuHook() {
 	ForceDisabled(psAddContact, inactive);
 	ForceDisabled(psNewGroup, inactive || support);
 	ForceDisabled(psNewChannel, inactive || support);
-	ForceDisabled(psShowTelegram, App::wnd()->isActive());
+	ForceDisabled(psShowTelegram, isActive());
 
 	ForceDisabled(psBold, !canApplyMarkdown);
 	ForceDisabled(psItalic, !canApplyMarkdown);

@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "ui/cached_round_corners.h"
 #include "base/unixtime.h"
+#include "base/openssl_help.h"
 #include "window/window_session_controller.h"
 #include "facades.h"
 #include "styles/style_chat.h"
@@ -636,7 +637,7 @@ void FieldAutocomplete::showAnimated() {
 		return;
 	}
 	if (_cache.isNull()) {
-		_stickersSeed = rand_value<uint64>();
+		_stickersSeed = openssl::RandomValue<uint64>();
 		_scroll->show();
 		_cache = Ui::GrabWidget(this);
 	}
@@ -1158,7 +1159,7 @@ void FieldAutocomplete::Inner::contextMenuEvent(QContextMenuEvent *e) {
 		SendMenu::DefaultSilentCallback(send),
 		SendMenu::DefaultScheduleCallback(this, type, send));
 
-	if (!_menu->actions().empty()) {
+	if (!_menu->empty()) {
 		_menu->popup(QCursor::pos());
 	}
 }
@@ -1299,11 +1300,9 @@ void FieldAutocomplete::Inner::selectByMouse(QPoint globalPosition) {
 		if (_down >= 0 && _sel >= 0 && _down != _sel) {
 			_down = _sel;
 			if (_down >= 0 && _down < _srows->size()) {
-				if (const auto w = App::wnd()) {
-					w->showMediaPreview(
-						(*_srows)[_down].document->stickerSetOrigin(),
-						(*_srows)[_down].document);
-				}
+				_controller->widget()->showMediaPreview(
+					(*_srows)[_down].document->stickerSetOrigin(),
+					(*_srows)[_down].document);
 			}
 		}
 	}
@@ -1321,12 +1320,10 @@ void FieldAutocomplete::Inner::onParentGeometryChanged() {
 
 void FieldAutocomplete::Inner::showPreview() {
 	if (_down >= 0 && _down < _srows->size()) {
-		if (const auto w = App::wnd()) {
-			w->showMediaPreview(
-				(*_srows)[_down].document->stickerSetOrigin(),
-				(*_srows)[_down].document);
-			_previewShown = true;
-		}
+		_controller->widget()->showMediaPreview(
+			(*_srows)[_down].document->stickerSetOrigin(),
+			(*_srows)[_down].document);
+		_previewShown = true;
 	}
 }
 

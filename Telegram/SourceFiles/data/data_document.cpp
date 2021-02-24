@@ -31,11 +31,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/platform_specific.h"
 #include "platform/platform_file_utilities.h"
 #include "base/platform/base_platform_info.h"
+#include "base/platform/base_platform_file_utilities.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/media/history_view_gif.h"
 #include "window/window_session_controller.h"
 #include "storage/cache/storage_cache_database.h"
+#include "storage/storage_cloud_song_cover.h"
 #include "boxes/confirm_box.h"
 #include "ui/image/image.h"
 #include "ui/text/text_utilities.h"
@@ -45,6 +47,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "lottie/lottie_animation.h"
 #include "app.h"
+
+#include <QtCore/QBuffer>
 
 namespace {
 
@@ -319,21 +323,33 @@ void DocumentOpenClickHandler::Open(
 		return;
 	}
 
-	const auto openFile = [&] {
+	const auto media = data->createMediaView();
+	const auto openImageInApp = [&] {
+		if (data->size >= App::kImageSizeLimit) {
+			return false;
+		}
 		const auto &location = data->location(true);
-		if (data->size < App::kImageSizeLimit && location.accessEnable()) {
+		if (!location.isEmpty() && location.accessEnable()) {
 			const auto guard = gsl::finally([&] {
 				location.accessDisable();
 			});
 			const auto path = location.name();
-			if (Core::MimeTypeForFile(path).name().startsWith("image/") && QImageReader(path).canRead()) {
+			if (Core::MimeTypeForFile(path).name().startsWith("image/")
+				&& QImageReader(path).canRead()) {
 				Core::App().showDocument(data, context);
-				return;
+				return true;
+			}
+		} else if (data->mimeString().startsWith("image/")
+			&& !media->bytes().isEmpty()) {
+			auto bytes = media->bytes();
+			auto buffer = QBuffer(&bytes);
+			if (QImageReader(&buffer).canRead()) {
+				Core::App().showDocument(data, context);
+				return true;
 			}
 		}
-		LaunchWithWarning(&data->session(), location.name(), context);
+		return false;
 	};
-	const auto media = data->createMediaView();
 	const auto &location = data->location(true);
 	if (data->isTheme() && media->loaded(true)) {
 		Core::App().showDocument(data, context);
@@ -353,11 +369,16 @@ void DocumentOpenClickHandler::Open(
 		} else {
 			Core::App().showDocument(data, context);
 		}
-	} else if (data->saveFromDataSilent()) {
-		openFile();
-	} else if (data->status == FileReady
-		|| data->status == FileDownloadFailed) {
-		DocumentSaveClickHandler::Save(origin, data);
+	} else {
+		data->saveFromDataSilent();
+		if (!openImageInApp()) {
+			if (!data->filepath(true).isEmpty()) {
+				LaunchWithWarning(&data->session(), location.name(), context);
+			} else if (data->status == FileReady
+				|| data->status == FileDownloadFailed) {
+				DocumentSaveClickHandler::Save(origin, data);
+			}
+		}
 	}
 }
 
@@ -542,6 +563,13 @@ void DocumentData::setattributes(
 				songData->duration = data.vduration().v;
 				songData->title = qs(data.vtitle().value_or_empty());
 				songData->performer = qs(data.vperformer().value_or_empty());
+
+				if (!hasThumbnail()
+					&& !songData->title.isEmpty()
+					&& !songData->performer.isEmpty()) {
+
+					Storage::CloudSongCover::LoadThumbnailFromExternal(this);
+				}
 			}
 		}, [&](const MTPDdocumentAttributeFilename &data) {
 			_filename = qs(data.vfile_name());
@@ -887,7 +915,7 @@ float64 DocumentData::progress() const {
 		if (uploadingData->size > 0) {
 			const auto result = float64(uploadingData->offset)
 				/ uploadingData->size;
-			return snap(result, 0., 1.);
+			return std::clamp(result, 0., 1.);
 		}
 		return 0.;
 	}
@@ -1490,6 +1518,10 @@ bool DocumentData::isSong() const {
 	return (type == SongDocument);
 }
 
+bool DocumentData::isSongWithCover() const {
+	return isSong() && hasThumbnail();
+}
+
 bool DocumentData::isAudioFile() const {
 	if (isVoiceMessage()) {
 		return false;
@@ -1685,10 +1717,16 @@ bool IsIpRevealingName(const QString &filepath) {
 		const auto list = joined.split(' ');
 		return base::flat_set<QString>(list.begin(), list.end());
 	}();
+	static const auto kMimeTypes = [] {
+		const auto joined = u"text/html image/svg+xml"_q;
+		const auto list = joined.split(' ');
+		return base::flat_set<QString>(list.begin(), list.end());
+	}();
 
 	return ranges::binary_search(
 		kExtensions,
-		FileExtension(filepath).toLower());
+		FileExtension(filepath).toLower()
+	) || base::Platform::IsNonExtensionMimeFrom(filepath, kMimeTypes);
 }
 
 base::binary_guard ReadImageAsync(

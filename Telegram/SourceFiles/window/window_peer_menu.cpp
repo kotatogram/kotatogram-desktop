@@ -12,12 +12,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/confirm_box.h"
 #include "boxes/mute_settings_box.h"
 #include "boxes/add_contact_box.h"
-#include "boxes/report_box.h"
 #include "boxes/create_poll_box.h"
 #include "boxes/peers/add_participants_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/share_box.h"
 #include "kotato/customboxes/unpin_box.h"
+#include "ui/boxes/report_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/labels.h"
@@ -588,6 +588,11 @@ void Filler::addChannelActions(not_null<ChannelData*> channel) {
 		if (channel->isBroadcast()) {
 			if (const auto chat = channel->linkedChat()) {
 				_addAction(tr::lng_profile_view_discussion(tr::now), [=] {
+					if (channel->invitePeekExpires()) {
+						Ui::Toast::Show(
+							tr::lng_channel_invite_private(tr::now));
+						return;
+					}
 					navigation->showPeerHistory(
 						chat,
 						Window::SectionShow::Way::Forward);
@@ -631,15 +636,16 @@ void Filler::addChannelActions(not_null<ChannelData*> channel) {
 		}
 	}
 	if (channel->amIn()) {
-		if (isGroup && !channel->isPublic()) {
-			_addAction(
-				tr::lng_profile_clear_history(tr::now),
-				ClearHistoryHandler(channel));
-		}
 		auto text = isGroup
 			? tr::lng_profile_leave_group(tr::now)
 			: tr::lng_profile_leave_channel(tr::now);
 		_addAction(text, DeleteAndLeaveHandler(channel));
+		if ((isGroup && !channel->isPublic())
+			|| channel->canDeleteMessages()) {
+			_addAction(
+				tr::lng_profile_clear_history(tr::now),
+				ClearHistoryHandler(channel));
+		}
 	} else {
 		auto text = isGroup
 			? tr::lng_profile_join_group(tr::now)
@@ -652,8 +658,8 @@ void Filler::addChannelActions(not_null<ChannelData*> channel) {
 		const auto needReport = !channel->amCreator()
 			&& (!isGroup || channel->isPublic());
 		if (needReport) {
-			_addAction(tr::lng_profile_report(tr::now), [channel] {
-				Ui::show(Box<ReportBox>(channel));
+			_addAction(tr::lng_profile_report(tr::now), [=] {
+				HistoryView::ShowReportPeerBox(navigation, channel);
 			});
 		}
 	}
@@ -1040,6 +1046,21 @@ void PeerMenuUnblockUserWithBotRestart(not_null<UserData*> user) {
 			user->session().api().sendBotStart(user);
 		}
 	});
+}
+
+void BlockSenderFromRepliesBox(
+		not_null<Ui::GenericBox*> box,
+		not_null<SessionController*> controller,
+		FullMsgId id) {
+	const auto item = controller->session().data().message(id);
+	Assert(item != nullptr);
+
+	PeerMenuBlockUserBox(
+		box,
+		&controller->window(),
+		item->senderOriginal(),
+		true,
+		Window::ClearReply{ id });
 }
 
 /*

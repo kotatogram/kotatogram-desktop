@@ -12,8 +12,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Platform {
 namespace internal {
 
+class WaylandIntegration::Private {
+};
+
 WaylandIntegration::WaylandIntegration() {
 }
+
+WaylandIntegration::~WaylandIntegration() = default;
 
 WaylandIntegration *WaylandIntegration::Instance() {
 	if (!IsWayland()) return nullptr;
@@ -21,15 +26,10 @@ WaylandIntegration *WaylandIntegration::Instance() {
 	return &instance;
 }
 
-bool WaylandIntegration::startMove(QWindow *window) {
-	return false;
+void WaylandIntegration::waitForInterfaceAnnounce() {
 }
 
-bool WaylandIntegration::startResize(QWindow *window, Qt::Edges edges) {
-	return false;
-}
-
-bool WaylandIntegration::showWindowMenu(QWindow *window) {
+bool WaylandIntegration::supportsXdgDecoration() {
 	return false;
 }
 

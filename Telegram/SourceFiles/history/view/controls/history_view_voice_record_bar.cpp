@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "api/api_send_progress.h"
 #include "base/event_filter.h"
+#include "base/openssl_help.h"
 #include "base/unixtime.h"
 #include "boxes/confirm_box.h"
 #include "core/application.h"
@@ -99,7 +100,7 @@ enum class FilterType {
 [[nodiscard]] not_null<DocumentData*> DummyDocument(
 		not_null<Data::Session*> owner) {
 	return owner->document(
-		rand_value<DocumentId>(),
+		openssl::RandomValue<DocumentId>(),
 		uint64(0),
 		QByteArray(),
 		base::unixtime::now(),
@@ -924,12 +925,9 @@ CancelButton::CancelButton(not_null<Ui::RpWidget*> parent, int height)
 
 void CancelButton::init() {
 	_showProgress.value(
-	) | rpl::start_with_next([=](float64 progress) {
-		const auto hasProgress = (progress > 0.);
-		if (isHidden() == !hasProgress) {
-			setVisible(hasProgress);
-		}
-		update();
+	) | rpl::map(rpl::mappers::_1 > 0.) | rpl::distinct_until_changed(
+	) | rpl::start_with_next([=](bool hasProgress) {
+		setVisible(hasProgress);
 	}, lifetime());
 
 	paintRequest(
@@ -960,6 +958,7 @@ QPoint CancelButton::prepareRippleStartPosition() const {
 
 void CancelButton::requestPaintProgress(float64 progress) {
 	_showProgress = progress;
+	update();
 }
 
 VoiceRecordBar::VoiceRecordBar(
@@ -1603,7 +1602,7 @@ void VoiceRecordBar::installListenStateFilter() {
 				_listen->playPause();
 				return Result::Cancel;
 			}
-			if (isEnter) {
+			if (isEnter && !_warningShown) {
 				requestToSendWithOptions({});
 				return Result::Cancel;
 			}
@@ -1634,6 +1633,7 @@ void VoiceRecordBar::showDiscardBox(
 			hideAnimated();
 		}
 		close();
+		_warningShown = false;
 		if (callback) {
 			callback();
 		}
@@ -1645,6 +1645,7 @@ void VoiceRecordBar::showDiscardBox(
 		tr::lng_record_lock_discard(tr::now),
 		st::attentionBoxButton,
 		std::move(sure)));
+	_warningShown = true;
 }
 
 } // namespace HistoryView::Controls

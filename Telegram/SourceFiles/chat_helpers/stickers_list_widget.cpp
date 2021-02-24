@@ -403,7 +403,7 @@ void StickersListWidget::Footer::setSelectedIcon(
 	auto iconsCountForCentering = (2 * _iconSel + 1);
 	auto iconsWidthForCentering = iconsCountForCentering
 		* st::stickerIconWidth;
-	auto iconsXFinal = snap(
+	auto iconsXFinal = std::clamp(
 		(_iconsLeft + iconsWidthForCentering + _iconsRight - width()) / 2,
 		0,
 		_iconsMax);
@@ -485,13 +485,19 @@ void StickersListWidget::Footer::paintSelectionBar(Painter &p) const {
 }
 
 void StickersListWidget::Footer::paintLeftRightFading(Painter &p) const {
-	auto o_left = snap(_iconsX.current() / st::stickerIconLeft.width(), 0., 1.);
+	auto o_left = std::clamp(
+		_iconsX.current() / st::stickerIconLeft.width(),
+		0.,
+		1.);
 	if (o_left > 0) {
 		p.setOpacity(o_left);
 		st::stickerIconLeft.fill(p, style::rtlrect(_iconsLeft, _iconsTop, st::stickerIconLeft.width(), st::emojiFooterHeight, width()));
 		p.setOpacity(1.);
 	}
-	auto o_right = snap((_iconsMax - _iconsX.current()) / st::stickerIconRight.width(), 0., 1.);
+	auto o_right = std::clamp(
+		(_iconsMax - _iconsX.current()) / st::stickerIconRight.width(),
+		0.,
+		1.);
 	if (o_right > 0) {
 		p.setOpacity(o_right);
 		st::stickerIconRight.fill(p, style::rtlrect(width() - _iconsRight - st::stickerIconRight.width(), _iconsTop, st::stickerIconRight.width(), st::emojiFooterHeight, width()));
@@ -553,7 +559,11 @@ void StickersListWidget::Footer::mouseMoveEvent(QMouseEvent *e) {
 		}
 	}
 	if (_iconsDragging) {
-		auto newX = snap(_iconsStartX + (rtl() ? -1 : 1) * (_iconsMouseDown.x() - _iconsMousePos.x()), 0, _iconsMax);
+		auto newX = std::clamp(
+			(rtl() ? -1 : 1) * (_iconsMouseDown.x() - _iconsMousePos.x())
+				+ _iconsStartX,
+			0,
+			_iconsMax);
 		if (newX != qRound(_iconsX.current())) {
 			_iconsX = anim::value(newX, newX);
 			_iconsStartAnim = 0;
@@ -588,7 +598,10 @@ void StickersListWidget::Footer::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void StickersListWidget::Footer::finishDragging() {
-	auto newX = snap(_iconsStartX + _iconsMouseDown.x() - _iconsMousePos.x(), 0, _iconsMax);
+	auto newX = std::clamp(
+		_iconsStartX + _iconsMouseDown.x() - _iconsMousePos.x(),
+		0,
+		_iconsMax);
 	if (newX != qRound(_iconsX.current())) {
 		_iconsX = anim::value(newX, newX);
 		_iconsStartAnim = 0;
@@ -620,9 +633,19 @@ void StickersListWidget::Footer::scrollByWheelEvent(
 	}
 	auto newX = qRound(_iconsX.current());
 	if (/*_horizontal && */horizontal) {
-		newX = snap(newX - (rtl() ? -1 : 1) * (e->pixelDelta().x() ? e->pixelDelta().x() : e->angleDelta().x()), 0, _iconsMax);
+		newX = std::clamp(
+			newX - (rtl() ? -1 : 1) * (e->pixelDelta().x()
+				? e->pixelDelta().x()
+				: e->angleDelta().x()),
+			0,
+			_iconsMax);
 	} else if (/*!_horizontal && */vertical) {
-		newX = snap(newX - (e->pixelDelta().y() ? e->pixelDelta().y() : e->angleDelta().y()), 0, _iconsMax);
+		newX = std::clamp(
+			newX - (e->pixelDelta().y()
+				? e->pixelDelta().y()
+				: e->angleDelta().y()),
+			0,
+			_iconsMax);
 	}
 	if (newX != qRound(_iconsX.current())) {
 		_iconsX = anim::value(newX, newX);
@@ -2865,9 +2888,9 @@ void StickersListWidget::setSelected(OverState newSelected) {
 				const auto &set = sets[sticker->section];
 				Assert(sticker->index >= 0 && sticker->index < set.stickers.size());
 				const auto document = set.stickers[sticker->index].document;
-				if (const auto w = App::wnd()) {
-					w->showMediaPreview(document->stickerSetOrigin(), document);
-				}
+				controller()->widget()->showMediaPreview(
+					document->stickerSetOrigin(),
+					document);
 			}
 		}
 	}
@@ -2880,10 +2903,10 @@ void StickersListWidget::showPreview() {
 		const auto &set = sets[sticker->section];
 		Assert(sticker->index >= 0 && sticker->index < set.stickers.size());
 		const auto document = set.stickers[sticker->index].document;
-		if (const auto w = App::wnd()) {
-			w->showMediaPreview(document->stickerSetOrigin(), document);
-			_previewShown = true;
-		}
+		controller()->widget()->showMediaPreview(
+			document->stickerSetOrigin(),
+			document);
+		_previewShown = true;
 	}
 }
 

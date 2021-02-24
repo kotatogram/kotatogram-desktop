@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/controls/history_view_compose_controls.h"
 
 #include "base/event_filter.h"
+#include "base/platform/base_platform_info.h"
 #include "base/qt_signal_producer.h"
 #include "base/unixtime.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
@@ -35,6 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/controls/history_view_voice_record_bar.h"
+#include "history/view/controls/history_view_ttl_button.h"
 #include "history/view/history_view_webpage_preview.h"
 #include "inline_bots/inline_results_widget.h"
 #include "inline_bots/inline_bot_result.h"
@@ -49,6 +51,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/format_values.h"
 #include "ui/controls/emoji_button.h"
 #include "ui/controls/send_button.h"
+#include "ui/special_buttons.h"
 #include "window/window_session_controller.h"
 #include "mainwindow.h"
 
@@ -63,6 +66,11 @@ constexpr auto kMouseEvents = {
 	QEvent::MouseButtonPress,
 	QEvent::MouseButtonRelease
 };
+
+constexpr auto kCommonModifiers = 0
+	| Qt::ShiftModifier
+	| Qt::MetaModifier
+	| Qt::ControlModifier;
 
 using FileChosen = ComposeControls::FileChosen;
 using PhotoChosen = ComposeControls::PhotoChosen;
@@ -612,7 +620,8 @@ ComposeControls::ComposeControls(
 		_send,
 		st::historySendSize.height()))
 , _sendMenuType(sendMenuType)
-, _saveDraftTimer([=] { saveDraft(); }) {
+, _saveDraftTimer([=] { saveDraft(); })
+, _previewState(Data::PreviewState::Allowed) {
 	init();
 }
 
@@ -627,6 +636,10 @@ Main::Session &ComposeControls::session() const {
 }
 
 void ComposeControls::setHistory(SetHistoryArgs &&args) {
+	// Right now only single non-null set of history is supported.
+	// Otherwise initWebpageProcess should be updated / rewritten.
+	Expects(!_history && *args.history);
+
 	_showSlowmodeError = std::move(args.showSlowmodeError);
 	_slowmodeSecondsLeft = rpl::single(0)
 		| rpl::then(std::move(args.slowmodeSecondsLeft));
@@ -635,20 +648,21 @@ void ComposeControls::setHistory(SetHistoryArgs &&args) {
 	_writeRestriction = rpl::single(std::optional<QString>())
 		| rpl::then(std::move(args.writeRestriction));
 	const auto history = *args.history;
-	if (_history == history) {
-		return;
-	}
+	//if (_history == history) {
+	//	return;
+	//}
 	_history = history;
 	_window->tabbedSelector()->setCurrentPeer(
 		history ? history->peer.get() : nullptr);
 	initWebpageProcess();
 	updateBotCommandShown();
+	updateMessagesTTLShown();
 	updateControlsGeometry(_wrap->size());
 	updateControlsVisibility();
 	updateFieldPlaceholder();
-	if (!_history) {
-		return;
-	}
+	//if (!_history) {
+	//	return;
+	//}
 	const auto peer = _history->peer;
 	if (peer->isChat() && peer->asChat()->noParticipantInfo()) {
 		session().api().requestFullPeer(peer);
@@ -656,6 +670,10 @@ void ComposeControls::setHistory(SetHistoryArgs &&args) {
 		if (!channel->mgInfo->botStatus) {
 			session().api().requestBots(channel);
 		}
+	} else if (hasSilentBroadcastToggle()) {
+		_silent = std::make_unique<Ui::SilentToggle>(
+			_wrap.get(),
+			peer->asChannel());
 	}
 	session().local().readDraftsWithCursors(_history);
 	applyDraft();
@@ -711,13 +729,19 @@ rpl::producer<> ComposeControls::cancelRequests() const {
 	return _cancelRequests.events();
 }
 
-rpl::producer<not_null<QKeyEvent*>> ComposeControls::keyEvents() const {
-	return _wrap->events(
-	) | rpl::map([=](not_null<QEvent*> e) -> not_null<QKeyEvent*> {
-		return static_cast<QKeyEvent*>(e.get());
-	}) | rpl::filter([=](not_null<QEvent*> event) {
-		return (event->type() == QEvent::KeyPress);
-	});
+auto ComposeControls::scrollKeyEvents() const
+-> rpl::producer<not_null<QKeyEvent*>> {
+	return _scrollKeyEvents.events();
+}
+
+auto ComposeControls::editLastMessageRequests() const
+-> rpl::producer<not_null<QKeyEvent*>> {
+	return _editLastMessageRequests.events();
+}
+
+auto ComposeControls::replyNextRequests() const
+-> rpl::producer<ReplyNextRequest> {
+	return _replyNextRequests.events();
 }
 
 auto ComposeControls::sendContentRequests(SendRequestType requestType) const {
@@ -766,7 +790,16 @@ rpl::producer<MessageToEdit> ComposeControls::editRequests() const {
 }
 
 rpl::producer<> ComposeControls::attachRequests() const {
-	return _attachToggle->clicks() | rpl::to_empty;
+	return rpl::merge(
+		_attachToggle->clicks() | rpl::to_empty,
+		_attachRequests.events()
+	) | rpl::filter([=] {
+		if (isEditingMessage()) {
+			Ui::show(Box<InformBox>(tr::lng_edit_caption_attach(tr::now)));
+			return false;
+		}
+		return true;
+	});
 }
 
 void ComposeControls::setMimeDataHook(MimeDataHook hook) {
@@ -865,7 +898,7 @@ void ComposeControls::setFieldText(
 		| TextUpdateEvent::SendTyping;
 
 	_previewCancel();
-	_previewCancelled = false;
+	_previewState = Data::PreviewState::Allowed;
 }
 
 void ComposeControls::saveFieldToHistoryLocalDraft() {
@@ -880,7 +913,7 @@ void ComposeControls::saveFieldToHistoryLocalDraft() {
 			std::make_unique<Data::Draft>(
 				_field,
 				_header->getDraftMessageId(),
-				_previewCancelled));
+				_previewState));
 	} else {
 		_history->clearDraft(draftKeyCurrent());
 	}
@@ -939,6 +972,7 @@ void ComposeControls::init() {
 	initSendButton();
 	initWriteRestriction();
 	initVoiceRecordBar();
+	initKeyHandler();
 
 	_botCommandStart->setClickedCallback([=] { setText({ "/" }); });
 
@@ -964,7 +998,7 @@ void ComposeControls::init() {
 
 	_header->previewCancelled(
 	) | rpl::start_with_next([=] {
-		_previewCancelled = true;
+		_previewState = Data::PreviewState::Cancelled;
 		_saveDraftText = true;
 		_saveDraftStart = crl::now();
 		saveDraft();
@@ -1022,6 +1056,7 @@ void ComposeControls::init() {
 }
 
 void ComposeControls::orderControls() {
+	_voiceRecordBar->raise();
 	_send->raise();
 }
 
@@ -1047,6 +1082,64 @@ void ComposeControls::drawRestrictedWrite(Painter &p, const QString &error) {
 			QMargins(st::historySendPadding, 0, st::historySendPadding, 0)),
 		error,
 		style::al_center);
+}
+
+void ComposeControls::initKeyHandler() {
+	_wrap->events(
+	) | rpl::filter([=](not_null<QEvent*> event) {
+		return (event->type() == QEvent::KeyPress);
+	}) | rpl::start_with_next([=](not_null<QEvent*> e) {
+		auto keyEvent = static_cast<QKeyEvent*>(e.get());
+		const auto key = keyEvent->key();
+		const auto isCtrl = keyEvent->modifiers() == Qt::ControlModifier;
+		if (key == Qt::Key_O && isCtrl) {
+			_attachRequests.fire({});
+			return;
+		}
+		if (key == Qt::Key_Up) {
+			if (!isEditingMessage()) {
+				_editLastMessageRequests.fire(std::move(keyEvent));
+				return;
+			}
+		}
+		if ((key == Qt::Key_Up)
+			|| (key == Qt::Key_Down)
+			|| (key == Qt::Key_PageUp)
+			|| (key == Qt::Key_PageDown)) {
+			_scrollKeyEvents.fire(std::move(keyEvent));
+		}
+	}, _wrap->lifetime());
+
+	base::install_event_filter(_wrap.get(), _field, [=](not_null<QEvent*> e) {
+		using Result = base::EventFilterResult;
+		if (e->type() != QEvent::KeyPress) {
+			return Result::Continue;
+		}
+		const auto k = static_cast<QKeyEvent*>(e.get());
+
+		if ((k->modifiers() & kCommonModifiers) == Qt::ControlModifier) {
+			const auto isUp = (k->key() == Qt::Key_Up);
+			const auto isDown = (k->key() == Qt::Key_Down);
+			if (isUp || isDown) {
+				if (Platform::IsMac()) {
+					// Cmd + Up is used instead of Home.
+					if ((isUp && (!_field->textCursor().atStart()))
+						// Cmd + Down is used instead of End.
+						|| (isDown && (!_field->textCursor().atEnd()))) {
+						return Result::Continue;
+					}
+				}
+				_replyNextRequests.fire({
+					.replyId = replyingToMessage(),
+					.direction = (isDown
+						? ReplyNextRequest::Direction::Next
+						: ReplyNextRequest::Direction::Previous)
+				});
+				return Result::Cancel;
+			}
+		}
+		return Result::Continue;
+	});
 }
 
 void ComposeControls::initField() {
@@ -1228,6 +1321,17 @@ void ComposeControls::updateFieldPlaceholder() {
 	updateSendButtonType();
 }
 
+void ComposeControls::updateSilentBroadcast() {
+	if (!_silent || !_history) {
+		return;
+	}
+	const auto &peer = _history->peer;
+	if (!session().data().notifySilentPostsUnknown(peer)) {
+		_silent->setChecked(session().data().notifySilentPosts(peer));
+		updateFieldPlaceholder();
+	}
+}
+
 void ComposeControls::fieldChanged() {
 	if (!_inlineBot
 		&& !_header->isEditingMessage()
@@ -1235,8 +1339,8 @@ void ComposeControls::fieldChanged() {
 		_sendActionUpdates.fire({ Api::SendProgressType::Typing });
 	}
 	updateSendButtonType();
-	if (showRecordButton()) {
-		_previewCancelled = false;
+	if (!HasSendText(_field)) {
+		_previewState = Data::PreviewState::Allowed;
 	}
 	if (updateBotCommandShown()) {
 		updateControlsVisibility();
@@ -1306,7 +1410,7 @@ void ComposeControls::writeDraftTexts() {
 		Storage::MessageDraft{
 			_header->getDraftMessageId(),
 			_field->getTextWithTags(),
-			_previewCancelled,
+			_previewState,
 		});
 }
 
@@ -1365,7 +1469,8 @@ void ComposeControls::applyDraft(FieldHistoryAction fieldHistoryAction) {
 	_field->setFocus();
 	draft->cursor.applyTo(_field);
 	_textUpdateEvents = TextUpdateEvent::SaveDraft | TextUpdateEvent::SendTyping;
-	_previewCancelled = draft->previewCancelled;
+	_previewSetState(draft->previewState);
+
 	if (draft == editDraft) {
 		_header->editMessage({ _history->channelId(), draft->msgId });
 		_header->replyToMessage({});
@@ -1430,7 +1535,10 @@ void ComposeControls::initTabbedSelector() {
 	selector->inlineResultChosen(
 	) | rpl::start_to_stream(_inlineResultChosen, wrap->lifetime());
 
-	selector->setSendMenuType([=] { return sendMenuType(); });
+	selector->contextMenuRequested(
+	) | rpl::start_with_next([=] {
+		selector->showMenuWithType(sendMenuType());
+	}, wrap->lifetime());
 }
 
 void ComposeControls::initSendButton() {
@@ -1655,14 +1763,16 @@ void ComposeControls::finishAnimating() {
 
 void ComposeControls::updateControlsGeometry(QSize size) {
 	// _attachToggle -- _inlineResults ------ _tabbedPanel -- _fieldBarCancel
-	// (_attachDocument|_attachPhoto) _field _botCommandStart _tabbedSelectorToggle _send
+	// (_attachDocument|_attachPhoto) _field (_ttlInfo) (_silent|_botCommandStart) _tabbedSelectorToggle _send
 
 	const auto fieldWidth = size.width()
 		- _attachToggle->width()
 		- st::historySendRight
 		- _send->width()
 		- _tabbedSelectorToggle->width()
-		- (_botCommandShown ? _botCommandStart->width() : 0);
+		- (_botCommandShown ? _botCommandStart->width() : 0)
+		- (_silent ? _silent->width() : 0)
+		- (_ttlInfo ? _ttlInfo->width() : 0);
 	{
 		const auto oldFieldHeight = _field->height();
 		_field->resizeToWidth(fieldWidth);
@@ -1675,7 +1785,7 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 
 	const auto buttonsTop = size.height() - _attachToggle->height();
 
-	auto left = 0;
+	auto left = st::historySendRight;
 	_attachToggle->moveToLeft(left, buttonsTop);
 	left += _attachToggle->width();
 	_field->moveToLeft(
@@ -1693,6 +1803,16 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 	_tabbedSelectorToggle->moveToRight(right, buttonsTop);
 	right += _tabbedSelectorToggle->width();
 	_botCommandStart->moveToRight(right, buttonsTop);
+	if (_botCommandShown) {
+		right += _botCommandStart->width();
+	}
+	if (_silent) {
+		_silent->moveToRight(right, buttonsTop);
+		right += _silent->width();
+	}
+	if (_ttlInfo) {
+		_ttlInfo->move(size.width() - right - _ttlInfo->width(), buttonsTop);
+	}
 
 	_voiceRecordBar->resizeToWidth(size.width());
 	_voiceRecordBar->moveToLeft(
@@ -1702,6 +1822,9 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 
 void ComposeControls::updateControlsVisibility() {
 	_botCommandStart->setVisible(_botCommandShown);
+	if (_ttlInfo) {
+		_ttlInfo->show();
+	}
 }
 
 bool ComposeControls::updateBotCommandShown() {
@@ -1730,6 +1853,21 @@ void ComposeControls::updateOuterGeometry(QRect rect) {
 		_tabbedPanel->moveBottomRight(
 			rect.y() + rect.height() - _attachToggle->height(),
 			rect.x() + rect.width());
+	}
+}
+
+void ComposeControls::updateMessagesTTLShown() {
+	const auto peer = _history ? _history->peer.get() : nullptr;
+	const auto shown = peer && (peer->messagesTTL() > 0);
+	if (!shown && _ttlInfo) {
+		_ttlInfo = nullptr;
+		updateControlsVisibility();
+		updateControlsGeometry(_wrap->size());
+	} else if (shown && !_ttlInfo) {
+		_ttlInfo = std::make_unique<Controls::TTLButton>(_wrap.get(), peer);
+		orderControls();
+		updateControlsVisibility();
+		updateControlsGeometry(_wrap->size());
 	}
 }
 
@@ -1836,7 +1974,7 @@ void ComposeControls::editMessage(not_null<HistoryItem*> item) {
 	Expects(_history != nullptr);
 	Expects(draftKeyCurrent() != Data::DraftKey::None());
 
-	if (_voiceRecordBar && _voiceRecordBar->isListenState()) {
+	if (_voiceRecordBar->isActive()) {
 		Ui::show(Box<InformBox>(tr::lng_edit_caption_voice(tr::now)));
 		return;
 	}
@@ -1850,13 +1988,22 @@ void ComposeControls::editMessage(not_null<HistoryItem*> item) {
 		editData.text.size(),
 		QFIXED_MAX
 	};
+	const auto previewPage = [&]() -> WebPageData* {
+		if (const auto media = item->media()) {
+			return media->webpage();
+		}
+		return nullptr;
+	}();
+	const auto previewState = previewPage
+		? Data::PreviewState::Allowed
+		: Data::PreviewState::EmptyOnEdit;
 	_history->setDraft(
 		draftKey(DraftType::Edit),
 		std::make_unique<Data::Draft>(
 			editData,
 			item->id,
 			cursor,
-			false));
+			previewState));
 	applyDraft();
 
 	if (_autocomplete) {
@@ -1895,7 +2042,7 @@ void ComposeControls::replyToMessage(FullMsgId id) {
 					TextWithTags(),
 					id.msg,
 					MessageCursor(),
-					false));
+					Data::PreviewState::Allowed));
 		}
 	} else {
 		_header->replyToMessage(id);
@@ -2007,7 +2154,8 @@ void ComposeControls::initWebpageProcess() {
 			if (till > 0 && till <= base::unixtime::now()) {
 				till = -1;
 			}
-			if (links == *previewLinks && !_previewCancelled) {
+			if (links == *previewLinks
+				&& _previewState == Data::PreviewState::Allowed) {
 				*previewData = (page->id && page->pendingTill >= 0)
 					? page.get()
 					: nullptr;
@@ -2015,7 +2163,8 @@ void ComposeControls::initWebpageProcess() {
 			}
 		}, [=](const MTPDmessageMediaEmpty &d) {
 			previewCache->insert({ links, 0 });
-			if (links == *previewLinks && !_previewCancelled) {
+			if (links == *previewLinks
+				&& _previewState == Data::PreviewState::Allowed) {
 				*previewData = nullptr;
 				updatePreview();
 			}
@@ -2044,7 +2193,8 @@ void ComposeControls::initWebpageProcess() {
 	const auto checkPreview = crl::guard(_wrap.get(), [=] {
 		const auto previewRestricted = peer
 			&& peer->amRestricted(ChatRestriction::f_embed_links);
-		if (_previewCancelled || previewRestricted) {
+		if (_previewState != Data::PreviewState::Allowed
+			|| previewRestricted) {
 			_previewCancel();
 			return;
 		}
@@ -2080,12 +2230,24 @@ void ComposeControls::initWebpageProcess() {
 
 	session().changes().peerUpdates(
 		Data::PeerUpdate::Flag::Rights
+		| Data::PeerUpdate::Flag::Notifications
+		| Data::PeerUpdate::Flag::MessagesTTL
 	) | rpl::filter([=](const Data::PeerUpdate &update) {
 		return (update.peer.get() == peer);
-	}) | rpl::start_with_next([=] {
-		checkPreview();
-		updateStickersByEmoji();
-		updateFieldPlaceholder();
+	}) | rpl::map([](const Data::PeerUpdate &update) {
+		return update.flags;
+	}) | rpl::start_with_next([=](Data::PeerUpdate::Flags flags) {
+		if (flags & Data::PeerUpdate::Flag::Rights) {
+			checkPreview();
+			updateStickersByEmoji();
+			updateFieldPlaceholder();
+		}
+		if (flags & Data::PeerUpdate::Flag::Notifications) {
+			updateSilentBroadcast();
+		}
+		if (flags & Data::PeerUpdate::Flag::MessagesTTL) {
+			updateMessagesTTLShown();
+		}
 	}, lifetime);
 
 	base::ObservableViewer(
@@ -2117,8 +2279,20 @@ void ComposeControls::initWebpageProcess() {
 	const auto fieldLinksParser =
 		lifetime.make_state<MessageLinksParser>(_field);
 
+	_previewSetState = [=](Data::PreviewState state) {
+		// Save links from _field to _parsedLinks without generating preview.
+		_previewState = Data::PreviewState::Cancelled;
+		fieldLinksParser->parseNow();
+		*parsedLinks = fieldLinksParser->list().current();
+		_previewState = state;
+	};
+
 	fieldLinksParser->list().changes(
 	) | rpl::start_with_next([=](QStringList &&parsed) {
+		if (_previewState == Data::PreviewState::EmptyOnEdit
+			&& *parsedLinks != parsed) {
+			_previewState = Data::PreviewState::Allowed;
+		}
 		*parsedLinks = std::move(parsed);
 
 		checkPreview();
@@ -2174,6 +2348,18 @@ bool ComposeControls::preventsClose(Fn<void()> &&continueCallback) const {
 		return true;
 	}
 	return false;
+}
+
+bool ComposeControls::hasSilentBroadcastToggle() const {
+	if (!_history) {
+		return false;
+	}
+	const auto &peer = _history->peer;
+	return peer
+		&& peer->isChannel()
+		&& !peer->isMegagroup()
+		&& peer->canWrite()
+		&& !session().data().notifySilentPostsUnknown(peer);
 }
 
 void ComposeControls::updateInlineBotQuery() {
@@ -2244,6 +2430,29 @@ void ComposeControls::applyInlineBotQuery(
 	} else {
 		clearInlineBot();
 	}
+}
+
+Fn<void()> ComposeControls::restoreTextCallback(
+		const QString &insertTextOnCancel) const {
+	const auto cursor = _field->textCursor();
+	const auto position = cursor.position();
+	const auto anchor = cursor.anchor();
+	const auto text = getTextWithAppliedMarkdown();
+
+	_field->setTextWithTags({});
+
+	return crl::guard(_field, [=] {
+		_field->setTextWithTags(text);
+		auto cursor = _field->textCursor();
+		cursor.setPosition(anchor);
+		if (position != anchor) {
+			cursor.setPosition(position, QTextCursor::KeepAnchor);
+		}
+		_field->setTextCursor(cursor);
+		if (!insertTextOnCancel.isEmpty()) {
+			_field->textCursor().insertText(insertTextOnCancel);
+		}
+	});
 }
 
 } // namespace HistoryView

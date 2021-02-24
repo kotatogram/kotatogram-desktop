@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/box_content_divider.h"
+#include "ui/boxes/report_box.h"
 #include "ui/layers/generic_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
@@ -31,7 +32,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peer_list_box.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/add_contact_box.h"
-#include "boxes/report_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/peers/edit_peer_info_box.h"
 #include "boxes/peers/edit_participants_box.h"
@@ -738,11 +738,14 @@ void ActionsFiller::addBotCommandActions(not_null<UserData*> user) {
 
 void ActionsFiller::addReportAction() {
 	const auto peer = _peer;
+	const auto report = [=] {
+
+	};
 	AddActionButton(
 		_wrap,
 		tr::lng_profile_report(),
 		rpl::single(true),
-		[=] { Ui::show(Box<ReportBox>(peer)); },
+		report,
 		st::infoBlockButton);
 }
 

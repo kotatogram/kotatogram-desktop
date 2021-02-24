@@ -381,6 +381,37 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 		return prepareInvitedToCallText(action.vusers().v, linkCallId);
 	};
 
+	auto prepareSetMessagesTTL = [this](const MTPDmessageActionSetMessagesTTL &action) {
+		auto result = PreparedText{};
+		const auto period = action.vperiod().v;
+		const auto duration = (period == 5)
+			? u"5 seconds"_q
+			: (period < 3 * 86400)
+			? tr::lng_ttl_about_duration1(tr::now)
+			: tr::lng_ttl_about_duration2(tr::now);
+		if (isPost()) {
+			if (!period) {
+				result.text = tr::lng_action_ttl_removed_channel(tr::now);
+			} else {
+				result.text = tr::lng_action_ttl_changed_channel(tr::now, lt_duration, duration);
+			}
+		} else if (_from->isSelf()) {
+			if (!period) {
+				result.text = tr::lng_action_ttl_removed_you(tr::now);
+			} else {
+				result.text = tr::lng_action_ttl_changed_you(tr::now, lt_duration, duration);
+			}
+		} else {
+			result.links.push_back(fromLink());
+			if (!period) {
+				result.text = tr::lng_action_ttl_removed(tr::now, lt_from, fromLinkText());
+			} else {
+				result.text = tr::lng_action_ttl_changed(tr::now, lt_from, fromLinkText(), lt_duration, duration);
+			}
+		}
+		return result;
+	};
+
 	const auto messageText = action.match([&](
 		const MTPDmessageActionChatAddUser &data) {
 		return prepareChatAddUserText(data);
@@ -434,6 +465,8 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 		return prepareGroupCall(data);
 	}, [&](const MTPDmessageActionInviteToGroupCall &data) {
 		return prepareInviteToGroupCall(data);
+	}, [&](const MTPDmessageActionSetMessagesTTL &data) {
+		return prepareSetMessagesTTL(data);
 	}, [](const MTPDmessageActionEmpty &) {
 		return PreparedText{ tr::lng_message_empty(tr::now) };
 	});
@@ -759,6 +792,7 @@ HistoryService::HistoryService(
 		data.vdate().v,
 		data.vfrom_id() ? peerFromMTP(*data.vfrom_id()) : PeerId(0)) {
 	createFromMtp(data);
+	applyTTL(data);
 }
 
 HistoryService::HistoryService(
@@ -773,6 +807,7 @@ HistoryService::HistoryService(
 		data.vdate().v,
 		data.vfrom_id() ? peerFromMTP(*data.vfrom_id()) : PeerId(0)) {
 	createFromMtp(data);
+	applyTTL(data);
 }
 
 HistoryService::HistoryService(
@@ -804,8 +839,7 @@ bool HistoryService::updateDependencyItem() {
 }
 
 bool HistoryService::needCheck() const {
-	return (GetDependentData() != nullptr)
-		|| Has<HistoryServiceSelfDestruct>();
+	return out() && !isEmpty();
 }
 
 QString HistoryService::notificationText() const {
@@ -1041,6 +1075,7 @@ void HistoryService::applyEdition(const MTPDmessageService &message) {
 	UpdateComponents(0);
 
 	createFromMtp(message);
+	applyServiceDateEdition(message);
 
 	if (message.vaction().type() == mtpc_messageActionHistoryClear) {
 		removeMedia();

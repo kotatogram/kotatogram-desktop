@@ -185,8 +185,9 @@ constexpr auto EndClientMsgId = MsgId(-0x40000000);
 constexpr auto ShowAtTheEndMsgId = MsgId(-0x40000000);
 constexpr auto SwitchAtTopMsgId = MsgId(-0x3FFFFFFF);
 constexpr auto ShowAtProfileMsgId = MsgId(-0x3FFFFFFE);
-constexpr auto ShowAndStartBotMsgId = MsgId(-0x3FFFFFD);
-constexpr auto ShowAtGameShareMsgId = MsgId(-0x3FFFFFC);
+constexpr auto ShowAndStartBotMsgId = MsgId(-0x3FFFFFFD);
+constexpr auto ShowAtGameShareMsgId = MsgId(-0x3FFFFFFC);
+constexpr auto ShowForChooseMessagesMsgId = MsgId(-0x3FFFFFFB);
 constexpr auto ServerMaxMsgId = MsgId(0x3FFFFFFF);
 constexpr auto ShowAtUnreadMsgId = MsgId(0);
 constexpr inline bool IsClientMsgId(MsgId id) {
@@ -325,12 +326,7 @@ enum DocumentType {
 };
 
 inline constexpr auto kStickerSideSize = 512;
-
-[[nodiscard]] inline bool GoodStickerDimensions(int width, int height) {
-	return (width > 0 && width <= kStickerSideSize)
-		&& (height > 0 && height <= kStickerSideSize)
-		&& (width == kStickerSideSize || height == kStickerSideSize);
-}
+[[nodiscard]] bool GoodStickerDimensions(int width, int height);
 
 using MediaKey = QPair<uint64, uint64>;
 

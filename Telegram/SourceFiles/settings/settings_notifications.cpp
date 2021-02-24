@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "window/notifications_manager.h"
 #include "window/window_session_controller.h"
+#include "platform/platform_specific.h"
 #include "platform/platform_notifications_manager.h"
 #include "base/platform/base_platform_info.h"
 #include "mainwindow.h"
@@ -40,7 +41,7 @@ namespace {
 constexpr auto kMaxNotificationsCount = 5;
 
 [[nodiscard]] int CurrentCount() {
-	return snap(
+	return std::clamp(
 		Core::App().settings().notificationsCount(),
 		1,
 		kMaxNotificationsCount);
@@ -631,18 +632,6 @@ void SetupNotificationsContent(
 	AddSkip(container, st::settingsCheckboxesSkip);
 	AddDivider(container);
 	AddSkip(container, st::settingsCheckboxesSkip);
-	AddSubsectionTitle(container, tr::lng_settings_badge_title());
-
-	const auto muted = addCheckbox(
-		tr::lng_settings_include_muted(tr::now),
-		settings.includeMutedCounter());
-	const auto count = addCheckbox(
-		tr::lng_settings_count_unread(tr::now),
-		settings.countUnreadMessages());
-
-	AddSkip(container, st::settingsCheckboxesSkip);
-	AddDivider(container);
-	AddSkip(container, st::settingsCheckboxesSkip);
 	AddSubsectionTitle(container, tr::lng_settings_events_title());
 
 	const auto joined = addCheckbox(
@@ -675,15 +664,43 @@ void SetupNotificationsContent(
 		Core::App().saveSettingsDelayed();
 	}, joined->lifetime());
 
+	AddSkip(container, st::settingsCheckboxesSkip);
+	AddDivider(container);
+	AddSkip(container, st::settingsCheckboxesSkip);
+	AddSubsectionTitle(
+		container,
+		tr::lng_settings_notifications_calls_title());
+	addCheckbox(
+		tr::lng_settings_call_accept_calls(tr::now),
+		!settings.disableCalls()
+	)->checkedChanges(
+	) | rpl::filter([&settings](bool value) {
+		return (settings.disableCalls() == value);
+	}) | rpl::start_with_next([=](bool value) {
+		Core::App().settings().setDisableCalls(!value);
+		Core::App().saveSettingsDelayed();
+	}, container->lifetime());
+
+	AddSkip(container, st::settingsCheckboxesSkip);
+	AddDivider(container);
+	AddSkip(container, st::settingsCheckboxesSkip);
+	AddSubsectionTitle(container, tr::lng_settings_badge_title());
+
+	const auto muted = addCheckbox(
+		tr::lng_settings_include_muted(tr::now),
+		settings.includeMutedCounter());
+	const auto count = addCheckbox(
+		tr::lng_settings_count_unread(tr::now),
+		settings.countUnreadMessages());
+
 	const auto nativeText = [&] {
-		if (!Platform::Notifications::Supported()) {
+		if (!Platform::Notifications::Supported()
+			|| Platform::Notifications::Enforced()) {
 			return QString();
 		} else if (Platform::IsWindows()) {
 			return tr::lng_settings_use_windows(tr::now);
-		} else if (Platform::IsLinux() && !Platform::IsWayland()) {
-			return tr::lng_settings_use_native_notifications(tr::now);
 		}
-		return QString();
+		return tr::lng_settings_use_native_notifications(tr::now);
 	}();
 	const auto native = [&]() -> Ui::Checkbox* {
 		if (nativeText.isEmpty()) {
@@ -697,8 +714,7 @@ void SetupNotificationsContent(
 		return addCheckbox(nativeText, settings.nativeNotifications());
 	}();
 
-	const auto advancedSlide = !Platform::IsMac10_8OrGreater()
-		&& !Platform::IsWayland()
+	const auto advancedSlide = !Platform::Notifications::Enforced()
 		? container->add(
 			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
 				container,

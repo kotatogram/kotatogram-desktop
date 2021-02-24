@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "history/history_item_components.h"
 #include "history/view/history_view_cursor_state.h"
+#include "history/view/media/history_view_document.h" // DrawThumbnailAsSongCover
 #include "base/unixtime.h"
 #include "base/qt_adapters.h"
 #include "ui/effects/round_checkbox.h"
@@ -733,13 +734,15 @@ void Voice::paint(Painter &p, const QRect &clip, TextSelection selection, const 
 
 		const auto icon = [&] {
 			if (_data->loading() || _data->uploading()) {
-				return &(selected ? _st.songCancelSelected : _st.songCancel);
+				return &(selected ? _st.voiceCancelSelected : _st.voiceCancel);
 			} else if (showPause) {
-				return &(selected ? _st.songPauseSelected : _st.songPause);
+				return &(selected ? _st.voicePauseSelected : _st.voicePause);
 			} else if (_dataMedia->canBePlayed()) {
-				return &(selected ? _st.songPlaySelected : _st.songPlay);
+				return &(selected ? _st.voicePlaySelected : _st.voicePlay);
 			}
-			return &(selected ? _st.songDownloadSelected : _st.songDownload);
+			return &(selected
+				? _st.voiceDownloadSelected
+				: _st.voiceDownload);
 		}();
 		icon->paintInCenter(p, inner);
 	}
@@ -1008,21 +1011,51 @@ void Document::paint(Painter &p, const QRect &clip, TextSelection selection, con
 
 		auto inner = style::rtlrect(_st.songPadding.left(), _st.songPadding.top(), _st.songThumbSize, _st.songThumbSize, _width);
 		if (clip.intersects(inner)) {
+			const auto isLoading = (!cornerDownload
+				&& (_data->loading() || _data->uploading()));
 			p.setPen(Qt::NoPen);
-			if (selected) {
-				p.setBrush(st::msgFileInBgSelected);
-			} else {
-				auto over = ClickHandler::showAsActive((!cornerDownload && (_data->loading() || _data->uploading())) ? _cancell : (loaded || _dataMedia->canBePlayed()) ? _openl : _savel);
-				p.setBrush(anim::brush(_st.songIconBg, _st.songOverBg, _a_iconOver.value(over ? 1. : 0.)));
-			}
 
-			{
+			using namespace HistoryView;
+			const auto coverDrawn = _data->isSongWithCover()
+				&& DrawThumbnailAsSongCover(p, _dataMedia, inner, selected);
+			if (!coverDrawn) {
+				if (selected) {
+					p.setBrush(st::msgFileInBgSelected);
+				} else {
+					const auto over = ClickHandler::showAsActive(isLoading
+						? _cancell
+						: (loaded || _dataMedia->canBePlayed())
+						? _openl
+						: _savel);
+					p.setBrush(anim::brush(
+						_st.songIconBg,
+						_st.songOverBg,
+						_a_iconOver.value(over ? 1. : 0.)));
+				}
 				PainterHighQualityEnabler hq(p);
 				p.drawEllipse(inner);
 			}
 
 			const auto icon = [&] {
-				if (!cornerDownload && (_data->loading() || _data->uploading())) {
+				if (!coverDrawn) {
+					if (isLoading) {
+						return &(selected
+							? _st.voiceCancelSelected
+							: _st.voiceCancel);
+					} else if (showPause) {
+						return &(selected
+							? _st.voicePauseSelected
+							: _st.voicePause);
+					} else if (loaded || _dataMedia->canBePlayed()) {
+						return &(selected
+							? _st.voicePlaySelected
+							: _st.voicePlay);
+					}
+					return &(selected
+						? _st.voiceDownloadSelected
+						: _st.voiceDownload);
+				}
+				if (isLoading) {
 					return &(selected ? _st.songCancelSelected : _st.songCancel);
 				} else if (showPause) {
 					return &(selected ? _st.songPauseSelected : _st.songPause);
@@ -1479,9 +1512,8 @@ Link::Link(
 	int32 tw = 0, th = 0;
 	if (_page && _page->photo) {
 		const auto photo = _page->photo;
-		if (photo->inlineThumbnailBytes().isEmpty()
-			&& (photo->hasExact(Data::PhotoSize::Small)
-				|| photo->hasExact(Data::PhotoSize::Thumbnail))) {
+		if (photo->hasExact(Data::PhotoSize::Small)
+			|| photo->hasExact(Data::PhotoSize::Thumbnail)) {
 			photo->load(Data::PhotoSize::Small, parent->fullId());
 		}
 		tw = style::ConvertScale(photo->width());
@@ -1623,7 +1655,7 @@ void Link::paint(Painter &p, const QRect &clip, TextSelection selection, const P
 }
 
 void Link::validateThumbnail() {
-	if (!_thumbnail.isNull()) {
+	if (!_thumbnail.isNull() && !_thumbnailBlurred) {
 		return;
 	}
 	if (_page && _page->photo) {
@@ -1631,12 +1663,16 @@ void Link::validateThumbnail() {
 		ensurePhotoMediaCreated();
 		if (const auto thumbnail = _photoMedia->image(PhotoSize::Thumbnail)) {
 			_thumbnail = thumbnail->pixSingle(_pixw, _pixh, st::linksPhotoSize, st::linksPhotoSize, ImageRoundRadius::Small);
+			_thumbnailBlurred = false;
 		} else if (const auto large = _photoMedia->image(PhotoSize::Large)) {
 			_thumbnail = large->pixSingle(_pixw, _pixh, st::linksPhotoSize, st::linksPhotoSize, ImageRoundRadius::Small);
+			_thumbnailBlurred = false;
 		} else if (const auto small = _photoMedia->image(PhotoSize::Small)) {
 			_thumbnail = small->pixSingle(_pixw, _pixh, st::linksPhotoSize, st::linksPhotoSize, ImageRoundRadius::Small);
+			_thumbnailBlurred = false;
 		} else if (const auto blurred = _photoMedia->thumbnailInline()) {
 			_thumbnail = blurred->pixBlurredSingle(_pixw, _pixh, st::linksPhotoSize, st::linksPhotoSize, ImageRoundRadius::Small);
+			return;
 		} else {
 			return;
 		}
@@ -1644,14 +1680,20 @@ void Link::validateThumbnail() {
 		delegate()->unregisterHeavyItem(this);
 	} else if (_page && _page->document && _page->document->hasThumbnail()) {
 		ensureDocumentMediaCreated();
+		const auto roundRadius = _page->document->isVideoMessage()
+			? ImageRoundRadius::Ellipse
+			: ImageRoundRadius::Small;
 		if (const auto thumbnail = _documentMedia->thumbnail()) {
-			auto roundRadius = _page->document->isVideoMessage()
-				? ImageRoundRadius::Ellipse
-				: ImageRoundRadius::Small;
 			_thumbnail = thumbnail->pixSingle(_pixw, _pixh, st::linksPhotoSize, st::linksPhotoSize, roundRadius);
-			_documentMedia = nullptr;
-			delegate()->unregisterHeavyItem(this);
+			_thumbnailBlurred = false;
+		} else if (const auto blurred = _documentMedia->thumbnailInline()) {
+			_thumbnail = blurred->pixBlurredSingle(_pixw, _pixh, st::linksPhotoSize, st::linksPhotoSize, roundRadius);
+			return;
+		} else {
+			return;
 		}
+		_documentMedia = nullptr;
+		delegate()->unregisterHeavyItem(this);
 	} else {
 		const auto size = QSize(st::linksPhotoSize, st::linksPhotoSize);
 		_thumbnail = QPixmap(size * cIntRetinaFactor());
@@ -1683,6 +1725,7 @@ void Link::validateThumbnail() {
 				_letter,
 				style::al_center);
 		}
+		_thumbnailBlurred = false;
 	}
 }
 

@@ -13,9 +13,56 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 #include "window/section_widget.h"
 #include "base/platform/base_platform_info.h"
+#include "webrtc/webrtc_create_adm.h"
 #include "facades.h"
 
 namespace Core {
+namespace {
+
+[[nodiscard]] WindowPosition Deserialize(const QByteArray &data) {
+	QDataStream stream(data);
+	stream.setVersion(QDataStream::Qt_5_1);
+
+	auto result = WindowPosition();
+	stream
+		>> result.x
+		>> result.y
+		>> result.w
+		>> result.h
+		>> result.moncrc
+		>> result.maximized
+		>> result.scale;
+	return result;
+}
+
+[[nodiscard]] QByteArray Serialize(const WindowPosition &position) {
+	auto result = QByteArray();
+	const auto size = 7 * sizeof(qint32);
+	result.reserve(size);
+	{
+		QDataStream stream(&result, QIODevice::WriteOnly);
+		stream.setVersion(QDataStream::Qt_5_1);
+		stream
+			<< qint32(position.x)
+			<< qint32(position.y)
+			<< qint32(position.w)
+			<< qint32(position.h)
+			<< qint32(position.moncrc)
+			<< qint32(position.maximized)
+			<< qint32(position.scale);
+	}
+	DEBUG_LOG(("Window Pos: Writing to storage %1, %2, %3, %4"
+		" (scale %5%, maximized %6)")
+		.arg(position.x)
+		.arg(position.y)
+		.arg(position.w)
+		.arg(position.h)
+		.arg(position.scale)
+		.arg(Logs::b(position.maximized)));
+	return result;
+}
+
+} // namespace
 
 Settings::Settings()
 : _sendSubmitWay(Ui::InputSubmitSettings::Enter)
@@ -26,6 +73,8 @@ Settings::Settings()
 
 QByteArray Settings::serialize() const {
 	const auto themesAccentColors = _themesAccentColors.serialize();
+	const auto windowPosition = Serialize(_windowPosition);
+
 	auto size = Serialize::bytearraySize(themesAccentColors)
 		+ sizeof(qint32) * 5
 		+ Serialize::stringSize(_downloadPath.current())
@@ -39,6 +88,7 @@ QByteArray Settings::serialize() const {
 		size += Serialize::stringSize(key) + Serialize::stringSize(value);
 	}
 	size += Serialize::bytearraySize(_videoPipGeometry);
+	size += Serialize::bytearraySize(windowPosition);
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -59,7 +109,7 @@ QByteArray Settings::serialize() const {
 			<< qint32(_desktopNotify ? 1 : 0)
 			<< qint32(_flashBounceNotify ? 1 : 0)
 			<< static_cast<qint32>(_notifyView)
-			<< qint32(_nativeNotifications ? 1 : 0)
+			<< qint32(_nativeNotifications ? (*_nativeNotifications ? 1 : 2) : 0)
 			<< qint32(_notificationsCount)
 			<< static_cast<qint32>(_notificationsCorner)
 			<< qint32(_autoLock)
@@ -99,7 +149,7 @@ QByteArray Settings::serialize() const {
 			<< qint32(_floatPlayerColumn)
 			<< qint32(_floatPlayerCorner)
 			<< qint32(_thirdSectionInfoEnabled ? 1 : 0)
-			<< qint32(snap(
+			<< qint32(std::clamp(
 				qRound(_dialogsWidthRatio.current() * 1000000),
 				0,
 				1000000))
@@ -112,7 +162,10 @@ QByteArray Settings::serialize() const {
 			<< qint32(_ipRevealWarning ? 1 : 0)
 			<< qint32(_groupCallPushToTalk ? 1 : 0)
 			<< _groupCallPushToTalkShortcut
-			<< qint64(_groupCallPushToTalkDelay);
+			<< qint64(_groupCallPushToTalkDelay)
+			<< qint32(0) // Call audio backend
+			<< qint32(_disableCalls ? 1 : 0)
+			<< windowPosition;
 	}
 	return result;
 }
@@ -138,7 +191,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	qint32 desktopNotify = _desktopNotify ? 1 : 0;
 	qint32 flashBounceNotify = _flashBounceNotify ? 1 : 0;
 	qint32 notifyView = static_cast<qint32>(_notifyView);
-	qint32 nativeNotifications = _nativeNotifications ? 1 : 0;
+	qint32 nativeNotifications = _nativeNotifications ? (*_nativeNotifications ? 1 : 2) : 0;
 	qint32 notificationsCount = _notificationsCount;
 	qint32 notificationsCorner = static_cast<qint32>(_notificationsCorner);
 	qint32 autoLock = _autoLock;
@@ -183,6 +236,9 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	qint32 groupCallPushToTalk = _groupCallPushToTalk ? 1 : 0;
 	QByteArray groupCallPushToTalkShortcut = _groupCallPushToTalkShortcut;
 	qint64 groupCallPushToTalkDelay = _groupCallPushToTalkDelay;
+	qint32 callAudioBackend = 0;
+	qint32 disableCalls = _disableCalls ? 1 : 0;
+	QByteArray windowPosition;
 
 	stream >> themesAccentColors;
 	if (!stream.atEnd()) {
@@ -255,7 +311,10 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 			>> thirdColumnWidth
 			>> thirdSectionExtendedBy
 			>> notifyFromAll;
-		dialogsWidthRatio = snap(dialogsWidthRatioInt / 1000000., 0., 1.);
+		dialogsWidthRatio = std::clamp(
+			dialogsWidthRatioInt / 1000000.,
+			0.,
+			1.);
 	}
 	if (!stream.atEnd()) {
 		stream >> nativeWindowFrame;
@@ -274,6 +333,15 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 			>> groupCallPushToTalk
 			>> groupCallPushToTalkShortcut
 			>> groupCallPushToTalkDelay;
+	}
+	if (!stream.atEnd()) {
+		stream >> callAudioBackend;
+	}
+	if (!stream.atEnd()) {
+		stream >> disableCalls;
+	}
+	if (!stream.atEnd()) {
+		stream >> windowPosition;
 	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
@@ -299,7 +367,12 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	case dbinvShowName:
 	case dbinvShowPreview: _notifyView = uncheckedNotifyView; break;
 	}
-	_nativeNotifications = (nativeNotifications == 1);
+	switch (nativeNotifications) {
+	case 0: _nativeNotifications = std::nullopt; break;
+	case 1: _nativeNotifications = true; break;
+	case 2: _nativeNotifications = false; break;
+	default: break;
+	}
 	_notificationsCount = (notificationsCount > 0) ? notificationsCount : 3;
 	const auto uncheckedNotificationsCorner = static_cast<ScreenCorner>(notificationsCorner);
 	switch (uncheckedNotificationsCorner) {
@@ -369,6 +442,10 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	_groupCallPushToTalk = (groupCallPushToTalk == 1);
 	_groupCallPushToTalkShortcut = groupCallPushToTalkShortcut;
 	_groupCallPushToTalkDelay = groupCallPushToTalkDelay;
+	_disableCalls = (disableCalls == 1);
+	if (!windowPosition.isEmpty()) {
+		_windowPosition = Deserialize(windowPosition);
+	}
 }
 
 bool Settings::chatWide() const {
@@ -420,6 +497,10 @@ void Settings::setTabbedReplacedWithInfo(bool enabled) {
 	}
 }
 
+Webrtc::Backend Settings::callAudioBackend() const {
+	return Webrtc::Backend::OpenAL;
+}
+
 void Settings::setDialogsWidthRatio(float64 ratio) {
 	_dialogsWidthRatio = ratio;
 }
@@ -460,7 +541,7 @@ void Settings::resetOnLastLogout() {
 	_desktopNotify = true;
 	_flashBounceNotify = true;
 	_notifyView = dbinvShowPreview;
-	//_nativeNotifications = false;
+	//_nativeNotifications = std::nullopt;
 	//_notificationsCount = 3;
 	//_notificationsCorner = ScreenCorner::BottomRight;
 	_includeMutedCounter = true;
@@ -474,6 +555,8 @@ void Settings::resetOnLastLogout() {
 	//_callOutputVolume = 100;
 	//_callInputVolume = 100;
 	//_callAudioDuckingEnabled = true;
+
+	_disableCalls = false;
 
 	_groupCallPushToTalk = false;
 	_groupCallPushToTalkShortcut = QByteArray();

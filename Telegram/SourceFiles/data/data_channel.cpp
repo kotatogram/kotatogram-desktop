@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "main/main_session.h"
 #include "api/api_chat_invite.h"
+#include "api/api_invite_links.h"
 #include "apiwrap.h"
 
 namespace {
@@ -99,10 +100,7 @@ void ChannelData::setAccessHash(uint64 accessHash) {
 }
 
 void ChannelData::setInviteLink(const QString &newInviteLink) {
-	if (newInviteLink != _inviteLink) {
-		_inviteLink = newInviteLink;
-		session().changes().peerUpdated(this, UpdateFlag::InviteLink);
-	}
+	_inviteLink = newInviteLink;
 }
 
 bool ChannelData::canHaveInviteLink() const {
@@ -477,6 +475,7 @@ bool ChannelData::canEditInformation() const {
 
 bool ChannelData::canEditPermissions() const {
 	return isMegagroup()
+		&& !isGigagroup()
 		&& ((adminRights() & AdminRight::f_ban_users) || amCreator());
 }
 
@@ -761,6 +760,16 @@ void ApplyChannelUpdate(
 		const MTPDchannelFull &update) {
 	const auto session = &channel->session();
 
+	if (channel->isMegagroup()) {
+		const auto suggestions = update.vpending_suggestions().value_or_empty();
+		channel->owner().setSuggestToGigagroup(
+			channel,
+			ranges::contains(
+				suggestions,
+				"convert_to_gigagroup"_q,
+				&MTPstring::v));
+	}
+
 	channel->setAvailableMinId(update.vavailable_min_id().value_or_empty());
 	auto canViewAdmins = channel->canViewAdmins();
 	auto canViewMembers = channel->canViewMembers();
@@ -772,6 +781,7 @@ void ApplyChannelUpdate(
 		channel->clearGroupCall();
 	}
 
+	channel->setMessagesTTL(update.vttl_period().value_or_empty());
 	channel->setFullFlags(update.vflags().v);
 	channel->setUserpicPhoto(update.vchat_photo());
 	if (const auto migratedFrom = update.vmigrated_from_chat_id()) {
@@ -798,12 +808,13 @@ void ApplyChannelUpdate(
 		channel->growSlowmodeLastMessage(
 			next->v - channel->slowmodeSeconds());
 	}
-	channel->setInviteLink(update.vexported_invite().match([&](
-			const MTPDchatInviteExported &data) {
-		return qs(data.vlink());
-	}, [&](const MTPDchatInviteEmpty &) {
-		return QString();
-	}));
+	if (const auto invite = update.vexported_invite()) {
+		channel->session().api().inviteLinks().setMyPermanent(
+			channel,
+			*invite);
+	} else {
+		channel->session().api().inviteLinks().clearMyPermanent(channel);
+	}
 	if (const auto location = update.vlocation()) {
 		channel->setLocation(*location);
 	} else {

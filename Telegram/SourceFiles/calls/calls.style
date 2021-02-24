@@ -9,6 +9,7 @@ using "ui/basic.style";
 
 using "ui/widgets/widgets.style";
 using "ui/layers/layers.style";
+using "ui/chat/chat.style"; // GroupCallUserpics
 using "window/window.style";
 
 CallSignalBars {
@@ -19,20 +20,6 @@ CallSignalBars {
 	max: pixels;
 	color: color;
 	inactiveOpacity: double;
-}
-
-callRadius: 6px;
-callShadow: Shadow {
-	left: icon {{ "calls/call_shadow_left", windowShadowFg }};
-	topLeft: icon {{ "calls/call_shadow_top_left", windowShadowFg }};
-	top: icon {{ "calls/call_shadow_top", windowShadowFg }};
-	topRight: icon {{ "calls/call_shadow_top_left-flip_horizontal", windowShadowFg }};
-	right: icon {{ "calls/call_shadow_left-flip_horizontal", windowShadowFg }};
-	bottomRight: icon {{ "calls/call_shadow_top_left-flip_vertical-flip_horizontal", windowShadowFg }};
-	bottom: icon {{ "calls/call_shadow_top-flip_vertical", windowShadowFg }};
-	bottomLeft: icon {{ "calls/call_shadow_top_left-flip_vertical", windowShadowFg }};
-	extend: margins(9px, 8px, 9px, 10px);
-	fallback: windowShadowFgFallback;
 }
 
 callWidthMin: 300px;
@@ -605,9 +592,12 @@ groupCallButtonSkip: 43px;
 groupCallButtonBottomSkip: 145px;
 groupCallMuteBottomSkip: 160px;
 
-groupCallTopBarUserpicSize: 28px;
-groupCallTopBarUserpicShift: 8px;
-groupCallTopBarUserpicStroke: 2px;
+groupCallTopBarUserpics: GroupCallUserpics {
+	size: 28px;
+	shift: 8px;
+	stroke: 2px;
+	align: align(left);
+}
 groupCallTopBarJoin: RoundButton(defaultActiveButton) {
 	width: -26px;
 	height: 26px;
@@ -773,6 +763,47 @@ groupCallMajorBlobMaxRadius: 4px;
 
 groupCallMinorBlobIdleRadius: 3px;
 groupCallMinorBlobMaxRadius: 12px;
+
+groupCallMuteCrossLine: CrossLineAnimation {
+	fg: groupCallIconFg;
+	icon: icon {{ "calls/volume/speaker", groupCallIconFg }};
+	startPosition: point(2px, 5px);
+	endPosition: point(16px, 19px);
+	stroke: 2px;
+}
+
+groupCallMenuSpeakerArcsSkip: 1px;
+groupCallMenuVolumeSkip: 5px;
+groupCallMenuVolumeSlider: MediaSlider(defaultContinuousSlider) {
+	activeFg: groupCallMembersFg;
+	inactiveFg: groupCallMemberInactiveIcon;
+	activeFgOver: groupCallMembersFg;
+	inactiveFgOver: groupCallMemberInactiveIcon;
+	activeFgDisabled: groupCallMemberInactiveIcon;
+	receivedTillFg: groupCallMemberInactiveIcon;
+}
+
+groupCallSpeakerArcsAnimation: ArcsAnimation {
+	fg: groupCallIconFg;
+	stroke: 2px;
+	space: 4px;
+	duration: 200;
+	deltaAngle: 60;
+	deltaHeight: 6px;
+	deltaWidth: 7px;
+	startHeight: 3px;
+	startWidth: 0px;
+}
+
+groupCallStatusSpeakerIcon: icon {{ "calls/volume/speaker_small", groupCallIconFg }};
+groupCallStatusSpeakerArcsSkip: 3px;
+groupCallStatusSpeakerArcsAnimation: ArcsAnimation(groupCallSpeakerArcsAnimation) {
+	deltaAngle: 68;
+	space: 3px;
+	deltaHeight: 5px;
+	deltaWidth: 4px;
+	startHeight: 1px;
+}
 
 callTopBarMuteCrossLine: CrossLineAnimation {
 	fg: callBarFg;

@@ -94,7 +94,9 @@ public:
 		| MTPDchannel::Flag::f_broadcast
 		| MTPDchannel::Flag::f_verified
 		| MTPDchannel::Flag::f_scam
+		| MTPDchannel::Flag::f_fake
 		| MTPDchannel::Flag::f_megagroup
+		| MTPDchannel::Flag::f_gigagroup
 		| MTPDchannel::Flag::f_restricted
 		| MTPDchannel::Flag::f_signatures
 		| MTPDchannel::Flag::f_username
@@ -203,6 +205,9 @@ public:
 	[[nodiscard]] bool isScam() const {
 		return flags() & MTPDchannel::Flag::f_scam;
 	}
+	[[nodiscard]] bool isFake() const {
+		return flags() & MTPDchannel::Flag::f_fake;
+	}
 
 	static MTPChatBannedRights KickedRestrictedRights();
 	static constexpr auto kRestrictUntilForever = TimeId(INT_MAX);
@@ -229,6 +234,9 @@ public:
 	}
 	[[nodiscard]] bool isBroadcast() const {
 		return flags() & MTPDchannel::Flag::f_broadcast;
+	}
+	[[nodiscard]] bool isGigagroup() const {
+		return flags() & MTPDchannel::Flag::f_gigagroup;
 	}
 	[[nodiscard]] bool hasUsername() const {
 		return flags() & MTPDchannel::Flag::f_username;

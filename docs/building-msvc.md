@@ -41,20 +41,11 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     git apply ../patches/gyp.diff
     cd ..\..
 
-Add **GYP** and **Ninja** to your PATH:
-
-* Open **Control Panel** -> **System** -> **Advanced system settings**
-* Press **Environment Variables...**
-* Select **Path**
-* Press **Edit**
-* Add ***BuildPath*\\ThirdParty\\gyp** value
-* Add ***BuildPath*\\ThirdParty\\Ninja** value
-
 ## Clone source code and prepare libraries
 
 Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** and run
 
-    SET PATH=%cd%\ThirdParty\Strawberry\perl\bin;%cd%\ThirdParty\Python27;%cd%\ThirdParty\NASM;%cd%\ThirdParty\jom;%cd%\ThirdParty\cmake\bin;%cd%\ThirdParty\yasm;%PATH%
+    SET PATH=%cd%\ThirdParty\gyp;%cd%\ThirdParty\Ninja;%cd%\ThirdParty\Strawberry\perl\bin;%cd%\ThirdParty\Python27;%cd%\ThirdParty\NASM;%cd%\ThirdParty\jom;%cd%\ThirdParty\cmake\bin;%cd%\ThirdParty\yasm;%PATH%
 
     git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git
 
