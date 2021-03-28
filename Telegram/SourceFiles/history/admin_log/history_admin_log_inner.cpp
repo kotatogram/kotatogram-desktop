@@ -432,9 +432,14 @@ void InnerWidget::requestAdmins() {
 				const QVector<MTPChannelParticipant> &list) {
 			auto filtered = (
 				list
-			) | ranges::view::transform([&](const MTPChannelParticipant &p) {
-				const auto userId = p.match([](const auto &data) {
-					return data.vuser_id().v;
+			) | ranges::views::transform([&](const MTPChannelParticipant &p) {
+				const auto participantId = p.match([](
+						const MTPDchannelParticipantBanned &data) {
+					return peerFromMTP(data.vpeer());
+				}, [](const MTPDchannelParticipantLeft &data) {
+					return peerFromMTP(data.vpeer());
+				}, [](const auto &data) {
+					return peerFromUser(data.vuser_id());
 				});
 				const auto canEdit = p.match([](
 						const MTPDchannelParticipantAdmin &data) {
@@ -442,12 +447,15 @@ void InnerWidget::requestAdmins() {
 				}, [](const auto &) {
 					return false;
 				});
-				return std::make_pair(userId, canEdit);
-			}) | ranges::view::transform([&](auto &&pair) {
+				return std::make_pair(participantId, canEdit);
+			}) | ranges::views::transform([&](auto &&pair) {
 				return std::make_pair(
-					session().data().userLoaded(pair.first),
+					(peerIsUser(pair.first)
+						? session().data().userLoaded(
+							peerToUser(pair.first))
+						: nullptr),
 					pair.second);
-			}) | ranges::view::filter([&](auto &&pair) {
+			}) | ranges::views::filter([&](auto &&pair) {
 				return (pair.first != nullptr);
 			});
 
@@ -698,7 +706,7 @@ void InnerWidget::preloadMore(Direction direction) {
 		if (!loadedFlag) {
 			addEvents(direction, results.vevents().v);
 		}
-	}).fail([this, &requestId, &loadedFlag](const RPCError &error) {
+	}).fail([this, &requestId, &loadedFlag](const MTP::Error &error) {
 		requestId = 0;
 		loadedFlag = true;
 		update();
@@ -819,7 +827,7 @@ int InnerWidget::resizeGetHeight(int newWidth) {
 
 	const auto resizeAllItems = (_itemsWidth != newWidth);
 	auto newHeight = 0;
-	for (const auto &item : ranges::view::reverse(_items)) {
+	for (const auto &item : ranges::views::reverse(_items)) {
 		item->setY(newHeight);
 		if (item->pendingResize() || resizeAllItems) {
 			newHeight += item->resizeGetHeight(newWidth);
@@ -1305,11 +1313,11 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 				Ui::LayerOption::KeepOther);
 		};
 		if (base::contains(_admins, user)) {
-			editRestrictions(true, MTP_chatBannedRights(MTP_flags(0), MTP_int(0)));
+			editRestrictions(true, ChannelData::EmptyRestrictedRights(user));
 		} else {
 			_api.request(MTPchannels_GetParticipant(
 				_channel->inputChannel,
-				user->inputUser
+				user->input
 			)).done([=](const MTPchannels_ChannelParticipant &result) {
 				Expects(result.type() == mtpc_channels_channelParticipant);
 
@@ -1322,15 +1330,11 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 				} else {
 					auto hasAdminRights = (type == mtpc_channelParticipantAdmin)
 						|| (type == mtpc_channelParticipantCreator);
-					auto bannedRights = MTP_chatBannedRights(
-						MTP_flags(0),
-						MTP_int(0));
+					auto bannedRights = ChannelData::EmptyRestrictedRights(user);
 					editRestrictions(hasAdminRights, bannedRights);
 				}
-			}).fail([=](const RPCError &error) {
-				auto bannedRights = MTP_chatBannedRights(
-					MTP_flags(0),
-					MTP_int(0));
+			}).fail([=](const MTP::Error &error) {
+				auto bannedRights = ChannelData::EmptyRestrictedRights(user);
 				editRestrictions(false, bannedRights);
 			}).send();
 		}
@@ -1346,7 +1350,7 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 				tr::lng_box_remove(tr::now),
 				crl::guard(this, [=] {
 					if (weak) {
-						weak->restrictUser(user, currentRights, ChannelData::KickedRestrictedRights());
+						weak->restrictUser(user, currentRights, ChannelData::EmptyRestrictedRights(user));
 					}
 					if (*weakBox) {
 						(*weakBox)->closeBox();
@@ -1357,11 +1361,11 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 				Ui::LayerOption::KeepOther);
 		};
 		if (base::contains(_admins, user)) {
-			editRestrictions(true, MTP_chatBannedRights(MTP_flags(0), MTP_int(0)));
+			editRestrictions(true, ChannelData::EmptyRestrictedRights(user));
 		} else {
 			_api.request(MTPchannels_GetParticipant(
 				_channel->inputChannel,
-				user->inputUser
+				user->input
 			)).done([=](const MTPchannels_ChannelParticipant &result) {
 				Expects(result.type() == mtpc_channels_channelParticipant);
 
@@ -1374,15 +1378,11 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 				} else {
 					auto hasAdminRights = (type == mtpc_channelParticipantAdmin)
 						|| (type == mtpc_channelParticipantCreator);
-					auto bannedRights = MTP_chatBannedRights(
-						MTP_flags(0),
-						MTP_int(0));
+					auto bannedRights = ChannelData::EmptyRestrictedRights(user);
 					editRestrictions(hasAdminRights, bannedRights);
 				}
-			}).fail([=](const RPCError &error) {
-				auto bannedRights = MTP_chatBannedRights(
-					MTP_flags(0),
-					MTP_int(0));
+			}).fail([=](const MTP::Error &error) {
+				auto bannedRights = ChannelData::EmptyRestrictedRights(user);
 				editRestrictions(false, bannedRights);
 			}).send();
 		}
@@ -1405,8 +1405,7 @@ void InnerWidget::restrictUser(
 }
 
 void InnerWidget::restrictUserDone(not_null<UserData*> user, const MTPChatBannedRights &rights) {
-	Expects(rights.type() == mtpc_chatBannedRights);
-	if (rights.c_chatBannedRights().vflags().v) {
+	if (Data::ChatBannedRightsFlags(rights)) {
 		_admins.erase(std::remove(_admins.begin(), _admins.end(), user), _admins.end());
 		_adminsCanEdit.erase(std::remove(_adminsCanEdit.begin(), _adminsCanEdit.end(), user), _adminsCanEdit.end());
 	}

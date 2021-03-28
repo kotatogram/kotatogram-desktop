@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "base/object_ptr.h"
 #include "calls/calls_group_call.h"
+#include "calls/calls_choose_join_as.h"
 #include "ui/effects/animations.h"
 #include "ui/rp_widget.h"
 
@@ -19,9 +20,12 @@ class Image;
 namespace Data {
 class PhotoMedia;
 class CloudImageView;
+class GroupCall;
 } // namespace Data
 
 namespace Ui {
+class AbstractButton;
+class DropdownMenu;
 class CallButton;
 class CallMuteButton;
 class IconButton;
@@ -44,28 +48,14 @@ struct CallSignalBars;
 struct CallBodyLayout;
 } // namespace style
 
-namespace Calls {
+namespace Calls::Group {
 
-class Userpic;
-class SignalBars;
+class Members;
 
-class GroupMembers;
-
-enum class BoxContext {
-	GroupCallPanel,
-	MainWindow,
-};
-
-void LeaveGroupCallBox(
-	not_null<Ui::GenericBox*> box,
-	not_null<GroupCall*> call,
-	bool discardChecked,
-	BoxContext context);
-
-class GroupPanel final {
+class Panel final {
 public:
-	GroupPanel(not_null<GroupCall*> call);
-	~GroupPanel();
+	Panel(not_null<GroupCall*> call);
+	~Panel();
 
 	[[nodiscard]] bool isActive() const;
 	void minimize();
@@ -86,6 +76,8 @@ private:
 	void initWithCall(GroupCall *call);
 	void initLayout();
 	void initGeometry();
+	void setupJoinAsChangedToasts();
+	void setupTitleChangedToasts();
 
 	bool handleClose();
 
@@ -94,12 +86,16 @@ private:
 
 	void endCall();
 
+	void showMainMenu();
+	void chooseJoinAs();
 	void addMembers();
-	void kickMember(not_null<UserData*> user);
-	void kickMemberSure(not_null<UserData*> user);
-	[[nodiscard]] int computeMembersListTop() const;
-	[[nodiscard]] std::optional<QRect> computeTitleRect() const;
+	void kickParticipant(not_null<PeerData*> participantPeer);
+	void kickParticipantSure(not_null<PeerData*> participantPeer);
+	[[nodiscard]] QRect computeTitleRect() const;
 	void refreshTitle();
+	void refreshTitleGeometry();
+	void setupRealCallViewers(not_null<GroupCall*> call);
+	void subscribeToChanges(not_null<Data::GroupCall*> real);
 
 	void migrate(not_null<ChannelData*> channel);
 	void subscribeToPeerChanges();
@@ -118,7 +114,13 @@ private:
 
 	object_ptr<Ui::FlatLabel> _title = { nullptr };
 	object_ptr<Ui::FlatLabel> _subtitle = { nullptr };
-	object_ptr<GroupMembers> _members;
+	object_ptr<Ui::AbstractButton> _recordingMark = { nullptr };
+	object_ptr<Ui::IconButton> _menuToggle = { nullptr };
+	object_ptr<Ui::DropdownMenu> _menu = { nullptr };
+	object_ptr<Ui::AbstractButton> _joinAsToggle = { nullptr };
+	object_ptr<Members> _members;
+	rpl::variable<QString> _titleText;
+	ChooseJoinAsProcess _joinAsProcess;
 
 	object_ptr<Ui::CallButton> _settings;
 	std::unique_ptr<Ui::CallMuteButton> _mute;
@@ -128,4 +130,4 @@ private:
 
 };
 
-} // namespace Calls
+} // namespace Calls::Group

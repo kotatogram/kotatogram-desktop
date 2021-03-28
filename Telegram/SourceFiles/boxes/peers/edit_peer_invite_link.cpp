@@ -118,7 +118,7 @@ private:
 	return updated.link.isEmpty() || (!revoked && updated.revoked);
 }
 
-QImage QrExact(const Qr::Data &data, int pixel) {
+QImage QrExact(const Qr::Data &data, int pixel, QColor color) {
 	const auto image = [](int size) {
 		auto result = QImage(
 			size,
@@ -141,7 +141,7 @@ QImage QrExact(const Qr::Data &data, int pixel) {
 		return result;
 	};
 	return Qr::ReplaceCenter(
-		Qr::Generate(data, pixel, st::windowFg->c),
+		Qr::Generate(data, pixel, color),
 		image(Qr::ReplaceSize(data, pixel)));
 }
 
@@ -151,7 +151,7 @@ QImage Qr(const Qr::Data &data, int pixel, int max = 0) {
 	if (max > 0 && data.size * pixel > max) {
 		pixel = std::max(max / data.size, 1);
 	}
-	return QrExact(data, pixel * style::DevicePixelRatio());
+	return QrExact(data, pixel * style::DevicePixelRatio(), st::windowFg->c);
 }
 
 QImage Qr(const QString &text, int pixel, int max) {
@@ -161,7 +161,7 @@ QImage Qr(const QString &text, int pixel, int max) {
 QImage QrForShare(const QString &text) {
 	const auto data = Qr::Encode(text);
 	const auto size = (kShareQrSize - 2 * kShareQrPadding);
-	const auto image = QrExact(data, size / data.size);
+	const auto image = QrExact(data, size / data.size, Qt::black);
 	auto result = QImage(
 		kShareQrPadding * 2 + image.width(),
 		kShareQrPadding * 2 + image.height(),
@@ -260,9 +260,9 @@ void Controller::addHeaderBlock(not_null<Ui::VerticalLayout*> container) {
 	const auto editLink = crl::guard(weak, [=] {
 		EditLink(_peer, _data.current());
 	});
-	const auto deleteLink = [=] {
+	const auto deleteLink = crl::guard(weak, [=] {
 		DeleteLink(_peer, admin, link);
-	};
+	});
 
 	const auto createMenu = [=] {
 		auto result = base::make_unique_q<Ui::PopupMenu>(container);
@@ -525,7 +525,7 @@ void Controller::loadMoreRows() {
 		auto slice = Api::ParseJoinedByLinkSlice(_peer, result);
 		_allLoaded = slice.users.empty();
 		appendSlice(slice);
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		_requestId = 0;
 		_allLoaded = true;
 	}).send();
@@ -881,6 +881,8 @@ void ShareInviteLinkBox(not_null<PeerData*> peer, const QString &link) {
 			for (auto &tag : comment.tags) {
 				tag.offset += add;
 			}
+		} else {
+			comment.text = link;
 		}
 		const auto owner = &peer->owner();
 		auto &api = peer->session().api();
@@ -903,11 +905,12 @@ void ShareInviteLinkBox(not_null<PeerData*> peer, const QString &link) {
 		return peer->canWrite();
 	};
 	*box = Ui::show(
-		Box<ShareBox>(
-			App::wnd()->sessionController(),
-			std::move(copyCallback),
-			std::move(submitCallback),
-			std::move(filterCallback)),
+		Box<ShareBox>(ShareBox::Descriptor{
+			.session = &peer->session(),
+			.copyCallback = std::move(copyCallback),
+			.submitCallback = std::move(submitCallback),
+			.filterCallback = [](auto peer) { return peer->canWrite(); },
+			.navigation = App::wnd()->sessionController() }),
 		Ui::LayerOption::KeepOther);
 }
 

@@ -154,6 +154,7 @@ std::vector<std::pair<ChatAdminRights, QString>> AdminRightLabels(
 			{ Flag::f_edit_messages, tr::lng_rights_channel_edit(tr::now) },
 			{ Flag::f_delete_messages, tr::lng_rights_channel_delete(tr::now) },
 			{ Flag::f_invite_users, tr::lng_rights_group_invite(tr::now) },
+			{ Flag::f_manage_call, tr::lng_rights_group_manage_calls(tr::now) },
 			{ Flag::f_add_admins, tr::lng_rights_add_admins(tr::now) }
 		};
 	}
@@ -334,7 +335,7 @@ Fn<void()> AboutGigagroupCallback(not_null<ChannelData*> channel) {
 			channel->session().api().applyUpdates(result);
 			Ui::hideSettingsAndLayer();
 			Ui::Toast::Show(tr::lng_gigagroup_done(tr::now));
-		}).fail([=](const RPCError &error) {
+		}).fail([=](const MTP::Error &error) {
 			*converting = false;
 		}).send();
 	};

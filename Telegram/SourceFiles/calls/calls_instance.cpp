@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_instance.h"
 
+#include "calls/calls_group_common.h"
 #include "mtproto/mtproto_dh_utils.h"
 #include "core/application.h"
 #include "main/main_session.h"
@@ -25,12 +26,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "media/audio/media_audio_track.h"
 #include "platform/platform_specific.h"
+#include "ui/toast/toast.h"
 #include "base/unixtime.h"
 #include "mainwidget.h"
 #include "mtproto/mtproto_config.h"
 #include "boxes/rate_call_box.h"
-#include "tgcalls/VideoCaptureInterface.h"
 #include "app.h"
+
+#include <tgcalls/VideoCaptureInterface.h>
+#include <tgcalls/StaticThreads.h>
 
 namespace Calls {
 namespace {
@@ -59,13 +63,26 @@ void Instance::startOutgoingCall(not_null<UserData*> user, bool video) {
 	}), video);
 }
 
-void Instance::startOrJoinGroupCall(not_null<PeerData*> peer) {
-	destroyCurrentCall();
-
-	const auto call = peer->groupCall();
-	createGroupCall(
-		peer,
-		call ? call->input() : MTP_inputGroupCall(MTPlong(), MTPlong()));
+void Instance::startOrJoinGroupCall(
+		not_null<PeerData*> peer,
+		const QString &joinHash,
+		bool confirmNeeded) {
+	const auto context = confirmNeeded
+		? Group::ChooseJoinAsProcess::Context::JoinWithConfirm
+		: peer->groupCall()
+		? Group::ChooseJoinAsProcess::Context::Join
+		: Group::ChooseJoinAsProcess::Context::Create;
+	_chooseJoinAs.start(peer, context, [=](object_ptr<Ui::BoxContent> box) {
+		Ui::show(std::move(box), Ui::LayerOption::KeepOther);
+	}, [=](QString text) {
+		Ui::Toast::Show(text);
+	}, [=](Group::JoinInfo info) {
+		const auto call = info.peer->groupCall();
+		info.joinHash = joinHash;
+		createGroupCall(
+			std::move(info),
+			call ? call->input() : MTP_inputGroupCall(MTPlong(), MTPlong()));
+	});
 }
 
 void Instance::callFinished(not_null<Call*> call) {
@@ -132,6 +149,7 @@ void Instance::groupCallPlaySound(GroupCallSound sound) {
 		switch (sound) {
 		case GroupCallSound::Started: return "group_call_start";
 		case GroupCallSound::Ended: return "group_call_end";
+		case GroupCallSound::AllowedToSpeak: return "group_call_allowed";
 		case GroupCallSound::Connecting: return "group_call_connect";
 		}
 		Unexpected("GroupCallSound in Instance::groupCallPlaySound.");
@@ -194,22 +212,22 @@ void Instance::destroyGroupCall(not_null<GroupCall*> call) {
 }
 
 void Instance::createGroupCall(
-		not_null<PeerData*> peer,
+		Group::JoinInfo info,
 		const MTPInputGroupCall &inputCall) {
 	destroyCurrentCall();
 
 	auto call = std::make_unique<GroupCall>(
 		getGroupCallDelegate(),
-		peer,
+		std::move(info),
 		inputCall);
 	const auto raw = call.get();
 
-	peer->session().account().sessionChanges(
+	info.peer->session().account().sessionChanges(
 	) | rpl::start_with_next([=] {
 		destroyGroupCall(raw);
 	}, raw->lifetime());
 
-	_currentGroupCallPanel = std::make_unique<GroupPanel>(raw);
+	_currentGroupCallPanel = std::make_unique<Group::Panel>(raw);
 	_currentGroupCall = std::move(call);
 	_currentGroupCallChanges.fire_copy(raw);
 }
@@ -233,7 +251,7 @@ void Instance::refreshDhConfig() {
 		} else {
 			callFailed(call);
 		}
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		const auto call = weak.get();
 		if (!call) {
 			return;
@@ -292,7 +310,7 @@ void Instance::refreshServerConfig(not_null<Main::Session*> session) {
 
 		const auto &json = result.c_dataJSON().vdata().v;
 		UpdateConfig(std::string(json.data(), json.size()));
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		_serverConfigRequestSession = nullptr;
 	}).send();
 }
@@ -305,9 +323,9 @@ void Instance::handleUpdate(
 	}, [&](const MTPDupdatePhoneCallSignalingData &data) {
 		handleSignalingData(session, data);
 	}, [&](const MTPDupdateGroupCall &data) {
-		handleGroupCallUpdate(session, data.vcall());
+		handleGroupCallUpdate(session, update);
 	}, [&](const MTPDupdateGroupCallParticipants &data) {
-		handleGroupCallUpdate(session, data);
+		handleGroupCallUpdate(session, update);
 	}, [](const auto &) {
 		Unexpected("Update type in Calls::Instance::handleUpdate.");
 	});
@@ -392,31 +410,38 @@ void Instance::handleCallUpdate(
 
 void Instance::handleGroupCallUpdate(
 		not_null<Main::Session*> session,
-		const MTPGroupCall &call) {
-	const auto callId = call.match([](const auto &data) {
-		return data.vid().v;
+		const MTPUpdate &update) {
+	const auto callId = update.match([](const MTPDupdateGroupCall &data) {
+		return data.vcall().match([](const auto &data) {
+			return data.vid().v;
+		});
+	}, [](const MTPDupdateGroupCallParticipants &data) {
+		return data.vcall().match([&](const MTPDinputGroupCall &data) {
+			return data.vid().v;
+		});
+	}, [](const auto &) -> uint64 {
+		Unexpected("Type in Instance::handleGroupCallUpdate.");
 	});
 	if (const auto existing = session->data().groupCall(callId)) {
-		existing->applyUpdate(call);
+		existing->enqueueUpdate(update);
+	} else {
+		applyGroupCallUpdateChecked(session, update);
 	}
+
 	if (_currentGroupCall
 		&& (&_currentGroupCall->peer()->session() == session)) {
-		_currentGroupCall->handleUpdate(call);
+		update.match([&](const MTPDupdateGroupCall &data) {
+			_currentGroupCall->handlePossibleCreateOrJoinResponse(data);
+		}, [](const auto &) {
+		});
 	}
 }
 
-void Instance::handleGroupCallUpdate(
+void Instance::applyGroupCallUpdateChecked(
 		not_null<Main::Session*> session,
-		const MTPDupdateGroupCallParticipants &update) {
-	const auto callId = update.vcall().match([](const auto &data) {
-		return data.vid().v;
-	});
-	if (const auto existing = session->data().groupCall(callId)) {
-		existing->applyUpdate(update);
-	}
+		const MTPUpdate &update) {
 	if (_currentGroupCall
-		&& (&_currentGroupCall->peer()->session() == session)
-		&& (_currentGroupCall->id() == callId)) {
+		&& (&_currentGroupCall->peer()->session() == session)) {
 		_currentGroupCall->handleUpdate(update);
 	}
 }
@@ -477,11 +502,14 @@ bool Instance::hasActivePanel(not_null<Main::Session*> session) const {
 	return false;
 }
 
-bool Instance::activateCurrentCall() {
+bool Instance::activateCurrentCall(const QString &joinHash) {
 	if (inCall()) {
 		_currentCallPanel->showAndActivate();
 		return true;
 	} else if (inGroupCall()) {
+		if (!joinHash.isEmpty()) {
+			_currentGroupCall->rejoinWithHash(joinHash);
+		}
 		_currentGroupCallPanel->showAndActivate();
 		return true;
 	}
@@ -570,6 +598,7 @@ std::shared_ptr<tgcalls::VideoCaptureInterface> Instance::getVideoCapture() {
 	}
 	auto result = std::shared_ptr<tgcalls::VideoCaptureInterface>(
 		tgcalls::VideoCaptureInterface::Create(
+			tgcalls::StaticThreads::getThreads(),
 			Core::App().settings().callVideoInputDeviceId().toStdString()));
 	_videoCapture = result;
 	return result;

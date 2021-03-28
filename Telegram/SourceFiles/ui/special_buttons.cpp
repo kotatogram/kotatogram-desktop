@@ -223,10 +223,12 @@ UserpicButton::UserpicButton(
 , _peer(peer)
 , _cropTitle(CropTitle(_peer))
 , _role(role) {
-	Expects(_role != Role::OpenProfile);
+	Expects(_role != Role::OpenProfile && _role != Role::OpenPhoto);
 
 	_waiting = false;
+	processPeerPhoto();
 	prepare();
+	setupPeerViewers();
 }
 
 void UserpicButton::prepare() {
@@ -474,8 +476,10 @@ void UserpicButton::paintUserpicFrame(Painter &p, QPoint photoPosition) {
 	if (_streamed
 		&& _streamed->player().ready()
 		&& !_streamed->player().videoSize().isEmpty()) {
-		const auto paused = _controller->isGifPausedAtLeastFor(
-			Window::GifPauseReason::RoundPlaying);
+		const auto paused = _controller
+			? _controller->isGifPausedAtLeastFor(
+				Window::GifPauseReason::RoundPlaying)
+			: false;
 		auto request = Media::Streaming::FrameRequest();
 		auto size = QSize{ _st.photoSize, _st.photoSize };
 		request.outer = size * cIntRetinaFactor();
@@ -866,95 +870,6 @@ void UserpicButton::prepareUserpicPixmap() {
 		? _peer->userpicUniqueKey(_userpicView)
 		: InMemoryKey();
 }
-// // #feed
-//FeedUserpicButton::FeedUserpicButton(
-//	QWidget *parent,
-//	not_null<Window::SessionController*> controller,
-//	not_null<Data::Feed*> feed,
-//	const style::FeedUserpicButton &st)
-//: AbstractButton(parent)
-//, _st(st)
-//, _controller(controller)
-//, _feed(feed) {
-//	prepare();
-//}
-//
-//void FeedUserpicButton::prepare() {
-//	resize(_st.size);
-//
-//	_feed->owner().feedUpdated(
-//	) | rpl::filter([=](const Data::FeedUpdate &update) {
-//		return (update.feed == _feed)
-//			&& (update.flag == Data::FeedUpdateFlag::Channels);
-//	}) | rpl::start_with_next([=] {
-//		crl::on_main(this, [=] { checkParts(); });
-//	}, lifetime());
-//
-//	refreshParts();
-//}
-//
-//void FeedUserpicButton::checkParts() {
-//	if (!partsAreValid()) {
-//		refreshParts();
-//	}
-//}
-//
-//bool FeedUserpicButton::partsAreValid() const {
-//	const auto &channels = _feed->channels();
-//	const auto count = std::min(int(channels.size()), 4);
-//	if (count != _parts.size()) {
-//		return false;
-//	}
-//	for (auto i = 0; i != count; ++i) {
-//		if (channels[i]->peer != _parts[i].channel) {
-//			return false;
-//		}
-//	}
-//	return true;
-//}
-//
-//void FeedUserpicButton::refreshParts() {
-//	const auto &channels = _feed->channels();
-//	const auto count = std::min(int(channels.size()), 4);
-//
-//	const auto createButton = [&](not_null<ChannelData*> channel) {
-//		auto result = base::make_unique_q<Ui::UserpicButton>(
-//			this,
-//			_controller,
-//			channel,
-//			Ui::UserpicButton::Role::Custom,
-//			_st.innerPart);
-//		result->setAttribute(Qt::WA_TransparentForMouseEvents);
-//		result->show();
-//		return result;
-//	};
-//
-//	const auto position = countInnerPosition();
-//	auto x = position.x();
-//	auto y = position.y();
-//	const auto delta = _st.innerSize - _st.innerPart.photoSize;
-//	_parts.clear();
-//	for (auto i = 0; i != count; ++i) {
-//		const auto channel = channels[i]->peer->asChannel();
-//		_parts.push_back({ channel, createButton(channel) });
-//		_parts.back().button->moveToLeft(x, y);
-//		switch (i) {
-//		case 0:
-//		case 2: x += delta; break;
-//		case 1: x -= delta; y += delta; break;
-//		}
-//	}
-//}
-//
-//QPoint FeedUserpicButton::countInnerPosition() const {
-//	auto innerLeft = (_st.innerPosition.x() < 0)
-//		? (width() - _st.innerSize) / 2
-//		: _st.innerPosition.x();
-//	auto innerTop = (_st.innerPosition.y() < 0)
-//		? (height() - _st.innerSize) / 2
-//		: _st.innerPosition.y();
-//	return { innerLeft, innerTop };
-//}
 
 SilentToggle::SilentToggle(QWidget *parent, not_null<ChannelData*> channel)
 : RippleButton(parent, st::historySilentToggle.ripple)

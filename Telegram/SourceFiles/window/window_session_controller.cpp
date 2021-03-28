@@ -19,7 +19,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_replies_section.h"
-//#include "history/feed/history_feed_section.h" // #feed
 #include "media/player/media_player_instance.h"
 #include "data/data_media_types.h"
 #include "data/data_session.h"
@@ -28,12 +27,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat.h"
 #include "data/data_user.h"
 #include "data/data_changes.h"
+#include "data/data_group_call.h"
 #include "data/data_chat_filters.h"
 #include "passport/passport_form_controller.h"
 #include "chat_helpers/tabbed_selector.h"
 #include "core/shortcuts.h"
 #include "core/application.h"
 #include "core/core_settings.h"
+#include "core/click_handler_types.h"
 #include "base/unixtime.h"
 #include "ui/layers/generic_box.h"
 #include "ui/text/text_utilities.h"
@@ -80,7 +81,10 @@ void DateClickHandler::setDate(QDate date) {
 }
 
 void DateClickHandler::onClick(ClickContext context) const {
-	App::wnd()->sessionController()->showJumpToDate(_chat, _date);
+	const auto my = context.other.value<ClickHandlerContext>();
+	if (const auto window = my.sessionWindow.get()) {
+		window->showJumpToDate(_chat, _date);
+	}
 }
 
 SessionNavigation::SessionNavigation(not_null<Main::Session*> session)
@@ -132,7 +136,7 @@ void SessionNavigation::resolveUsername(
 		if (const auto peerId = peerFromMTP(d.vpeer())) {
 			done(_session->data().peer(peerId));
 		}
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		_resolveRequestId = 0;
 		if (error.code() == 400) {
 			Ui::show(Box<InformBox>(
@@ -149,7 +153,9 @@ void SessionNavigation::resolveChannelById(
 		return;
 	}
 	const auto fail = [=] {
-		Ui::show(Box<InformBox>(tr::lng_error_post_link_invalid(tr::now)));
+		Ui::ShowMultilineToast({
+			.text = { tr::lng_error_post_link_invalid(tr::now) }
+		});
 	};
 	_session->api().request(base::take(_resolveRequestId)).cancel();
 	_resolveRequestId = _session->api().request(MTPchannels_GetChannels(
@@ -165,7 +171,7 @@ void SessionNavigation::resolveChannelById(
 				fail();
 			}
 		});
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		fail();
 	}).send();
 }
@@ -179,6 +185,58 @@ void SessionNavigation::showPeerByLinkResolved(
 	params.origin = SectionShow::OriginMessage{
 		info.clickFromMessageId
 	};
+	if (info.voicechatHash && peer->isChannel()) {
+		// First show the channel itself.
+		crl::on_main(this, [=] {
+			showPeerHistory(peer->id, params, ShowAtUnreadMsgId);
+		});
+
+		// Then try to join the voice chat.
+		const auto bad = [=] {
+			Ui::ShowMultilineToast({
+				.text = { tr::lng_group_invite_bad_link(tr::now) }
+			});
+		};
+		const auto hash = *info.voicechatHash;
+		_session->api().request(base::take(_resolveRequestId)).cancel();
+		_resolveRequestId = _session->api().request(
+			MTPchannels_GetFullChannel(peer->asChannel()->inputChannel)
+		).done([=](const MTPmessages_ChatFull &result) {
+			_session->api().processFullPeer(peer, result);
+			const auto call = peer->groupCall();
+			if (!call) {
+				bad();
+				return;
+			}
+			const auto join = [=] {
+				parentController()->startOrJoinGroupCall(
+					peer,
+					hash,
+					SessionController::GroupCallJoinConfirm::Always);
+			};
+			if (call->loaded()) {
+				join();
+				return;
+			}
+			const auto id = call->id();
+			_resolveRequestId = _session->api().request(
+				MTPphone_GetGroupCall(call->input())
+			).done([=](const MTPphone_GroupCall &result) {
+				if (const auto now = peer->groupCall()
+					; now && now->id() == id) {
+					if (!now->loaded()) {
+						now->processFullCall(result);
+					}
+					join();
+				} else {
+					bad();
+				}
+			}).fail([=](const MTP::Error &error) {
+				bad();
+			}).send();
+		}).send();
+		return;
+	}
 	const auto &replies = info.repliesInfo;
 	const auto searchQuery = info.searchQuery;
 	if (const auto threadId = std::get_if<ThreadId>(&replies)) {
@@ -331,7 +389,7 @@ void SessionNavigation::showRepliesForMessage(
 					commentId));
 			}
 		});
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		_showingRepliesRequestId = 0;
 		if (error.type() == u"CHANNEL_PRIVATE"_q
 			|| error.type() == u"USER_BANNED_IN_CHANNEL"_q) {
@@ -687,12 +745,6 @@ bool SessionController::jumpToChatListEntry(Dialogs::RowDescriptor row) {
 	if (const auto history = row.key.history()) {
 		Ui::showPeerHistory(history, row.fullId.msg);
 		return true;
-	//} else if (const auto feed = row.key.feed()) { // #feed
-	//	if (const auto item = session().data().message(row.fullId)) {
-	//		showSection(std::make_shared<HistoryFeed::Memento>(feed, item->position()));
-	//	} else {
-	//		showSection(std::make_shared<HistoryFeed::Memento>(feed));
-	//	}
 	}
 	return false;
 }
@@ -984,40 +1036,33 @@ void SessionController::closeThirdSection() {
 
 void SessionController::startOrJoinGroupCall(
 		not_null<PeerData*> peer,
-		bool confirmedLeaveOther) {
-	const auto channel = peer->asChannel();
-	if (channel && channel->amAnonymous()) {
-		Ui::ShowMultilineToast({
-			.text = { tr::lng_group_call_no_anonymous(tr::now) },
-		});
-		return;
-	}
+		QString joinHash,
+		GroupCallJoinConfirm confirm) {
 	auto &calls = Core::App().calls();
-	const auto confirm = [&](QString text, QString button) {
+	const auto askConfirmation = [&](QString text, QString button) {
 		Ui::show(Box<ConfirmBox>(text, button, crl::guard(this, [=] {
 			Ui::hideLayer();
-			startOrJoinGroupCall(peer, true);
+			startOrJoinGroupCall(peer, joinHash, GroupCallJoinConfirm::None);
 		})));
 	};
-	if (!confirmedLeaveOther && calls.inCall()) {
-		// Do you want to leave your active voice chat to join a voice chat in this group?
-		confirm(
+	if (confirm != GroupCallJoinConfirm::None && calls.inCall()) {
+		// Do you want to leave your active voice chat
+		// to join a voice chat in this group?
+		askConfirmation(
 			tr::lng_call_leave_to_other_sure(tr::now),
 			tr::lng_call_bar_hangup(tr::now));
-	} else if (!confirmedLeaveOther && calls.inGroupCall()) {
+	} else if (confirm != GroupCallJoinConfirm::None
+		&& calls.inGroupCall()) {
 		if (calls.currentGroupCall()->peer() == peer) {
-			calls.activateCurrentCall();
+			calls.activateCurrentCall(joinHash);
 		} else {
-			confirm(
+			askConfirmation(
 				tr::lng_group_call_leave_to_other_sure(tr::now),
 				tr::lng_group_call_leave(tr::now));
 		}
-	} else if (!confirmedLeaveOther && !peer->groupCall()) {
-		confirm(
-			tr::lng_group_call_create_sure(tr::now),
-			tr::lng_continue(tr::now));
 	} else {
-		calls.startOrJoinGroupCall(peer);
+		const auto confirmNeeded = (confirm == GroupCallJoinConfirm::Always);
+		calls.startOrJoinGroupCall(peer, joinHash, confirmNeeded);
 	}
 }
 
@@ -1039,12 +1084,6 @@ void SessionController::showJumpToDate(Dialogs::Key chat, QDate requestedDate) {
 			} else if (history->chatListTimeId() != 0) {
 				return base::unixtime::parse(history->chatListTimeId()).date();
 			}
-		//} else if (const auto feed = chat.feed()) { // #feed
-		//	if (chatScrollPosition(feed)) { // #TODO feeds save position
-
-		//	} else if (feed->chatListTimeId() != 0) {
-		//		return base::unixtime::parse(feed->chatListTimeId()).date();
-		//	}
 		}
 		return QDate();
 	}();
@@ -1056,10 +1095,6 @@ void SessionController::showJumpToDate(Dialogs::Key chat, QDate requestedDate) {
 			if (history && history->chatListTimeId() != 0) {
 				return base::unixtime::parse(history->chatListTimeId()).date();
 			}
-		//} else if (const auto feed = chat.feed()) { // #feed
-		//	if (feed->chatListTimeId() != 0) {
-		//		return base::unixtime::parse(feed->chatListTimeId()).date();
-		//	}
 		}
 		return QDate::currentDate();
 	};
@@ -1086,8 +1121,6 @@ void SessionController::showJumpToDate(Dialogs::Key chat, QDate requestedDate) {
 				}
 				return QDate::currentDate();
 			}
-		//} else if (const auto feed = chat.feed()) { // #feed
-		//	return startDate();
 		}
 		return startDate();
 	};

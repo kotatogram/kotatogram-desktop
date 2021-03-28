@@ -189,7 +189,7 @@ void TitleWidgetQt::updateControlsPositionBySide(
 		const std::vector<Control> &controls,
 		bool right) {
 	auto preparedControls = right
-		? (ranges::view::reverse(controls) | ranges::to_vector)
+		? (ranges::views::reverse(controls) | ranges::to_vector)
 		: controls;
 
 	RemoveDuplicates(preparedControls);
@@ -255,6 +255,10 @@ bool TitleWidgetQt::eventFilter(QObject *obj, QEvent *e) {
 
 			if (e->type() == QEvent::MouseMove
 				&& mouseEvent->buttons() == Qt::NoButton) {
+				if (_mousePressed) {
+					_mousePressed = false;
+				}
+
 				updateCursor(edges);
 			}
 

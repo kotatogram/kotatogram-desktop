@@ -680,7 +680,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			}
 		}
 		auto previousId = mtpRequestId(0);
-		auto &&requests = ranges::view::concat(removeRequests, addRequests);
+		auto &&requests = ranges::views::concat(removeRequests, addRequests);
 		for (auto &request : requests) {
 			previousId = session->api().request(
 				std::move(request)

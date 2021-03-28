@@ -304,6 +304,9 @@ bool ResolveUsername(
 			}
 			: Navigation::RepliesByLinkInfo{ v::null },
 		.startToken = startToken,
+		.voicechatHash = (params.contains(u"voicechat"_q)
+			? std::make_optional(params.value(u"voicechat"_q))
+			: std::nullopt),
 		.clickFromMessageId = fromMessageId,
 		.searchQuery = params.value(qsl("query")),
 	});
@@ -436,7 +439,7 @@ bool OpenMediaTimestamp(
 			Core::App().showDocument(
 				document,
 				session->data().message(itemId));
-		} else if (document->isSong()) {
+		} else if (document->isSong() || document->isVoiceMessage()) {
 			Media::Player::instance()->play({ document, itemId });
 		}
 		return true;
@@ -585,7 +588,7 @@ QString TryConvertUrlToLocal(QString url) {
 			return qsl("tg://bg?slug=") + bgMatch->captured(1) + (params.isEmpty() ? QString() : '&' + params);
 		} else if (auto postMatch = regex_match(qsl("^c/(\\-?\\d+)/(\\d+)(/?\\?|/?$)"), query, matchOptions)) {
 			auto params = query.mid(postMatch->captured(0).size()).toString();
-			return qsl("tg://privatepost?channel=%1&post=%2").arg(postMatch->captured(1)).arg(postMatch->captured(2)) + (params.isEmpty() ? QString() : '&' + params);
+			return qsl("tg://privatepost?channel=%1&post=%2").arg(postMatch->captured(1), postMatch->captured(2)) + (params.isEmpty() ? QString() : '&' + params);
 		} else if (auto usernameMatch = regex_match(qsl("^([a-zA-Z0-9\\.\\_]+)(/?\\?|/?$|/(\\d+)/?(?:\\?|$))"), query, matchOptions)) {
 			auto params = query.mid(usernameMatch->captured(0).size()).toString();
 			auto postParam = QString();

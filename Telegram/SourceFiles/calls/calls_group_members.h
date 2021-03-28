@@ -19,19 +19,19 @@ class GroupCall;
 } // namespace Data
 
 namespace Calls {
+class GroupCall;
+} // namespace Calls
 
-namespace Group {
+namespace Calls::Group {
+
 struct VolumeRequest;
 struct MuteRequest;
-} // namespace Group
 
-class GroupCall;
-
-class GroupMembers final
+class Members final
 	: public Ui::RpWidget
 	, private PeerListContentDelegate {
 public:
-	GroupMembers(
+	Members(
 		not_null<QWidget*> parent,
 		not_null<GroupCall*> call);
 
@@ -42,8 +42,8 @@ public:
 		-> rpl::producer<Group::MuteRequest>;
 	[[nodiscard]] auto changeVolumeRequests() const
 		-> rpl::producer<Group::VolumeRequest>;
-	[[nodiscard]] auto kickMemberRequests() const
-		-> rpl::producer<not_null<UserData*>>;
+	[[nodiscard]] auto kickParticipantRequests() const
+		-> rpl::producer<not_null<PeerData*>>;
 	[[nodiscard]] rpl::producer<> addMembersRequests() const {
 		return _addMemberRequests.events();
 	}

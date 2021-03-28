@@ -331,7 +331,7 @@ StickerSetBox::Inner::Inner(
 		_input
 	)).done([=](const MTPmessages_StickerSet &result) {
 		gotSet(result);
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		_loaded = true;
 		Ui::show(Box<InformBox>(tr::lng_stickers_not_found(tr::now)));
 	}).send();
@@ -625,7 +625,6 @@ int32 StickerSetBox::Inner::stickerFromGlobalPos(const QPoint &p) const {
 }
 
 void StickerSetBox::Inner::paintEvent(QPaintEvent *e) {
-	QRect r(e->rect());
 	Painter p(this);
 
 	if (_elements.empty()) {
@@ -817,7 +816,7 @@ void StickerSetBox::Inner::install() {
 		MTP_bool(false)
 	)).done([=](const MTPmessages_StickerSetInstallResult &result) {
 		installDone(result);
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		Ui::show(Box<InformBox>(tr::lng_stickers_not_found(tr::now)));
 	}).send();
 }

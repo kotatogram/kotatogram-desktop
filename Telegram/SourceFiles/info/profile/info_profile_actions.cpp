@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "history/history_location_manager.h" // LocationClickHandler.
+#include "history/view/history_view_context_menu.h" // HistoryView::ShowReportPeerBox
 #include "history/admin_log/history_admin_log_section.h"
 #include "boxes/abstract_box.h"
 #include "boxes/confirm_box.h"
@@ -182,37 +183,6 @@ private:
 	object_ptr<Ui::VerticalLayout> _wrap = { nullptr };
 
 };
-// // #feed
-//class FeedDetailsFiller {
-//public:
-//	FeedDetailsFiller(
-//		not_null<Controller*> controller,
-//		not_null<Ui::RpWidget*> parent,
-//		not_null<Data::Feed*> feed);
-//
-//	object_ptr<Ui::RpWidget> fill();
-//
-//private:
-//	object_ptr<Ui::RpWidget> setupDefaultToggle();
-//
-//	template <
-//		typename Widget,
-//		typename = std::enable_if_t<
-//		std::is_base_of_v<Ui::RpWidget, Widget>>>
-//	Widget *add(
-//			object_ptr<Widget> &&child,
-//			const style::margins &margin = style::margins()) {
-//		return _wrap->add(
-//			std::move(child),
-//			margin);
-//	}
-//
-//	not_null<Controller*> _controller;
-//	not_null<Ui::RpWidget*> _parent;
-//	not_null<Data::Feed*> _feed;
-//	object_ptr<Ui::VerticalLayout> _wrap;
-//
-//};
 
 class ManageFiller {
 public:
@@ -738,8 +708,9 @@ void ActionsFiller::addBotCommandActions(not_null<UserData*> user) {
 
 void ActionsFiller::addReportAction() {
 	const auto peer = _peer;
+	const auto controller = _controller->parentController();
 	const auto report = [=] {
-
+		HistoryView::ShowReportPeerBox(controller, peer);
 	};
 	AddActionButton(
 		_wrap,
@@ -894,48 +865,6 @@ object_ptr<Ui::RpWidget> ActionsFiller::fill() {
 	}
 	return { nullptr };
 }
-// // #feed
-//FeedDetailsFiller::FeedDetailsFiller(
-//	not_null<Controller*> controller,
-//	not_null<Ui::RpWidget*> parent,
-//	not_null<Data::Feed*> feed)
-//: _controller(controller)
-//, _parent(parent)
-//, _feed(feed)
-//, _wrap(_parent) {
-//}
-//
-//object_ptr<Ui::RpWidget> FeedDetailsFiller::fill() {
-//	add(object_ptr<Ui::BoxContentDivider>(_wrap));
-//	add(CreateSkipWidget(_wrap));
-//	add(setupDefaultToggle());
-//	add(CreateSkipWidget(_wrap));
-//	return std::move(_wrap);
-//}
-//
-//object_ptr<Ui::RpWidget> FeedDetailsFiller::setupDefaultToggle() {
-//	using namespace rpl::mappers;
-//	const auto feed = _feed;
-//	const auto feedId = feed->id();
-//	auto result = object_ptr<Ui::SettingsButton>(
-//		_wrap,
-//		tr::lng_info_feed_is_default(),
-//		st::infoNotificationsButton);
-//	result->toggleOn(
-//		feed->owner().defaultFeedIdValue(
-//		) | rpl::map(_1 == feedId)
-//	)->addClickHandler([=] {
-//		const auto makeDefault = (feed->owner().defaultFeedId() != feedId);
-//		const auto defaultFeedId = makeDefault ? feedId : 0;
-//		feed->owner().setDefaultFeedId(defaultFeedId);
-////		feed->session().api().saveDefaultFeedId(feedId, makeDefault); // #feed
-//	});
-//	object_ptr<FloatingIcon>(
-//		result,
-//		st::infoIconNotifications,
-//		st::infoNotificationsIconPosition);
-//	return result;
-//}
 
 ManageFiller::ManageFiller(
 	not_null<Controller*> controller,
@@ -1175,14 +1104,6 @@ object_ptr<Ui::RpWidget> SetupChannelMembers(
 
 	return result;
 }
-// // #feed
-//object_ptr<Ui::RpWidget> SetupFeedDetails(
-//		not_null<Controller*> controller,
-//		not_null<Ui::RpWidget*> parent,
-//		not_null<Data::Feed*> feed) {
-//	FeedDetailsFiller filler(controller, parent, feed);
-//	return filler.fill();
-//}
 
 } // namespace Profile
 } // namespace Info

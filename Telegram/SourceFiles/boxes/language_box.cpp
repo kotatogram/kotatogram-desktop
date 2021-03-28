@@ -424,11 +424,11 @@ void Rows::remove(not_null<Row*> row) {
 
 void Rows::restore(not_null<Row*> row) {
 	row->removed = false;
-	Local::saveRecentLanguages(ranges::view::all(
+	Local::saveRecentLanguages(ranges::views::all(
 		_rows
-	) | ranges::view::filter([](const Row &row) {
+	) | ranges::views::filter([](const Row &row) {
 		return !row.removed;
-	}) | ranges::view::transform([](const Row &row) {
+	}) | ranges::views::transform([](const Row &row) {
 		return row.data;
 	}) | ranges::to_vector);
 }
@@ -464,7 +464,6 @@ void Rows::showMenu(int index) {
 			Fn<void()> callback) {
 		return _menu->addAction(text, std::move(callback));
 	};
-	const auto id = row->data.id;
 	if (canShare(row)) {
 		addAction(tr::lng_proxy_edit_share(tr::now), [=] { share(row); });
 	}

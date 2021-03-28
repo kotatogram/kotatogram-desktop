@@ -151,6 +151,7 @@ public:
 		MsgId messageId = ShowAtUnreadMsgId;
 		RepliesByLinkInfo repliesInfo;
 		QString startToken;
+		std::optional<QString> voicechatHash;
 		FullMsgId clickFromMessageId;
 		QString searchQuery;
 	};
@@ -298,9 +299,15 @@ public:
 	void resizeForThirdSection();
 	void closeThirdSection();
 
+	enum class GroupCallJoinConfirm {
+		None,
+		IfNowInAnother,
+		Always,
+	};
 	void startOrJoinGroupCall(
 		not_null<PeerData*> peer,
-		bool confirmedLeaveOther = false);
+		QString joinHash = QString(),
+		GroupCallJoinConfirm confirm = GroupCallJoinConfirm::IfNowInAnother);
 
 	void showSection(
 		std::shared_ptr<SectionMemento> memento,

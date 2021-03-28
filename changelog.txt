@@ -1,3 +1,60 @@
+2.7.1 (20.03.21)
+
+- Fix editing 'Manage Voice Chats' rights for channel admins.
+- Fix verification check display in voice chat participants list.
+- Allow removing and blocking channels from voice chats.
+
+2.7 (19.03.21)
+
+- Start limitless Voice Chats in Groups and Channels.
+- Host discussions that can be listened to by millions of people simultaneously.
+- Record voice chats to share or publish in Channels later.
+- See that a chat is being recorded from the red dot next to its title.
+- See user bio texts right from the list of participants.
+- Raise your hand to show admins you want to speak.
+- Create separate Voice Chat Invite Links for listeners or speakers.
+- Change the title of your Voice Chat to give people an idea of the current topic.
+- Join Voice Chats as one of your Channels to hide your personal account.
+
+2.6.8 beta (18.03.21)
+
+- Fix connecting and getting allowed to speak on voice chats.
+- MPRIS support on Linux.
+
+2.6.7 beta (18.03.21)
+
+- Improve voice chat participants list updating.
+
+2.6.6 beta (18.03.21)
+
+- Fix joining popular voice chats.
+
+2.6.5 beta (17.03.21)
+
+- Improvements and fixes in new voice chat features.
+
+2.6.4 beta (16.03.21)
+
+- Fix freeze in voice chats.
+- Make default interface scale 110% on macOS Retina screens.
+
+2.6.3 beta (16.03.21)
+
+- Fix audio device selection in voice chats.
+- Fix blinking self profile photo in case the profile photo privacy is used.
+- Fix voice chat admin menu on macOS.
+
+2.6.2 beta (13.03.21)
+
+- Fix text disappearing because of cloud drafts sync.
+
+2.6.1 (24.02.21)
+
+- Fix time formatting in links.
+- Fix copy QR code in night mode.
+- Fix invite link sharing without a comment.
+- Fix crash in link editing on Linux.
+
 2.6 (23.02.21)
 
 - Set messages to auto-delete for everyone 24 hours or 7 days after sending.

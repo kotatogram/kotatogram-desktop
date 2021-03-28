@@ -155,7 +155,7 @@ void SendExistingMedia(
 					doneCallback();
 				}
 				finish();
-			}).fail([=](const RPCError &error) {
+			}).fail([=](const MTP::Error &error) {
 				if (error.code() == 400
 					&& error.type().startsWith(qstr("FILE_REFERENCE_"))) {
 					const auto usedFileReference = media->fileReference();
@@ -343,7 +343,7 @@ bool SendDice(Api::MessageToSend &message, Fn<void()> doneCallback) {
 				doneCallback();
 			}
 			finish();
-		}).fail([=](const RPCError &error) {
+		}).fail([=](const MTP::Error &error) {
 			api->sendMessageFail(error, peer, randomId, newId);
 			finish();
 		}).afterRequest(history->sendRequestId
@@ -363,13 +363,15 @@ void FillMessagePostFlags(
 
 void SendConfirmedFile(
 		not_null<Main::Session*> session,
-		const std::shared_ptr<FileLoadResult> &file,
-		const std::optional<FullMsgId> &oldId) {
-	const auto isEditing = oldId.has_value();
+		const std::shared_ptr<FileLoadResult> &file) {
+	const auto isEditing = file->to.replaceMediaOf != 0;
 	const auto channelId = peerToChannel(file->to.peer);
 
-	const auto newId = oldId.value_or(
-		FullMsgId(channelId, session->data().nextLocalMessageId()));
+	const auto newId = FullMsgId(
+		channelId,
+		isEditing
+			? file->to.replaceMediaOf
+			: session->data().nextLocalMessageId());
 	auto groupId = file->album ? file->album->groupId : uint64(0);
 	if (file->album) {
 		const auto proj = [](const SendingAlbum::Item &item) {
@@ -380,7 +382,6 @@ void SendConfirmedFile(
 
 		it->msgId = newId;
 	}
-	file->edit = isEditing;
 	session->uploader().upload(newId, file);
 
 	const auto itemToEdit = isEditing
@@ -582,7 +583,7 @@ void SendLocationPoint(
 		const Data::LocationPoint &data,
 		const SendAction &action,
 		Fn<void()> done,
-		Fn<void(const RPCError &error)> fail) {
+		Fn<void(const MTP::Error &error)> fail) {
 	const auto history = action.history;
 	const auto session = &history->session();
 	const auto api = &session->api();
@@ -629,7 +630,7 @@ void SendLocationPoint(
 			api->applyUpdates(result);
 			done();
 			finish();
-		}).fail([=](const RPCError &error) mutable {
+		}).fail([=](const MTP::Error &error) mutable {
 			if (fail) {
 				fail(error);
 			}

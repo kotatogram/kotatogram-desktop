@@ -12,13 +12,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/details/mtproto_dump_to_text.h"
 #include "mtproto/details/mtproto_rsa_public_key.h"
 #include "mtproto/session.h"
-#include "mtproto/mtproto_rpc_sender.h"
+#include "mtproto/mtproto_response.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "mtproto/connection_abstract.h"
 #include "platform/platform_specific.h"
 #include "base/openssl_help.h"
 #include "base/qthelp_url.h"
 #include "base/unixtime.h"
+#include "base/platform/base_platform_info.h"
 #include "zlib.h"
 
 namespace MTP {
@@ -79,6 +80,25 @@ using namespace details;
 		idsStr += QString(", %2").arg(id);
 	}
 	return idsStr + "]";
+}
+
+[[nodiscard]] QString ComputeAppVersion() {
+	return QString::fromLatin1(AppKotatoVersionStr) + ([] {
+#if defined OS_MAC_STORE
+		return u" Mac App Store"_q;
+#elif defined OS_WIN_STORE // OS_MAC_STORE
+		return (Platform::IsWindows64Bit() ? u" x64"_q : QString())
+			+ u" Microsoft Store"_q;
+#elif defined Q_OS_UNIX && !defined Q_OS_MAC // OS_MAC_STORE || OS_WIN_STORE
+		return Platform::InFlatpak()
+			? u" Flatpak"_q
+			: Platform::InSnap()
+			? u" Snap"_q
+			: QString();
+#else // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
+		return Platform::IsWindows64Bit() ? u" x64"_q : QString();
+#endif // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
+	})() + qsl(" (TD %1)").arg(AppVersionStr);
 }
 
 void WrapInvokeAfter(
@@ -632,26 +652,7 @@ void SessionPrivate::tryToSend() {
 		const auto systemVersion = (_currentDcType == DcType::Cdn)
 			? "n/a"
 			: _instance->systemVersion();
-#if defined OS_MAC_STORE
-		const auto appVersion = QString::fromLatin1(AppKotatoVersionStr)
-			+ " Mac App Store";
-#elif defined OS_WIN_STORE // OS_MAC_STORE
-		const auto appVersion = QString::fromLatin1(AppKotatoVersionStr)
-			+ " Microsoft Store";
-#elif defined Q_OS_UNIX && !defined Q_OS_MAC // OS_MAC_STORE || OS_WIN_STORE
-		const auto appVersion = [] {
-			if (Platform::InFlatpak()) {
-				return QString::fromLatin1(AppKotatoVersionStr)
-					+ " Flatpak";
-			} else if (Platform::InSnap()) {
-				return QString::fromLatin1(AppKotatoVersionStr)
-					+ " Snap";
-			}
-			return QString::fromLatin1(AppKotatoVersionStr);
-		}();
-#else // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
-		const auto appVersion = QString::fromLatin1(AppKotatoVersionStr);
-#endif // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
+		const auto appVersion = ComputeAppVersion();
 		const auto proxyType = _options->proxy.type;
 		const auto mtprotoProxy = (proxyType == ProxyData::Type::Mtproto);
 		const auto clientProxyFields = mtprotoProxy
@@ -1363,7 +1364,12 @@ void SessionPrivate::handleReceived() {
 			).arg(_encryptionKey->keyId()));
 
 		if (_receivedMessageIds.registerMsgId(msgId, needAck)) {
-			res = handleOneReceived(from, end, msgId, serverTime, serverSalt, badTime);
+			res = handleOneReceived(from, end, msgId, {
+				.outerMsgId = msgId,
+				.serverSalt = serverSalt,
+				.serverTime = serverTime,
+				.badTime = badTime,
+			});
 		}
 		_receivedMessageIds.shrink();
 
@@ -1374,12 +1380,11 @@ void SessionPrivate::handleReceived() {
 		}
 
 		auto lock = QReadLocker(_sessionData->haveReceivedMutex());
-		const auto tryToReceive = !_sessionData->haveReceivedResponses().empty()
-			|| !_sessionData->haveReceivedUpdates().empty();
+		const auto tryToReceive = !_sessionData->haveReceivedMessages().empty();
 		lock.unlock();
 
 		if (tryToReceive) {
-			DEBUG_LOG(("MTP Info: queueTryToReceive() - need to parse in another thread, %1 responses, %2 updates.").arg(_sessionData->haveReceivedResponses().size()).arg(_sessionData->haveReceivedUpdates().size()));
+			DEBUG_LOG(("MTP Info: queueTryToReceive() - need to parse in another thread, %1 messages.").arg(_sessionData->haveReceivedMessages().size()));
 			_sessionData->queueTryToReceive();
 		}
 
@@ -1410,9 +1415,7 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		const mtpPrime *from,
 		const mtpPrime *end,
 		uint64 msgId,
-		int32 serverTime,
-		uint64 serverSalt,
-		bool badTime) {
+		OuterInfo info) {
 	Expects(from < end);
 
 	switch (mtpTypeId(*from)) {
@@ -1423,7 +1426,7 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		if (response.empty()) {
 			return HandleResult::RestartConnection;
 		}
-		return handleOneReceived(response.data(), response.data() + response.size(), msgId, serverTime, serverSalt, badTime);
+		return handleOneReceived(response.data(), response.data() + response.size(), msgId, info);
 	}
 
 	case mtpc_msg_container: {
@@ -1475,8 +1478,8 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 
 			auto res = HandleResult::Success; // if no need to handle, then succeed
 			if (_receivedMessageIds.registerMsgId(inMsgId.v, needAck)) {
-				res = handleOneReceived(from, otherEnd, inMsgId.v, serverTime, serverSalt, badTime);
-				badTime = false;
+				res = handleOneReceived(from, otherEnd, inMsgId.v, info);
+				info.badTime = false;
 			}
 			if (res != HandleResult::Success) {
 				return res;
@@ -1495,15 +1498,15 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		DEBUG_LOG(("Message Info: acks received, ids: %1"
 			).arg(LogIdsVector(ids)));
 		if (ids.isEmpty()) {
-			return badTime ? HandleResult::Ignored : HandleResult::Success;
+			return info.badTime ? HandleResult::Ignored : HandleResult::Success;
 		}
 
-		if (badTime) {
-			if (!requestsFixTimeSalt(ids, serverTime, serverSalt)) {
+		if (info.badTime) {
+			if (!requestsFixTimeSalt(ids, info)) {
 				return HandleResult::Ignored;
 			}
 		} else {
-			correctUnixtimeByFastRequest(ids, serverTime);
+			correctUnixtimeByFastRequest(ids, info.serverTime);
 		}
 		requestsAcked(ids);
 	} return HandleResult::Success;
@@ -1546,28 +1549,28 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 			if (!wasSent(resendId)) {
 				DEBUG_LOG(("Message Error: "
 					"such message was not sent recently %1").arg(resendId));
-				return badTime
+				return info.badTime
 					? HandleResult::Ignored
 					: HandleResult::Success;
 			}
 
 			if (needResend) { // bad msg_id or bad container
-				if (serverSalt) {
-					_sessionSalt = serverSalt;
+				if (info.serverSalt) {
+					_sessionSalt = info.serverSalt;
 				}
 
-				correctUnixtimeWithBadLocal(serverTime);
+				correctUnixtimeWithBadLocal(info.serverTime);
 
-				DEBUG_LOG(("Message Info: unixtime updated, now %1, resending in container...").arg(serverTime));
+				DEBUG_LOG(("Message Info: unixtime updated, now %1, resending in container...").arg(info.serverTime));
 
 				resend(resendId, 0, true);
 			} else { // must create new session, because msg_id and msg_seqno are inconsistent
-				if (badTime) {
-					if (serverSalt) {
-						_sessionSalt = serverSalt;
+				if (info.badTime) {
+					if (info.serverSalt) {
+						_sessionSalt = info.serverSalt;
 					}
-					correctUnixtimeWithBadLocal(serverTime);
-					badTime = false;
+					correctUnixtimeWithBadLocal(info.serverTime);
+					info.badTime = false;
 				}
 				LOG(("Message Info: bad message notification received, msgId %1, error_code %2").arg(data.vbad_msg_id().v).arg(errorCode));
 				return HandleResult::ResetSession;
@@ -1582,20 +1585,24 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 					).arg(badMsgId
 					).arg(errorCode
 					).arg(requestId));
-				auto response = mtpBuffer();
+				auto reply = mtpBuffer();
 				MTPRpcError(MTP_rpc_error(
 					MTP_int(500),
 					MTP_string("PROTOCOL_ERROR")
-				)).write(response);
+				)).write(reply);
 
 				// Save rpc_error for processing in the main thread.
 				QWriteLocker locker(_sessionData->haveReceivedMutex());
-				_sessionData->haveReceivedResponses().emplace(requestId, response);
+				_sessionData->haveReceivedMessages().push_back({
+					.reply = std::move(reply),
+					.outerMsgId = info.outerMsgId,
+					.requestId = requestId,
+				});
 			} else {
 				DEBUG_LOG(("Message Error: "
 					"such message was not sent recently %1").arg(badMsgId));
 			}
-			return badTime
+			return info.badTime
 				? HandleResult::Ignored
 				: HandleResult::Success;
 		}
@@ -1612,19 +1619,19 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		const auto resendId = data.vbad_msg_id().v;
 		if (!wasSent(resendId)) {
 			DEBUG_LOG(("Message Error: such message was not sent recently %1").arg(resendId));
-			return (badTime ? HandleResult::Ignored : HandleResult::Success);
+			return (info.badTime ? HandleResult::Ignored : HandleResult::Success);
 		}
 
 		_sessionSalt = data.vnew_server_salt().v;
-		correctUnixtimeWithBadLocal(serverTime);
+		correctUnixtimeWithBadLocal(info.serverTime);
 
 		if (setState(ConnectedState, ConnectingState)) {
 			resendAll();
 		}
 
-		badTime = false;
+		info.badTime = false;
 
-		DEBUG_LOG(("Message Info: unixtime updated, now %1, server_salt updated, now %2, resending...").arg(serverTime).arg(serverSalt));
+		DEBUG_LOG(("Message Info: unixtime updated, now %1, server_salt updated, now %2, resending...").arg(info.serverTime).arg(info.serverSalt));
 		resend(resendId);
 	} return HandleResult::Success;
 
@@ -1642,17 +1649,19 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		const auto i = _stateAndResendRequests.find(reqMsgId);
 		if (i == _stateAndResendRequests.end()) {
 			DEBUG_LOG(("Message Error: such message was not sent recently %1").arg(reqMsgId));
-			return (badTime ? HandleResult::Ignored : HandleResult::Success);
+			return info.badTime
+				? HandleResult::Ignored
+				: HandleResult::Success;
 		}
-		if (badTime) {
-			if (serverSalt) {
-				_sessionSalt = serverSalt; // requestsFixTimeSalt with no lookup
+		if (info.badTime) {
+			if (info.serverSalt) {
+				_sessionSalt = info.serverSalt; // requestsFixTimeSalt with no lookup
 			}
-			correctUnixtimeWithBadLocal(serverTime);
+			correctUnixtimeWithBadLocal(info.serverTime);
 
-			DEBUG_LOG(("Message Info: unixtime updated from mtpc_msgs_state_info, now %1").arg(serverTime));
+			DEBUG_LOG(("Message Info: unixtime updated from mtpc_msgs_state_info, now %1").arg(info.serverTime));
 
-			badTime = false;
+			info.badTime = false;
 		}
 		const auto originalRequest = i->second;
 		Assert(originalRequest->size() > 8);
@@ -1661,7 +1670,6 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 
 		auto rFrom = originalRequest->constData() + 8;
 		const auto rEnd = originalRequest->constData() + originalRequest->size();
-		auto toAck = QVector<MTPlong>();
 		if (mtpTypeId(*rFrom) == mtpc_msgs_state_req) {
 			MTPMsgsStateReq request;
 			if (!request.read(rFrom, rEnd)) {
@@ -1680,7 +1688,7 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 	} return HandleResult::Success;
 
 	case mtpc_msgs_all_info: {
-		if (badTime) {
+		if (info.badTime) {
 			DEBUG_LOG(("Message Info: skipping with bad time..."));
 			return HandleResult::Ignored;
 		}
@@ -1693,7 +1701,11 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		auto &ids = data.vmsg_ids().v;
 		auto &states = data.vinfo().v;
 
-		DEBUG_LOG(("Message Info: msgs all info received, msgId %1, reqMsgIds: %2, states %3").arg(msgId).arg(LogIdsVector(ids)).arg(Logs::mb(states.data(), states.length()).str()));
+		DEBUG_LOG(("Message Info: msgs all info received, msgId %1, reqMsgIds: %2, states %3").arg(
+			QString::number(msgId),
+			LogIdsVector(ids),
+			Logs::mb(states.data(), states.length()).str()));
+
 		handleMsgsStates(ids, states);
 	} return HandleResult::Success;
 
@@ -1707,9 +1719,9 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		DEBUG_LOG(("Message Info: msg detailed info, sent msgId %1, answerId %2, status %3, bytes %4").arg(data.vmsg_id().v).arg(data.vanswer_msg_id().v).arg(data.vstatus().v).arg(data.vbytes().v));
 
 		QVector<MTPlong> ids(1, data.vmsg_id());
-		if (badTime) {
-			if (requestsFixTimeSalt(ids, serverTime, serverSalt)) {
-				badTime = false;
+		if (info.badTime) {
+			if (requestsFixTimeSalt(ids, info)) {
+				info.badTime = false;
 			} else {
 				DEBUG_LOG(("Message Info: error, such message was not sent recently %1").arg(data.vmsg_id().v));
 				return HandleResult::Ignored;
@@ -1727,7 +1739,7 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 	} return HandleResult::Success;
 
 	case mtpc_msg_new_detailed_info: {
-		if (badTime) {
+		if (info.badTime) {
 			DEBUG_LOG(("Message Info: skipping msg_new_detailed_info with bad time..."));
 			return HandleResult::Ignored;
 		}
@@ -1763,9 +1775,9 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		DEBUG_LOG(("RPC Info: response received for %1, queueing...").arg(requestMsgId));
 
 		QVector<MTPlong> ids(1, reqMsgId);
-		if (badTime) {
-			if (requestsFixTimeSalt(ids, serverTime, serverSalt)) {
-				badTime = false;
+		if (info.badTime) {
+			if (requestsFixTimeSalt(ids, info)) {
+				info.badTime = false;
 			} else {
 				DEBUG_LOG(("Message Info: error, such message was not sent recently %1").arg(requestMsgId));
 				return HandleResult::Ignored;
@@ -1804,7 +1816,11 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		if (requestId && requestId != mtpRequestId(0xFFFFFFFF)) {
 			// Save rpc_result for processing in the main thread.
 			QWriteLocker locker(_sessionData->haveReceivedMutex());
-			_sessionData->haveReceivedResponses().emplace(requestId, response);
+			_sessionData->haveReceivedMessages().push_back({
+				.reply = std::move(response),
+				.outerMsgId = info.outerMsgId,
+				.requestId = requestId,
+			});
 		} else {
 			DEBUG_LOG(("RPC Info: requestId not found for msgId %1").arg(requestMsgId));
 		}
@@ -1818,9 +1834,9 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		}
 		const auto &data(msg.c_new_session_created());
 
-		if (badTime) {
-			if (requestsFixTimeSalt(QVector<MTPlong>(1, data.vfirst_msg_id()), serverTime, serverSalt)) {
-				badTime = false;
+		if (info.badTime) {
+			if (requestsFixTimeSalt(QVector<MTPlong>(1, data.vfirst_msg_id()), info)) {
+				info.badTime = false;
 			} else {
 				DEBUG_LOG(("Message Info: error, such message was not sent recently %1").arg(data.vfirst_msg_id().v));
 				return HandleResult::Ignored;
@@ -1853,7 +1869,10 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 
 		// Notify main process about new session - need to get difference.
 		QWriteLocker locker(_sessionData->haveReceivedMutex());
-		_sessionData->haveReceivedUpdates().push_back(mtpBuffer(update));
+		_sessionData->haveReceivedMessages().push_back({
+			.reply = update,
+			.outerMsgId = info.outerMsgId,
+		});
 	} return HandleResult::Success;
 
 	case mtpc_pong: {
@@ -1875,9 +1894,9 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 		}
 
 		QVector<MTPlong> ids(1, data.vmsg_id());
-		if (badTime) {
-			if (requestsFixTimeSalt(ids, serverTime, serverSalt)) {
-				badTime = false;
+		if (info.badTime) {
+			if (requestsFixTimeSalt(ids, info)) {
+				info.badTime = false;
 			} else {
 				return HandleResult::Ignored;
 			}
@@ -1887,7 +1906,7 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 
 	}
 
-	if (badTime) {
+	if (info.badTime) {
 		DEBUG_LOG(("Message Error: bad time in updates cons, must create new session"));
 		return HandleResult::ResetSession;
 	}
@@ -1900,7 +1919,10 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 
 		// Notify main process about the new updates.
 		QWriteLocker locker(_sessionData->haveReceivedMutex());
-		_sessionData->haveReceivedUpdates().push_back(mtpBuffer(update));
+		_sessionData->haveReceivedMessages().push_back({
+			.reply = update,
+			.outerMsgId = info.outerMsgId,
+		});
 	} else {
 		LOG(("Message Error: unexpected updates in dcType: %1"
 			).arg(static_cast<int>(_currentDcType)));
@@ -1991,14 +2013,14 @@ mtpBuffer SessionPrivate::ungzip(const mtpPrime *from, const mtpPrime *end) cons
 	return result;
 }
 
-bool SessionPrivate::requestsFixTimeSalt(const QVector<MTPlong> &ids, int32 serverTime, uint64 serverSalt) {
+bool SessionPrivate::requestsFixTimeSalt(const QVector<MTPlong> &ids, const OuterInfo &info) {
 	for (const auto &id : ids) {
 		if (wasSent(id.v)) {
 			// Found such msg_id in recent acked or in recent sent requests.
-			if (serverSalt) {
-				_sessionSalt = serverSalt;
+			if (info.serverSalt) {
+				_sessionSalt = info.serverSalt;
 			}
-			correctUnixtimeWithBadLocal(serverTime);
+			correctUnixtimeWithBadLocal(info.serverTime);
 			return true;
 		}
 	}
@@ -2063,7 +2085,7 @@ void SessionPrivate::requestsAcked(const QVector<MTPlong> &ids, bool byResponse)
 			if (const auto i = haveSent.find(msgId); i != end(haveSent)) {
 				const auto requestId = i->second->requestId;
 
-				if (!byResponse && _instance->hasCallbacks(requestId)) {
+				if (!byResponse && _instance->hasCallback(requestId)) {
 					DEBUG_LOG(("Message Info: ignoring ACK for msgId %1 because request %2 requires a response").arg(msgId).arg(requestId));
 					continue;
 				}
@@ -2076,7 +2098,7 @@ void SessionPrivate::requestsAcked(const QVector<MTPlong> &ids, bool byResponse)
 			if (const auto i = _resendingIds.find(msgId); i != end(_resendingIds)) {
 				const auto requestId = i->second;
 
-				if (!byResponse && _instance->hasCallbacks(requestId)) {
+				if (!byResponse && _instance->hasCallback(requestId)) {
 					DEBUG_LOG(("Message Info: ignoring ACK for msgId %1 because request %2 requires a response").arg(msgId).arg(requestId));
 					continue;
 				}
@@ -2253,8 +2275,9 @@ void SessionPrivate::onConnected(
 		_testConnections,
 		[&](const TestConnection &test) { return test.priority > my; });
 	if (j != end(_testConnections)) {
-		DEBUG_LOG(("MTP Info: connection %1 succeed, "
-			"waiting for %2.").arg(i->data->tag()).arg(j->data->tag()));
+		DEBUG_LOG(("MTP Info: connection %1 succeed, waiting for %2.").arg(
+			i->data->tag(),
+			j->data->tag()));
 		_waitForBetterTimer.callOnce(kWaitForBetterTimeout);
 	} else {
 		DEBUG_LOG(("MTP Info: connection through IPv4 succeed."));

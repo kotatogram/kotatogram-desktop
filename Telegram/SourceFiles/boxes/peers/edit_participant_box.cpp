@@ -240,7 +240,8 @@ MTPChatAdminRights EditAdminBox::defaultRights() const {
 			| Flag::f_post_messages
 			| Flag::f_edit_messages
 			| Flag::f_delete_messages
-			| Flag::f_invite_users);
+			| Flag::f_invite_users
+			| Flag::f_manage_call);
 	return MTP_chatAdminRights(MTP_flags(flags));
 }
 
@@ -462,7 +463,7 @@ void EditAdminBox::transferOwnership() {
 		channel,
 		MTP_inputUserEmpty(),
 		MTP_inputCheckPasswordEmpty()
-	)).fail([=](const RPCError &error) {
+	)).fail([=](const MTP::Error &error) {
 		_checkTransferRequestId = 0;
 		if (!handleTransferPasswordError(error)) {
 			getDelegate()->show(Box<ConfirmBox>(
@@ -479,7 +480,7 @@ void EditAdminBox::transferOwnership() {
 	}).send();
 }
 
-bool EditAdminBox::handleTransferPasswordError(const RPCError &error) {
+bool EditAdminBox::handleTransferPasswordError(const MTP::Error &error) {
 	const auto session = &user()->session();
 	auto about = tr::lng_rights_transfer_check_about(
 		tr::now,
@@ -551,7 +552,7 @@ void EditAdminBox::sendTransferRequestFrom(
 				lt_user,
 				user->shortName()));
 		Ui::hideLayer();
-	}).fail(crl::guard(this, [=](const RPCError &error) {
+	}).fail(crl::guard(this, [=](const MTP::Error &error) {
 		if (weak) {
 			_transferRequestId = 0;
 		}
@@ -629,11 +630,11 @@ void EditRestrictedBox::prepare() {
 	const auto defaultRestrictions = chat
 		? chat->defaultRestrictions()
 		: channel->defaultRestrictions();
-	const auto prepareRights = _oldRights.c_chatBannedRights().vflags().v
+	const auto prepareRights = Data::ChatBannedRightsFlags(_oldRights)
 		? _oldRights
 		: defaultRights();
 	const auto prepareFlags = FixDependentRestrictions(
-		prepareRights.c_chatBannedRights().vflags().v
+		Data::ChatBannedRightsFlags(prepareRights)
 		| defaultRestrictions
 		| ((channel && channel->isPublic())
 			? (Flag::f_change_info | Flag::f_pin_messages)
@@ -664,7 +665,7 @@ void EditRestrictedBox::prepare() {
 		disabledMessages);
 	addControl(std::move(checkboxes), QMargins());
 
-	_until = prepareRights.c_chatBannedRights().vuntil_date().v;
+	_until = Data::ChatBannedRightsUntilDate(prepareRights);
 	addControl(object_ptr<Ui::BoxContentDivider>(this), st::rightsUntilMargin);
 	addControl(
 		object_ptr<Ui::FlatLabel>(
@@ -784,7 +785,7 @@ void EditRestrictedBox::createUntilVariants() {
 		}
 	};
 	auto addCurrentVariant = [&](TimeId from, TimeId to) {
-		auto oldUntil = _oldRights.c_chatBannedRights().vuntil_date().v;
+		auto oldUntil = Data::ChatBannedRightsUntilDate(_oldRights);
 		if (oldUntil < _until) {
 			addCustomVariant(oldUntil, from, to);
 		}

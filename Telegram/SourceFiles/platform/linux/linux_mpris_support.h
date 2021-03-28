@@ -5,5 +5,20 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
-#include "info/feed/info_feed_channels_widget.h"
+#pragma once
 
+namespace Platform {
+namespace internal {
+
+class MPRISSupport {
+public:
+	MPRISSupport();
+	~MPRISSupport();
+
+private:
+	class Private;
+	const std::unique_ptr<Private> _private;
+};
+
+} // namespace internal
+} // namespace Platform

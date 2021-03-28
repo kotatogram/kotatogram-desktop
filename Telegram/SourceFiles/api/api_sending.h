@@ -11,7 +11,10 @@ class History;
 class PhotoData;
 class DocumentData;
 struct FileLoadResult;
-class RPCError;
+
+namespace MTP {
+class Error;
+} // namespace MTP
 
 namespace Data {
 class LocationPoint;
@@ -43,13 +46,12 @@ void FillMessagePostFlags(
 
 void SendConfirmedFile(
 	not_null<Main::Session*> session,
-	const std::shared_ptr<FileLoadResult> &file,
-	const std::optional<FullMsgId> &oldId);
+	const std::shared_ptr<FileLoadResult> &file);
 
 void SendLocationPoint(
 	const Data::LocationPoint &data,
 	const SendAction &action,
 	Fn<void()> done,
-	Fn<void(const RPCError &error)> fail);
+	Fn<void(const MTP::Error &error)> fail);
 
 } // namespace Api

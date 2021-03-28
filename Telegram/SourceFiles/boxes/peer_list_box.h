@@ -180,6 +180,7 @@ public:
 		}
 		setCheckedInternal(checked, animated);
 	}
+	void finishCheckedAnimation();
 	void invalidatePixmapsCache();
 
 	template <typename UpdateCallback>

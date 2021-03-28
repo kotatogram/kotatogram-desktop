@@ -38,6 +38,8 @@ apps:
       - unity7
       - wayland
       - x11
+    slots:
+      - tdesktop-mpris
 
 plugs:
   # Support for common GTK themes
@@ -56,6 +58,11 @@ plugs:
     target: $SNAP/data-dir/sounds
     default-provider: gtk-common-themes
 
+slots:
+  tdesktop-mpris:
+    interface: mpris
+    name: tdesktop
+
 layout:
   /usr/share/alsa:
     bind: $SNAP/usr/share/alsa
@@ -73,6 +80,7 @@ parts:
       - qtbase5-private-dev
       - libasound2-dev
       - libglib2.0-dev
+      - libglibmm-2.4-dev
       - libgtk-3-dev
       - liblzma-dev
       - libopus-dev
@@ -89,6 +97,7 @@ parts:
       - qtwayland5
       - libasound2
       - libglib2.0-0
+      - libglibmm-2.4-1v5
       - libgtk-3-0
       - liblzma5
       - libopus0
@@ -242,7 +251,7 @@ parts:
   webrtc:
     source: https://github.com/desktop-app/tg_owt.git
     source-depth: 1
-    source-commit: 75ac66937341d8a9207375aaee79b4bdc500146c
+    source-commit: 7f965710b93c4dadd7e6f1ac739e708694df7929
     plugin: cmake
     build-packages:
       - yasm

@@ -62,11 +62,11 @@ GroupedMedia::GroupedMedia(
 	const std::vector<std::unique_ptr<Data::Media>> &medias)
 : Media(parent)
 , _caption(st::minPhotoSize - st::msgPadding.left() - st::msgPadding.right()) {
-	const auto truncated = ranges::view::all(
+	const auto truncated = ranges::views::all(
 		medias
-	) | ranges::view::transform([](const std::unique_ptr<Data::Media> &v) {
+	) | ranges::views::transform([](const std::unique_ptr<Data::Media> &v) {
 		return v.get();
-	}) | ranges::view::take(kMaxSize);
+	}) | ranges::views::take(kMaxSize);
 	const auto result = applyGroup(truncated);
 
 	Ensures(result);
@@ -77,11 +77,11 @@ GroupedMedia::GroupedMedia(
 	const std::vector<not_null<HistoryItem*>> &items)
 : Media(parent)
 , _caption(st::minPhotoSize - st::msgPadding.left() - st::msgPadding.right()) {
-	const auto medias = ranges::view::all(
+	const auto medias = ranges::views::all(
 		items
-	) | ranges::view::transform([](not_null<HistoryItem*> item) {
+	) | ranges::views::transform([](not_null<HistoryItem*> item) {
 		return item->media();
-	}) | ranges::view::take(kMaxSize);
+	}) | ranges::views::take(kMaxSize);
 	const auto result = applyGroup(medias);
 
 	Ensures(result);
@@ -296,6 +296,8 @@ void GroupedMedia::draw(
 		const QRect &clip,
 		TextSelection selection,
 		crl::time ms) const {
+	auto wasCache = false;
+	auto nowCache = false;
 	const auto groupPadding = groupedPadding();
 	const auto fullSelection = (selection == FullSelection);
 	const auto textSelection = (_mode == Mode::Column)
@@ -316,6 +318,9 @@ void GroupedMedia::draw(
 		const auto highlightOpacity = (_mode == Mode::Grid)
 			? _parent->highlightOpacity(part.item)
 			: 0.;
+		if (!part.cache.isNull()) {
+			wasCache = true;
+		}
 		part.content->drawGrouped(
 			p,
 			clip,
@@ -327,6 +332,12 @@ void GroupedMedia::draw(
 			highlightOpacity,
 			&part.cacheKey,
 			&part.cache);
+		if (!part.cache.isNull()) {
+			nowCache = true;
+		}
+	}
+	if (nowCache && !wasCache) {
+		history()->owner().registerHeavyViewPart(_parent);
 	}
 
 	// date
@@ -672,7 +683,7 @@ void GroupedMedia::checkAnimation() {
 
 bool GroupedMedia::hasHeavyPart() const {
 	for (const auto &part : _parts) {
-		if (part.content->hasHeavyPart()) {
+		if (!part.cache.isNull() || part.content->hasHeavyPart()) {
 			return true;
 		}
 	}
@@ -682,6 +693,8 @@ bool GroupedMedia::hasHeavyPart() const {
 void GroupedMedia::unloadHeavyPart() {
 	for (const auto &part : _parts) {
 		part.content->unloadHeavyPart();
+		part.cacheKey = 0;
+		part.cache = QPixmap();
 	}
 }
 

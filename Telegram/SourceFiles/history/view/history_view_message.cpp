@@ -1212,7 +1212,6 @@ bool Message::hasFromPhoto() const {
 	}
 	switch (context()) {
 	case Context::AdminLog:
-	//case Context::Feed: // #feed
 		return true;
 	case Context::History:
 	case Context::Pinned:
@@ -2094,7 +2093,6 @@ bool Message::displayPinIcon() const {
 bool Message::hasFromName() const {
 	switch (context()) {
 	case Context::AdminLog:
-	//case Context::Feed: // #feed
 		return true;
 	case Context::History:
 	case Context::Pinned:

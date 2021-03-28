@@ -420,7 +420,7 @@ bool Stickers::isFaved(not_null<const DocumentData*> document) {
 	if (it == sets.cend()) {
 		return false;
 	}
-	for (const auto sticker : it->second->stickers) {
+	for (const auto sticker : std::as_const(it->second->stickers)) {
 		if (sticker == document) {
 			return true;
 		}
@@ -545,7 +545,7 @@ void Stickers::requestSetToPushFaved(not_null<DocumentData*> document) {
 			}
 		}
 		addAnyway(std::move(list));
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		// Perhaps this is a deleted sticker pack. Add anyway.
 		addAnyway({});
 	}).send();
@@ -787,9 +787,9 @@ void Stickers::featuredSetsReceived(
 		const QVector<MTPStickerSetCovered> &list,
 		const QVector<MTPlong> &unread,
 		int32 hash) {
-	auto &&unreadIds = ranges::view::all(
+	auto &&unreadIds = ranges::views::all(
 		unread
-	) | ranges::view::transform([](const MTPlong &id) {
+	) | ranges::views::transform([](const MTPlong &id) {
 		return id.v;
 	});
 	const auto unreadMap = base::flat_set<uint64>{
@@ -902,7 +902,7 @@ void Stickers::featuredSetsReceived(
 
 	if (!setsToRequest.empty()) {
 		auto &api = session().api();
-		for (const auto [setId, accessHash] : setsToRequest) {
+		for (const auto &[setId, accessHash] : setsToRequest) {
 			api.scheduleStickerSetRequest(setId, accessHash);
 		}
 		api.requestStickerSets();
@@ -1093,14 +1093,14 @@ std::vector<not_null<DocumentData*>> Stickers::getListByEmoji(
 		}
 	}
 
-	ranges::action::sort(
+	ranges::actions::sort(
 		result,
 		std::greater<>(),
 		&StickerWithDate::date);
 
-	return ranges::view::all(
+	return ranges::views::all(
 		result
-	) | ranges::view::transform([](const StickerWithDate &data) {
+	) | ranges::views::transform([](const StickerWithDate &data) {
 		return data.document;
 	}) | ranges::to_vector;
 }

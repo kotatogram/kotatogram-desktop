@@ -472,7 +472,7 @@ QString ReplyMarkupClickHandler::tooltip() const {
 	const auto url = button ? QString::fromUtf8(button->data) : QString();
 	const auto text = _fullDisplayed ? QString() : buttonText();
 	if (!url.isEmpty() && !text.isEmpty()) {
-		return QString("%1\n\n%2").arg(text).arg(url);
+		return QString("%1\n\n%2").arg(text, url);
 	} else if (url.isEmpty() != text.isEmpty()) {
 		return text + url;
 	} else {
@@ -765,7 +765,7 @@ bool ReplyKeyboard::selectedAnimationCallback(crl::time now) {
 }
 
 void ReplyKeyboard::clearSelection() {
-	for (const auto [relativeIndex, time] : _animations) {
+	for (const auto &[relativeIndex, time] : _animations) {
 		const auto index = std::abs(relativeIndex) - 1;
 		const auto row = (index / MatrixRowShift);
 		const auto col = index % MatrixRowShift;

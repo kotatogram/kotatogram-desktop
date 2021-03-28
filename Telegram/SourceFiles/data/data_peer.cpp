@@ -449,13 +449,6 @@ void PeerData::setUserpicChecked(
 	if (_userpicPhotoId != photoId || _userpic.location() != location) {
 		setUserpic(photoId, location);
 		session().changes().peerUpdated(this, UpdateFlag::Photo);
-		//if (const auto channel = asChannel()) { // #feed
-		//	if (const auto feed = channel->feed()) {
-		//		owner().notifyFeedUpdated(
-		//			feed,
-		//			Data::FeedUpdateFlag::ChannelPhoto);
-		//	}
-		//}
 	}
 }
 
@@ -471,9 +464,9 @@ QString PeerData::computeUnavailableReason() const {
 	const auto skip = config.get<std::vector<QString>>(
 		"ignore_restriction_reasons",
 		std::vector<QString>());
-	auto &&filtered = ranges::view::all(
+	auto &&filtered = ranges::views::all(
 		list
-	) | ranges::view::filter([&](const Data::UnavailableReason &reason) {
+	) | ranges::views::filter([&](const Data::UnavailableReason &reason) {
 		return !ranges::contains(skip, reason.reason);
 	});
 	const auto first = filtered.begin();
@@ -953,7 +946,7 @@ bool PeerData::canManageGroupCall() const {
 	if (const auto chat = asChat()) {
 		return chat->amCreator()
 			|| (chat->adminRights() & ChatAdminRight::f_manage_call);
-	} else if (const auto group = asMegagroup()) {
+	} else if (const auto group = asChannel()) {
 		return group->amCreator()
 			|| (group->adminRights() & ChatAdminRight::f_manage_call);
 	}
@@ -963,10 +956,19 @@ bool PeerData::canManageGroupCall() const {
 Data::GroupCall *PeerData::groupCall() const {
 	if (const auto chat = asChat()) {
 		return chat->groupCall();
-	} else if (const auto group = asMegagroup()) {
+	} else if (const auto group = asChannel()) {
 		return group->groupCall();
 	}
 	return nullptr;
+}
+
+PeerId PeerData::groupCallDefaultJoinAs() const {
+	if (const auto chat = asChat()) {
+		return chat->groupCallDefaultJoinAs();
+	} else if (const auto group = asChannel()) {
+		return group->groupCallDefaultJoinAs();
+	}
+	return 0;
 }
 
 void PeerData::setIsBlocked(bool is) {
@@ -1210,6 +1212,18 @@ std::optional<int> ResolvePinnedCount(
 	return (slice.count.has_value() && old.count.has_value())
 		? std::make_optional(*slice.count + *old.count)
 		: std::nullopt;
+}
+
+ChatRestrictions ChatBannedRightsFlags(const MTPChatBannedRights &rights) {
+	return rights.match([](const MTPDchatBannedRights &data) {
+		return data.vflags().v;
+	});
+}
+
+TimeId ChatBannedRightsUntilDate(const MTPChatBannedRights &rights) {
+	return rights.match([](const MTPDchatBannedRights &data) {
+		return data.vuntil_date().v;
+	});
 }
 
 } // namespace Data

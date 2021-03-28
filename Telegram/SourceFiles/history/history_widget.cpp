@@ -65,7 +65,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_drag_area.h"
 #include "history/history_inner_widget.h"
 #include "history/history_item_components.h"
-//#include "history/feed/history_feed_section.h" // #feed
 #include "history/view/controls/history_view_voice_record_bar.h"
 #include "history/view/controls/history_view_ttl_button.h"
 #include "history/view/history_view_service_message.h"
@@ -437,6 +436,8 @@ HistoryWidget::HistoryWidget(
 			? false
 			: _keyboard->moderateKeyActivate(key);
 	});
+
+	_fieldAutocomplete->setSendMenuType([=] { return sendMenuType(); });
 
 	if (_supportAutocomplete) {
 		supportInitAutocomplete();
@@ -1403,7 +1404,7 @@ void HistoryWidget::updateInlineBotQuery() {
 				MTP_string(username)
 			)).done([=](const MTPcontacts_ResolvedPeer &result) {
 				inlineBotResolveDone(result);
-			}).fail([=](const RPCError &error) {
+			}).fail([=](const MTP::Error &error) {
 				inlineBotResolveFail(error, username);
 			}).send();
 		} else {
@@ -1433,6 +1434,7 @@ void HistoryWidget::applyInlineBotQuery(UserData *bot, const QString &query) {
 			});
 			_inlineResults->setCurrentDialogsEntryState(
 				computeDialogsEntryState());
+			_inlineResults->setSendMenuType([=] { return sendMenuType(); });
 			_inlineResults->requesting(
 			) | rpl::start_with_next([=](bool requesting) {
 				_tabbedSelectorToggle->setLoading(requesting);
@@ -2684,7 +2686,7 @@ void HistoryWidget::unreadCountUpdated() {
 	}
 }
 
-void HistoryWidget::messagesFailed(const RPCError &error, int requestId) {
+void HistoryWidget::messagesFailed(const MTP::Error &error, int requestId) {
 	if (error.type() == qstr("CHANNEL_PRIVATE")
 		&& _peer->isChannel()
 		&& _peer->asChannel()->invitePeekExpires()) {
@@ -2702,7 +2704,11 @@ void HistoryWidget::messagesFailed(const RPCError &error, int requestId) {
 		return;
 	}
 
-	LOG(("RPC Error: %1 %2: %3").arg(error.code()).arg(error.type()).arg(error.description()));
+	LOG(("RPC Error: %1 %2: %3").arg(
+		QString::number(error.code()),
+		error.type(),
+		error.description()));
+
 	if (_preloadRequest == requestId) {
 		_preloadRequest = 0;
 	} else if (_preloadDownRequest == requestId) {
@@ -2922,7 +2928,7 @@ void HistoryWidget::firstLoadMessages() {
 		)).done([=](const MTPmessages_Messages &result) {
 			messagesReceived(history->peer, result, _firstLoadRequest);
 			finish();
-		}).fail([=](const RPCError &error) {
+		}).fail([=](const MTP::Error &error) {
 			messagesFailed(error, _firstLoadRequest);
 			finish();
 		}).send();
@@ -2973,7 +2979,7 @@ void HistoryWidget::loadMessages() {
 		)).done([=](const MTPmessages_Messages &result) {
 			messagesReceived(history->peer, result, _preloadRequest);
 			finish();
-		}).fail([=](const RPCError &error) {
+		}).fail([=](const MTP::Error &error) {
 			messagesFailed(error, _preloadRequest);
 			finish();
 		}).send();
@@ -3024,7 +3030,7 @@ void HistoryWidget::loadMessagesDown() {
 		)).done([=](const MTPmessages_Messages &result) {
 			messagesReceived(history->peer, result, _preloadDownRequest);
 			finish();
-		}).fail([=](const RPCError &error) {
+		}).fail([=](const MTP::Error &error) {
 			messagesFailed(error, _preloadDownRequest);
 			finish();
 		}).send();
@@ -3088,7 +3094,7 @@ void HistoryWidget::delayedShowAt(MsgId showAtMsgId) {
 		)).done([=](const MTPmessages_Messages &result) {
 			messagesReceived(history->peer, result, _delayedShowAtRequest);
 			finish();
-		}).fail([=](const RPCError &error) {
+		}).fail([=](const MTP::Error &error) {
 			messagesFailed(error, _delayedShowAtRequest);
 			finish();
 		}).send();
@@ -3313,7 +3319,7 @@ void HistoryWidget::saveEditMsg() {
 		}
 	};
 
-	const auto fail = [=](const RPCError &error, mtpRequestId requestId) {
+	const auto fail = [=](const MTP::Error &error, mtpRequestId requestId) {
 		if (const auto editDraft = history->localEditDraft()) {
 			if (editDraft->saveRequestId == requestId) {
 				editDraft->saveRequestId = 0;
@@ -4009,7 +4015,7 @@ void HistoryWidget::inlineBotResolveDone(
 }
 
 void HistoryWidget::inlineBotResolveFail(
-		const RPCError &error,
+		const MTP::Error &error,
 		const QString &username) {
 	_inlineBotResolveRequestId = 0;
 	if (username == _inlineBotUsername) {
@@ -5391,9 +5397,9 @@ void HistoryWidget::mousePressEvent(QMouseEvent *e) {
 			}
 			const auto items = std::move(_toForward);
 			session().data().cancelForwarding(_history);
-			auto list = ranges::view::all(
+			auto list = ranges::views::all(
 				items
-			) | ranges::view::transform(
+			) | ranges::views::transform(
 				&HistoryItem::fullId
 			) | ranges::to_vector;
 			Window::ShowForwardMessagesBox(controller(), std::move(list));
@@ -5986,7 +5992,7 @@ void HistoryWidget::setupGroupCallTracker() {
 	Expects(_history != nullptr);
 
 	const auto peer = _history->peer;
-	if (!peer->asMegagroup() && !peer->asChat()) {
+	if (!peer->isChannel() && !peer->isChat()) {
 		_groupCallTracker = nullptr;
 		_groupCallBar = nullptr;
 		return;
@@ -6019,12 +6025,7 @@ void HistoryWidget::setupGroupCallTracker() {
 	) | rpl::start_with_next([=] {
 		const auto peer = _history->peer;
 		const auto channel = peer->asChannel();
-		if (channel && channel->amAnonymous()) {
-			Ui::ShowMultilineToast({
-				.text = { tr::lng_group_call_no_anonymous(tr::now) },
-			});
-			return;
-		} else if (peer->groupCall()) {
+		if (peer->groupCall()) {
 			controller()->startOrJoinGroupCall(peer);
 		}
 	}, _groupCallBar->lifetime());

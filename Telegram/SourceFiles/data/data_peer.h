@@ -95,6 +95,11 @@ struct UnavailableReason {
 	}
 };
 
+[[nodiscard]] ChatRestrictions ChatBannedRightsFlags(
+	const MTPChatBannedRights &rights);
+[[nodiscard]] TimeId ChatBannedRightsUntilDate(
+	const MTPChatBannedRights &rights);
+
 } // namespace Data
 
 class PeerClickHandler : public ClickHandler {
@@ -398,6 +403,7 @@ public:
 	void setMessagesTTL(TimeId period);
 
 	[[nodiscard]] Data::GroupCall *groupCall() const;
+	[[nodiscard]] PeerId groupCallDefaultJoinAs() const;
 
 	const PeerId id;
 	QString name;

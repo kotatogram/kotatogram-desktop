@@ -10,25 +10,28 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/sender.h"
 #include "calls/calls_call.h"
 #include "calls/calls_group_call.h"
+#include "calls/calls_choose_join_as.h"
 
 namespace Platform {
 enum class PermissionType;
 } // namespace Platform
 
-namespace Media {
-namespace Audio {
+namespace Media::Audio {
 class Track;
-} // namespace Audio
-} // namespace Media
+} // namespace Media::Audio
 
 namespace Main {
 class Session;
 } // namespace Main
 
+namespace Calls::Group {
+struct JoinInfo;
+class Panel;
+} // namespace Calls::Group
+
 namespace Calls {
 
 class Panel;
-class GroupPanel;
 
 class Instance
 	: private Call::Delegate
@@ -40,10 +43,19 @@ public:
 	~Instance();
 
 	void startOutgoingCall(not_null<UserData*> user, bool video);
-	void startOrJoinGroupCall(not_null<PeerData*> peer);
+	void startOrJoinGroupCall(
+		not_null<PeerData*> peer,
+		const QString &joinHash = QString(),
+		bool confirmNeeded = false);
 	void handleUpdate(
 		not_null<Main::Session*> session,
 		const MTPUpdate &update);
+
+	// Called by Data::GroupCall when it is appropriate by the 'version'.
+	void applyGroupCallUpdateChecked(
+		not_null<Main::Session*> session,
+		const MTPUpdate &update);
+
 	void showInfoPanel(not_null<Call*> call);
 	void showInfoPanel(not_null<GroupCall*> call);
 	[[nodiscard]] Call *currentCall() const;
@@ -54,7 +66,7 @@ public:
 	[[nodiscard]] bool inGroupCall() const;
 	[[nodiscard]] bool hasActivePanel(
 		not_null<Main::Session*> session) const;
-	bool activateCurrentCall();
+	bool activateCurrentCall(const QString &joinHash = QString());
 	bool minimizeCurrentActiveCall();
 	bool closeCurrentActiveCall();
 	auto getVideoCapture()
@@ -103,7 +115,7 @@ private:
 	void destroyCall(not_null<Call*> call);
 
 	void createGroupCall(
-		not_null<PeerData*> peer,
+		Group::JoinInfo info,
 		const MTPInputGroupCall &inputCall);
 	void destroyGroupCall(not_null<GroupCall*> call);
 
@@ -124,10 +136,7 @@ private:
 		const MTPDupdatePhoneCallSignalingData &data);
 	void handleGroupCallUpdate(
 		not_null<Main::Session*> session,
-		const MTPGroupCall &call);
-	void handleGroupCallUpdate(
-		not_null<Main::Session*> session,
-		const MTPDupdateGroupCallParticipants &update);
+		const MTPUpdate &update);
 
 	DhConfig _dhConfig;
 
@@ -141,9 +150,11 @@ private:
 
 	std::unique_ptr<GroupCall> _currentGroupCall;
 	rpl::event_stream<GroupCall*> _currentGroupCallChanges;
-	std::unique_ptr<GroupPanel> _currentGroupCallPanel;
+	std::unique_ptr<Group::Panel> _currentGroupCallPanel;
 
 	base::flat_map<QString, std::unique_ptr<Media::Audio::Track>> _tracks;
+
+	Group::ChooseJoinAsProcess _chooseJoinAs;
 
 };
 

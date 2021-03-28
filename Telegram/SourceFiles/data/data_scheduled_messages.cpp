@@ -362,9 +362,9 @@ Data::MessagesSlice ScheduledMessages::list(not_null<History*> history) {
 	const auto &list = i->second.items;
 	result.skippedAfter = result.skippedBefore = 0;
 	result.fullCount = int(list.size());
-	result.ids = ranges::view::all(
+	result.ids = ranges::views::all(
 		list
-	) | ranges::view::transform(
+	) | ranges::views::transform(
 		&HistoryItem::fullId
 	) | ranges::to_vector;
 	return result;
@@ -383,7 +383,7 @@ void ScheduledMessages::request(not_null<History*> history) {
 			MTP_int(hash))
 	).done([=](const MTPmessages_Messages &result) {
 		parse(history, result);
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		_requests.remove(history);
 	}).send();
 }
@@ -534,11 +534,11 @@ int32 ScheduledMessages::countListHash(const List &list) const {
 	using namespace Api;
 
 	auto hash = HashInit();
-	auto &&serverside = ranges::view::all(
+	auto &&serverside = ranges::views::all(
 		list.items
-	) | ranges::view::filter([](const OwnedItem &item) {
+	) | ranges::views::filter([](const OwnedItem &item) {
 		return !item->isSending() && !item->hasFailed();
-	}) | ranges::view::reverse;
+	}) | ranges::views::reverse;
 	for (const auto &item : serverside) {
 		const auto j = list.idByItem.find(item.get());
 		HashUpdate(hash, j->second);

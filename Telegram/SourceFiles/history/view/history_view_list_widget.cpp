@@ -805,9 +805,9 @@ auto ListWidget::collectSelectedItems() const -> SelectedItems {
 
 MessageIdsList ListWidget::collectSelectedIds() const {
 	const auto selected = collectSelectedItems();
-	return ranges::view::all(
+	return ranges::views::all(
 		selected
-	) | ranges::view::transform([](const SelectedItem &item) {
+	) | ranges::views::transform([](const SelectedItem &item) {
 		return item.msgId;
 	}) | ranges::to_vector;
 }
@@ -1642,7 +1642,7 @@ TextForMimeData ListWidget::getSelectedText() const {
 		wrapItem(group->items.back(), HistoryGroupText(group));
 	};
 
-	for (const auto [itemId, data] : selected) {
+	for (const auto &[itemId, data] : selected) {
 		if (const auto item = session().data().message(itemId)) {
 			if (const auto group = session().data().groups().find(item)) {
 				if (groups.contains(group)) {
@@ -2220,6 +2220,7 @@ void ListWidget::mouseActionFinish(
 						? (ElementDelegate*)weak
 						: nullptr;
 				},
+				.sessionWindow = base::make_weak(_controller.get()),
 			})
 		});
 		return;
@@ -2734,7 +2735,7 @@ bool ListWidget::lastMessageEditRequestNotify() const {
 	auto proj = [&](not_null<Element*> view) {
 		return view->data()->allowsEdit(now);
 	};
-	const auto &list = ranges::view::reverse(_items);
+	const auto &list = ranges::views::reverse(_items);
 	const auto it = ranges::find_if(list, std::move(proj));
 	if (it == end(list)) {
 		return false;
@@ -2784,7 +2785,7 @@ void ListWidget::replyNextMessage(FullMsgId fullId, bool next) {
 	auto proj = [&](not_null<Element*> view) {
 		return view->data()->fullId() == fullId;
 	};
-	const auto &list = ranges::view::reverse(_items);
+	const auto &list = ranges::views::reverse(_items);
 	const auto it = ranges::find_if(list, std::move(proj));
 	if (it == end(list)) {
 		replyFirst();

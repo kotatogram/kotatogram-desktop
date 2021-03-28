@@ -1099,7 +1099,8 @@ TextWithEntities Document::getCaption() const {
 }
 
 Ui::Text::String Document::createCaption() {
-	const auto timestampLinksDuration = _data->isSong()
+	const auto timestampLinksDuration = (_data->isSong()
+			|| _data->isVoiceMessage())
 		? _data->getDuration()
 		: 0;
 	const auto timestampLinkBase = timestampLinksDuration

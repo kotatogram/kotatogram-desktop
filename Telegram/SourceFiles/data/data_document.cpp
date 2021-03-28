@@ -31,7 +31,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/platform_specific.h"
 #include "platform/platform_file_utilities.h"
 #include "base/platform/base_platform_info.h"
-#include "base/platform/base_platform_file_utilities.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/media/history_view_gif.h"
@@ -49,6 +48,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "app.h"
 
 #include <QtCore/QBuffer>
+#include <QtCore/QMimeType>
+#include <QtCore/QMimeDatabase>
 
 namespace {
 
@@ -212,7 +213,7 @@ QString FileNameUnsafe(
 	}
 	QString nameBase = path + nameStart;
 	name = nameBase + extension;
-	for (int i = 0; QFileInfo(name).exists(); ++i) {
+	for (int i = 0; QFileInfo::exists(name); ++i) {
 		name = nameBase + QString(" (%1)").arg(i + 2) + extension;
 	}
 
@@ -1650,7 +1651,7 @@ void DocumentData::collectLocalData(not_null<DocumentData*> local) {
 namespace Data {
 
 QString FileExtension(const QString &filepath) {
-	const auto reversed = ranges::view::reverse(filepath);
+	const auto reversed = ranges::views::reverse(filepath);
 	const auto last = ranges::find_first_of(reversed, ".\\/");
 	if (last == reversed.end() || *last != '.') {
 		return QString();
@@ -1726,7 +1727,10 @@ bool IsIpRevealingName(const QString &filepath) {
 	return ranges::binary_search(
 		kExtensions,
 		FileExtension(filepath).toLower()
-	) || base::Platform::IsNonExtensionMimeFrom(filepath, kMimeTypes);
+	) || ranges::binary_search(
+		kMimeTypes,
+		QMimeDatabase().mimeTypeForFile(QFileInfo(filepath)).name()
+	);
 }
 
 base::binary_guard ReadImageAsync(

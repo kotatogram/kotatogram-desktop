@@ -115,7 +115,40 @@ std::map<int, const char*> BetaLogs() {
 		"in Recent Actions and channel comments.\n"
 
 		"- Bug and crash fixes.\n"
-	}
+	},
+	{
+		2006002,
+		"- Fix text disappearing because of cloud drafts sync.\n"
+	},
+	{
+		2006003,
+		"- Fix audio device selection in voice chats.\n"
+
+		"- Fix blinking self profile photo "
+		"in case the profile photo privacy is used.\n"
+
+		"- Fix voice chat admin menu on macOS.\n"
+	},
+	{
+		2006004,
+		"- Fix freeze in voice chats.\n"
+
+		"- Make default interface scale 110% on macOS Retina screens.\n"
+	},
+	{
+		2006005,
+		"- Improvements and fixes in new voice chat features.\n"
+	},
+	{
+		2006007,
+		"- Improve voice chat participants list updating.\n"
+	},
+	{
+		2006008,
+		"- Fix connecting and getting allowed to speak on voice chats.\n"
+
+		"- MPRIS support on Linux.\n"
+	},
 	};
 };
 

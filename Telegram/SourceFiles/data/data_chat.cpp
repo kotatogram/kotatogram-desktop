@@ -52,7 +52,8 @@ auto ChatData::defaultAdminRights(not_null<UserData*> user) -> AdminRights {
 	const auto isCreator = (creator == user->bareId())
 		|| (user->isSelf() && amCreator());
 	using Flag = AdminRight;
-	return Flag::f_change_info
+	return Flag::f_other
+		| Flag::f_change_info
 		| Flag::f_delete_messages
 		| Flag::f_ban_users
 		| Flag::f_invite_users
@@ -155,10 +156,11 @@ void ChatData::setAdminRights(const MTPChatAdminRights &rights) {
 }
 
 void ChatData::setDefaultRestrictions(const MTPChatBannedRights &rights) {
-	if (rights.c_chatBannedRights().vflags().v == defaultRestrictions()) {
+	const auto restrictionFlags = Data::ChatBannedRightsFlags(rights);
+	if (restrictionFlags == defaultRestrictions()) {
 		return;
 	}
-	_defaultRestrictions.set(rights.c_chatBannedRights().vflags().v);
+	_defaultRestrictions.set(restrictionFlags);
 	session().changes().peerUpdated(this, UpdateFlag::Rights);
 }
 
@@ -235,6 +237,14 @@ void ChatData::clearGroupCall() {
 	session().changes().peerUpdated(this, UpdateFlag::GroupCall);
 	removeFlags(MTPDchat::Flag::f_call_active
 		| MTPDchat::Flag::f_call_not_empty);
+}
+
+void ChatData::setGroupCallDefaultJoinAs(PeerId peerId) {
+	_callDefaultJoinAs = peerId;
+}
+
+PeerId ChatData::groupCallDefaultJoinAs() const {
+	return _callDefaultJoinAs;
 }
 
 namespace Data {
@@ -375,6 +385,11 @@ void ApplyChatUpdate(not_null<ChatData*> chat, const MTPDchatFull &update) {
 		chat->setGroupCall(*call);
 	} else {
 		chat->clearGroupCall();
+	}
+	if (const auto as = update.vgroupcall_default_join_as()) {
+		chat->setGroupCallDefaultJoinAs(peerFromMTP(*as));
+	} else {
+		chat->setGroupCallDefaultJoinAs(0);
 	}
 
 	chat->setMessagesTTL(update.vttl_period().value_or_empty());

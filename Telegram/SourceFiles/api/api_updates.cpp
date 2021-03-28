@@ -240,16 +240,16 @@ Updates::Updates(not_null<Main::Session*> session)
 	) | rpl::filter([](not_null<PeerData*> peer) {
 		return peer->isChat() || peer->isMegagroup();
 	}) | rpl::start_with_next([=](not_null<PeerData*> peer) {
-		if (const auto users = _pendingSpeakingCallMembers.take(peer)) {
+		if (const auto list = _pendingSpeakingCallParticipants.take(peer)) {
 			if (const auto call = peer->groupCall()) {
-				for (const auto [userId, when] : *users) {
+				for (const auto &[participantPeerId, when] : *list) {
 					call->applyActiveUpdate(
-						userId,
+						participantPeerId,
 						Data::LastSpokeTimes{
 							.anything = when,
 							.voice = when
 						},
-						peer->owner().userLoaded(userId));
+						peer->owner().peerLoaded(participantPeerId));
 				}
 			}
 		}
@@ -277,12 +277,32 @@ void Updates::checkLastUpdate(bool afterSleep) {
 
 void Updates::feedUpdateVector(
 		const MTPVector<MTPUpdate> &updates,
-		bool skipMessageIds) {
-	for (const auto &update : updates.v) {
-		if (skipMessageIds && update.type() == mtpc_updateMessageID) {
+		SkipUpdatePolicy policy) {
+	auto list = updates.v;
+	const auto hasGroupCallParticipantUpdates = ranges::contains(
+		list,
+		mtpc_updateGroupCallParticipants,
+		&MTPUpdate::type);
+	if (hasGroupCallParticipantUpdates) {
+		ranges::stable_sort(list, std::less<>(), [](const MTPUpdate &entry) {
+			if (entry.type() == mtpc_updateGroupCallParticipants) {
+				return 0;
+			} else {
+				return 1;
+			}
+		});
+	} else if (policy == SkipUpdatePolicy::SkipExceptGroupCallParticipants) {
+		return;
+	}
+	for (const auto &entry : std::as_const(list)) {
+		const auto type = entry.type();
+		if ((policy == SkipUpdatePolicy::SkipMessageIds
+			&& type == mtpc_updateMessageID)
+			|| (policy == SkipUpdatePolicy::SkipExceptGroupCallParticipants
+				&& type != mtpc_updateGroupCallParticipants)) {
 			continue;
 		}
-		feedUpdate(update);
+		feedUpdate(entry);
 	}
 	session().data().sendHistoryChangeNotifications();
 }
@@ -392,17 +412,19 @@ void Updates::feedChannelDifference(
 	session().data().processMessages(
 		data.vnew_messages(),
 		NewMessageType::Unread);
-	feedUpdateVector(data.vother_updates(), true);
+	feedUpdateVector(
+		data.vother_updates(),
+		SkipUpdatePolicy::SkipMessageIds);
 	_handlingChannelDifference = false;
 }
 
 void Updates::channelDifferenceFail(
 		not_null<ChannelData*> channel,
-		const RPCError &error) {
-	LOG(("RPC Error in getChannelDifference: %1 %2: %3"
-		).arg(error.code()
-		).arg(error.type()
-		).arg(error.description()));
+		const MTP::Error &error) {
+	LOG(("RPC Error in getChannelDifference: %1 %2: %3").arg(
+		QString::number(error.code()),
+		error.type(),
+		error.description()));
 	failDifferenceStartTimerFor(channel);
 }
 
@@ -553,14 +575,14 @@ void Updates::feedDifference(
 	session().data().processChats(chats);
 	feedMessageIds(other);
 	session().data().processMessages(msgs, NewMessageType::Unread);
-	feedUpdateVector(other, true);
+	feedUpdateVector(other, SkipUpdatePolicy::SkipMessageIds);
 }
 
-void Updates::differenceFail(const RPCError &error) {
-	LOG(("RPC Error in getDifference: %1 %2: %3"
-		).arg(error.code()
-		).arg(error.type()
-		).arg(error.description()));
+void Updates::differenceFail(const MTP::Error &error) {
+	LOG(("RPC Error in getDifference: %1 %2: %3").arg(
+		QString::number(error.code()),
+		error.type(),
+		error.description()));
 	failDifferenceStartTimerFor(nullptr);
 }
 
@@ -643,7 +665,7 @@ void Updates::getDifference() {
 		MTP_int(_updatesQts)
 	)).done([=](const MTPupdates_Difference &result) {
 		differenceDone(result);
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		differenceFail(error);
 	}).send();
 }
@@ -678,7 +700,7 @@ void Updates::getChannelDifference(
 		MTP_int(kChannelGetDifferenceLimit)
 	)).done([=](const MTPupdates_ChannelDifference &result) {
 		channelDifferenceDone(channel, result);
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		channelDifferenceFail(channel, error);
 	}).send();
 }
@@ -742,7 +764,7 @@ void Updates::channelRangeDifferenceSend(
 	)).done([=](const MTPupdates_ChannelDifference &result) {
 		_rangeDifferenceRequests.remove(channel);
 		channelRangeDifferenceDone(channel, range, result);
-	}).fail([=](const RPCError &error) {
+	}).fail([=](const MTP::Error &error) {
 		_rangeDifferenceRequests.remove(channel);
 	}).send();
 	_rangeDifferenceRequests.emplace(channel, requestId);
@@ -810,7 +832,30 @@ void Updates::mtpUpdateReceived(const MTPUpdates &updates) {
 	if (!requestingDifference()
 		|| HasForceLogoutNotification(updates)) {
 		applyUpdates(updates);
+	} else {
+		applyGroupCallParticipantUpdates(updates);
 	}
+}
+
+void Updates::applyGroupCallParticipantUpdates(const MTPUpdates &updates) {
+	updates.match([&](const MTPDupdates &data) {
+		session().data().processUsers(data.vusers());
+		session().data().processChats(data.vchats());
+		feedUpdateVector(
+			data.vupdates(),
+			SkipUpdatePolicy::SkipExceptGroupCallParticipants);
+	}, [&](const MTPDupdatesCombined &data) {
+		session().data().processUsers(data.vusers());
+		session().data().processChats(data.vchats());
+		feedUpdateVector(
+			data.vupdates(),
+			SkipUpdatePolicy::SkipExceptGroupCallParticipants);
+	}, [&](const MTPDupdateShort &data) {
+		if (data.vupdate().type() == mtpc_updateGroupCallParticipants) {
+			feedUpdate(data.vupdate());
+		}
+	}, [](const auto &) {
+	});
 }
 
 int32 Updates::pts() const {
@@ -862,7 +907,7 @@ void Updates::updateOnline(bool gotOtherOffline) {
 				MTP_bool(!isOnline)
 			)).done([=](const MTPBool &result) {
 				Core::App().quitPreventFinished();
-			}).fail([=](const RPCError &error) {
+			}).fail([=](const MTP::Error &error) {
 				Core::App().quitPreventFinished();
 			}).send();
 		}
@@ -915,16 +960,16 @@ bool Updates::isQuitPrevent() {
 void Updates::handleSendActionUpdate(
 		PeerId peerId,
 		MsgId rootId,
-		UserId userId,
+		PeerId fromId,
 		const MTPSendMessageAction &action) {
 	const auto history = session().data().historyLoaded(peerId);
 	if (!history) {
 		return;
 	}
 	const auto peer = history->peer;
-	const auto user = (userId == session().userId())
+	const auto from = (fromId == session().userPeerId())
 		? session().user().get()
-		: session().data().userLoaded(userId);
+		: session().data().peerLoaded(fromId);
 	const auto isSpeakingInCall = (action.type()
 		== mtpc_speakingInGroupCallAction);
 	if (isSpeakingInCall) {
@@ -935,9 +980,9 @@ void Updates::handleSendActionUpdate(
 		const auto now = crl::now();
 		if (call) {
 			call->applyActiveUpdate(
-				userId,
+				fromId,
 				Data::LastSpokeTimes{ .anything = now, .voice = now },
-				user);
+				from);
 		} else {
 			const auto chat = peer->asChat();
 			const auto channel = peer->asChannel();
@@ -945,13 +990,15 @@ void Updates::handleSendActionUpdate(
 				? (chat->flags() & MTPDchat::Flag::f_call_active)
 				: (channel->flags() & MTPDchannel::Flag::f_call_active);
 			if (active) {
-				_pendingSpeakingCallMembers.emplace(
-					peer).first->second[userId] = now;
-				session().api().requestFullPeer(peer);
+				_pendingSpeakingCallParticipants.emplace(
+					peer).first->second[fromId] = now;
+				if (peerIsUser(fromId)) {
+					session().api().requestFullPeer(peer);
+				}
 			}
 		}
 	}
-	if (!user || user->isSelf()) {
+	if (!from || !from->isUser() || from->isSelf()) {
 		return;
 	}
 	const auto when = requestingDifference()
@@ -960,7 +1007,7 @@ void Updates::handleSendActionUpdate(
 	session().data().registerSendAction(
 		history,
 		rootId,
-		user,
+		from->asUser(),
 		action,
 		when);
 }
@@ -1539,22 +1586,6 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 		}
 	} break;
 
-	//case mtpc_updateReadFeed: { // #feed
-	//	const auto &d = update.c_updateReadFeed();
-	//	const auto feedId = d.vfeed_id().v;
-	//	if (const auto feed = session().data().feedLoaded(feedId)) {
-	//		feed->setUnreadPosition(
-	//			Data::FeedPositionFromMTP(d.vmax_position()));
-	//		if (d.vunread_count() && d.vunread_muted_count()) {
-	//			feed->setUnreadCounts(
-	//				d.vunread_count()->v,
-	//				d.vunread_muted_count()->v);
-	//		} else {
-	//			session().data().histories().requestDialogEntry(feed);
-	//		}
-	//	}
-	//} break;
-
 	case mtpc_updateDialogUnreadMark: {
 		const auto &data = update.c_updateDialogUnreadMark();
 		data.vpeer().match(
@@ -1658,19 +1689,21 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 
 	case mtpc_updateChatUserTyping: {
 		auto &d = update.c_updateChatUserTyping();
+		const auto fromId = peerFromMTP(d.vfrom_id());
 		handleSendActionUpdate(
 			peerFromChat(d.vchat_id()),
 			0,
-			d.vuser_id().v,
+			fromId,
 			d.vaction());
 	} break;
 
 	case mtpc_updateChannelUserTyping: {
 		const auto &d = update.c_updateChannelUserTyping();
+		const auto fromId = peerFromMTP(d.vfrom_id());
 		handleSendActionUpdate(
 			peerFromChannel(d.vchannel_id()),
 			d.vtop_msg_id().value_or_empty(),
-			d.vuser_id().v,
+			fromId,
 			d.vaction());
 	} break;
 
@@ -2003,17 +2036,10 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 					channel->updateFullForced();
 				}
 				const auto history = channel->owner().history(channel);
-				//if (const auto feed = channel->feed()) { // #feed
-				//	feed->requestChatListMessage();
-				//	if (!feed->unreadCountKnown()) {
-				//		feed->owner().histories().requestDialogEntry(feed);
-				//	}
-				//} else {
-					history->requestChatListMessage();
-					if (!history->unreadCountKnown()) {
-						history->owner().histories().requestDialogEntry(history);
-					}
-				//}
+				history->requestChatListMessage();
+				if (!history->unreadCountKnown()) {
+					history->owner().histories().requestDialogEntry(history);
+				}
 				if (!channel->amCreator()) {
 					session().api().requestSelfParticipant(channel);
 				}

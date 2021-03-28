@@ -468,7 +468,11 @@ void LastCrashedWindow::onSendReport() {
 	}
 
 	QString apiid = getReportField(qstr("apiid"), qstr("ApiId:")), version = getReportField(qstr("version"), qstr("Version:"));
-	_checkReply = _sendManager.get(QNetworkRequest(qsl("https://tdesktop.com/crash.php?act=query_report&apiid=%1&version=%2&dmp=%3&platform=%4").arg(apiid).arg(version).arg(minidumpFileName().isEmpty() ? 0 : 1).arg(CrashReports::PlatformString())));
+	_checkReply = _sendManager.get(QNetworkRequest(qsl("https://tdesktop.com/crash.php?act=query_report&apiid=%1&version=%2&dmp=%3&platform=%4").arg(
+		apiid,
+		version,
+		QString::number(minidumpFileName().isEmpty() ? 0 : 1),
+		CrashReports::PlatformString())));
 
 	connect(_checkReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onSendingError(QNetworkReply::NetworkError)));
 	connect(_checkReply, SIGNAL(finished()), this, SLOT(onCheckingFinished()));
@@ -782,7 +786,6 @@ void LastCrashedWindow::updateControls() {
 		h += _networkSettings.height() + padding;
 	}
 
-	QRect scr(QApplication::primaryScreen()->availableGeometry());
 	QSize s(2 * padding + QFontMetrics(_label.font()).horizontalAdvance(qsl("Last time Kotatogram Desktop was not closed properly.")) + padding + _networkSettings.width(), h);
 	if (s == size()) {
 		resizeEvent(0);
@@ -1126,7 +1129,7 @@ void NetworkSettingsWindow::onSave() {
 		_portInput.setFocus();
 		return;
 	}
-	emit saved(host, port.toUInt(), username, password);
+	saved(host, port.toUInt(), username, password);
 	close();
 }
 

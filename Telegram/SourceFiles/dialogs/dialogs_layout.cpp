@@ -223,7 +223,6 @@ enum class Flag {
 	SavedMessages    = 0x08,
 	RepliesMessages  = 0x10,
 	AllowUserOnline  = 0x20,
-	//FeedSearchResult = 0x10, // #feed
 };
 inline constexpr bool is_flag_type(Flag) { return true; }
 
@@ -493,7 +492,7 @@ void paintRow(
 		st::msgNameFont->height);
 
 	const auto promoted = (history && history->useTopPromotion())
-		&& !(flags & (Flag::SearchResult/* | Flag::FeedSearchResult*/)); // #feed
+		&& !(flags & Flag::SearchResult);
 	if (promoted) {
 		const auto type = history->topPromotionType();
 		const auto custom = type.isEmpty()
@@ -505,16 +504,11 @@ void paintRow(
 			? tr::lng_badge_psa_default(tr::now)
 			: custom;
 		PaintRowTopRight(p, text, rectForName, active, selected);
-	} else if (from/* && !(flags & Flag::FeedSearchResult)*/) { // #feed
+	} else if (from) {
 		if (const auto chatTypeIcon = ChatTypeIcon(from, active, selected)) {
 			chatTypeIcon->paint(p, rectForName.topLeft(), fullWidth);
 			rectForName.setLeft(rectForName.left() + st::dialogsChatTypeSkip);
 		}
-	//} else if (const auto feed = chat.feed()) { // #feed
-	//	if (const auto feedTypeIcon = FeedTypeIcon(feed, active, selected)) {
-	//		feedTypeIcon->paint(p, rectForName.topLeft(), fullWidth);
-	//		rectForName.setLeft(rectForName.left() + st::dialogsChatTypeSkip);
-	//	}
 	}
 	auto texttop = st::dialogsPadding.y()
 		+ st::msgNameFont->height
@@ -756,14 +750,6 @@ const style::icon *ChatTypeIcon(
 	return nullptr;
 }
 
-//const style::icon *FeedTypeIcon( // #feed
-//		not_null<Data::Feed*> feed,
-//		bool active,
-//		bool selected) {
-//	return &(active ? st::dialogsFeedIconActive
-//		: (selected ? st::dialogsFeedIconOver : st::dialogsFeedIcon));
-//}
-//
 void paintUnreadBadge(Painter &p, const QRect &rect, const UnreadBadgeStyle &st) {
 	Assert(rect.height() == st.size);
 
@@ -1083,8 +1069,7 @@ void RowPainter::paint(
 		| (selected ? Flag::Selected : Flag(0))
 		| Flag::SearchResult
 		| (showSavedMessages ? Flag::SavedMessages : Flag(0))
-		| (showRepliesMessages ? Flag::RepliesMessages : Flag(0))/* // #feed
-		| (row->searchInChat().feed() ? Flag::FeedSearchResult : Flag(0))*/;
+		| (showRepliesMessages ? Flag::RepliesMessages : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
 		const auto texttop = (DialogListLines() == 1
 			? st::dialogsPadding.y()
