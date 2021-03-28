@@ -891,7 +891,7 @@ void ManageFiller::addPeerPermissions(
 			_wrap,
 			tr::lng_manage_peer_permissions(),
 			rpl::single(true),
-			[=] { ShowEditPermissions(controller, peer); }
+			[=] { ShowEditPermissions(controller->parentController(), peer); }
 			);
 		object_ptr<FloatingIcon>(
 			button,
@@ -916,7 +916,7 @@ void ManageFiller::addPeerAdmins(
 			tr::lng_manage_peer_administrators(),
 			rpl::single(true),
 			[=] { ParticipantsBoxController::Start(
-					controller,
+					controller->parentController(),
 					peer,
 					ParticipantsBoxController::Role::Admins);}
 			);
@@ -936,7 +936,7 @@ void ManageFiller::addChannelBlockedUsers(
 			tr::lng_manage_peer_removed_users(),
 			rpl::single(true),
 			[=] { ParticipantsBoxController::Start(
-					controller,
+					controller->parentController(),
 					channel,
 					ParticipantsBoxController::Role::Kicked);}
 			);
