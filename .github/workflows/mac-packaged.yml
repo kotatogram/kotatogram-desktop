@@ -62,7 +62,7 @@ jobs:
       CMAKE_LIBRARY_PATH: /usr/local/ffmpeg/lib
       OPENALDIR: /usr/local/opt/openal-soft
       OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
-      Qt5_DIR: /usr/local/opt/qt/lib/cmake/Qt5
+      Qt5_DIR: /usr/local/opt/qt@5/lib/cmake/Qt5
       UPLOAD_ARTIFACT: "false"
       ONLY_CACHE: "false"
       MANUAL_CACHING: "1"
@@ -80,7 +80,7 @@ jobs:
 
       - name: First set up.
         run: |
-          brew install cmake dav1d meson openal-soft openssl opus nasm ninja pkg-config python qt yasm xz
+          brew install cmake dav1d meson openal-soft openssl opus nasm ninja pkg-config python qt@5 yasm xz
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
           xcodebuild -version > CACHE_KEY.txt
@@ -92,11 +92,13 @@ jobs:
           fi
           echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
 
-          echo /usr/local/opt/qt/bin >> $GITHUB_PATH
+          echo /usr/local/opt/qt@5/bin >> $GITHUB_PATH
 
           mkdir -p Libraries/macos
           cd Libraries/macos
           echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
+
+          curl -o tg_owt-version.json https://api.github.com/repos/desktop-app/tg_owt/git/refs/heads/master
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
@@ -232,7 +234,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/tg_owt
-          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ hashFiles('**/tg_owt-version.json') }}
       - name: WebRTC.
         if: steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
