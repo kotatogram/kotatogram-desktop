@@ -421,7 +421,7 @@ int UnwrappedMedia::calculateFullRight(const QRect &inner) const {
 			+ (_parent->hasFromPhoto()
 				? st::msgMargin.right()
 				: st::msgPadding.right()))
-		: 0;
+		: st::msgMargin.left() + st::msgMargin.right();
 	auto fullRight = inner.x()
 		+ inner.width()
 		+ (rightAligned ? 0 : infoWidth);
