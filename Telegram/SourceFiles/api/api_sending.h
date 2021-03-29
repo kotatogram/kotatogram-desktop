@@ -37,7 +37,10 @@ void SendExistingPhoto(
 	Fn<void()> doneCallback = nullptr,
 	bool forwarding = false);
 
-bool SendDice(Api::MessageToSend &message, Fn<void()> doneCallback = nullptr);
+bool SendDice(
+	Api::MessageToSend &message,
+	Fn<void()> doneCallback = nullptr,
+	bool forwarding = false);
 
 void FillMessagePostFlags(
 	const SendAction &action,

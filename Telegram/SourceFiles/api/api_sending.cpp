@@ -229,7 +229,10 @@ void SendExistingPhoto(
 		forwarding);
 }
 
-bool SendDice(Api::MessageToSend &message, Fn<void()> doneCallback) {
+bool SendDice(
+		Api::MessageToSend &message,
+		Fn<void()> doneCallback,
+		bool forwarding) {
 	const auto full = message.textWithTags.text.midRef(0).trimmed();
 	auto length = 0;
 	if (!Ui::Emoji::Find(full.data(), full.data() + full.size(), &length)
@@ -350,7 +353,9 @@ bool SendDice(Api::MessageToSend &message, Fn<void()> doneCallback) {
 		).send();
 		return history->sendRequestId;
 	});
-	api->finishForwarding(message.action);
+	if (!forwarding) {
+		api->finishForwarding(message.action);
+	}
 	return true;
 }
 

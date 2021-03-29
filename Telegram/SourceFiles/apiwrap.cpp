@@ -4063,20 +4063,15 @@ void ApiWrap::forwardMessagesUnquoted(
 		}
 
 		auto message = ApiWrap::MessageToSend(history);
-		message.textWithTags = TextWithTags{
-			dice->emoji(),
-			TextWithTags::Tags()
-		};
+		message.textWithTags.text = dice->emoji();
 		message.action.options = action.options;
 		message.action.clearDraft = false;
 
-		auto doneCallback = [=] () {
+		Api::SendDice(message, [=] {
 			if (shared && !--shared->requestsLeft) {
 				shared->callback();
 			}
-		};
-
-		SendDice(message, std::move(doneCallback));
+		}, true); // forwarding
 	};
 
 	const auto forwardMessageUnquoted = [&] (not_null<HistoryItem *> item) {
@@ -4104,8 +4099,7 @@ void ApiWrap::forwardMessagesUnquoted(
 				if (shared && !--shared->requestsLeft) {
 					shared->callback();
 				}
-			},
-			true); // forwarding
+			}, true); // forwarding
 	};
 
 	const auto sendAccumulated = [&] {
