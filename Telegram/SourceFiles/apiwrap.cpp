@@ -3799,33 +3799,38 @@ void ApiWrap::forwardMessagesUnquoted(
 	auto localIds = std::shared_ptr<base::flat_map<uint64, FullMsgId>>();
 	auto fromIter = items.begin();
 	auto toIter = items.begin();
+	auto messageGroupCount = 0;
 
 	const auto needNextGroup = [&] (not_null<HistoryItem *> item) {
+		auto lastGroupCheck = false;
+		if (item->media() && item->media()->canBeGrouped()) {
+			lastGroupCheck = lastGroup != ((item->media()->photo()
+					|| (item->media()->document()
+						&& item->media()->document()->isVideoFile()))
+				? LastGroupType::Medias
+				: (item->media()->document()
+					&& item->media()->document()->isSharedMediaMusic())
+				? LastGroupType::Music
+				: LastGroupType::Documents);
+		} else {
+			lastGroupCheck = lastGroup != LastGroupType::None;
+		}
+
 		if (cForwardAlbumsAsIs()) {
 			const auto newFrom = item->history()->peer;
 			const auto newGroupId = item->groupId();
 			return forwardFrom != newFrom
-				|| currentGroupId != newGroupId;
+					|| currentGroupId != newGroupId
+					|| lastGroupCheck;
 		} else if (cForwardGrouped()) {
-			if (item->media() && item->media()->canBeGrouped()) {
-				return lastGroup != ((item->media()->photo()
-						|| (item->media()->document()
-							&& item->media()->document()->isVideoFile()))
-					? LastGroupType::Medias
-					: (item->media()->document()
-						&& item->media()->document()->isSharedMediaMusic())
-					? LastGroupType::Music
-					: LastGroupType::Documents);
-			} else {
-				return lastGroup != LastGroupType::None;
-			}
+			return lastGroupCheck;
 		} else {
 			return true;
 		}
 	};
 
 	const auto isGrouped = [&] {
-		return lastGroup != LastGroupType::None && fromIter != toIter;
+		return lastGroup != LastGroupType::None && messageGroupCount > 1;
 	};
 
 	const auto forwardQuotedSingle = [&] (not_null<HistoryItem *> item) {
@@ -4142,6 +4147,7 @@ void ApiWrap::forwardMessagesUnquoted(
 		const auto randomId = openssl::RandomValue<uint64>();
 		if (needNextGroup(item)) {
 			sendAccumulated();
+			messageGroupCount = 0;
 			forwardFrom = item->history()->peer;
 			currentGroupId = item->groupId();
 			fromIter = i;
@@ -4161,6 +4167,7 @@ void ApiWrap::forwardMessagesUnquoted(
 			lastGroup = LastGroupType::None;
 		}
 		toIter = ++i;
+		messageGroupCount++;
 	}
 	sendAccumulated();
 	_session->data().sendHistoryChangeNotifications();
