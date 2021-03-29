@@ -23,12 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localstorage.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
-#include "media/player/media_player_instance.h"
-#include "media/audio/media_audio.h"
 #include "base/platform/base_platform_info.h"
-#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-#include "platform/linux/linux_gsd_media_keys.h"
-#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 #include "base/call_delayed.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/input_fields.h"
@@ -241,13 +236,6 @@ QIcon TrayIconGen(int counter, bool muted) {
 	}
 
 	const auto iconName = GetTrayIconName(counter, muted);
-	const auto panelIconName = GetPanelIconName(counter, muted);
-
-	if (iconName == panelIconName) {
-		const auto result = QIcon::fromTheme(iconName);
-		UpdateIconRegenerationNeeded(result, counter, muted, iconThemeName);
-		return result;
-	}
 
 	if (UseIconFromTheme(iconName)) {
 		const auto result = QIcon::fromTheme(iconName);
@@ -682,17 +670,6 @@ void MainWindow::initHook() {
 	} else {
 		LOG(("Not using Unity launcher counter."));
 	}
-
-	Media::Player::instance()->updatedNotifier(
-	) | rpl::start_with_next([=](const Media::Player::TrackState &state) {
-		if (!Media::Player::IsStoppedOrStopping(state.state)) {
-			if (!_gsdMediaKeys) {
-				_gsdMediaKeys = std::make_unique<internal::GSDMediaKeys>();
-			}
-		} else if (_gsdMediaKeys) {
-			_gsdMediaKeys = nullptr;
-		}
-	}, lifetime());
 #endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 	LOG(("System tray available: %1").arg(Logs::b(trayAvailable())));
