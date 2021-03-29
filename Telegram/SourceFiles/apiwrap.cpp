@@ -3757,6 +3757,7 @@ void ApiWrap::forwardMessagesUnquoted(
 
 	enum LastGroupType {
 		None,
+		Music,
 		Documents,
 		Medias,
 	};
@@ -3807,13 +3808,14 @@ void ApiWrap::forwardMessagesUnquoted(
 				|| currentGroupId != newGroupId;
 		} else if (cForwardGrouped()) {
 			if (item->media() && item->media()->canBeGrouped()) {
-				if (item->media()->photo()
-					|| (item->media()->document()
-						&& item->media()->document()->isVideoFile())) {
-					return lastGroup != LastGroupType::Medias;
-				} else {
-					return lastGroup != LastGroupType::Documents;
-				}
+				return lastGroup != ((item->media()->photo()
+						|| (item->media()->document()
+							&& item->media()->document()->isVideoFile()))
+					? LastGroupType::Medias
+					: (item->media()->document()
+						&& item->media()->document()->isSharedMediaMusic())
+					? LastGroupType::Music
+					: LastGroupType::Documents);
 			} else {
 				return lastGroup != LastGroupType::None;
 			}
@@ -4147,13 +4149,14 @@ void ApiWrap::forwardMessagesUnquoted(
 		ids.push_back(MTP_int(item->id));
 		randomIds.push_back(MTP_long(randomId));
 		if (item->media() && item->media()->canBeGrouped()) {
-			if (item->media()->photo()
-				|| (item->media()->document()
-					&& item->media()->document()->isVideoFile())) {
-				lastGroup = LastGroupType::Medias;
-			} else {
-				lastGroup = LastGroupType::Documents;
-			}
+			lastGroup = ((item->media()->photo()
+					|| (item->media()->document()
+						&& item->media()->document()->isVideoFile()))
+				? LastGroupType::Medias
+				: (item->media()->document()
+					&& item->media()->document()->isSharedMediaMusic())
+				? LastGroupType::Music
+				: LastGroupType::Documents);
 		} else {
 			lastGroup = LastGroupType::None;
 		}
