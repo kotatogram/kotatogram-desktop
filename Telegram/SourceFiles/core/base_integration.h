@@ -18,6 +18,7 @@ public:
 	void enterFromEventLoop(FnMut<void()> &&method) override;
 	void logMessage(const QString &message) override;
 	void logAssertionViolation(const QString &info) override;
+	[[nodiscard]] bool gtkIntegrationEnabled() const override;
 
 };
 
