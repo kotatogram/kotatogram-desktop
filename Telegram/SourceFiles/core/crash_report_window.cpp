@@ -295,7 +295,7 @@ LastCrashedWindow::LastCrashedWindow(
 	}
 	if (_sendingState != SendingNoReport) {
 		QString version = getReportField(qstr("version"), qstr("Version:"));
-		QString current = cAlphaVersion() ? qsl("-%1").arg(cAlphaVersion()) : QString::number(AppVersion);
+		QString current = cAlphaVersion() ? qsl("-%1").arg(cAlphaVersion()) : QString::number(AppKotatoVersion);
 		if (version != current) { // currently don't accept crash reports from not current app version
 			_sendingState = SendingNoReport;
 		}
@@ -353,7 +353,7 @@ LastCrashedWindow::LastCrashedWindow(
 		}
 	}
 
-	_pleaseSendReport.setText(qsl("Please send us a crash report."));
+	_pleaseSendReport.setText(qsl("You can view and save your crash report here."));
 	_yourReportName.setText(qsl("Your Report Tag: %1\nYour User Tag: %2").arg(QString(_minidumpName).replace(".dmp", "")).arg(launcher->installationTag(), 0, 16));
 	_yourReportName.setCursor(style::cur_text);
 	_yourReportName.setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -369,10 +369,12 @@ LastCrashedWindow::LastCrashedWindow(
 	_getApp.setText(qsl("GET THE LATEST VERSION OF KOTATOGRAM DESKTOP"));
 	connect(&_getApp, SIGNAL(clicked()), this, SLOT(onGetApp()));
 
+	/*
 	_send.setText(qsl("SEND CRASH REPORT"));
 	connect(&_send, SIGNAL(clicked()), this, SLOT(onSendReport()));
+	*/
 
-	_sendSkip.setText(qsl("SKIP"));
+	_sendSkip.setText(qsl("CLOSE AND START APP"));
 	connect(&_sendSkip, SIGNAL(clicked()), this, SLOT(onContinue()));
 	_continue.setText(qsl("CONTINUE"));
 	connect(&_continue, SIGNAL(clicked()), this, SLOT(onContinue()));
@@ -575,6 +577,7 @@ void LastCrashedWindow::updateControls() {
 	int padding = _size, h = padding + _networkSettings.height() + padding;
 
 	_label.show();
+	_send.hide();
 	if (_updaterData) {
 		h += _networkSettings.height() + padding;
 		if (_updaterData->state == UpdatingFail && (_sendingState == SendingNoReport || _sendingState == SendingUpdateCheck)) {
@@ -630,7 +633,7 @@ void LastCrashedWindow::updateControls() {
 					if (_sendingState == SendingTooOld || _sendingState == SendingUnofficial) {
 						QString verStr = getReportField(qstr("version"), qstr("Version:"));
 						qint64 ver = verStr.isEmpty() ? 0 : verStr.toLongLong();
-						if (!ver || (ver == AppVersion) || (ver < 0 && (-ver / 1000) == AppVersion)) {
+						if (!ver || (ver == AppKotatoVersion) || (ver < 0 && (-ver / 1000) == AppKotatoVersion)) {
 							h += _getApp.height() + padding;
 							_getApp.show();
 							h -= _yourReportName.height() + padding; // hide report name
@@ -683,7 +686,7 @@ void LastCrashedWindow::updateControls() {
 							if (_sendingState == SendingProgress || _sendingState == SendingUploading) {
 								_send.hide();
 							} else {
-								_send.show();
+								//_send.show();
 							}
 							_sendSkip.show();
 							_continue.hide();
@@ -770,7 +773,7 @@ void LastCrashedWindow::updateControls() {
 				if (_sendingState == SendingProgress || _sendingState == SendingUploading) {
 					_send.hide();
 				} else {
-					_send.show();
+					//_send.show();
 				}
 				_sendSkip.show();
 				if (_sendingState == SendingFail) {
@@ -1015,12 +1018,15 @@ void LastCrashedWindow::resizeEvent(QResizeEvent *e) {
 	int padding = _size;
 	_label.move(padding, padding + (_networkSettings.height() - _label.height()) / 2);
 
+	/*
 	_send.move(width() - padding - _send.width(), height() - padding - _send.height());
 	if (_sendingState == SendingProgress || _sendingState == SendingUploading) {
 		_sendSkip.move(width() - padding - _sendSkip.width(), height() - padding - _sendSkip.height());
 	} else {
 		_sendSkip.move(width() - padding - _send.width() - padding - _sendSkip.width(), height() - padding - _sendSkip.height());
 	}
+	*/
+	_sendSkip.move(width() - padding - _sendSkip.width(), height() - padding - _sendSkip.height());
 
 	_updating.move(padding, padding * 2 + _networkSettings.height() + (_networkSettings.height() - _updating.height()) / 2);
 
