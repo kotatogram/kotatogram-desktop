@@ -63,8 +63,11 @@ jobs:
         defines:
           - ""
           - "DESKTOP_APP_DISABLE_DBUS_INTEGRATION"
+          - "DESKTOP_APP_DISABLE_X11_INTEGRATION"
           - "DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION"
-          - "TDESKTOP_DISABLE_GTK_INTEGRATION"
+          - "DESKTOP_APP_DISABLE_GTK_INTEGRATION"
+          - "LIBTGVOIP_DISABLE_ALSA"
+          - "LIBTGVOIP_DISABLE_PULSEAUDIO"
 
     env:
       GIT: "https://github.com"
@@ -110,12 +113,13 @@ jobs:
           libxcb-res0-dev libxcb-screensaver0-dev libxcb-shape0-dev libxcb-shm0-dev \
           libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev \
           libxcb-util0-dev libx11-xcb-dev libxext-dev libxfixes-dev libxv-dev libva-dev \
-          libvdpau-dev xutils-dev unzip -y --force-yes && \
+          libvdpau-dev libsigc++-2.0-dev libxml-parser-perl mm-common xutils-dev \
+          unzip -y --force-yes && \
           add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           apt-get update && \
-          apt-get install gcc-8 g++-8 -y && \
-          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 60 && \
-          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60 && \
+          apt-get install gcc-9 g++-9 -y && \
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 60 && \
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60 && \
           update-alternatives --config gcc && \
           add-apt-repository --remove ppa:ubuntu-toolchain-r/test -y
 
@@ -147,12 +151,12 @@ jobs:
           cd Libraries
           echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
 
+          wget -O tg_owt-version.json https://api.github.com/repos/desktop-app/tg_owt/git/refs/heads/master
+
       - name: Patches.
         run: |
           cd $LibrariesPath
-          git clone $GIT/desktop-app/patches.git
-          cd patches
-          git checkout 72b84de
+          git clone --depth=1 $GIT/desktop-app/patches.git
 
       - name: OpenSSL cache.
         id: cache-openssl
@@ -169,7 +173,7 @@ jobs:
           git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
             $GIT/openssl/openssl $opensslDir
           cd $opensslDir
-          ./config no-tests
+          ./config --openssldir=/etc/ssl no-tests no-dso
           make -j$(nproc)
           make DESTDIR="$LibrariesPath/openssl-cache" install_sw
           cd ..
@@ -220,7 +224,7 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone -b v5.69.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
+          git clone -b v5.80.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
           cd extra-cmake-modules
           cmake . -DCMAKE_BUILD_TYPE=Release
           cmake --build . -j$(nproc)
@@ -264,22 +268,21 @@ jobs:
 
           git clone -b 0.6.0 --depth=1 $GIT/videolan/dav1d.git
           cd dav1d
-          mkdir build && cd build
-          meson .. \
+          meson build \
           --libdir=/usr/local/lib \
           -Denable_tools=false \
           -Denable_tests=false
-          ninja
-          ninja install
+          meson compile -C build -j$(nproc)
+          meson install -C build
           ldconfig
-          cd ../..
+          cd ..
           rm -rf dav1d
 
       - name: MozJPEG.
         run: |
           cd $LibrariesPath
 
-          git clone -b v4.0.1-rc2 $GIT/mozilla/mozjpeg.git
+          git clone -b v4.0.1-rc2 --depth=1 $GIT/mozilla/mozjpeg.git
           cd mozjpeg
           cmake -B build . \
           -DCMAKE_BUILD_TYPE=Release \
@@ -323,7 +326,7 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone --branch release/4.2 $GIT/FFmpeg/FFmpeg ffmpeg
+          git clone --branch release/4.2 --depth=1 $GIT/FFmpeg/FFmpeg ffmpeg
           cd ffmpeg
           ./configure \
           --disable-static \
@@ -445,7 +448,7 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone -b openal-soft-1.20.1 --depth=1 $GIT/kcat/openal-soft.git
+          git clone -b fix_pulse_default --depth=1 $GIT/telegramdesktop/openal-soft.git
           cd openal-soft/build
           cmake .. \
           -DCMAKE_BUILD_TYPE=Release \
@@ -461,11 +464,35 @@ jobs:
           cd -
           rm -rf openal-soft
 
+      - name: Wayland Protocols.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 1.20 --depth=1 https://gitlab.freedesktop.org/wayland/wayland-protocols.git
+          cd wayland-protocols
+          ./autogen.sh
+          make -j$(nproc)
+          make install
+          cd ..
+          rm -rf wayland-protocols
+
+      - name: Plasma Wayland Protocols.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v1.1.1 --depth=1 $GIT/KDE/plasma-wayland-protocols.git
+          cd plasma-wayland-protocols
+          cmake -B build . -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+          cmake --install build
+          cd ..
+          rm -rf plasma-wayland-protocols
+
       - name: Libwayland.
         run: |
           cd $LibrariesPath
 
-          git clone -b 1.18.0 https://gitlab.freedesktop.org/wayland/wayland
+          git clone -b 1.18.0 --depth=1 https://gitlab.freedesktop.org/wayland/wayland
           cd wayland
           ./autogen.sh \
           --disable-documentation \
@@ -480,18 +507,37 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone -b xkbcommon-0.8.4 --depth=1 $GIT/xkbcommon/libxkbcommon.git
+          git clone -b xkbcommon-1.0.3 --depth=1 $GIT/xkbcommon/libxkbcommon.git
           cd libxkbcommon
-          ./autogen.sh \
-          --disable-docs \
-          --disable-wayland \
-          --with-xkb-config-root=/usr/share/X11/xkb \
-          --with-x-locale-root=/usr/share/X11/locale
+          meson build \
+          --libdir=/usr/local/lib \
+          -Denable-docs=false \
+          -Denable-wayland=false \
+          -Denable-xkbregistry=false \
+          -Dxkb-config-root=/usr/share/X11/xkb \
+          -Dxkb-config-extra-path=/etc/xkb \
+          -Dx-locale-root=/usr/share/X11/locale
+          meson compile -C build -j$(nproc)
+          meson install -C build
+          ldconfig
+          cd ..
+          rm -rf libxkbcommon
+
+      - name: Glibmm.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b 2.40.0 --depth=1 $GIT/GNOME/glibmm.git
+          cd glibmm
+          git apply ../patches/glibmm.patch
+          export ACLOCAL_PATH="/usr/local/share/aclocal"
+          NOCONFIGURE=1 ./autogen.sh
+          ./configure --enable-maintainer-mode --disable-documentation
           make -j$(nproc)
           make install
           ldconfig
           cd ..
-          rm -rf libxkbcommon
+          rm -rf glibmm
 
       - name: Qt 5.15.2 cache.
         id: cache-qt
@@ -510,6 +556,8 @@ jobs:
           git submodule update qtbase qtwayland qtimageformats qtsvg qttools qtx11extras
           cd qtbase
           find ../../patches/qtbase_${QT} -type f -print0 | sort -z | xargs -r0 git apply
+          cd ../qtwayland
+          find ../../patches/qtwayland_${QT} -type f -print0 | sort -z | xargs -r0 git apply
           cd ..
 
           ./configure -prefix /usr/local \
@@ -552,11 +600,27 @@ jobs:
           cd ..
           rm -rf qtstyleplugins
 
+      - name: KWayland.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v5.80.0 --depth=1 $GIT/KDE/kwayland.git
+          cd kwayland
+          cmake . \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TESTING=OFF \
+          -DKDE_INSTALL_LIBDIR=lib
+          cmake --build . -j$(nproc)
+          cmake --install .
+          ldconfig
+          cd ..
+          rm -rf kwayland
+
       - name: KWindowSystem.
         run: |
           cd $LibrariesPath
 
-          git clone -b v5.69.0 --depth=1 $GIT/KDE/kwindowsystem.git
+          git clone -b v5.80.0 --depth=1 $GIT/KDE/kwindowsystem.git
           cd kwindowsystem
           cmake . \
           -DCMAKE_BUILD_TYPE=Release \
@@ -585,13 +649,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/tg_owt
-          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ hashFiles('**/tg_owt-version.json') }}
       - name: WebRTC.
         if: steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
-          git clone --recursive $GIT/desktop-app/tg_owt.git
+          git clone --recursive --depth=1 $GIT/desktop-app/tg_owt.git
           cd tg_owt
           cmake -B build . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
           cmake --build build -j$(nproc)
@@ -614,6 +678,7 @@ jobs:
 
           ./configure.sh \
           -GNinja \
+          -DCMAKE_CXX_FLAGS="-DDESKTOP_APP_GLIBMM_BACKPORTS" \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
