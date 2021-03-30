@@ -4520,9 +4520,9 @@ void ApiWrap::sendMessage(
 		} else {
 			clientFlags |= MTPDmessage_ClientFlag::f_local_history_entry;
 		}
-		const auto views = 1;
-		const auto forwards = 0;
 		if (!forwarding) {		
+			const auto views = 1;
+			const auto forwards = 0;
 			lastMessage = history->addNewMessage(
 				MTP_message(
 					MTP_flags(flags),
