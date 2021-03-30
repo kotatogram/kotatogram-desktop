@@ -78,7 +78,7 @@ rpl::producer<bool> MonospaceLargeBubblesChanges() {
 }
 
 bool gAlwaysShowScheduled = false;
-int gShowChatId = 0;
+int gShowChatId = 2;
 
 int gNetSpeedBoost = 0;
 int gNetRequestsCount = 2;
