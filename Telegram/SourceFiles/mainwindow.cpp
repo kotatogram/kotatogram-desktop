@@ -158,7 +158,7 @@ void MainWindow::createTrayIconMenu() {
 	trayIconMenu->addAction(soundActionText, [=] {
 		toggleSoundNotifyFromTray();
 	});
-	trayIconMenu->addAction(tr::lng_quit_from_tray(tr::now), [=] {
+	trayIconMenu->addAction(tr::ktg_quit_from_tray(tr::now), [=] {
 		quitFromTray();
 	});
 
@@ -659,7 +659,7 @@ void MainWindow::updateTrayMenu() {
 		: tr::lng_enable_notifications_from_tray(tr::now);
 	notificationAction->setText(notificationActionText);
 
-	auto soundAction = actions.at(Platform::IsLinux() ? 3 : 2);
+	auto soundAction = actions.at(2);
 	auto soundActionText = Core::App().settings().soundNotify()
 		? tr::ktg_settings_disable_sound_from_tray(tr::now)
 		: tr::ktg_settings_enable_sound_from_tray(tr::now);
