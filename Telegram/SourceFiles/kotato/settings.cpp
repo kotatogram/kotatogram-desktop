@@ -124,7 +124,7 @@ bool AddCustomReplace(QString from, QString to) {
 	return true;
 }
 
-bool gConfirmBeforeCall = false;
+bool gConfirmBeforeCall = true;
 
 bool gUseNativeDecorations = false;
 bool UseNativeDecorations() {
