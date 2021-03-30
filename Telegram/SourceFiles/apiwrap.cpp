@@ -4074,7 +4074,7 @@ void ApiWrap::forwardMessagesUnquoted(
 		message.action.options = action.options;
 		message.action.clearDraft = false;
 
-		Api::SendDice(message, [=] {
+		Api::SendDice(message, [=] (const MTPUpdates &result, mtpRequestId requestId) {
 			if (shared && !--shared->requestsLeft) {
 				shared->callback();
 			}
@@ -4432,7 +4432,12 @@ void ApiWrap::sendMessage(
 	action.generateLocal = true;
 	sendAction(action);
 
-	if (!peer->canWrite() || Api::SendDice(message)) {
+	if (!peer->canWrite()
+		|| Api::SendDice(message, [=] (const MTPUpdates &result, mtpRequestId requestId) {
+			if (doneCallback) {
+				doneCallback(result, requestId);
+			}
+		}, forwarding)) {
 		return;
 	}
 	local().saveRecentSentHashtags(textWithTags.text);
@@ -4517,32 +4522,34 @@ void ApiWrap::sendMessage(
 		}
 		const auto views = 1;
 		const auto forwards = 0;
-		lastMessage = history->addNewMessage(
-			MTP_message(
-				MTP_flags(flags),
-				MTP_int(newId.msg),
-				peerToMTP(messageFromId),
-				peerToMTP(peer->id),
-				MTPMessageFwdHeader(),
-				MTPint(), // via_bot_id
-				replyHeader,
-				MTP_int(
-					HistoryItem::NewMessageDate(action.options.scheduled)),
-				msgText,
-				media,
-				MTPReplyMarkup(),
-				localEntities,
-				MTP_int(views),
-				MTP_int(forwards),
-				MTPMessageReplies(),
-				MTPint(), // edit_date
-				MTP_string(messagePostAuthor),
-				MTPlong(),
-				//MTPMessageReactions(),
-				MTPVector<MTPRestrictionReason>(),
-				MTPint()), // ttl_period
-			clientFlags,
-			NewMessageType::Unread);
+		if (!forwarding) {		
+			lastMessage = history->addNewMessage(
+				MTP_message(
+					MTP_flags(flags),
+					MTP_int(newId.msg),
+					peerToMTP(messageFromId),
+					peerToMTP(peer->id),
+					MTPMessageFwdHeader(),
+					MTPint(), // via_bot_id
+					replyHeader,
+					MTP_int(
+						HistoryItem::NewMessageDate(action.options.scheduled)),
+					msgText,
+					media,
+					MTPReplyMarkup(),
+					localEntities,
+					MTP_int(views),
+					MTP_int(forwards),
+					MTPMessageReplies(),
+					MTPint(), // edit_date
+					MTP_string(messagePostAuthor),
+					MTPlong(),
+					//MTPMessageReactions(),
+					MTPVector<MTPRestrictionReason>(),
+					MTPint()), // ttl_period
+				clientFlags,
+				NewMessageType::Unread);
+		}
 		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
 			history->sendRequestId = request(MTPmessages_SendMessage(
 				MTP_flags(sendFlags),
@@ -4568,7 +4575,7 @@ void ApiWrap::sendMessage(
 			}).fail([=](
 					const MTP::Error &error,
 					const MTP::Response &response) {
-				if (error.type() == qstr("MESSAGE_EMPTY")) {
+				if (error.type() == qstr("MESSAGE_EMPTY") && !forwarding) {
 					lastMessage->destroy();
 				} else {
 					sendMessageFail(error, peer, randomId, newId);

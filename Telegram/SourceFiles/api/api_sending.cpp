@@ -231,7 +231,7 @@ void SendExistingPhoto(
 
 bool SendDice(
 		Api::MessageToSend &message,
-		Fn<void()> doneCallback,
+		Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback,
 		bool forwarding) {
 	const auto full = message.textWithTags.text.midRef(0).trimmed();
 	auto length = 0;
@@ -340,10 +340,10 @@ bool SendDice(
 			MTPReplyMarkup(),
 			MTP_vector<MTPMessageEntity>(),
 			MTP_int(message.action.options.scheduled)
-		)).done([=](const MTPUpdates &result) {
+		)).done([=](const MTPUpdates &result, mtpRequestId requestId) {
 			api->applyUpdates(result, randomId);
 			if (doneCallback) {
-				doneCallback();
+				doneCallback(result, requestId);
 			}
 			finish();
 		}).fail([=](const MTP::Error &error) {

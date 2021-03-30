@@ -39,7 +39,7 @@ void SendExistingPhoto(
 
 bool SendDice(
 	Api::MessageToSend &message,
-	Fn<void()> doneCallback = nullptr,
+	Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback = nullptr,
 	bool forwarding = false);
 
 void FillMessagePostFlags(
