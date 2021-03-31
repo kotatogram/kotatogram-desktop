@@ -53,6 +53,44 @@ RadioBox::RadioBox(
 , _warnRestart(warnRestart) {
 }
 
+RadioBox::RadioBox(
+	QWidget*,
+	const QString &title,
+	int currentValue,
+	int valueCount,
+	Fn<QString(int)> labelGetter,
+	Fn<QString(int)> descriptionGetter,
+	Fn<void(int)> saveCallback,
+	bool warnRestart)
+: _title(title)
+, _startValue(currentValue)
+, _valueCount(valueCount)
+, _labelGetter(labelGetter)
+, _descriptionGetter(descriptionGetter)
+, _saveCallback(std::move(saveCallback))
+, _warnRestart(warnRestart) {
+}
+
+RadioBox::RadioBox(
+	QWidget*,
+	const QString &title,
+	const QString &description,
+	int currentValue,
+	int valueCount,
+	Fn<QString(int)> labelGetter,
+	Fn<QString(int)> descriptionGetter,
+	Fn<void(int)> saveCallback,
+	bool warnRestart)
+: _title(title)
+, _description(description)
+, _startValue(currentValue)
+, _valueCount(valueCount)
+, _labelGetter(labelGetter)
+, _descriptionGetter(descriptionGetter)
+, _saveCallback(std::move(saveCallback))
+, _warnRestart(warnRestart) {
+}
+
 void RadioBox::prepare() {
 	setTitle(rpl::single(_title));
 
@@ -74,6 +112,10 @@ void RadioBox::prepare() {
 	_group = std::make_shared<Ui::RadiobuttonGroup>(_startValue);
 
 	for (auto i = 0; i != _valueCount; ++i) {
+		const auto description = _descriptionGetter
+			? _descriptionGetter(i)
+			: QString();
+
 		content->add(
 			object_ptr<Ui::Radiobutton>(
 				this,
@@ -85,7 +127,20 @@ void RadioBox::prepare() {
 				st::boxPadding.left(),
 				st::boxPadding.bottom(),
 				st::boxPadding.right(),
-				st::boxPadding.bottom()));
+				description.isEmpty() ? st::boxPadding.bottom() : 0));
+		if (!description.isEmpty()) {
+			content->add(
+				object_ptr<Ui::FlatLabel>(this, description, st::boxDividerLabel),
+				style::margins(
+					st::boxPadding.left()
+						+ st::autolockButton.margin.left()
+						+ st::autolockButton.margin.right()
+						+ st::defaultToggle.width
+						+ st::defaultToggle.border * 2,
+					0,
+					st::boxPadding.right(),
+					st::boxPadding.bottom()));
+		}
 	}
 
 	setDimensionsToContent(st::boxWidth, content);

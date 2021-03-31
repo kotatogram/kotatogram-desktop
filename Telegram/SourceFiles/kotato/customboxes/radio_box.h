@@ -19,8 +19,42 @@ namespace Kotato {
 
 class RadioBox : public Ui::BoxContent {
 public:
-	RadioBox(QWidget* parent, const QString &title, int currentValue, int valueCount, Fn<QString(int)> labelGetter, Fn<void(int)> saveCallback, bool warnRestart = false);
-	RadioBox(QWidget* parent, const QString &title, const QString &description, int currentValue, int valueCount, Fn<QString(int)> labelGetter, Fn<void(int)> saveCallback, bool warnRestart = false);
+	RadioBox(
+		QWidget* parent,
+		const QString &title,
+		int currentValue,
+		int valueCount,
+		Fn<QString(int)> labelGetter,
+		Fn<void(int)> saveCallback,
+		bool warnRestart = false);
+	RadioBox(
+		QWidget* parent,
+		const QString &title,
+		const QString &description,
+		int currentValue,
+		int valueCount,
+		Fn<QString(int)> labelGetter,
+		Fn<void(int)> saveCallback,
+		bool warnRestart = false);
+	RadioBox(
+		QWidget* parent,
+		const QString &title,
+		int currentValue,
+		int valueCount,
+		Fn<QString(int)> labelGetter,
+		Fn<QString(int)> descriptionGetter,
+		Fn<void(int)> saveCallback,
+		bool warnRestart = false);
+	RadioBox(
+		QWidget* parent,
+		const QString &title,
+		const QString &description,
+		int currentValue,
+		int valueCount,
+		Fn<QString(int)> labelGetter,
+		Fn<QString(int)> descriptionGetter,
+		Fn<void(int)> saveCallback,
+		bool warnRestart = false);
 
 protected:
 	void prepare() override;
@@ -33,6 +67,7 @@ private:
 	int _startValue;
 	int _valueCount;
 	Fn<QString(int)> _labelGetter;
+	Fn<QString(int)> _descriptionGetter;
 	Fn<void(int)> _saveCallback;
 	bool _warnRestart = false;
 	std::shared_ptr<Ui::RadiobuttonGroup> _group;
