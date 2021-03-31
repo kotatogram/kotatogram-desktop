@@ -466,23 +466,25 @@ void SetupKotatoSystem(
 	}
 #endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
 
-	AddButtonWithLabel(
-		container,
-		tr::ktg_settings_file_dialog_type(),
-		rpl::single(FileDialogTypeLabel(int(cFileDialogType()))),
-		st::settingsButton
-	)->addClickHandler([=] {
-		Ui::show(Box<::Kotato::RadioBox>(
-			tr::ktg_settings_file_dialog_type(tr::now),
-			int(cFileDialogType()),
-			int(Platform::FileDialog::ImplementationType::Count),
-			FileDialogTypeLabel,
-			Platform::FileDialog::ImplementationTypeDescription,
-			[=](int value) {
-				cSetFileDialogType(Platform::FileDialog::ImplementationType(value));
-				::Kotato::JsonSettings::Write();
-			}, false));
-	});
+	if (Platform::IsLinux()) {
+		AddButtonWithLabel(
+			container,
+			tr::ktg_settings_file_dialog_type(),
+			rpl::single(FileDialogTypeLabel(int(cFileDialogType()))),
+			st::settingsButton
+		)->addClickHandler([=] {
+			Ui::show(Box<::Kotato::RadioBox>(
+				tr::ktg_settings_file_dialog_type(tr::now),
+				int(cFileDialogType()),
+				int(Platform::FileDialog::ImplementationType::Count),
+				FileDialogTypeLabel,
+				Platform::FileDialog::ImplementationTypeDescription,
+				[=](int value) {
+					cSetFileDialogType(Platform::FileDialog::ImplementationType(value));
+					::Kotato::JsonSettings::Write();
+				}, false));
+		});
+	}
 
 	if (Platform::IsMac()) {
 		const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
