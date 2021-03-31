@@ -30,6 +30,7 @@ namespace FileDialog {
 enum class ImplementationType;
 
 QString ImplementationTypeLabel(ImplementationType value);
+QString ImplementationTypeDescription(ImplementationType value);
 
 void InitLastPath();
 

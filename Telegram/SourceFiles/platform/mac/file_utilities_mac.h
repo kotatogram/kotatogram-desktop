@@ -33,7 +33,11 @@ enum class ImplementationType {
 };
 
 inline QString ImplementationTypeLabel(ImplementationType value) {
-	Unexpected("Value in Platform::FileDialog::TypeLabel.");
+	Unexpected("Value in Platform::FileDialog::ImplementationTypeLabel.");
+}
+
+inline QString ImplementationTypeDescription(ImplementationType value) {
+	return QString();
 }
 
 inline void InitLastPath() {

@@ -477,6 +477,7 @@ void SetupKotatoSystem(
 			int(cFileDialogType()),
 			int(Platform::FileDialog::ImplementationType::Count),
 			FileDialogTypeLabel,
+			Platform::FileDialog::ImplementationTypeDescription,
 			[=](int value) {
 				cSetFileDialogType(Platform::FileDialog::ImplementationType(value));
 				::Kotato::JsonSettings::Write();
