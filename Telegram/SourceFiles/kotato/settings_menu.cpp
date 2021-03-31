@@ -438,7 +438,7 @@ void SetupKotatoSystem(
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
-#ifndef TDESKTOP_DISABLE_GTK_INTEGRATION
+#ifndef DESKTOP_APP_DISABLE_GTK_INTEGRATION
 	if (Platform::IsLinux()) {
 		const auto gtkIntegrationToggled = Ui::CreateChild<rpl::event_stream<bool>>(
 			container.get());
@@ -467,7 +467,7 @@ void SetupKotatoSystem(
 				cancelled));
 		}, container->lifetime());
 	}
-#endif // !TDESKTOP_DISABLE_GTK_INTEGRATION
+#endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
 
 	if (Platform::IsMac()) {
 		const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
