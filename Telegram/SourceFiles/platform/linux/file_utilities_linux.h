@@ -27,6 +27,18 @@ inline void PostprocessDownloaded(const QString &filepath) {
 
 namespace FileDialog {
 
+enum class ImplementationType {
+	Default,
+#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+	XDP,
+#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+#ifndef DESKTOP_APP_DISABLE_GTK_INTEGRATION
+	GTK,
+#endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
+	Qt,
+	Count,
+};
+
 inline void InitLastPath() {
 	::FileDialog::internal::InitLastPathDefault();
 }

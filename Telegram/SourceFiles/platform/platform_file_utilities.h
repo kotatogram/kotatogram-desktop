@@ -27,6 +27,10 @@ void PostprocessDownloaded(const QString &filepath);
 
 namespace FileDialog {
 
+enum class ImplementationType;
+
+QString ImplementationTypeLabel(ImplementationType value);
+
 void InitLastPath();
 
 bool Get(

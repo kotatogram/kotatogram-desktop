@@ -41,6 +41,15 @@ namespace Settings {
 
 namespace {
 
+QString FileDialogTypeLabel(int value) {
+	const auto typedValue = Platform::FileDialog::ImplementationType(value);
+	switch (typedValue) {
+	case Platform::FileDialog::ImplementationType::Default:
+		return tr::ktg_file_dialog_type_default(tr::now);
+	}
+	return Platform::FileDialog::ImplementationTypeLabel(typedValue);
+}
+
 QString NetBoostLabel(int boost) {
 	switch (boost) {
 		case 0:
@@ -250,13 +259,6 @@ void SetupKotatoChats(
 		Ui::show(Box<FontsBox>());
 	});
 
-	const QMap<int, QString> userpicRoundOptions = {
-		{ 0, UserpicRoundingLabel(0) },
-		{ 1, UserpicRoundingLabel(1) },
-		{ 2, UserpicRoundingLabel(2) },
-		{ 3, UserpicRoundingLabel(3) }
-	};
-
 	AddButtonWithLabel(
 		container,
 		tr::ktg_settings_userpic_rounding(),
@@ -267,7 +269,8 @@ void SetupKotatoChats(
 			tr::ktg_settings_userpic_rounding(tr::now),
 			tr::ktg_settings_userpic_rounding_desc(tr::now),
 			cUserpicCornersType(),
-			userpicRoundOptions,
+			4,
+			UserpicRoundingLabel,
 			[=] (int value) {
 				cSetUserpicCornersType(value);
 				::Kotato::JsonSettings::Write();
@@ -389,13 +392,6 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_network());
 
-	const QMap<int, QString> netBoostOptions = {
-		{ 0, NetBoostLabel(0) },
-		{ 1, NetBoostLabel(1) },
-		{ 2, NetBoostLabel(2) },
-		{ 3, NetBoostLabel(3) }
-	};
-
 	AddButtonWithLabel(
 		container,
 		tr::ktg_settings_net_speed_boost(),
@@ -406,7 +402,8 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 			tr::ktg_net_speed_boost_title(tr::now),
 			tr::ktg_net_speed_boost_desc(tr::now),
 			cNetSpeedBoost(),
-			netBoostOptions,
+			4,
+			NetBoostLabel,
 			[=] (int value) {
 				SetNetworkBoost(value);
 				::Kotato::JsonSettings::Write();
@@ -438,7 +435,7 @@ void SetupKotatoSystem(
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
-#ifndef TDESKTOP_DISABLE_GTK_INTEGRATION
+#ifndef DESKTOP_APP_DISABLE_GTK_INTEGRATION
 	if (Platform::IsLinux()) {
 		const auto gtkIntegrationToggled = Ui::CreateChild<rpl::event_stream<bool>>(
 			container.get());
@@ -467,7 +464,24 @@ void SetupKotatoSystem(
 				cancelled));
 		}, container->lifetime());
 	}
-#endif // !TDESKTOP_DISABLE_GTK_INTEGRATION
+#endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
+
+	AddButtonWithLabel(
+		container,
+		tr::ktg_settings_file_dialog_type(),
+		rpl::single(FileDialogTypeLabel(int(cFileDialogType()))),
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			tr::ktg_settings_file_dialog_type(tr::now),
+			int(cFileDialogType()),
+			int(Platform::FileDialog::ImplementationType::Count),
+			FileDialogTypeLabel,
+			[=](int value) {
+				cSetFileDialogType(Platform::FileDialog::ImplementationType(value));
+				::Kotato::JsonSettings::Write();
+			}, false));
+	});
 
 	if (Platform::IsMac()) {
 		const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
@@ -530,15 +544,6 @@ void SetupKotatoSystem(
 		}, container->lifetime());
 	}
 
-	const QMap<int, QString> trayIconOptions = {
-		{ 0, TrayIconLabel(0) },
-		{ 1, TrayIconLabel(1) },
-		{ 2, TrayIconLabel(2) },
-		{ 3, TrayIconLabel(3) },
-		{ 4, TrayIconLabel(4) },
-		{ 5, TrayIconLabel(5) },
-	};
-
 	auto trayIconText = rpl::single(
 		rpl::empty_value()
 	) | rpl::then(
@@ -557,7 +562,8 @@ void SetupKotatoSystem(
 			tr::ktg_settings_tray_icon(tr::now),
 			tr::ktg_settings_tray_icon_desc(tr::now),
 			cCustomAppIcon(),
-			trayIconOptions,
+			6,
+			TrayIconLabel,
 			[=] (int value) {
 				cSetCustomAppIcon(value);
 				controller->session().data().notifyUnreadBadgeChanged();
@@ -574,12 +580,6 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	AddSubsectionTitle(container, tr::ktg_settings_other());
 
 	SettingsMenuCSwitch(ktg_settings_show_phone_number, ShowPhoneInDrawer);
-
-	const QMap<int, QString> chatIdOptions = {
-		{ 0, ChatIdLabel(0) },
-		{ 1, ChatIdLabel(1) },
-		{ 2, ChatIdLabel(2) },
-	};
 
 	const auto chatIdButton = container->add(
 		object_ptr<Button>(
@@ -603,7 +603,8 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 			tr::ktg_settings_chat_id(tr::now),
 			tr::ktg_settings_chat_id_desc(tr::now),
 			cShowChatId(),
-			chatIdOptions,
+			3,
+			ChatIdLabel,
 			[=] (int value) {
 				cSetShowChatId(value);
 				::Kotato::JsonSettings::Write();

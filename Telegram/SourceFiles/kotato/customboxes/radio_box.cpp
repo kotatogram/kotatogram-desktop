@@ -23,12 +23,14 @@ RadioBox::RadioBox(
 	QWidget*,
 	const QString &title,
 	int currentValue,
-	const QMap<int, QString> &options,
+	int valueCount,
+	Fn<QString(int)> labelGetter,
 	Fn<void(int)> saveCallback,
 	bool warnRestart)
 : _title(title)
 , _startValue(currentValue)
-, _options(options)
+, _valueCount(valueCount)
+, _labelGetter(labelGetter)
 , _saveCallback(std::move(saveCallback))
 , _warnRestart(warnRestart) {
 }
@@ -38,13 +40,15 @@ RadioBox::RadioBox(
 	const QString &title,
 	const QString &description,
 	int currentValue,
-	const QMap<int, QString> &options,
+	int valueCount,
+	Fn<QString(int)> labelGetter,
 	Fn<void(int)> saveCallback,
 	bool warnRestart)
 : _title(title)
 , _description(description)
 , _startValue(currentValue)
-, _options(options)
+, _valueCount(valueCount)
+, _labelGetter(labelGetter)
 , _saveCallback(std::move(saveCallback))
 , _warnRestart(warnRestart) {
 }
@@ -69,13 +73,13 @@ void RadioBox::prepare() {
 
 	_group = std::make_shared<Ui::RadiobuttonGroup>(_startValue);
 
-	for (auto i = _options.constBegin(); i != _options.constEnd(); ++i) {
+	for (auto i = 0; i != _valueCount; ++i) {
 		content->add(
 			object_ptr<Ui::Radiobutton>(
 				this,
 				_group,
-				i.key(),
-				i.value(),
+				i,
+				_labelGetter(i),
 				st::autolockButton),
 			style::margins(
 				st::boxPadding.left(),

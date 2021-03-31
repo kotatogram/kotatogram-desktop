@@ -642,11 +642,12 @@ void GtkFileDialog::setNameFilters(const QStringList &filters) {
 } // namespace
 
 bool Use(Type type) {
-	if (!Supported()) {
+	if (!Supported()
+		|| (cFileDialogType() > ImplementationType::GTK)) {
 		return false;
 	}
 
-	return qEnvironmentVariableIsSet("TDESKTOP_USE_GTK_FILE_DIALOG")
+	return (cFileDialogType() == ImplementationType::GTK)
 		|| DesktopEnvironment::IsGtkBased();
 }
 

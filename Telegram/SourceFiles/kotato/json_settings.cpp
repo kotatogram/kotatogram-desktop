@@ -370,6 +370,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
 	settings.insert(qsl("gtk_integration"), cGtkIntegration());
+	settings.insert(qsl("file_dialog_type"), int(cFileDialogType()));
 	settings.insert(qsl("disable_tray_counter"), cDisableTrayCounter());
 	settings.insert(qsl("use_telegram_panel_icon"), cUseTelegramPanelIcon());
 	settings.insert(qsl("custom_app_icon"), cCustomAppIcon());
@@ -614,6 +615,14 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "gtk_integration", [&](auto v) {
 		cSetGtkIntegration(v);
+	});
+
+	ReadIntOption(settings, "file_dialog_type", [&](auto v) {
+		const auto typedValue = Platform::FileDialog::ImplementationType(v);
+		if (typedValue >= Platform::FileDialog::ImplementationType::Default
+			&& typedValue < Platform::FileDialog::ImplementationType::Count) {
+			cSetFileDialogType(typedValue);
+		}
 	});
 
 	ReadBoolOption(settings, "disable_tray_counter", [&](auto v) {

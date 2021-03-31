@@ -642,17 +642,18 @@ rpl::producer<> XDPFileDialog::rejected() {
 } // namespace
 
 bool Use(Type type) {
-	static const auto ShouldUse = [&] {
-		const auto envVar = qEnvironmentVariableIsSet("TDESKTOP_USE_PORTAL");
+	const auto shouldUse = [&] {
+		const auto setting = cFileDialogType() <= ImplementationType::XDP;
+		const auto forceSetting = cFileDialogType() == ImplementationType::XDP;
 		const auto confined = InFlatpak() || InSnap();
 		const auto notGtkBased = !DesktopEnvironment::IsGtkBased();
 
-		return confined || notGtkBased || envVar;
+		return setting && (confined || notGtkBased || forceSetting);
 	}();
 
 	static const auto Version = FileChooserPortalVersion();
 
-	return ShouldUse
+	return shouldUse
 		&& Version.has_value()
 		&& (type != Type::ReadFolder || *Version >= 3);
 }
