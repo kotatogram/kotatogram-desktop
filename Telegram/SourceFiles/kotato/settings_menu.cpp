@@ -50,6 +50,11 @@ QString FileDialogTypeLabel(int value) {
 	return Platform::FileDialog::ImplementationTypeLabel(typedValue);
 }
 
+QString FileDialogTypeDescription(int value) {
+	const auto typedValue = Platform::FileDialog::ImplementationType(value);
+	return Platform::FileDialog::ImplementationTypeDescription(typedValue);
+}
+
 QString NetBoostLabel(int boost) {
 	switch (boost) {
 		case 0:
@@ -478,7 +483,7 @@ void SetupKotatoSystem(
 				int(cFileDialogType()),
 				int(Platform::FileDialog::ImplementationType::Count),
 				FileDialogTypeLabel,
-				Platform::FileDialog::ImplementationTypeDescription,
+				FileDialogTypeDescription,
 				[=](int value) {
 					cSetFileDialogType(Platform::FileDialog::ImplementationType(value));
 					::Kotato::JsonSettings::Write();
