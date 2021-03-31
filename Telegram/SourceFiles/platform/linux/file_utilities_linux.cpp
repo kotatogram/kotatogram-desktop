@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/linux/linux_gtk_integration.h"
 #include "platform/linux/specific_linux.h"
 #include "storage/localstorage.h"
+#include "lang/lang_keys.h"
 
 #ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 #include "platform/linux/linux_xdp_file_dialog.h"
