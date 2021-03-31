@@ -234,6 +234,7 @@ private:
 - (void) darkModeChanged:(NSNotification *)aNotification {
 	Core::Sandbox::Instance().customEnterFromEventLoop([&] {
 		Core::App().settings().setSystemDarkMode(Platform::IsDarkMode());
+		Core::App().domain().notifyUnreadBadgeChanged();
 	});
 }
 
@@ -692,24 +693,19 @@ void MainWindow::updateIconCounters() {
 
 QIcon MainWindow::generateIconForTray(int counter, bool muted) const {
 	auto result = QIcon();
-	auto lightMode = TrayIconBack(false);
-	auto darkMode = TrayIconBack(true);
-	auto lightModeActive = TrayIconBack(false, true);
-	auto darkModeActive = TrayIconBack(true, true);
-	lightModeActive.detach();
-	darkModeActive.detach();
+	const auto dm = Platform::IsDarkMenuBar();
+	auto img = TrayIconBack(dm);
+	auto imgsel = TrayIconBack(dm, true);
+	img.detach();
+	imgsel.detach();
 	const auto size = 22 * cIntRetinaFactor();
 	const auto &bg = (muted ? st::trayCounterBgMute : st::trayCounterBg);
 	if (!cDisableTrayCounter()) {
-		_placeCounter(lightMode, size, counter, bg, st::trayCounterFg);
-		_placeCounter(darkMode, size, counter, bg, muted ? st::trayCounterFgMacInvert : st::trayCounterFg);
-		_placeCounter(lightModeActive, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
-		_placeCounter(darkModeActive, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
+		_placeCounter(img, size, counter, bg, (dm && muted) ? st::trayCounterFgMacInvert : st::trayCounterFg);
+		_placeCounter(imgsel, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
 	}
-	result.addPixmap(App::pixmapFromImageInPlace(std::move(lightMode)), QIcon::Normal, QIcon::Off);
-	result.addPixmap(App::pixmapFromImageInPlace(std::move(darkMode)), QIcon::Normal, QIcon::On);
-	result.addPixmap(App::pixmapFromImageInPlace(std::move(lightModeActive)), QIcon::Active, QIcon::Off);
-	result.addPixmap(App::pixmapFromImageInPlace(std::move(darkModeActive)), QIcon::Active, QIcon::On);
+	result.addPixmap(App::pixmapFromImageInPlace(std::move(img)), QIcon::Normal);
+	result.addPixmap(App::pixmapFromImageInPlace(std::move(imgsel)), QIcon::Active);
 	return result;
 }
 
