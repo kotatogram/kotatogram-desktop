@@ -41,6 +41,15 @@ namespace Settings {
 
 namespace {
 
+QString FileDialogTypeLabel(int value) {
+	const auto typedValue = Platform::FileDialog::ImplementationType(value);
+	switch (typedValue) {
+	case Platform::FileDialog::ImplementationType::Default:
+		return tr::ktg_file_dialog_type_default(tr::now);
+	}
+	return Platform::FileDialog::ImplementationTypeLabel(typedValue);
+}
+
 QString NetBoostLabel(int boost) {
 	switch (boost) {
 		case 0:
@@ -456,6 +465,23 @@ void SetupKotatoSystem(
 		}, container->lifetime());
 	}
 #endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
+
+	AddButtonWithLabel(
+		container,
+		tr::ktg_settings_file_dialog_type(),
+		rpl::single(FileDialogTypeLabel(int(cFileDialogType()))),
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			tr::ktg_settings_file_dialog_type(tr::now),
+			int(cFileDialogType()),
+			int(Platform::FileDialog::ImplementationType::Count),
+			FileDialogTypeLabel,
+			[=](int value) {
+				cSetFileDialogType(Platform::FileDialog::ImplementationType(value));
+				::Kotato::JsonSettings::Write();
+			}, false));
+	});
 
 	if (Platform::IsMac()) {
 		const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(

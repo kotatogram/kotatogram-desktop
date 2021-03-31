@@ -148,6 +148,7 @@ rpl::producer<int> RecentStickersLimitChanges() {
 int gUserpicCornersType = 3;
 bool gShowTopBarUserpic = false;
 bool gGtkIntegration = false;
+Platform::FileDialog::ImplementationType gFileDialogType = Platform::FileDialog::ImplementationType::Default;
 bool gDisableTrayCounter = Platform::IsLinux();
 bool gUseTelegramPanelIcon = false;
 int gCustomAppIcon = 0;

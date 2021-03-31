@@ -27,6 +27,15 @@ inline void PostprocessDownloaded(const QString &filepath) {
 
 namespace FileDialog {
 
+enum class ImplementationType {
+	Default,
+	Count,
+};
+
+inline QString ImplementationTypeLabel(ImplementationType value) {
+	Unexpected("Value in Platform::FileDialog::TypeLabel.");
+}
+
 inline void InitLastPath() {
 	::FileDialog::internal::InitLastPathDefault();
 }

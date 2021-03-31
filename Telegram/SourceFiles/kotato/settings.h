@@ -7,6 +7,8 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #pragma once
 
+#include "platform/platform_file_utilities.h"
+
 #define DeclareReadSetting(Type, Name) extern Type g##Name; \
 inline const Type &c##Name() { \
 	return g##Name; \
@@ -102,6 +104,7 @@ void SetRecentStickersLimit(int limit);
 DeclareSetting(int, UserpicCornersType);
 DeclareSetting(bool, ShowTopBarUserpic);
 DeclareSetting(bool, GtkIntegration);
+DeclareSetting(Platform::FileDialog::ImplementationType, FileDialogType);
 DeclareSetting(bool, DisableTrayCounter);
 DeclareSetting(bool, UseTelegramPanelIcon);
 DeclareSetting(int, CustomAppIcon);

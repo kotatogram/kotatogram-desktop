@@ -12,6 +12,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Platform {
 namespace File {
 
+enum class ImplementationType {
+	Default,
+	Count,
+};
+
+inline QString ImplementationTypeLabel(ImplementationType value) {
+	Unexpected("Value in Platform::FileDialog::TypeLabel.");
+}
+
 inline QString UrlToLocal(const QUrl &url) {
 	return ::File::internal::UrlToLocalDefault(url);
 }
