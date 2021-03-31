@@ -1350,7 +1350,9 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 				tr::lng_box_remove(tr::now),
 				crl::guard(this, [=] {
 					if (weak) {
-						weak->restrictUser(user, currentRights, ChannelData::EmptyRestrictedRights(user));
+						weak->restrictUser(user,
+							currentRights,
+							ChannelData::KickedRestrictedRights(user));
 					}
 					if (*weakBox) {
 						(*weakBox)->closeBox();
