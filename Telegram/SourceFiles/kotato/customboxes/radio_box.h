@@ -19,8 +19,8 @@ namespace Kotato {
 
 class RadioBox : public Ui::BoxContent {
 public:
-	RadioBox(QWidget* parent, const QString &title, int currentValue, const QMap<int, QString> &options, Fn<void(int)> saveCallback, bool warnRestart = false);
-	RadioBox(QWidget* parent, const QString &title, const QString &description, int currentValue, const QMap<int, QString> &options, Fn<void(int)> saveCallback, bool warnRestart = false);
+	RadioBox(QWidget* parent, const QString &title, int currentValue, int valueCount, Fn<QString(int)> labelGetter, Fn<void(int)> saveCallback, bool warnRestart = false);
+	RadioBox(QWidget* parent, const QString &title, const QString &description, int currentValue, int valueCount, Fn<QString(int)> labelGetter, Fn<void(int)> saveCallback, bool warnRestart = false);
 
 protected:
 	void prepare() override;
@@ -31,7 +31,8 @@ private:
 	QString _title;
 	QString _description;
 	int _startValue;
-	QMap<int, QString> _options;
+	int _valueCount;
+	Fn<QString(int)> _labelGetter;
 	Fn<void(int)> _saveCallback;
 	bool _warnRestart = false;
 	std::shared_ptr<Ui::RadiobuttonGroup> _group;

@@ -250,13 +250,6 @@ void SetupKotatoChats(
 		Ui::show(Box<FontsBox>());
 	});
 
-	const QMap<int, QString> userpicRoundOptions = {
-		{ 0, UserpicRoundingLabel(0) },
-		{ 1, UserpicRoundingLabel(1) },
-		{ 2, UserpicRoundingLabel(2) },
-		{ 3, UserpicRoundingLabel(3) }
-	};
-
 	AddButtonWithLabel(
 		container,
 		tr::ktg_settings_userpic_rounding(),
@@ -267,7 +260,8 @@ void SetupKotatoChats(
 			tr::ktg_settings_userpic_rounding(tr::now),
 			tr::ktg_settings_userpic_rounding_desc(tr::now),
 			cUserpicCornersType(),
-			userpicRoundOptions,
+			4,
+			UserpicRoundingLabel,
 			[=] (int value) {
 				cSetUserpicCornersType(value);
 				::Kotato::JsonSettings::Write();
@@ -389,13 +383,6 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_network());
 
-	const QMap<int, QString> netBoostOptions = {
-		{ 0, NetBoostLabel(0) },
-		{ 1, NetBoostLabel(1) },
-		{ 2, NetBoostLabel(2) },
-		{ 3, NetBoostLabel(3) }
-	};
-
 	AddButtonWithLabel(
 		container,
 		tr::ktg_settings_net_speed_boost(),
@@ -406,7 +393,8 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 			tr::ktg_net_speed_boost_title(tr::now),
 			tr::ktg_net_speed_boost_desc(tr::now),
 			cNetSpeedBoost(),
-			netBoostOptions,
+			4,
+			NetBoostLabel,
 			[=] (int value) {
 				SetNetworkBoost(value);
 				::Kotato::JsonSettings::Write();
@@ -530,15 +518,6 @@ void SetupKotatoSystem(
 		}, container->lifetime());
 	}
 
-	const QMap<int, QString> trayIconOptions = {
-		{ 0, TrayIconLabel(0) },
-		{ 1, TrayIconLabel(1) },
-		{ 2, TrayIconLabel(2) },
-		{ 3, TrayIconLabel(3) },
-		{ 4, TrayIconLabel(4) },
-		{ 5, TrayIconLabel(5) },
-	};
-
 	auto trayIconText = rpl::single(
 		rpl::empty_value()
 	) | rpl::then(
@@ -557,7 +536,8 @@ void SetupKotatoSystem(
 			tr::ktg_settings_tray_icon(tr::now),
 			tr::ktg_settings_tray_icon_desc(tr::now),
 			cCustomAppIcon(),
-			trayIconOptions,
+			6,
+			TrayIconLabel,
 			[=] (int value) {
 				cSetCustomAppIcon(value);
 				controller->session().data().notifyUnreadBadgeChanged();
@@ -574,12 +554,6 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	AddSubsectionTitle(container, tr::ktg_settings_other());
 
 	SettingsMenuCSwitch(ktg_settings_show_phone_number, ShowPhoneInDrawer);
-
-	const QMap<int, QString> chatIdOptions = {
-		{ 0, ChatIdLabel(0) },
-		{ 1, ChatIdLabel(1) },
-		{ 2, ChatIdLabel(2) },
-	};
 
 	const auto chatIdButton = container->add(
 		object_ptr<Button>(
@@ -603,7 +577,8 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 			tr::ktg_settings_chat_id(tr::now),
 			tr::ktg_settings_chat_id_desc(tr::now),
 			cShowChatId(),
-			chatIdOptions,
+			3,
+			ChatIdLabel,
 			[=] (int value) {
 				cSetShowChatId(value);
 				::Kotato::JsonSettings::Write();
