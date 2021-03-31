@@ -11,13 +11,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/linux/base_linux_glibmm_helper.h"
 #include "media/audio/media_audio.h"
 #include "media/player/media_player_instance.h"
+#include "data/data_file_origin.h"
 #include "data/data_document.h"
+#include "data/data_document_media.h"
 #include "core/sandbox.h"
 #include "core/application.h"
 #include "core/core_settings.h"
+#include "main/main_domain.h"
+#include "main/main_account.h"
+#include "main/main_session.h"
 #include "mainwindow.h"
 #include "app.h"
 
+#include <QtCore/QBuffer>
 #include <QtGui/QGuiApplication>
 
 #include <glibmm.h>
@@ -36,61 +42,63 @@ constexpr auto kPropertiesInterface = "org.freedesktop.DBus.Properties"_cs;
 constexpr auto kSongType = AudioMsgId::Type::Song;
 
 constexpr auto kIntrospectionXML = R"INTROSPECTION(<node>
-		<interface name='org.mpris.MediaPlayer2'>
-			<method name='Raise'/>
-			<method name='Quit'/>
-			<property name='CanQuit' type='b' access='read'/>
-			<property name='CanRaise' type='b' access='read'/>
-			<property name='HasTrackList' type='b' access='read'/>
-			<property name='Identity' type='s' access='read'/>
-			<property name='DesktopEntry' type='s' access='read'/>
-			<property name='SupportedUriSchemes' type='as' access='read'/>
-			<property name='SupportedMimeTypes' type='as' access='read'/>
-			<property name='Fullscreen' type='b' access='readwrite'/>
-			<property name='CanSetFullscreen' type='b' access='read'/>
-		</interface>
-	</node>)INTROSPECTION"_cs;
+	<interface name='org.mpris.MediaPlayer2'>
+		<method name='Raise'/>
+		<method name='Quit'/>
+		<property name='CanQuit' type='b' access='read'/>
+		<property name='CanRaise' type='b' access='read'/>
+		<property name='HasTrackList' type='b' access='read'/>
+		<property name='Identity' type='s' access='read'/>
+		<property name='DesktopEntry' type='s' access='read'/>
+		<property name='SupportedUriSchemes' type='as' access='read'/>
+		<property name='SupportedMimeTypes' type='as' access='read'/>
+		<property name='Fullscreen' type='b' access='readwrite'/>
+		<property name='CanSetFullscreen' type='b' access='read'/>
+	</interface>
+</node>)INTROSPECTION"_cs;
 
 constexpr auto kPlayerIntrospectionXML = R"INTROSPECTION(<node>
-		<interface name='org.mpris.MediaPlayer2.Player'>
-			<method name='Next'/>
-			<method name='Previous'/>
-			<method name='Pause'/>
-			<method name='PlayPause'/>
-			<method name='Stop'/>
-			<method name='Play'/>
-			<method name='Seek'>
-				<arg direction='in' name='Offset' type='x'/>
-			</method>
-			<method name='SetPosition'>
-				<arg direction='in' name='TrackId' type='o'/>
-				<arg direction='in' name='Position' type='x'/>
-			</method>
-			<method name='OpenUri'>
-				<arg direction='in' name='Uri' type='s'/>
-			</method>
-			<signal name='Seeked'>
-				<arg name='Position' type='x'/>
-			</signal>
-			<property name='PlaybackStatus' type='s' access='read'/>
-			<property name='Rate' type='d' access='readwrite'/>
-			<property name='Metadata' type='a{sv}' access='read'>
-				<annotation name="org.qtproject.QtDBus.QtTypeName" value="QVariantMap"/>
-			</property>
-			<property name='Volume' type='d' access='readwrite'/>
-			<property name='Position' type='x' access='read'/>
-			<property name='MinimumRate' type='d' access='read'/>
-			<property name='MaximumRate' type='d' access='read'/>
-			<property name='CanGoNext' type='b' access='read'/>
-			<property name='CanGoPrevious' type='b' access='read'/>
-			<property name='CanPlay' type='b' access='read'/>
-			<property name='CanPause' type='b' access='read'/>
-			<property name='CanSeek' type='b' access='read'/>
-			<property name='CanControl' type='b' access='read'/>
-		</interface>
-	</node>)INTROSPECTION"_cs;
+	<interface name='org.mpris.MediaPlayer2.Player'>
+		<method name='Next'/>
+		<method name='Previous'/>
+		<method name='Pause'/>
+		<method name='PlayPause'/>
+		<method name='Stop'/>
+		<method name='Play'/>
+		<method name='Seek'>
+			<arg direction='in' name='Offset' type='x'/>
+		</method>
+		<method name='SetPosition'>
+			<arg direction='in' name='TrackId' type='o'/>
+			<arg direction='in' name='Position' type='x'/>
+		</method>
+		<method name='OpenUri'>
+			<arg direction='in' name='Uri' type='s'/>
+		</method>
+		<signal name='Seeked'>
+			<arg name='Position' type='x'/>
+		</signal>
+		<property name='PlaybackStatus' type='s' access='read'/>
+		<property name='Rate' type='d' access='readwrite'/>
+		<property name='Metadata' type='a{sv}' access='read'>
+			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QVariantMap"/>
+		</property>
+		<property name='Volume' type='d' access='readwrite'/>
+		<property name='Position' type='x' access='read'/>
+		<property name='MinimumRate' type='d' access='read'/>
+		<property name='MaximumRate' type='d' access='read'/>
+		<property name='CanGoNext' type='b' access='read'/>
+		<property name='CanGoPrevious' type='b' access='read'/>
+		<property name='CanPlay' type='b' access='read'/>
+		<property name='CanPause' type='b' access='read'/>
+		<property name='CanSeek' type='b' access='read'/>
+		<property name='CanControl' type='b' access='read'/>
+	</interface>
+</node>)INTROSPECTION"_cs;
 
-auto CreateMetadata(const Media::Player::TrackState &state) {
+auto CreateMetadata(
+		const Media::Player::TrackState &state,
+		Data::DocumentMedia *trackView) {
 	std::map<Glib::ustring, Glib::VariantBase> result;
 
 	if (!Media::Player::IsStoppedOrStopping(state.state)) {
@@ -117,6 +125,25 @@ auto CreateMetadata(const Media::Player::TrackState &state) {
 						Glib::ustring
 					>::create(songData->title.toStdString());
 				}
+			}
+		}
+
+		if (trackView) {
+			trackView->thumbnailWanted(Data::FileOrigin());
+			if (trackView->thumbnail()) {
+				QByteArray thumbnailData;
+				QBuffer thumbnailBuffer(&thumbnailData);
+				trackView->thumbnail()->original().save(
+					&thumbnailBuffer,
+					"JPG",
+					87);
+
+				result["mpris:artUrl"] = Glib::Variant<
+					Glib::ustring
+				>::create("data:image/jpeg;base64,"
+					+ thumbnailData
+						.toBase64()
+						.toStdString());
 			}
 		}
 	}
@@ -237,8 +264,16 @@ void HandleGetProperty(
 			const auto state = Media::Player::instance()->getState(
 				kSongType);
 
+			const auto trackView = [&]() -> std::shared_ptr<Data::DocumentMedia> {
+				const auto audioData = state.id.audio();
+				if (audioData && audioData->isSongWithCover()) {
+					return audioData->activeMediaView();
+				}
+				return nullptr;
+			}();
+
 			property = base::Platform::MakeGlibVariant(
-				CreateMetadata(state));
+				CreateMetadata(state, trackView.get()));
 		} else if (property_name == "MinimumRate") {
 			property = Glib::Variant<float64>::create(1.0);
 		} else if (property_name == "PlaybackStatus") {
@@ -349,6 +384,7 @@ public:
 	std::map<Glib::ustring, Glib::VariantBase> metadata;
 	Glib::ustring playbackStatus;
 	gint64 position = 0;
+	std::shared_ptr<Data::DocumentMedia> trackView;
 
 	rpl::lifetime lifetime;
 };
@@ -359,7 +395,17 @@ void MPRISSupport::Private::updateTrackState(
 		return;
 	}
 
-	const auto currentMetadata = CreateMetadata(state);
+	const auto audioData = state.id.audio();
+	if (audioData && audioData->isSongWithCover()) {
+		const auto view = audioData->createMediaView();
+		if (!trackView || trackView->owner() != view->owner()) {
+			trackView = view;
+		}
+	} else {
+		trackView = nullptr;
+	}
+
+	const auto currentMetadata = CreateMetadata(state, trackView.get());
 	const auto currentPosition = state.position * 1000;
 	const auto currentPlaybackStatus = PlaybackStatus(state.state);
 
@@ -422,6 +468,12 @@ MPRISSupport::MPRISSupport()
 
 		_private->updateTrackState(
 			Media::Player::instance()->getState(kSongType));
+
+		Core::App().domain().active().session().downloaderTaskFinished(
+		) | rpl::start_with_next([=] {
+			_private->updateTrackState(
+				Media::Player::instance()->getState(kSongType));
+		}, _private->lifetime);
 
 		Media::Player::instance()->updatedNotifier(
 		) | rpl::start_with_next([=](
