@@ -35,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/add_contact_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/peers/edit_peer_info_box.h"
+#include "boxes/peers/edit_peer_invite_links.h"
 #include "boxes/peers/edit_participants_box.h"
 #include "lang/lang_keys.h"
 #include "info/info_controller.h"
@@ -196,6 +197,7 @@ public:
 private:
 	void addPeerPermissions(not_null<PeerData*> peer);
 	void addPeerAdmins(not_null<PeerData*> peer);
+	void addPeerInviteLinks(not_null<PeerData*> peer);
 	void addChannelBlockedUsers(not_null<ChannelData*> channel);
 	void addChannelRecentActions(not_null<ChannelData*> channel);
 
@@ -927,6 +929,32 @@ void ManageFiller::addPeerAdmins(
 	}
 }
 
+void ManageFiller::addPeerInviteLinks(
+		not_null<PeerData*> peer) {
+	if (peer->isUser()) return;
+
+	const auto canHaveInviteLink = [&] {
+		return peer->isChannel()
+			? peer->asChannel()->canHaveInviteLink()
+			: peer->asChat()->canHaveInviteLink();
+	}();
+	if (canHaveInviteLink) {
+		const auto controller = _controller;
+		auto button = AddActionButton(
+			_wrap,
+			tr::lng_manage_peer_invite_links(),
+			rpl::single(true),
+			[=] {
+				Ui::show(Box(ManageInviteLinksBox, peer, peer->session().user(), 0, 0),
+					Ui::LayerOption::KeepOther);
+			});
+		object_ptr<FloatingIcon>(
+			button,
+			st::infoIconInviteLinks,
+			st::infoSharedMediaButtonIconPosition);
+	}
+}
+
 void ManageFiller::addChannelBlockedUsers(
 		not_null<ChannelData*> channel) {
 	if (channel->hasAdminRights() || channel->amCreator()) {
@@ -970,12 +998,14 @@ void ManageFiller::fillChatActions(
 		not_null<ChatData*> chat) {
 	addPeerPermissions(chat);
 	addPeerAdmins(chat);
+	addPeerInviteLinks(chat);
 }
 
 void ManageFiller::fillChannelActions(
 		not_null<ChannelData*> channel) {
 	addPeerPermissions(channel);
 	addPeerAdmins(channel);
+	addPeerInviteLinks(channel);
 	addChannelBlockedUsers(channel);
 	addChannelRecentActions(channel);
 }
