@@ -3820,6 +3820,7 @@ void ApiWrap::forwardMessagesUnquoted(
 			const auto newFrom = item->history()->peer;
 			const auto newGroupId = item->groupId();
 			return forwardFrom != newFrom
+					|| !currentGroupId
 					|| currentGroupId != newGroupId
 					|| lastGroupCheck;
 		} else if (cForwardGrouped()) {
