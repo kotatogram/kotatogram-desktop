@@ -1225,7 +1225,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	*weak = Ui::show(
 		Box<ShareBox>(ShareBox::Descriptor{
 			.session = session,
-			.copyCallback = std::move(copyCallback),
+			.copyCallback = std::move(copyLinkCallback),
 			.submitCallback = std::move(submitCallback),
 			.filterCallback = std::move(filterCallback),
 			.goToChatCallback = std::move(goToChatCallback),
