@@ -2556,7 +2556,9 @@ QRect Message::countGeometry() const {
 			contentWidth = mediaWidth;
 		}
 	}
-	if (contentWidth < availableWidth && !Core::App().settings().chatWide()) {
+	if (contentWidth < availableWidth
+		&& (!Core::App().settings().chatWide()
+			|| (commentsRoot && AdaptiveBubbles()))) {
 		if (outbg) {
 			contentLeft += availableWidth - contentWidth;
 		} else if (commentsRoot) {
