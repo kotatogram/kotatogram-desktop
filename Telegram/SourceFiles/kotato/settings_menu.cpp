@@ -472,20 +472,28 @@ void SetupKotatoSystem(
 #endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
 
 	if (Platform::IsLinux()) {
+		auto fileDialogTypeText = rpl::single(
+			rpl::empty_value()
+		) | rpl::then(
+			FileDialogTypeChanges()
+		) | rpl::map([] {
+			return FileDialogTypeLabel(int(cFileDialogType()));
+		});
+
 		AddButtonWithLabel(
 			container,
 			tr::ktg_settings_file_dialog_type(),
-			rpl::single(FileDialogTypeLabel(int(cFileDialogType()))),
+			fileDialogTypeText,
 			st::settingsButton
 		)->addClickHandler([=] {
 			Ui::show(Box<::Kotato::RadioBox>(
 				tr::ktg_settings_file_dialog_type(tr::now),
-				int(cFileDialogType()),
+				int(FileDialogType()),
 				int(Platform::FileDialog::ImplementationType::Count),
 				FileDialogTypeLabel,
 				FileDialogTypeDescription,
 				[=](int value) {
-					cSetFileDialogType(Platform::FileDialog::ImplementationType(value));
+					SetFileDialogType(Platform::FileDialog::ImplementationType(value));
 					::Kotato::JsonSettings::Write();
 				}, false));
 		});

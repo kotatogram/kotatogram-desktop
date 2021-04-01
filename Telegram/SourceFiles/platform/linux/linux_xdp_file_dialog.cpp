@@ -643,8 +643,8 @@ rpl::producer<> XDPFileDialog::rejected() {
 
 bool Use(Type type) {
 	const auto shouldUse = [&] {
-		const auto setting = cFileDialogType() <= ImplementationType::XDP;
-		const auto forceSetting = cFileDialogType() == ImplementationType::XDP;
+		const auto setting = FileDialogType() <= ImplementationType::XDP;
+		const auto forceSetting = FileDialogType() == ImplementationType::XDP;
 		const auto confined = InFlatpak() || InSnap();
 		const auto notGtkBased = !DesktopEnvironment::IsGtkBased();
 

@@ -104,7 +104,11 @@ void SetRecentStickersLimit(int limit);
 DeclareSetting(int, UserpicCornersType);
 DeclareSetting(bool, ShowTopBarUserpic);
 DeclareSetting(bool, GtkIntegration);
-DeclareSetting(Platform::FileDialog::ImplementationType, FileDialogType);
+
+void SetFileDialogType(Platform::FileDialog::ImplementationType t);
+[[nodiscard]] Platform::FileDialog::ImplementationType FileDialogType();
+[[nodiscard]] rpl::producer<Platform::FileDialog::ImplementationType> FileDialogTypeChanges();
+
 DeclareSetting(bool, DisableTrayCounter);
 DeclareSetting(bool, UseTelegramPanelIcon);
 DeclareSetting(int, CustomAppIcon);

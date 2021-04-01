@@ -643,11 +643,11 @@ void GtkFileDialog::setNameFilters(const QStringList &filters) {
 
 bool Use(Type type) {
 	if (!Supported()
-		|| (cFileDialogType() > ImplementationType::GTK)) {
+		|| (FileDialogType() > ImplementationType::GTK)) {
 		return false;
 	}
 
-	return (cFileDialogType() == ImplementationType::GTK)
+	return (FileDialogType() == ImplementationType::GTK)
 		|| DesktopEnvironment::IsGtkBased();
 }
 
