@@ -473,11 +473,11 @@ void SetupKotatoSystem(
 
 	if (Platform::IsLinux()) {
 		auto fileDialogTypeText = rpl::single(
-			rpl::empty_value()
+			FileDialogType()
 		) | rpl::then(
 			FileDialogTypeChanges()
 		) | rpl::map([] {
-			return FileDialogTypeLabel(int(cFileDialogType()));
+			return FileDialogTypeLabel(int(FileDialogType()));
 		});
 
 		AddButtonWithLabel(
