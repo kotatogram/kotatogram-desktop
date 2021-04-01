@@ -440,6 +440,33 @@ void SetupKotatoSystem(
 	AddSkip(container);
 	AddSubsectionTitle(container, tr::ktg_settings_system());
 
+	const auto qtScaleToggled = Ui::CreateChild<rpl::event_stream<bool>>(
+		container.get());
+	AddButton(
+		container,
+		tr::ktg_settings_qt_scale(),
+		st::settingsButton
+	)->toggleOn(
+		qtScaleToggled->events_starting_with_copy(cQtScale())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cQtScale());
+	}) | rpl::start_with_next([=](bool enabled) {
+		const auto confirmed = [=] {
+			cSetQtScale(enabled);
+			::Kotato::JsonSettings::Write();
+			App::restart();
+		};
+		const auto cancelled = [=] {
+			qtScaleToggled->fire(cQtScale() == true);
+		};
+		Ui::show(Box<ConfirmBox>(
+			tr::lng_settings_need_restart(tr::now),
+			tr::lng_settings_restart_now(tr::now),
+			confirmed,
+			cancelled));
+	}, container->lifetime());
+
 #ifndef DESKTOP_APP_DISABLE_GTK_INTEGRATION
 	if (Platform::IsLinux()) {
 		const auto gtkIntegrationToggled = Ui::CreateChild<rpl::event_stream<bool>>(

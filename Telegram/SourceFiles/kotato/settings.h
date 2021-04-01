@@ -103,6 +103,8 @@ void SetRecentStickersLimit(int limit);
 
 DeclareSetting(int, UserpicCornersType);
 DeclareSetting(bool, ShowTopBarUserpic);
+
+DeclareSetting(bool, QtScale);
 DeclareSetting(bool, GtkIntegration);
 
 void SetFileDialogType(Platform::FileDialog::ImplementationType t);

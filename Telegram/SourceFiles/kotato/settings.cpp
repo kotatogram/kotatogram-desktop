@@ -147,6 +147,8 @@ rpl::producer<int> RecentStickersLimitChanges() {
 
 int gUserpicCornersType = 3;
 bool gShowTopBarUserpic = false;
+
+bool gQtScale = Platform::IsLinux();
 bool gGtkIntegration = false;
 
 rpl::variable<Platform::FileDialog::ImplementationType> gFileDialogType = Platform::FileDialog::ImplementationType::Default;

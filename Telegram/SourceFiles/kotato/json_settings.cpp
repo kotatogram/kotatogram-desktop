@@ -369,6 +369,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
 	settings.insert(qsl("always_show_top_userpic"), cShowTopBarUserpic());
+	settings.insert(qsl("qt_scale"), cQtScale());
 	settings.insert(qsl("gtk_integration"), cGtkIntegration());
 	settings.insert(qsl("file_dialog_type"), int(FileDialogType()));
 	settings.insert(qsl("disable_tray_counter"), cDisableTrayCounter());
@@ -611,6 +612,10 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "always_show_top_userpic", [&](auto v) {
 		cSetShowTopBarUserpic(v);
+	});
+
+	ReadBoolOption(settings, "qt_scale", [&](auto v) {
+		cSetQtScale(v);
 	});
 
 	ReadBoolOption(settings, "gtk_integration", [&](auto v) {
