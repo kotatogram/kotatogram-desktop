@@ -179,8 +179,8 @@ QString ImplementationTypeDescription(ImplementationType value) {
 #else // DESKTOP_APP_DISABLE_GTK_INTEGRATION
 	case ImplementationType::GTK:
 		return GtkIntegration::Instance()
-			? tr::ktg_file_dialog_disabled_by_option(tr::now)
-			: QString();
+			? QString()
+			: tr::ktg_file_dialog_disabled_by_option(tr::now);
 #endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
 	}
 	return QString();
