@@ -200,7 +200,7 @@ void Sandbox::setupScreenScale() {
 	}
 
 	const auto ratio = devicePixelRatio();
-	if (ratio > 1.) {
+	if (ratio > 1. || cQtScale()) {
 		if (!Platform::IsMac() || (ratio != 2.)) {
 			LOG(("Found non-trivial Device Pixel Ratio: %1").arg(ratio));
 			LOG(("Environmental variables: QT_DEVICE_PIXEL_RATIO='%1'").arg(qEnvironmentVariable("QT_DEVICE_PIXEL_RATIO")));
@@ -209,7 +209,7 @@ void Sandbox::setupScreenScale() {
 			LOG(("Environmental variables: QT_SCREEN_SCALE_FACTORS='%1'").arg(qEnvironmentVariable("QT_SCREEN_SCALE_FACTORS")));
 		}
 		style::SetDevicePixelRatio(int(ratio));
-		if (Platform::IsMac() && ratio == 2.) {
+		if (Platform::IsMac() && ratio == 2. && !cQtScale()) {
 			cSetScreenScale(110); // 110% for Retina screens by default.
 		} else {
 			cSetScreenScale(style::kScaleDefault);

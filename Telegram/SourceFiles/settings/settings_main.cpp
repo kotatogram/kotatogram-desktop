@@ -173,7 +173,7 @@ void SetupSections(
 }
 
 bool HasInterfaceScale() {
-	return true;
+	return !cQtScale();
 }
 
 void SetupInterfaceScale(

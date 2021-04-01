@@ -206,7 +206,10 @@ void Application::run() {
 	startLocalStorage();
 	Lang::GetInstance().fillDefaultJson();
 	Lang::GetInstance().fillFromJson();
-	ValidateScale();
+
+	if (!cQtScale()) {
+		ValidateScale();
+	}
 
 	if (Local::oldSettingsVersion() < AppVersion) {
 		psNewVersion();

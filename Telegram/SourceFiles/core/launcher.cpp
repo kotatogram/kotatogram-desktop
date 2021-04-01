@@ -300,7 +300,11 @@ void Launcher::init() {
 	QApplication::setApplicationName(qsl("KotatogramDesktop"));
 
 #ifndef OS_MAC_OLD
-	QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, true);
+	if (cQtScale()) {
+		QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
+	} else {
+		QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, true);
+	}
 #endif // OS_MAC_OLD
 
 	// fallback session management is useless for tdesktop since it doesn't have
@@ -346,7 +350,10 @@ int Launcher::exec() {
 
 	// Must be started before Sandbox is created.
 	Platform::start();
-	Ui::DisableCustomScaling();
+
+	if (!cQtScale()) {
+		Ui::DisableCustomScaling();
+	}
 
 	if (cUseEnvApi()
 		&& qEnvironmentVariableIsSet(kApiIdVarName.utf8().constData())

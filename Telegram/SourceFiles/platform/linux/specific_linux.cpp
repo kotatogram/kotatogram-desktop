@@ -955,7 +955,9 @@ void start() {
 		integration->load();
 	}
 
-	SetGtkScaleFactor();
+	if (!cQtScale()) {
+		SetGtkScaleFactor();
+	}
 
 	// wait for interface announce to know if native window frame is supported
 	if (const auto integration = WaylandIntegration::Instance()) {
