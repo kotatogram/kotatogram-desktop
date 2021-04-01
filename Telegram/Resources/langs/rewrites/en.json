@@ -70,7 +70,7 @@
 	"ktg_settings_gtk_integration": "GTK integration",
 	"ktg_settings_file_dialog_type": "File dialog",
 	"ktg_file_dialog_type_default": "Default",
-	"ktg_file_dialog_disabled_on_build": "Disabled on build",
+	"ktg_file_dialog_disabled_on_build": "Disabled on build time",
 	"ktg_file_dialog_disabled_by_option": "Disabled by option",
 	"ktg_settings_other": "Other",
 	"ktg_profile_copy_id": "Copy ID",
