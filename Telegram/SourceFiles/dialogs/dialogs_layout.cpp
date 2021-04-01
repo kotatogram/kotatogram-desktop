@@ -271,6 +271,13 @@ void paintOneLineRow(
 			st::dialogsPadding.y(),
 			fullWidth,
 			st::dialogsUnreadHeight);
+	} else if (flags & Flag::RepliesMessages) {
+		Ui::EmptyUserpic::PaintRepliesMessages(
+			p,
+			st::dialogsPadding.x(),
+			st::dialogsPadding.y(),
+			fullWidth,
+			st::dialogsUnreadHeight);
 	} else if (from) {
 		row->paintUserpic(
 			p,
@@ -342,8 +349,10 @@ void paintOneLineRow(
 
 	QString text;
 
-	if (flags & Flag::SavedMessages) {
-		text = tr::lng_saved_messages(tr::now);
+	if (flags & (Flag::SavedMessages | Flag::RepliesMessages)) {
+		text = (flags & Flag::SavedMessages)
+			? tr::lng_saved_messages(tr::now)
+			: tr::lng_replies_messages(tr::now);
 		p.setPen(active
 			? st::dialogsNameFgActive
 			: selected
