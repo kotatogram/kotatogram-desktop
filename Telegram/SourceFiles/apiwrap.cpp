@@ -3822,16 +3822,20 @@ void ApiWrap::forwardMessagesUnquoted(
 			return forwardFrom != newFrom
 					|| !currentGroupId
 					|| currentGroupId != newGroupId
-					|| lastGroupCheck;
+					|| lastGroupCheck
+					|| messageGroupCount >= 10;
 		} else if (cForwardGrouped()) {
-			return lastGroupCheck;
+			return lastGroupCheck
+				|| messageGroupCount >= 10;
 		} else {
 			return true;
 		}
 	};
 
 	const auto isGrouped = [&] {
-		return lastGroup != LastGroupType::None && messageGroupCount > 1;
+		return lastGroup != LastGroupType::None
+			&& messageGroupCount > 1
+			&& messageGroupCount <= 10;
 	};
 
 	const auto forwardQuotedSingle = [&] (not_null<HistoryItem *> item) {
