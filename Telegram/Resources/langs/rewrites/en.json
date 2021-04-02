@@ -1,9 +1,3 @@
-// This file is used to override translation in Kotatogram.
-// Please note that changes here won't be saved, because
-// this file is bundled into application.
-// Suggest any new translations or edits for existing here:
-// https://github.com/kotatogram/kotatogram-desktop/issues
-
 {
 	"ktg_intro_about": "Welcome to unofficial messaging app\nbased on Telegram Desktop.",
 	"ktg_about_text1": "Experimental unofficial {tdesktop_link} fork.",
@@ -88,7 +82,11 @@
 	"ktg_settings_disable_sound_from_tray": "Disable sound",
 	"ktg_settings_enable_sound_from_tray": "Enable sound",
 	"ktg_settings_recent_stickers_limit": {
+		"zero": "Recent stickers: show {count} stickers",
 		"one": "Recent stickers: show {count} sticker",
+		"two": "Recent stickers: show {count} stickers",
+		"few": "Recent stickers: show {count} stickers",
+		"many": "Recent stickers: show {count} stickers",
 		"other": "Recent stickers: show {count} stickers"
 	},
 	"ktg_settings_recent_stickers_limit_none": "Recent stickers: hide all",
@@ -131,7 +129,11 @@
 	"ktg_message_id": "Message ID: {id}",
 	"ktg_emoji_panel_hover": "Emoji panel on hover",
 	"ktg_local_storage_limit_days": {
+		"zero": "{count} days",
 		"one": "{count} day",
+		"two": "{count} days",
+		"few": "{count} days",
+		"many": "{count} days",
 		"other": "{count} days"
 	},
 	"ktg_settings_monospace_large_bubbles": "Expand bubbles with monospace",
@@ -153,12 +155,20 @@
 	"ktg_too_many_accounts_warning": "Warning! Using too many accounts at the same time is not recommended due to higher memory comsumption and possible crashes because of it.\n\nYou sure you want to add a new account?",
 	"ktg_account_add_anyway": "Add anyway",
 	"ktg_media_selected_gif": {
+		"zero": "{count} GIFs",
 		"one": "{count} GIF",
+		"two": "{count} GIFs",
+		"few": "{count} GIFs",
+		"many": "{count} GIFs",
 		"other": "{count} GIFs"
 	},
 	"ktg_media_type_gif": "GIFs",
 	"ktg_profile_gif": {
+		"zero": "{count} GIFs",
 		"one": "{count} GIF",
+		"two": "{count} GIFs",
+		"few": "{count} GIFs",
+		"many": "{count} GIFs",
 		"other": "{count} GIFs"
 	},
 	"ktg_media_gif_empty": "No GIFs here yet",
@@ -170,15 +180,11 @@
 	"ktg_admin_log_banned_send_gif": "Send GIFs",
 	"ktg_admin_log_banned_send_games": "Send games",
 	"ktg_admin_log_banned_use_inline": "Use inline bots",
-
-	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Go to chat",
 	"ktg_settings_forward": "Forward",
 	"ktg_settings_forward_retain_selection": "Retain selection after forward",
 	"ktg_settings_forward_chat_on_click": "Open chat on click",
 	"ktg_settings_forward_chat_on_click_description": "You can hold Ctrl to select multiple chats regardless of this option.",
-
-	// New strings
 	"ktg_forward_menu_quoted": "Quoted",
 	"ktg_forward_menu_unquoted": "Unquoted with captions",
 	"ktg_forward_menu_uncaptioned": "Unquoted without captions",
@@ -210,7 +216,5 @@
 	"ktg_filters_hide_button": "Hide button",
 	"ktg_filters_hide_all_chats_toast": "\"All Chats\" folder is hidden.\nYou can enable it back in Kotatogram Settings.",
 	"ktg_filters_hide_edit_toast": "Edit button is hidden.\nYou can enable it back in Kotatogram Settings.",
-
-	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }

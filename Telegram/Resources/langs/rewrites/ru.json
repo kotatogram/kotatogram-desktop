@@ -1,9 +1,3 @@
-// This file is used to override translation in Kotatogram.
-// Please note that changes here won't be saved, because
-// this file is bundled into application.
-// Suggest any new translations or edits for existing here:
-// https://github.com/kotatogram/kotatogram-desktop/issues
-
 {
 	"ktg_intro_about": "Добро пожаловать в неофициальный мессенджер\nна основе Telegram Desktop.",
 	"ktg_about_text1": "Экспериментальный неофициальный форк {tdesktop_link}.",
@@ -178,14 +172,11 @@
 	"ktg_admin_log_banned_send_games": "Отправка игр",
 	"ktg_admin_log_banned_use_inline": "Отправка через ботов",
 
-	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Перейти в чат",
 	"ktg_settings_forward": "Пересылка",
 	"ktg_settings_forward_retain_selection": "Сохранять выделение после пересылки",
 	"ktg_settings_forward_chat_on_click": "Открывать чат по клику",
 	"ktg_settings_forward_chat_on_click_description": "Удерживайте Ctrl для выбора нескольких чатов вне зависимости от этой настройки.",
-
-	// New strings
 	"ktg_forward_menu_quoted": "С автором",
 	"ktg_forward_menu_unquoted": "Без автора с подписями",
 	"ktg_forward_menu_uncaptioned": "Без автора и подписей",
@@ -218,6 +209,5 @@
 	"ktg_filters_hide_all_chats_toast": "Папка «Все чаты» скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
 	"ktg_filters_hide_edit_toast": "Кнопка изменения скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
 
-	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }
