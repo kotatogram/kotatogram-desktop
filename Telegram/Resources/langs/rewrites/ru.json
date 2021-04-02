@@ -66,7 +66,7 @@
 	"ktg_net_speed_boost_medium": "Среднее",
 	"ktg_net_speed_boost_big": "Высокое",
 	"ktg_settings_system": "Система",
-	"ktg_settings_qt_scale": "Использовать движок масштабирования Qt",
+	"ktg_settings_qt_scale": "Использовать масштабирование Qt",
 	"ktg_settings_gtk_integration": "GTK-интеграция",
 	"ktg_settings_file_dialog_type": "Файловый диалог",
 	"ktg_file_dialog_type_default": "По умолчанию",
