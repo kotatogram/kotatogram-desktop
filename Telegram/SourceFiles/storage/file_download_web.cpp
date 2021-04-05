@@ -412,14 +412,14 @@ void WebLoadManager::queueFailedUpdate(int id) {
 
 void WebLoadManager::queueFinishedUpdate(int id, const QByteArray &data) {
 	crl::on_main(this, [=] {
-		LOG(("FINISHED UPDATE FOR: %1").arg(id));
+		DEBUG_LOG(("FINISHED UPDATE FOR: %1").arg(id));
 		for (const auto &[loader, loaderId] : _ids) {
 			if (loaderId == id) {
-				LOG(("LOADER ID: %2").arg(quintptr(loader.get())));
+				DEBUG_LOG(("LOADER ID: %2").arg(quintptr(loader.get())));
 				break;
 			}
 		}
-		LOG(("SENT"));
+		DEBUG_LOG(("SENT"));
 		sendUpdate(id, QByteArray(data));
 	});
 }
