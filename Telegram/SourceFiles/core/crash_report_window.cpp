@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/launcher.h"
 #include "core/sandbox.h"
 #include "core/update_checker.h"
+#include "core/ui_integration.h"
 #include "window/main_window.h"
 #include "platform/platform_specific.h"
 #include "base/zlib_help.h"
@@ -25,12 +26,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 constexpr auto kDefaultProxyPort = 80;
+Core::UiIntegration UiIntegrationInstance;
 
 } // namespace
 
 PreLaunchWindow *PreLaunchWindowInstance = nullptr;
 
 PreLaunchWindow::PreLaunchWindow(QString title) {
+	Ui::Integration::Set(&UiIntegrationInstance);
 	style::internal::StartFonts();
 
 	setWindowIcon(Window::CreateIcon());
