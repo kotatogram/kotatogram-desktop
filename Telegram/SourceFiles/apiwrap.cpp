@@ -3796,7 +3796,6 @@ void ApiWrap::forwardMessagesUnquoted(
 	auto lastGroup = LastGroupType::None;
 	auto ids = QVector<MTPint>();
 	auto randomIds = QVector<MTPlong>();
-	auto localIds = std::shared_ptr<base::flat_map<uint64, FullMsgId>>();
 	auto fromIter = items.begin();
 	auto toIter = items.begin();
 	auto messageGroupCount = 0;
@@ -3865,18 +3864,8 @@ void ApiWrap::forwardMessagesUnquoted(
 					shared->callback();
 				}
 				finish();
-			}).fail([=, ids = localIds](const MTP::Error &error) {
-				auto found = false;
-				for (const auto &[randomId, itemId] : *ids) {
-					if (currentRandomId == MTP_long(randomId)) {
-						sendMessageFail(error, peer, randomId, itemId);
-						found = true;
-						break;
-					}
-				}
-				if (!found) {
-					sendMessageFail(error, peer);
-				}
+			}).fail([=](const MTP::Error &error) {
+				sendMessageFail(error, peer);
 				finish();
 			}).afterRequest(
 				history->sendRequestId
@@ -3931,7 +3920,7 @@ void ApiWrap::forwardMessagesUnquoted(
 				: MTPmessages_SendMultiMedia::Flag(0));
 
 		const auto requestType = Data::Histories::RequestType::Send;
-		auto performRequest = [=, &mediaRefs, &histories, &localIds](const auto &repeatRequest) -> void {
+		auto performRequest = [=, &mediaRefs, &histories](const auto &repeatRequest) -> void {
 			mediaRefs.clear();
 			for (auto i = fromIter, e = toIter; i != e; i++) {
 				const auto item = *i;
@@ -3983,10 +3972,6 @@ void ApiWrap::forwardMessagesUnquoted(
 								}
 							});
 							index++;
-						}
-					} else if (localIds) {
-						for (const auto &[randomId, itemId] : *localIds) {
-							sendMessageFail(error, peer, randomId, itemId);
 						}
 					} else {
 						sendMessageFail(error, peer);
@@ -4142,7 +4127,6 @@ void ApiWrap::forwardMessagesUnquoted(
 
 		ids.resize(0);
 		randomIds.resize(0);
-		localIds = nullptr;
 	};
 
 	ids.reserve(count);
