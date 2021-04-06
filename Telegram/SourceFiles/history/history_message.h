@@ -87,7 +87,8 @@ public:
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
-		const MTPReplyMarkup &markup); // local document
+		const MTPReplyMarkup &markup,
+		uint64 newGroupId = 0); // local document
 	HistoryMessage(
 		not_null<History*> history,
 		MsgId id,
@@ -100,7 +101,8 @@ public:
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
-		const MTPReplyMarkup &markup); // local photo
+		const MTPReplyMarkup &markup,
+		uint64 newGroupId = 0); // local photo
 	HistoryMessage(
 		not_null<History*> history,
 		MsgId id,

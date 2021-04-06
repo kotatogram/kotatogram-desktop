@@ -697,7 +697,8 @@ HistoryMessage::HistoryMessage(
 	const QString &postAuthor,
 	not_null<DocumentData*> document,
 	const TextWithEntities &caption,
-	const MTPReplyMarkup &markup)
+	const MTPReplyMarkup &markup,
+	uint64 newGroupId)
 : HistoryItem(
 		history,
 		id,
@@ -709,6 +710,11 @@ HistoryMessage::HistoryMessage(
 
 	_media = std::make_unique<Data::MediaFile>(this, document);
 	setText(caption);
+
+	if (newGroupId) {
+		setGroupId(
+			MessageGroupId::FromRaw(history->peer->id, newGroupId));
+	}	
 }
 
 HistoryMessage::HistoryMessage(
@@ -723,7 +729,8 @@ HistoryMessage::HistoryMessage(
 	const QString &postAuthor,
 	not_null<PhotoData*> photo,
 	const TextWithEntities &caption,
-	const MTPReplyMarkup &markup)
+	const MTPReplyMarkup &markup,
+	uint64 newGroupId)
 : HistoryItem(
 		history,
 		id,
@@ -735,6 +742,11 @@ HistoryMessage::HistoryMessage(
 
 	_media = std::make_unique<Data::MediaPhoto>(this, photo);
 	setText(caption);
+
+	if (newGroupId) {
+		setGroupId(
+			MessageGroupId::FromRaw(history->peer->id, newGroupId));
+	}
 }
 
 HistoryMessage::HistoryMessage(

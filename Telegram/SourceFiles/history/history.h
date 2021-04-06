@@ -142,7 +142,8 @@ public:
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
-		const MTPReplyMarkup &markup);
+		const MTPReplyMarkup &markup,
+		uint64 newGroupId = 0);
 	not_null<HistoryItem*> addNewLocalMessage(
 		MsgId id,
 		MTPDmessage::Flags flags,
@@ -154,7 +155,8 @@ public:
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
-		const MTPReplyMarkup &markup);
+		const MTPReplyMarkup &markup,
+		uint64 newGroupId = 0);
 	not_null<HistoryItem*> addNewLocalMessage(
 		MsgId id,
 		MTPDmessage::Flags flags,

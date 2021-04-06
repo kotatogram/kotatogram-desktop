@@ -542,7 +542,8 @@ not_null<HistoryItem*> History::addNewLocalMessage(
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
-		const MTPReplyMarkup &markup) {
+		const MTPReplyMarkup &markup,
+		uint64 newGroupId) {
 	return addNewItem(
 		makeMessage(
 			id,
@@ -555,7 +556,8 @@ not_null<HistoryItem*> History::addNewLocalMessage(
 			postAuthor,
 			document,
 			caption,
-			markup),
+			markup,
+			newGroupId),
 		true);
 }
 
@@ -570,7 +572,8 @@ not_null<HistoryItem*> History::addNewLocalMessage(
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
-		const MTPReplyMarkup &markup) {
+		const MTPReplyMarkup &markup,
+		uint64 newGroupId) {
 	return addNewItem(
 		makeMessage(
 			id,
@@ -583,7 +586,8 @@ not_null<HistoryItem*> History::addNewLocalMessage(
 			postAuthor,
 			photo,
 			caption,
-			markup),
+			markup,
+			newGroupId),
 		true);
 }
 

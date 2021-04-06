@@ -122,20 +122,18 @@ void SendExistingMedia(
 
 	session->data().registerMessageRandomId(randomId, newId);
 
-	if (!forwarding) {
-		history->addNewLocalMessage(
-			newId.msg,
-			flags,
-			clientFlags,
-			0,
-			replyTo,
-			HistoryItem::NewMessageDate(message.action.options.scheduled),
-			messageFromId,
-			messagePostAuthor,
-			media,
-			caption,
-			MTPReplyMarkup());
-	}
+	history->addNewLocalMessage(
+		newId.msg,
+		flags,
+		clientFlags,
+		0,
+		replyTo,
+		HistoryItem::NewMessageDate(message.action.options.scheduled),
+		messageFromId,
+		messagePostAuthor,
+		media,
+		caption,
+		MTPReplyMarkup());
 
 	auto performRequest = [=](const auto &repeatRequest) -> void {
 		auto &histories = history->owner().histories();
@@ -301,36 +299,34 @@ bool SendDice(
 
 	session->data().registerMessageRandomId(randomId, newId);
 
-	if (!forwarding) {
-		const auto views = 1;
-		const auto forwards = 0;
-		history->addNewMessage(
-			MTP_message(
-				MTP_flags(flags),
-				MTP_int(newId.msg),
-				peerToMTP(messageFromId),
-				peerToMTP(history->peer->id),
-				MTPMessageFwdHeader(),
-				MTPint(), // via_bot_id
-				replyHeader,
-				MTP_int(HistoryItem::NewMessageDate(
-					message.action.options.scheduled)),
-				MTP_string(),
-				MTP_messageMediaDice(MTP_int(0), MTP_string(emoji)),
-				MTPReplyMarkup(),
-				MTP_vector<MTPMessageEntity>(),
-				MTP_int(views),
-				MTP_int(forwards),
-				MTPMessageReplies(),
-				MTPint(), // edit_date
-				MTP_string(messagePostAuthor),
-				MTPlong(),
-				//MTPMessageReactions(),
-				MTPVector<MTPRestrictionReason>(),
-				MTPint()), // ttl_period
-			clientFlags,
-			NewMessageType::Unread);
-	}
+	const auto views = 1;
+	const auto forwards = 0;
+	history->addNewMessage(
+		MTP_message(
+			MTP_flags(flags),
+			MTP_int(newId.msg),
+			peerToMTP(messageFromId),
+			peerToMTP(history->peer->id),
+			MTPMessageFwdHeader(),
+			MTPint(), // via_bot_id
+			replyHeader,
+			MTP_int(HistoryItem::NewMessageDate(
+				message.action.options.scheduled)),
+			MTP_string(),
+			MTP_messageMediaDice(MTP_int(0), MTP_string(emoji)),
+			MTPReplyMarkup(),
+			MTP_vector<MTPMessageEntity>(),
+			MTP_int(views),
+			MTP_int(forwards),
+			MTPMessageReplies(),
+			MTPint(), // edit_date
+			MTP_string(messagePostAuthor),
+			MTPlong(),
+			//MTPMessageReactions(),
+			MTPVector<MTPRestrictionReason>(),
+			MTPint()), // ttl_period
+		clientFlags,
+		NewMessageType::Unread);
 
 	const auto requestType = Data::Histories::RequestType::Send;
 	histories.sendRequest(history, requestType, [=](Fn<void()> finish) {

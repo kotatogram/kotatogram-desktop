@@ -3795,10 +3795,12 @@ void ApiWrap::forwardMessagesUnquoted(
 	auto currentGroupId = items.front()->groupId();
 	auto lastGroup = LastGroupType::None;
 	auto ids = QVector<MTPint>();
-	auto randomIds = QVector<MTPlong>();
+	auto randomIds = QVector<uint64>();
 	auto fromIter = items.begin();
 	auto toIter = items.begin();
 	auto messageGroupCount = 0;
+	auto messageFromId = anonymousPost ? 0 : _session->userPeerId();
+	auto messagePostAuthor = peer->isBroadcast() ? _session->user()->name : QString();
 
 	const auto needNextGroup = [&] (not_null<HistoryItem *> item) {
 		auto lastGroupCheck = false;
@@ -3845,7 +3847,7 @@ void ApiWrap::forwardMessagesUnquoted(
 		auto currentIds = QVector<MTPint>();
 		currentIds.push_back(MTP_int(item->id));
 
-		auto currentRandomId = randomIds.takeFirst();
+		auto currentRandomId = MTP_long(randomIds.takeFirst());
 		auto currentRandomIds = QVector<MTPlong>();
 		currentRandomIds.push_back(currentRandomId);
 
@@ -3885,12 +3887,27 @@ void ApiWrap::forwardMessagesUnquoted(
 		mediaInputs->reserve(ids.size());
 		mediaRefs->reserve(ids.size());
 
+		const auto views = 1;
+		const auto forwards = 0;
+		const auto newGroupId = openssl::RandomValue<uint64>();
+
+		auto msgFlags = NewMessageFlags(peer) | MTPDmessage::Flag::f_media;
+		auto clientFlags = NewMessageClientFlags();
+
+		FillMessagePostFlags(action, peer, msgFlags);
+
+		if (action.options.scheduled) {
+			msgFlags |= MTPDmessage::Flag::f_from_scheduled;
+		} else {
+			clientFlags |= MTPDmessage_ClientFlag::f_local_history_entry;
+		}
+
 		for (auto i = fromIter, e = toIter; i != e; i++) {
 			const auto item = *i;
 			const auto media = item->media();
 			medias->push_back(media);
 
-			auto inputMedia = media->photo()
+			const auto inputMedia = media->photo()
 				? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
 				: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint(), MTPstring());
 			auto caption = cForwardCaptioned()
@@ -3905,14 +3922,49 @@ void ApiWrap::forwardMessagesUnquoted(
 					? MTPDinputSingleMedia::Flag::f_entities
 					: MTPDinputSingleMedia::Flag(0);
 
+			const auto newId = FullMsgId(
+				peerToChannel(peer->id),
+				_session->data().nextLocalMessageId());
 			auto randomId = randomIds.takeFirst();
 
 			mediaInputs->push_back(MTP_inputSingleMedia(
 				MTP_flags(flags),
 				inputMedia,
-				randomId,
+				MTP_long(randomId),
 				MTP_string(caption.text),
 				sentEntities));
+
+			_session->data().registerMessageRandomId(randomId, newId);
+
+			if (const auto photo = media->photo()) {
+				history->addNewLocalMessage(
+					newId.msg,
+					msgFlags,
+					clientFlags,
+					0, // viaBotId
+					0, // replyTo
+					HistoryItem::NewMessageDate(action.options.scheduled),
+					messageFromId,
+					messagePostAuthor,
+					photo,
+					caption,
+					MTPReplyMarkup(),
+					newGroupId);
+			} else if (const auto document = media->document()) {
+				history->addNewLocalMessage(
+					newId.msg,
+					msgFlags,
+					clientFlags,
+					0, // viaBotId
+					0, // replyTo
+					HistoryItem::NewMessageDate(action.options.scheduled),
+					messageFromId,
+					messagePostAuthor,
+					document,
+					caption,
+					MTPReplyMarkup(),
+					newGroupId);
+			}
 		}
 
 		const auto finalFlags = MTPmessages_SendMultiMedia::Flags(0)
@@ -4149,7 +4201,7 @@ void ApiWrap::forwardMessagesUnquoted(
 			fromIter = i;
 		}
 		ids.push_back(MTP_int(item->id));
-		randomIds.push_back(MTP_long(randomId));
+		randomIds.push_back(randomId);
 		if (item->media() && item->media()->canBeGrouped()) {
 			lastGroup = ((item->media()->photo()
 					|| (item->media()->document()
@@ -4515,37 +4567,35 @@ void ApiWrap::sendMessage(
 			sendFlags |= MTPmessages_SendMessage::Flag::f_schedule_date;
 		} else {
 			clientFlags |= MTPDmessage_ClientFlag::f_local_history_entry;
-		}
-		if (!forwarding) {		
-			const auto views = 1;
-			const auto forwards = 0;
-			lastMessage = history->addNewMessage(
-				MTP_message(
-					MTP_flags(flags),
-					MTP_int(newId.msg),
-					peerToMTP(messageFromId),
-					peerToMTP(peer->id),
-					MTPMessageFwdHeader(),
-					MTPint(), // via_bot_id
-					replyHeader,
-					MTP_int(
-						HistoryItem::NewMessageDate(action.options.scheduled)),
-					msgText,
-					media,
-					MTPReplyMarkup(),
-					localEntities,
-					MTP_int(views),
-					MTP_int(forwards),
-					MTPMessageReplies(),
-					MTPint(), // edit_date
-					MTP_string(messagePostAuthor),
-					MTPlong(),
-					//MTPMessageReactions(),
-					MTPVector<MTPRestrictionReason>(),
-					MTPint()), // ttl_period
-				clientFlags,
-				NewMessageType::Unread);
-		}
+		}	
+		const auto views = 1;
+		const auto forwards = 0;
+		lastMessage = history->addNewMessage(
+			MTP_message(
+				MTP_flags(flags),
+				MTP_int(newId.msg),
+				peerToMTP(messageFromId),
+				peerToMTP(peer->id),
+				MTPMessageFwdHeader(),
+				MTPint(), // via_bot_id
+				replyHeader,
+				MTP_int(
+					HistoryItem::NewMessageDate(action.options.scheduled)),
+				msgText,
+				media,
+				MTPReplyMarkup(),
+				localEntities,
+				MTP_int(views),
+				MTP_int(forwards),
+				MTPMessageReplies(),
+				MTPint(), // edit_date
+				MTP_string(messagePostAuthor),
+				MTPlong(),
+				//MTPMessageReactions(),
+				MTPVector<MTPRestrictionReason>(),
+				MTPint()), // ttl_period
+			clientFlags,
+			NewMessageType::Unread);
 		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
 			history->sendRequestId = request(MTPmessages_SendMessage(
 				MTP_flags(sendFlags),
