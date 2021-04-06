@@ -213,7 +213,7 @@ bool gForwardChatOnClick = false;
 #if defined TDESKTOP_API_ID && defined TDESKTOP_API_HASH
 
 int gApiId = TDESKTOP_API_ID;
-QString gApiHash = MACRO_TO_STRING(TDESKTOP_API_HASH);
+QString gApiHash = QT_STRINGIFY(TDESKTOP_API_HASH);
 
 #else // TDESKTOP_API_ID && TDESKTOP_API_HASH
 
