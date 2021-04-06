@@ -3878,14 +3878,18 @@ void ApiWrap::forwardMessagesUnquoted(
 		if (shared) {
 			++shared->requestsLeft;
 		}
-		auto medias = QVector<MTPInputSingleMedia>();
+
+		const auto medias = std::make_shared<QVector<Data::Media*>>();
+		const auto mediaInputs = std::make_shared<QVector<MTPInputSingleMedia>>();
 		const auto mediaRefs = std::make_shared<QVector<QByteArray>>();
-		medias.reserve(ids.size());
+		mediaInputs->reserve(ids.size());
 		mediaRefs->reserve(ids.size());
 
 		for (auto i = fromIter, e = toIter; i != e; i++) {
 			const auto item = *i;
 			const auto media = item->media();
+			medias->push_back(media);
+
 			auto inputMedia = media->photo()
 				? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
 				: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint(), MTPstring());
@@ -3903,7 +3907,7 @@ void ApiWrap::forwardMessagesUnquoted(
 
 			auto randomId = randomIds.takeFirst();
 
-			medias.push_back(MTP_inputSingleMedia(
+			mediaInputs->push_back(MTP_inputSingleMedia(
 				MTP_flags(flags),
 				inputMedia,
 				randomId,
@@ -3922,9 +3926,8 @@ void ApiWrap::forwardMessagesUnquoted(
 		const auto requestType = Data::Histories::RequestType::Send;
 		auto performRequest = [=, &histories](const auto &repeatRequest) -> void {
 			mediaRefs->clear();
-			for (auto i = fromIter, e = toIter; i != e; i++) {
-				const auto item = *i;
-				const auto media = item->media();
+			for (auto i = medias->begin(), e = medias->end(); i != e; i++) {
+				const auto media = *i;
 				mediaRefs->push_back(media->photo()
 					? media->photo()->fileReference()
 					: media->document()->fileReference());
@@ -3934,7 +3937,7 @@ void ApiWrap::forwardMessagesUnquoted(
 					MTP_flags(finalFlags),
 					peer->input,
 					MTPint(),
-					MTP_vector<MTPInputSingleMedia>(medias),
+					MTP_vector<MTPInputSingleMedia>(*mediaInputs),
 					MTP_int(action.options.scheduled)
 				)).done([=](const MTPUpdates &result) {
 					applyUpdates(result);
@@ -3948,9 +3951,8 @@ void ApiWrap::forwardMessagesUnquoted(
 						auto refreshRequests = mediaRefs->size();
 						auto index = 0;
 						auto wasUpdated = false;
-						for (auto i = fromIter, e = toIter; i != e; i++) {
-							const auto item = *i;
-							const auto media = item->media();
+						for (auto i = medias->begin(), e = medias->end(); i != e; i++) {
+							const auto media = *i;
 							const auto origin = media->document()
 									? media->document()->stickerOrGifOrigin()
 									: Data::FileOrigin();
