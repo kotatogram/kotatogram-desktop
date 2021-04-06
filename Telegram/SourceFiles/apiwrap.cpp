@@ -3947,6 +3947,7 @@ void ApiWrap::forwardMessagesUnquoted(
 						&& error.type().startsWith(qstr("FILE_REFERENCE_"))) {
 						auto refreshRequests = mediaRefs->size();
 						auto index = 0;
+						auto wasUpdated = false;
 						for (auto i = fromIter, e = toIter; i != e; i++) {
 							const auto item = *i;
 							const auto media = item->media();
@@ -3955,17 +3956,21 @@ void ApiWrap::forwardMessagesUnquoted(
 									: Data::FileOrigin();
 							const auto usedFileReference = mediaRefs->value(index);
 							
-							refreshFileReference(origin, [=, &refreshRequests](const auto &result) {
-								if (refreshRequests > 0) {
-									refreshRequests--;
-									return;
-								}
-
+							refreshFileReference(origin, [=, &refreshRequests, &wasUpdated](const auto &result) {
 								const auto currentMediaReference = media->photo()
 									? media->photo()->fileReference()
 									: media->document()->fileReference();
 
 								if (currentMediaReference != usedFileReference) {
+									wasUpdated = true;
+								}
+
+								if (refreshRequests > 0) {
+									refreshRequests--;
+									return;
+								}
+
+								if (wasUpdated) {
 									repeatRequest(repeatRequest);
 								} else {
 									sendMessageFail(error, peer);
