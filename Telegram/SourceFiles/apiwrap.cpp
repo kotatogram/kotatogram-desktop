@@ -3879,9 +3879,9 @@ void ApiWrap::forwardMessagesUnquoted(
 			++shared->requestsLeft;
 		}
 		auto medias = QVector<MTPInputSingleMedia>();
-		auto mediaRefs = QVector<QByteArray>();
+		const auto mediaRefs = std::make_shared<QVector<QByteArray>>();
 		medias.reserve(ids.size());
-		mediaRefs.reserve(ids.size());
+		mediaRefs->reserve(ids.size());
 
 		for (auto i = fromIter, e = toIter; i != e; i++) {
 			const auto item = *i;
@@ -3920,12 +3920,12 @@ void ApiWrap::forwardMessagesUnquoted(
 				: MTPmessages_SendMultiMedia::Flag(0));
 
 		const auto requestType = Data::Histories::RequestType::Send;
-		auto performRequest = [=, &mediaRefs, &histories](const auto &repeatRequest) -> void {
-			mediaRefs.clear();
+		auto performRequest = [=, &histories](const auto &repeatRequest) -> void {
+			mediaRefs->clear();
 			for (auto i = fromIter, e = toIter; i != e; i++) {
 				const auto item = *i;
 				const auto media = item->media();
-				mediaRefs.push_back(media->photo()
+				mediaRefs->push_back(media->photo()
 					? media->photo()->fileReference()
 					: media->document()->fileReference());
 			}
@@ -3945,7 +3945,7 @@ void ApiWrap::forwardMessagesUnquoted(
 				}).fail([=](const MTP::Error &error) {
 					if (error.code() == 400
 						&& error.type().startsWith(qstr("FILE_REFERENCE_"))) {
-						auto refreshRequests = mediaRefs.size();
+						auto refreshRequests = mediaRefs->size();
 						auto index = 0;
 						for (auto i = fromIter, e = toIter; i != e; i++) {
 							const auto item = *i;
@@ -3953,7 +3953,7 @@ void ApiWrap::forwardMessagesUnquoted(
 							const auto origin = media->document()
 									? media->document()->stickerOrGifOrigin()
 									: Data::FileOrigin();
-							const auto usedFileReference = mediaRefs.value(index);
+							const auto usedFileReference = mediaRefs->value(index);
 							
 							refreshFileReference(origin, [=, &refreshRequests](const auto &result) {
 								if (refreshRequests > 0) {
