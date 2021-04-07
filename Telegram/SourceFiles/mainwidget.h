@@ -241,6 +241,8 @@ public:
 		Fn<void()> callback,
 		const SectionShow &params) const;
 
+	bool areRecentActionsOpened();
+
 public Q_SLOTS:
 	void inlineResultLoadProgress(FileLoader *loader);
 	void inlineResultLoadFailed(FileLoader *loader, bool started);

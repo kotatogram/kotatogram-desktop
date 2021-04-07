@@ -984,8 +984,10 @@ void ManageFiller::addChannelRecentActions(
 			tr::lng_manage_peer_recent_actions(),
 			rpl::single(true),
 			[=] {
-				controller->showSection(
-					std::make_shared<AdminLog::SectionMemento>(channel));
+				if (!App::main()->areRecentActionsOpened()) {
+					controller->showSection(
+						std::make_shared<AdminLog::SectionMemento>(channel));
+				}
 			});
 		object_ptr<FloatingIcon>(
 			button,
