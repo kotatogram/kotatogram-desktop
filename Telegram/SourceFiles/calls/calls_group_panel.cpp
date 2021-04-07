@@ -253,6 +253,7 @@ std::unique_ptr<PeerListRow> InviteContactsController::createRow(
 Panel::Panel(not_null<GroupCall*> call)
 : _call(call)
 , _peer(call->peer())
+, _window(std::make_unique<Ui::Window>())
 , _layerBg(std::make_unique<Ui::LayerManager>(_window->body()))
 #ifndef Q_OS_MAC
 , _controls(std::make_unique<Ui::Platform::TitleControls>(
