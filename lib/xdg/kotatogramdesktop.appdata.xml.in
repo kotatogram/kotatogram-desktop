@@ -35,6 +35,51 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4" date="2021-04-13">
+            <description>
+                <p>TDesktop sources were updated to 2.7.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Ability to forward messages without author.</li>
+                    <li>Local folders.</li>
+                    <li>Ability to set API ID and hash by start parameter or environment variable.</li>
+                    <li>Use checkboxes in polls with multiple answers.</li>
+                    <li>Reworked admins info.</li>
+                    <li>Show group type in chat lists.</li>
+                    <li>Show star icon for groups where you're an admin.</li>
+                    <li>Do not notify when pinning by default.</li>
+                    <li>Ability to mention user from context menu in members list.</li>
+                    <li>Improved theme keys search.</li>
+                    <li>Experimental top bar customization.</li>
+                    <li>Reworked changning time when scheduling messages.</li>
+                    <li>Improved keyboard navigation for calendar.</li>
+                    <li>Ability to jump to date in chat (Ctrl+H by default).</li>
+                    <li>Use ghost icon from Android app.</li>
+                    <li>Hide Edit and All Chats from context menu.</li>
+                    <li>Show button to remove recent sticker.</li>
+                    <li>Option to retain selection after forward.</li>
+                    <li>Hide account name in notification if it's the current one.</li>
+                    <li>Possible fix for crash on Permissions click in profile.</li>
+                    <li>Fix for crash on profile double open in blocked users list.</li>
+                    <li>Option to disable monospace bubbles expansion (user-contributed).</li>
+                    <li>Click-to-copy for ID, phone and username in profile.</li>
+                    <li>Revoke messages by default.</li>
+                    <li>Additional info for chats in folders.</li>
+                    <li>Manage buttons in profile.</li>
+                    <li>Forward to multiple chats.</li>
+                    <li>Allow add up to 10 accounts in 32-bit build and up to 100 in 64 bit builds.</li>
+                    <li>Do not share phone number by default (from 64Gram).</li>
+                    <li>GIFs shared media section (from 64Gram).</li>
+                    <li>Uwrapped "Stickers and GIFs" permission (from 64Gram).</li>
+                    <li>Option to disable emoji panel on hover.</li>
+                    <li>Option to use native window frame on Windows and macOS.</li>
+                    <li>Option to disable tray counter.</li>
+                    <li>Option to use Telegram tray icon on Linux panels.</li>
+                    <li>Set media clear limit down to 1 day.</li>
+                    <li>Many translations from Crowdin page.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.3.9" date="2020-09-09">
             <description>
                 <p>TDesktop sources were updated to 2.3.2.</p>
