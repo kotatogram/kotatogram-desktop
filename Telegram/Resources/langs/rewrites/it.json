@@ -1,9 +1,3 @@
-// This file is used to override translation in Kotatogram.
-// Please note that changes here won't be saved, because
-// this file is bundled into application.
-// Suggest any new translations or edits for existing here:
-// https://github.com/kotatogram/kotatogram-desktop/issues
-
 {
 	"ktg_intro_about": "Benvenuto nell'app non ufficiale di messaggistica\nbasata su Telegram Desktop.",
 	"ktg_about_text1": "Fork sperimentale non ufficiale di {tdesktop_link}",
@@ -67,6 +61,12 @@
 	"ktg_net_speed_boost_medium": "Medio",
 	"ktg_net_speed_boost_big": "Grande",
 	"ktg_settings_system": "Sistema",
+	"ktg_settings_qt_scale": "Motore di scala Qt",
+	"ktg_settings_gtk_integration": "Integrazione di GTK",
+	"ktg_settings_file_dialog_type": "Finestra di selezione file",
+	"ktg_file_dialog_type_default": "Predefinito",
+	"ktg_file_dialog_disabled_on_build": "Disabilitato alla compilazione",
+	"ktg_file_dialog_disabled_by_option": "Disabilitato tramite opzione",
 	"ktg_settings_other": "Altro",
 	"ktg_profile_copy_id": "Copia ID",
 	"ktg_profile_bot_id": "ID Bot",
@@ -82,7 +82,11 @@
 	"ktg_settings_disable_sound_from_tray": "Disattiva suono",
 	"ktg_settings_enable_sound_from_tray": "Attiva suono",
 	"ktg_settings_recent_stickers_limit": {
+		"zero": "Stickers recenti: mostra {count} stickers",
 		"one": "Sticker recente: mostra {count} sticker",
+		"two": "Stickers recenti: mostra {count} stickers",
+		"few": "Stickers recenti: mostra {count} stickers",
+		"many": "Stickers recenti: mostra {count} stickers",
 		"other": "Sticker recenti: mostra {count} stickers"
 	},
 	"ktg_settings_recent_stickers_limit_none": "Sticker recenti: nascondili tutti",
@@ -125,7 +129,11 @@
 	"ktg_message_id": "ID del Messaggio: {id}",
 	"ktg_emoji_panel_hover": "Visualizza Pannello Emoji al passaggio del mouse",
 	"ktg_local_storage_limit_days": {
+		"zero": "{count} giorni",
 		"one": "{count} giorno",
+		"two": "{count} giorni",
+		"few": "{count} giorni",
+		"many": "{count} giorni",
 		"other": "{count} giorni"
 	},
 	"ktg_settings_monospace_large_bubbles": "Espandi bolle con carattere monospaziato",
@@ -147,12 +155,20 @@
 	"ktg_too_many_accounts_warning": "Attenzione! Usare troppi account allo stesso tempo è sconsigliato perché può causare alto consumo di memoria e possibili crash.\n\nSei sicuro di voler aggiungere un nuovo account?",
 	"ktg_account_add_anyway": "Aggiungi comunque",
 	"ktg_media_selected_gif": {
+		"zero": "{count} GIFs",
 		"one": "{count} GIF",
+		"two": "{count} GIFs",
+		"few": "{count} GIFs",
+		"many": "{count} GIFs",
 		"other": "{count} GIF"
 	},
 	"ktg_media_type_gif": "GIF",
 	"ktg_profile_gif": {
+		"zero": "{count} GIFs",
 		"one": "{count} GIF",
+		"two": "{count} GIFs",
+		"few": "{count} GIFs",
+		"many": "{count} GIFs",
 		"other": "{count} GIF"
 	},
 	"ktg_media_gif_empty": "Ancora nessuna GIF qui",
@@ -164,15 +180,11 @@
 	"ktg_admin_log_banned_send_gif": "Inviare GIF",
 	"ktg_admin_log_banned_send_games": "Inviare giochi",
 	"ktg_admin_log_banned_use_inline": "Usare bot inline",
-
-	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Vai alla chat",
 	"ktg_settings_forward": "Inoltro",
 	"ktg_settings_forward_retain_selection": "Mantieni la selezione dopo l'inoltro",
 	"ktg_settings_forward_chat_on_click": "Apri la chat al click",
 	"ktg_settings_forward_chat_on_click_description": "Puoi tenere premuto Ctrl per selezionare più chat insieme indipendentemente da questa opzione.",
-
-	// New strings
 	"ktg_forward_menu_quoted": "Citato",
 	"ktg_forward_menu_unquoted": "Senza citazione e con didascalia",
 	"ktg_forward_menu_uncaptioned": "Senza citazione e senza didascalia",
@@ -204,7 +216,5 @@
 	"ktg_filters_hide_button": "Nascondi bottone",
 	"ktg_filters_hide_all_chats_toast": "La cartella \"Tutte le chat\" è nascosta.\nPuoi riattivarla nelle Impostazioni di Kotatogram.",
 	"ktg_filters_hide_edit_toast": "Il pulsante Modifica è nascosto.\nPuoi riattivarlo nelle Impostazioni di Kotatogram.",
-
-	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }

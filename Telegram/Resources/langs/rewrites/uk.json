@@ -1,12 +1,7 @@
-// This file is used to override translation in Kotatogram.
-// Please note that changes here won't be saved, because
-// this file is bundled into application.
-// Suggest any new translations or edits for existing here:
-// https://github.com/kotatogram/kotatogram-desktop/issues
-
 {
 	"ktg_intro_about": "Вітаємо в неофіційному додатку\nна основі Telegram Desktop.",
 	"ktg_about_text1": "Експериментальний неофіційний форк {tdesktop_link}.",
+	"ktg_about_text1_tdesktop": "Telegram Desktop",
 	"ktg_about_text3": "Щоб дізнатися більше, відвідайте {channel_link} або {faq_link} (англ.).",
 	"ktg_about_text3_channel": "канал Kotatogram",
 	"ktg_new_version": "Kotatogram Desktop оновився до версії {version} (TD {td_version})\n\nПовна історія змін доступна тут:\n{link}",
@@ -66,6 +61,12 @@
 	"ktg_net_speed_boost_medium": "Середнє",
 	"ktg_net_speed_boost_big": "Високе",
 	"ktg_settings_system": "Система",
+	"ktg_settings_qt_scale": "Масштабування Qt-двигуном",
+	"ktg_settings_gtk_integration": "Інтеграція GTK",
+	"ktg_settings_file_dialog_type": "Діалог вибору файла",
+	"ktg_file_dialog_type_default": "За замовчуванням",
+	"ktg_file_dialog_disabled_on_build": "Вимкнено під час побудови",
+	"ktg_file_dialog_disabled_by_option": "Вимкнено за опцією",
 	"ktg_settings_other": "Інші",
 	"ktg_profile_copy_id": "Копіювати ID",
 	"ktg_profile_bot_id": "ID бота",
@@ -81,7 +82,9 @@
 	"ktg_settings_disable_sound_from_tray": "Виключити звук",
 	"ktg_settings_enable_sound_from_tray": "Включити звук",
 	"ktg_settings_recent_stickers_limit": {
+		"zero": "Недавні наліпки: показувати {count} шт.",
 		"one": "Недавні наліпки: показувати {count} шт.",
+		"two": "Недавні наліпки: показувати {count} шт.",
 		"few": "Недавні наліпки: показувати {count} шт.",
 		"many": "Недавні наліпки: показувати {count} шт.",
 		"other": "Недавні наліпки: показувати {count} шт."
@@ -126,7 +129,9 @@
 	"ktg_message_id": "ID повідомлення: {id}",
 	"ktg_emoji_panel_hover": "Панель емодзі по наведенню",
 	"ktg_local_storage_limit_days": {
+		"zero": "{count} днів",
 		"one": "{count} день",
+		"two": "{count} дні",
 		"few": "{count} дні",
 		"many": "{count} днів",
 		"other": "{count} дня"
@@ -150,14 +155,18 @@
 	"ktg_too_many_accounts_warning": "Увага! Не рекомендується використовувати велику кількість акаунтів одночасно, можливе високе споживання оперативної пам'яті, а також зависання додатку через це. \n\nВи дійсно хочете додати акаунт?",
 	"ktg_account_add_anyway": "Все одно додати",
 	"ktg_media_selected_gif": {
+		"zero": "{count} GIF",
 		"one": "{count} GIF",
+		"two": "{count} GIF",
 		"few": "{count} GIF",
 		"many": "{count} GIF",
 		"other": "{count} GIF"
 	},
 	"ktg_media_type_gif": "GIF",
 	"ktg_profile_gif": {
+		"zero": "{count} GIF",
 		"one": "{count} GIF",
+		"two": "{count} GIF",
 		"few": "{count} GIF",
 		"many": "{count} GIF",
 		"other": "{count} GIF"
@@ -171,15 +180,11 @@
 	"ktg_admin_log_banned_send_gif": "Надсилати GIF",
 	"ktg_admin_log_banned_send_games": "Надсилати ігри",
 	"ktg_admin_log_banned_use_inline": "Використовувати інлайн-ботів",
-
-	// Strings since 1.3.8 beta
 	"ktg_forward_go_to_chat": "Відкрити чат",
 	"ktg_settings_forward": "Пересилка",
 	"ktg_settings_forward_retain_selection": "Зберегти вибір після пересилки",
 	"ktg_settings_forward_chat_on_click": "Відкривати чат при пересиланні",
 	"ktg_settings_forward_chat_on_click_description": "Ви можете вибрати декілька чатів утримуючи Ctrl незалежно від цього параметра.",
-
-	// New strings
 	"ktg_forward_menu_quoted": "З автором",
 	"ktg_forward_menu_unquoted": "Без автора",
 	"ktg_forward_menu_uncaptioned": "Тільки медіа",
@@ -211,7 +216,5 @@
 	"ktg_filters_hide_button": "Приховати кнопку",
 	"ktg_filters_hide_all_chats_toast": "Папка «Усі чати» прихована.\nВи можете увімкути її в опціях Kotatogram.",
 	"ktg_filters_hide_edit_toast": "Кнопка «Змінити» прихована.\nВи можете увімкути її в опціях Kotatogram.",
-
-	// This string should always be last for better work with Git.
 	"dummy_last_string": ""
 }

@@ -1,6 +1,7 @@
 {
 	"ktg_intro_about": "Добро пожаловать в неофициальный мессенджер\nна основе Telegram Desktop.",
 	"ktg_about_text1": "Экспериментальный неофициальный форк {tdesktop_link}.",
+	"ktg_about_text1_tdesktop": "Telegram Desktop",
 	"ktg_about_text3": "Посетите {channel_link} или {faq_link} (англ.), чтобы узнать больше.",
 	"ktg_about_text3_channel": "канал Kotatogram",
 	"ktg_new_version": "Kotatogram Desktop обновлён до версии {version} (TD {td_version})\n\nПолную историю изменений можно прочитать здесь:\n{link}",
@@ -60,9 +61,9 @@
 	"ktg_net_speed_boost_medium": "Среднее",
 	"ktg_net_speed_boost_big": "Высокое",
 	"ktg_settings_system": "Система",
-	"ktg_settings_qt_scale": "Использовать масштабирование Qt",
+	"ktg_settings_qt_scale": "Движок масштабирования Qt",
 	"ktg_settings_gtk_integration": "GTK-интеграция",
-	"ktg_settings_file_dialog_type": "Файловый диалог",
+	"ktg_settings_file_dialog_type": "Диалог выбора файлов",
 	"ktg_file_dialog_type_default": "По умолчанию",
 	"ktg_file_dialog_disabled_on_build": "Отключено при сборке",
 	"ktg_file_dialog_disabled_by_option": "Отключено настройкой",
@@ -81,7 +82,9 @@
 	"ktg_settings_disable_sound_from_tray": "Отключить звук",
 	"ktg_settings_enable_sound_from_tray": "Включить звук",
 	"ktg_settings_recent_stickers_limit": {
+		"zero": "Недавние стикеры: показывать {count} стикеров",
 		"one": "Недавние стикеры: показывать {count} стикер",
+		"two": "Недавние стикеры: показывать {count} стикеров",
 		"few": "Недавние стикеры: показывать {count} стикера",
 		"many": "Недавние стикеры: показывать {count} стикеров",
 		"other": "Недавние стикеры: показывать {count} стикеров"
@@ -126,7 +129,9 @@
 	"ktg_message_id": "ID сообщения: {id}",
 	"ktg_emoji_panel_hover": "Панель эмодзи по наведению",
 	"ktg_local_storage_limit_days": {
+		"zero": "{count} дней",
 		"one": "{count} дня",
+		"two": "{count} дней",
 		"few": "{count} дней",
 		"many": "{count} дней",
 		"other": "{count} дней"
@@ -150,14 +155,18 @@
 	"ktg_too_many_accounts_warning": "Внимание! Использование слишком большого количества аккаунтов одновременно не рекомендуется из-за высокого потребления памяти, а также возможных вылетов из-за этого.\n\nВы точно хотите добавить новый аккаунт?",
 	"ktg_account_add_anyway": "Всё равно добавить",
 	"ktg_media_selected_gif": {
+		"zero": "{count} GIF",
 		"one": "{count} GIF",
+		"two": "{count} GIF",
 		"few": "{count} GIF",
 		"many": "{count} GIF",
 		"other": "{count} GIF"
 	},
 	"ktg_media_type_gif": "GIF",
 	"ktg_profile_gif": {
+		"zero": "{count} GIF",
 		"one": "{count} GIF",
+		"two": "{count} GIF",
 		"few": "{count} GIF",
 		"many": "{count} GIF",
 		"other": "{count} GIF"
@@ -171,7 +180,6 @@
 	"ktg_admin_log_banned_send_gif": "Отправка GIF",
 	"ktg_admin_log_banned_send_games": "Отправка игр",
 	"ktg_admin_log_banned_use_inline": "Отправка через ботов",
-
 	"ktg_forward_go_to_chat": "Перейти в чат",
 	"ktg_settings_forward": "Пересылка",
 	"ktg_settings_forward_retain_selection": "Сохранять выделение после пересылки",
@@ -208,6 +216,5 @@
 	"ktg_filters_hide_button": "Скрыть кнопку",
 	"ktg_filters_hide_all_chats_toast": "Папка «Все чаты» скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
 	"ktg_filters_hide_edit_toast": "Кнопка изменения скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
-
 	"dummy_last_string": ""
 }
