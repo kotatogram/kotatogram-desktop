@@ -518,7 +518,7 @@ bool ParseCommonMap(
 	const auto types = (*it).toObject();
 	const auto list = [&]() -> std::vector<QString> {
 		if (cAlphaVersion()) {
-			return { "alpha", "beta", "stable" };
+			return { AppKotatoTestBranch };
 		} else if (cInstallBetaVersion()) {
 			return { "beta", "stable" };
 		}
@@ -541,7 +541,7 @@ bool ParseCommonMap(
 		if (version == map.constEnd()) {
 			continue;
 		}
-		const auto isAvailableAlpha = (type == "alpha");
+		const auto isAvailableAlpha = (type == AppKotatoTestBranch);
 		const auto availableVersion = [&] {
 			if ((*version).isString()) {
 				const auto string = (*version).toString();
@@ -1493,7 +1493,7 @@ bool checkReadyUpdate() {
 				return false;
 			}
 			if (!cAlphaVersion() || alphaVersion <= cAlphaVersion()) {
-				LOG(("Update Error: cant install alpha version %1 having alpha version %2").arg(alphaVersion).arg(cAlphaVersion()));
+				LOG(("Update Error: cant install alpha version %1 having %2 version %3").arg(alphaVersion).arg(AppKotatoTestBranch).arg(cAlphaVersion()));
 				ClearAll();
 				return false;
 			}

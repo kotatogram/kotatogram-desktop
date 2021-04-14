@@ -31,7 +31,7 @@ object_ptr<ConfirmPhoneBox> CurrentConfirmPhoneBox = { nullptr };
 void SendToBannedHelp(const QString &phone) {
 	const auto version = QString::fromLatin1(AppVersionStr)
 		+ (cAlphaVersion()
-			? qsl(" alpha %1").arg(cAlphaVersion())
+			? qsl("-%1.%2").arg(AppKotatoTestBranch).arg(cAlphaVersion() % 1000)
 			: (AppBetaVersion ? " beta" : ""));
 
 	const auto subject = qsl("Banned phone number: ") + phone;

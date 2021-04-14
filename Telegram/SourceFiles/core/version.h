@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 //#include "base/const_string.h"
 #include "kotato/version.h"
 
+/*
 #define TDESKTOP_REQUESTED_ALPHA_VERSION (0ULL)
 
 #ifdef TDESKTOP_ALLOW_CLOSED_ALPHA
@@ -18,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #else // TDESKTOP_ALLOW_CLOSED_ALPHA
 #define TDESKTOP_ALPHA_VERSION (0ULL)
 #endif // TDESKTOP_ALLOW_CLOSED_ALPHA
+*/
 
 // used in Updater.cpp and Setup.iss for Windows
 //constexpr auto AppId = "{53F49750-6209-4FBF-9CA8-7A333C87D1ED}"_cs;

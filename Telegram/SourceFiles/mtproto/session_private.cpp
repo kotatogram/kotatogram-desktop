@@ -98,7 +98,9 @@ using namespace details;
 #else // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
 		return Platform::IsWindows64Bit() ? u" x64"_q : QString();
 #endif // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
-	})() + qsl(" (TD %1)").arg(AppVersionStr);
+	})() + (cAlphaVersion()
+			? (qsl("-%1.%2").arg(AppKotatoTestBranch).arg(cAlphaVersion() % 1000))
+			: QString());
 }
 
 void WrapInvokeAfter(

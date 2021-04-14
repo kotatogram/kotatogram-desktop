@@ -105,6 +105,7 @@ void AboutBox::resizeEvent(QResizeEvent *e) {
 }
 
 void AboutBox::showVersionHistory() {
+	/*
 	if (cRealAlphaVersion()) {
 		auto url = qsl("https://tdesktop.com/");
 		if (Platform::IsWindows32Bit()) {
@@ -128,8 +129,11 @@ void AboutBox::showVersionHistory() {
 
 		Ui::show(Box<InformBox>("The link to the current private alpha version of Telegram Desktop was copied to the clipboard."));
 	} else {
+	*/
 		UrlClickHandler::Open(Core::App().changelogLink());
+	/*
 	}
+	*/
 }
 
 void AboutBox::keyPressEvent(QKeyEvent *e) {
@@ -160,7 +164,7 @@ QString telegramFaqLink() {
 QString currentVersionText() {
 	auto result = QString::fromLatin1(AppKotatoVersionStr);
 	if (cAlphaVersion()) {
-		result += qsl(" alpha %1").arg(cAlphaVersion() % 1000);
+		result += qsl("-%1.%2").arg(AppKotatoTestBranch).arg(cAlphaVersion() % 1000);
 	} else if (AppBetaVersion) {
 		result += " beta";
 	}

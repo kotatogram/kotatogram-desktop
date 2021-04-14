@@ -439,7 +439,7 @@ QString LastCrashedWindow::getReportField(const QLatin1String &name, const QLati
 			QString data = lines.at(i).trimmed().mid(prefix.size()).trimmed();
 
 			if (name == qstr("version")) {
-				if (data.endsWith(qstr(" alpha"))) {
+				if (data.endsWith(qstr(" %1").arg(AppKotatoTestBranch))) {
 					data = QString::number(-data.replace(QRegularExpression(qsl("[^\\d]")), "").toLongLong());
 				} else {
 					data = QString::number(data.replace(QRegularExpression(qsl("[^\\d]")), "").toLongLong());

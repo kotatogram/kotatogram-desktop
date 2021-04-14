@@ -25,9 +25,9 @@ if (DESKTOP_APP_DISABLE_AUTOUPDATE)
     target_compile_definitions(Telegram PRIVATE TDESKTOP_DISABLE_AUTOUPDATE)
 endif()
 
-# if (DESKTOP_APP_SPECIAL_TARGET)
-#     target_compile_definitions(Telegram PRIVATE TDESKTOP_ALLOW_CLOSED_ALPHA)
-# endif()
+if (DESKTOP_APP_SPECIAL_TARGET)
+    target_compile_definitions(Telegram PRIVATE TDESKTOP_ALLOW_CLOSED_ALPHA)
+endif()
 
 if (NOT TDESKTOP_LAUNCHER_BASENAME)
     set(TDESKTOP_LAUNCHER_BASENAME "kotatogramdesktop")
