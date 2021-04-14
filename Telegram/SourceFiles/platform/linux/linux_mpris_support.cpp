@@ -33,9 +33,9 @@ namespace Platform {
 namespace internal {
 namespace {
 
-constexpr auto kService = "org.mpris.MediaPlayer2.tdesktop"_cs;
+constexpr auto kService = "org.mpris.MediaPlayer2.Kotatogram"_cs;
 constexpr auto kObjectPath = "/org/mpris/MediaPlayer2"_cs;
-constexpr auto kFakeTrackPath = "/org/telegram/desktop/track/0"_cs;
+constexpr auto kFakeTrackPath = "/org/kotatogram/desktop/track/0"_cs;
 constexpr auto kInterface = "org.mpris.MediaPlayer2"_cs;
 constexpr auto kPlayerInterface = "org.mpris.MediaPlayer2.Player"_cs;
 constexpr auto kPropertiesInterface = "org.freedesktop.DBus.Properties"_cs;
