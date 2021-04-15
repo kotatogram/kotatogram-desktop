@@ -2942,4 +2942,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_filters_hide_all_chats_toast" = "\"All Chats\" folder is hidden.\nYou can enable it back in Kotatogram Settings.";
 "ktg_filters_hide_edit_toast" = "Edit button is hidden.\nYou can enable it back in Kotatogram Settings.";
 
+"ktg_changelog_title" = "Change log";
+"ktg_changelog_base_version" = "Based on Telegram Desktop {td_version}";
+"ktg_changelog_release_date" = "Release date: {date}";
+"ktg_changelog_what_to_test" = "What to test";
+"ktg_changelog_features" = "New features";
+"ktg_changelog_changes" = "Changes";
+"ktg_changelog_fixes" = "Fixes";
+"ktg_changelog_more_info" = "More info";
+"ktg_changelog_load_error" = "Error loading changelog.";
+
 // Keys finished

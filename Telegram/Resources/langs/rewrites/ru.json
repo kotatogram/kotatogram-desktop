@@ -216,5 +216,14 @@
 	"ktg_filters_hide_button": "Скрыть кнопку",
 	"ktg_filters_hide_all_chats_toast": "Папка «Все чаты» скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
 	"ktg_filters_hide_edit_toast": "Кнопка изменения скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
+	"ktg_changelog_title": "Список изменений",
+	"ktg_changelog_base_version": "Основано на Telegram Desktop {td_version}",
+	"ktg_changelog_release_date": "Дата выхода: {date}",
+	"ktg_changelog_what_to_test": "Что тестировать",
+	"ktg_changelog_features": "Новые функции",
+	"ktg_changelog_changes": "Изменения",
+	"ktg_changelog_fixes": "Исправления",
+	"ktg_changelog_more_info": "Подробнее",
+	"ktg_changelog_load_error": "Ошибка загрузки списка изменений.",
 	"dummy_last_string": ""
 }

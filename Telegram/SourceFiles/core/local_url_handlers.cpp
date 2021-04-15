@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/sticker_set_box.h"
 #include "boxes/sessions_box.h"
 #include "boxes/language_box.h"
+#include "kotato/customboxes/changelog_box.h"
 #include "passport/passport_form_controller.h"
 #include "window/window_session_controller.h"
 #include "ui/toast/toast.h"
@@ -351,6 +352,24 @@ bool ResolvePrivatePost(
 	return true;
 }
 
+bool ResolveChangelog(
+		Window::SessionController *controller,
+		const Match &match,
+		const QVariant &context) {
+	if (!controller) {
+		return false;
+	}
+	const auto version = (match->lastCapturedIndex() == 1)
+		? match->captured(1)
+		: QString::fromLatin1(AppKotatoVersionStr)
+			+ (cAlphaVersion()
+				? qsl("-%1.%2").arg(AppKotatoTestBranch).arg(cAlphaVersion() % 1000)
+				: QString());
+
+	Ui::show(Box<Kotato::ChangelogBox>(version));
+	return true;
+}
+
 bool ResolveSettings(
 		Window::SessionController *controller,
 		const Match &match,
@@ -523,6 +542,10 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 		{
 			qsl("^settings(/folders|/devices|/language|/kotato)?$"),
 			ResolveSettings
+		},
+		{
+			qsl("^kotato/changelog/?(?:\\?v=(.+))?$"),
+			ResolveChangelog
 		},
 		{
 			qsl("^([^\\?]+)(\\?|#|$)"),

@@ -626,7 +626,7 @@ MainMenu::MainMenu(
 	_telegram->setRichText(textcmdLink(1, qsl("Kotatogram Desktop")));
 	_telegram->setLink(1, std::make_shared<LambdaClickHandler>([] { Ui::show(Box<AboutBox>()); }));
 	_version->setRichText(textcmdLink(1, currentVersionText()));
-	_version->setLink(1, std::make_shared<UrlClickHandler>(qsl("https://github.com/kotatogram/kotatogram-desktop")));
+	_version->setLink(1, std::make_shared<UrlClickHandler>(Core::App().changelogLink()));
 
 	_controller->session().downloaderTaskFinished(
 	) | rpl::start_with_next([=] {

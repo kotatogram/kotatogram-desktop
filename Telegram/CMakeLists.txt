@@ -678,6 +678,8 @@ PRIVATE
     intro/intro_step.h
     intro/intro_widget.cpp
     intro/intro_widget.h
+    kotato/customboxes/changelog_box.cpp
+    kotato/customboxes/changelog_box.h
     kotato/customboxes/confirm_box.cpp
     kotato/customboxes/confirm_box.h
     kotato/customboxes/fonts_box.cpp
