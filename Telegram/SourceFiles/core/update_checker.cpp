@@ -613,7 +613,7 @@ HttpChecker::HttpChecker(bool testing) : Checker(testing) {
 
 void HttpChecker::start() {
 	const auto path = Local::readAutoupdatePrefix()
-		+ qstr("/current");
+		+ qstr("/updates.json");
 	auto url = QUrl(path);
 	DEBUG_LOG(("Update Info: requesting update state"));
 	const auto request = QNetworkRequest(url);
@@ -726,7 +726,7 @@ std::optional<QString> HttpChecker::parseResponse(
 	return validateLatestUrl(
 		bestAvailableVersion,
 		bestIsAvailableAlpha,
-		Local::readAutoupdatePrefix() + bestLink);
+		bestLink);
 }
 
 QString HttpChecker::validateLatestUrl(
