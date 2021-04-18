@@ -175,7 +175,9 @@ std::unique_ptr<Changelogs> Changelogs::Create(
 	const auto oldVersion = local.oldVersion();
 	const auto oldKotatoVersion = Local::oldKotatoVersion();
 	local.clearOldVersion();
-	return (!cKotatoFirstRun() && oldKotatoVersion < AppKotatoVersion)
+	return (!cKotatoFirstRun()
+		&& oldVersion != 0
+		&& oldKotatoVersion < AppKotatoVersion)
 		? std::make_unique<Changelogs>(session, oldVersion, oldKotatoVersion)
 		: nullptr;
 }
