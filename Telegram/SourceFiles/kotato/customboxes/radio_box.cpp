@@ -101,10 +101,10 @@ void RadioBox::prepare() {
 
 	if (!_description.isEmpty()) {
 		content->add(
-			object_ptr<Ui::FlatLabel>(this, _description, st::boxLabel),
+			object_ptr<Ui::FlatLabel>(this, _description, st::boxDividerLabel),
 			style::margins(
 				st::boxPadding.left(),
-				st::boxPadding.bottom(),
+				0,
 				st::boxPadding.right(),
 				st::boxPadding.bottom()));
 	}
