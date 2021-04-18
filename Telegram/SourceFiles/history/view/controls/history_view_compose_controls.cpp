@@ -1498,7 +1498,7 @@ void ComposeControls::initTabbedSelector() {
 	}
 
 	base::install_event_filter(_tabbedSelectorToggle, [=](not_null<QEvent*> e) {
-		if (e->type() == QEvent::ContextMenu && !HoverEmojiPanel()) {
+		if (e->type() == QEvent::ContextMenu && !HoverEmojiPanel() && _tabbedPanel) {
 			_tabbedPanel->toggleAnimated();
 			return base::EventFilterResult::Cancel;
 		}
