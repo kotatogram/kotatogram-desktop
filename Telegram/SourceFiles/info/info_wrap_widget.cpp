@@ -506,7 +506,7 @@ void WrapWidget::addProfileNotificationsButton() {
 	Expects(_topBar != nullptr);
 
 	const auto peer = key().peer();
-	if (!peer) {
+	if (!peer || peer->isSelf()) {
 		return;
 	}
 	auto notifications = _topBar->addButton(
