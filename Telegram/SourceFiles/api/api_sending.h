@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "data/data_file_origin.h"
+
 class History;
 class PhotoData;
 class DocumentData;
@@ -24,6 +26,20 @@ namespace Api {
 
 struct MessageToSend;
 struct SendAction;
+
+struct ExistingAlbumItem {
+	PhotoData* photo;
+	DocumentData* document;
+	MTPInputMedia inputMedia;
+	Data::FileOrigin origin;
+	TextWithEntities text;
+};
+
+void SendExistingAlbum(
+	Api::MessageToSend &&message,
+	std::vector<ExistingAlbumItem> &&items,
+	Fn<void()> doneCallback = nullptr,
+	bool forwarding = false);
 
 void SendExistingDocument(
 	Api::MessageToSend &&message,

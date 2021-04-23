@@ -3881,168 +3881,42 @@ void ApiWrap::forwardMessagesUnquoted(
 			++shared->requestsLeft;
 		}
 
-		const auto medias = std::make_shared<QVector<Data::Media*>>();
-		const auto mediaInputs = std::make_shared<QVector<MTPInputSingleMedia>>();
-		const auto mediaRefs = std::make_shared<QVector<QByteArray>>();
-		mediaInputs->reserve(ids.size());
-		mediaRefs->reserve(ids.size());
-
-		const auto views = 1;
-		const auto forwards = 0;
-		const auto newGroupId = openssl::RandomValue<uint64>();
-
-		auto msgFlags = NewMessageFlags(peer) | MTPDmessage::Flag::f_media;
-		auto clientFlags = NewMessageClientFlags();
-
-		FillMessagePostFlags(action, peer, msgFlags);
-
-		if (action.options.scheduled) {
-			msgFlags |= MTPDmessage::Flag::f_from_scheduled;
-		} else {
-			clientFlags |= MTPDmessage_ClientFlag::f_local_history_entry;
-		}
+		std::vector<Api::ExistingAlbumItem> items;
 
 		for (auto i = fromIter, e = toIter; i != e; i++) {
 			const auto item = *i;
 			const auto media = item->media();
-			medias->push_back(media);
-
-			const auto inputMedia = media->photo()
-				? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
-				: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint(), MTPstring());
-			auto caption = cForwardCaptioned()
-					? item->originalText()
-					: TextWithEntities();
-			auto sentEntities = Api::EntitiesToMTP(
-				_session,
-				caption.entities,
-				Api::ConvertOption::SkipLocal);
-
-			const auto flags = !sentEntities.v.isEmpty()
-					? MTPDinputSingleMedia::Flag::f_entities
-					: MTPDinputSingleMedia::Flag(0);
-
-			const auto newId = FullMsgId(
-				peerToChannel(peer->id),
-				_session->data().nextLocalMessageId());
-			auto randomId = randomIds.takeFirst();
-
-			mediaInputs->push_back(MTP_inputSingleMedia(
-				MTP_flags(flags),
-				inputMedia,
-				MTP_long(randomId),
-				MTP_string(caption.text),
-				sentEntities));
-
-			_session->data().registerMessageRandomId(randomId, newId);
-
+			auto albumItem = Api::ExistingAlbumItem();
 			if (const auto photo = media->photo()) {
-				history->addNewLocalMessage(
-					newId.msg,
-					msgFlags,
-					clientFlags,
-					0, // viaBotId
-					0, // replyTo
-					HistoryItem::NewMessageDate(action.options.scheduled),
-					messageFromId,
-					messagePostAuthor,
-					photo,
-					caption,
-					MTPReplyMarkup(),
-					newGroupId);
+				albumItem.photo = photo;
+				albumItem.inputMedia = MTP_inputMediaPhoto(
+					MTP_flags(0), photo->mtpInput(), MTPint());
 			} else if (const auto document = media->document()) {
-				history->addNewLocalMessage(
-					newId.msg,
-					msgFlags,
-					clientFlags,
-					0, // viaBotId
-					0, // replyTo
-					HistoryItem::NewMessageDate(action.options.scheduled),
-					messageFromId,
-					messagePostAuthor,
-					document,
-					caption,
-					MTPReplyMarkup(),
-					newGroupId);
+				albumItem.document = document;
+				albumItem.inputMedia = MTP_inputMediaDocument(
+					MTP_flags(0), document->mtpInput(), MTPint(), MTPstring());
+				albumItem.origin = document->stickerOrGifOrigin();
 			}
+			albumItem.text = cForwardCaptioned()
+				? item->originalText()
+				: TextWithEntities();
+
+			items.push_back(albumItem);
 		}
 
-		const auto finalFlags = MTPmessages_SendMultiMedia::Flags(0)
-			| (action.options.silent
-				? MTPmessages_SendMultiMedia::Flag::f_silent
-				: MTPmessages_SendMultiMedia::Flag(0))
-			| (action.options.scheduled
-				? MTPmessages_SendMultiMedia::Flag::f_schedule_date
-				: MTPmessages_SendMultiMedia::Flag(0));
-
-		const auto requestType = Data::Histories::RequestType::Send;
-		auto performRequest = [=, &histories](const auto &repeatRequest) -> void {
-			mediaRefs->clear();
-			for (auto i = medias->begin(), e = medias->end(); i != e; i++) {
-				const auto media = *i;
-				mediaRefs->push_back(media->photo()
-					? media->photo()->fileReference()
-					: media->document()->fileReference());
+		auto doneCallback = [=] () {
+			if (shared && !--shared->requestsLeft) {
+				shared->callback();
 			}
-			histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
-				history->sendRequestId = request(MTPmessages_SendMultiMedia(
-					MTP_flags(finalFlags),
-					peer->input,
-					MTPint(),
-					MTP_vector<MTPInputSingleMedia>(*mediaInputs),
-					MTP_int(action.options.scheduled)
-				)).done([=](const MTPUpdates &result) {
-					applyUpdates(result);
-					if (shared && !--shared->requestsLeft) {
-						shared->callback();
-					}
-					finish();
-				}).fail([=](const MTP::Error &error) {
-					if (error.code() == 400
-						&& error.type().startsWith(qstr("FILE_REFERENCE_"))) {
-						auto refreshRequests = mediaRefs->size();
-						auto index = 0;
-						auto wasUpdated = false;
-						for (auto i = medias->begin(), e = medias->end(); i != e; i++) {
-							const auto media = *i;
-							const auto origin = media->document()
-									? media->document()->stickerOrGifOrigin()
-									: Data::FileOrigin();
-							const auto usedFileReference = mediaRefs->value(index);
-							
-							refreshFileReference(origin, [=, &refreshRequests, &wasUpdated](const auto &result) {
-								const auto currentMediaReference = media->photo()
-									? media->photo()->fileReference()
-									: media->document()->fileReference();
-
-								if (currentMediaReference != usedFileReference) {
-									wasUpdated = true;
-								}
-
-								if (refreshRequests > 0) {
-									refreshRequests--;
-									return;
-								}
-
-								if (wasUpdated) {
-									repeatRequest(repeatRequest);
-								} else {
-									sendMessageFail(error, peer);
-								}
-							});
-							index++;
-						}
-					} else {
-						sendMessageFail(error, peer);
-					}
-					finish();
-				}).afterRequest(
-					history->sendRequestId
-				).send();
-				return history->sendRequestId;
-			});
 		};
-		performRequest(performRequest);
+
+		auto message = ApiWrap::MessageToSend(history);
+
+		Api::SendExistingAlbum(
+			std::move(message),
+			std::move(items),
+			std::move(doneCallback),
+			true); // forwarding
 	};
 
 	const auto forwardMediaUnquoted = [&] (not_null<HistoryItem *> item) {
