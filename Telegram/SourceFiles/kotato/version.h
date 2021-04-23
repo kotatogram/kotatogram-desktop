@@ -17,9 +17,9 @@ constexpr auto AppKotatoVersionStr = "1.4";
 constexpr auto AppBetaVersion = false;
 
 // Test branch related
-constexpr auto AppKotatoTestBranch = "dev";
+constexpr auto AppKotatoTestBranch = "test";
 
-#define TDESKTOP_REQUESTED_ALPHA_VERSION (0ULL)
+#define TDESKTOP_REQUESTED_ALPHA_VERSION (1004000001ULL)
 
 #ifdef TDESKTOP_ALLOW_CLOSED_ALPHA
 #define TDESKTOP_ALPHA_VERSION TDESKTOP_REQUESTED_ALPHA_VERSION
