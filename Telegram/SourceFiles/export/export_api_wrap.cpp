@@ -49,25 +49,13 @@ std::tuple<const uint64 &, const uint64 &> value_ordering_helper(const LocationK
 LocationKey ComputeLocationKey(const Data::FileLocation &value) {
 	auto result = LocationKey();
 	result.type = value.dcId;
-	value.data.match([&](const MTPDinputFileLocation &data) {
-		result.type |= (1ULL << 24);
-		result.type |= (uint64(uint32(data.vlocal_id().v)) << 32);
-		result.id = data.vvolume_id().v;
-	}, [&](const MTPDinputDocumentFileLocation &data) {
+	value.data.match([&](const MTPDinputDocumentFileLocation &data) {
 		const auto letter = data.vthumb_size().v.isEmpty()
 			? char(0)
 			: data.vthumb_size().v[0];
 		result.type |= (2ULL << 24);
 		result.type |= (uint64(uint32(letter)) << 16);
 		result.id = data.vid().v;
-	}, [&](const MTPDinputSecureFileLocation &data) {
-		result.type |= (3ULL << 24);
-		result.id = data.vid().v;
-	}, [&](const MTPDinputEncryptedFileLocation &data) {
-		result.type |= (4ULL << 24);
-		result.id = data.vid().v;
-	}, [&](const MTPDinputTakeoutFileLocation &data) {
-		result.type |= (5ULL << 24);
 	}, [&](const MTPDinputPhotoFileLocation &data) {
 		const auto letter = data.vthumb_size().v.isEmpty()
 			? char(0)
@@ -75,22 +63,10 @@ LocationKey ComputeLocationKey(const Data::FileLocation &value) {
 		result.type |= (6ULL << 24);
 		result.type |= (uint64(uint32(letter)) << 16);
 		result.id = data.vid().v;
-	}, [&](const MTPDinputPeerPhotoFileLocation &data) {
-		const auto letter = data.is_big() ? char(1) : char(0);
-		result.type |= (7ULL << 24);
-		result.type |= (uint64(uint32(data.vlocal_id().v)) << 32);
-		result.type |= (uint64(uint32(letter)) << 16);
-		result.id = data.vvolume_id().v;
-	}, [&](const MTPDinputStickerSetThumb &data) {
-		result.type |= (8ULL << 24);
-		result.type |= (uint64(uint32(data.vlocal_id().v)) << 32);
-		result.id = data.vvolume_id().v;
-	}, [&](const MTPDinputPhotoLegacyFileLocation &data) {
-		result.type |= (9ULL << 24);
-		result.type |= (uint64(uint32(data.vlocal_id().v)) << 32);
-		result.id = data.vvolume_id().v;
-	}, [&](const MTPDinputGroupCallStream &data) {
-		result.type = (10ULL << 24);
+	}, [&](const MTPDinputTakeoutFileLocation &data) {
+		result.type |= (5ULL << 24);
+	}, [](const auto &data) {
+		Unexpected("File location type in Export::ComputeLocationKey.");
 	});
 	return result;
 }
@@ -208,7 +184,7 @@ struct ApiWrap::ChatsProcess {
 
 	Data::DialogsInfo info;
 	int processedCount = 0;
-	std::map<Data::PeerId, int> indexByPeer;
+	std::map<PeerId, int> indexByPeer;
 };
 
 struct ApiWrap::LeftChannelsProcess : ChatsProcess {
@@ -675,7 +651,7 @@ void ApiWrap::startMainSession(FnMut<void()> done) {
 		for (const auto &user : result.v) {
 			user.match([&](const MTPDuser &data) {
 				if (data.is_self()) {
-					_selfId = data.vid().v;
+					_selfId.emplace(data.vid());
 				}
 			}, [&](const MTPDuserEmpty&) {
 			});
@@ -974,7 +950,7 @@ void ApiWrap::requestMessages(
 	Expects(_selfId.has_value());
 
 	_chatProcess = std::make_unique<ChatProcess>();
-	_chatProcess->context.selfPeerId = Data::UserPeerId(*_selfId);
+	_chatProcess->context.selfPeerId = peerFromUser(*_selfId);
 	_chatProcess->info = info;
 	_chatProcess->start = std::move(start);
 	_chatProcess->fileProgress = std::move(progress);
@@ -1366,7 +1342,7 @@ void ApiWrap::appendChatsSlice(
 	for (auto &info : filtered) {
 		const auto nextIndex = to.size();
 		if (info.migratedToChannelId) {
-			const auto toPeerId = Data::ChatPeerId(info.migratedToChannelId);
+			const auto toPeerId = PeerId(info.migratedToChannelId);
 			const auto i = process.indexByPeer.find(toPeerId);
 			if (i != process.indexByPeer.end()
 				&& Data::AddMigrateFromSlice(
@@ -1939,7 +1915,7 @@ void ApiWrap::filePartExtractReference(
 		Expects(_selfId.has_value());
 
 		auto context = Data::ParseMediaContext();
-		context.selfPeerId = Data::UserPeerId(*_selfId);
+		context.selfPeerId = peerFromUser(*_selfId);
 		const auto messages = Data::ParseMessagesSlice(
 			context,
 			data.vmessages(),

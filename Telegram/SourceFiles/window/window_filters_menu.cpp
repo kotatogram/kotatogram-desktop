@@ -465,7 +465,7 @@ void FiltersMenu::remove(FilterId id) {
 		auto &localFolders = cRefLocalFolders();
 		const auto j = ranges::find_if(localFolders, [id, account](LocalFolder localFolder) {
 			return (id == localFolder.id
-				&& account->isCurrent(localFolder.ownerId));
+				&& account->isCurrent(localFolder.ownerId, localFolder.isTest));
 		});
 		filters->remove(id);
 		localFolders.erase(j);

@@ -63,17 +63,18 @@ ChatFilter ChatFilter::local(
 		not_null<Session*> owner) {
 	const auto flags = Flag(data.flags);
 	auto &&to_histories = ranges::view::transform([&](
-			const LocalFolder::Peer &filterPeer) {
+			const uint64 &filterPeer) {
 		PeerData *peer = nullptr;
+		auto peerId = PeerId(filterPeer);
 
-		if (filterPeer.type == LocalFolder::Peer::Type::User) {
-			const auto user = owner->user(filterPeer.id);
+		if (peerIsUser(peerId)) {
+			const auto user = owner->user(peerToUser(peerId).bare);
 			peer = (PeerData *)user;
-		} else if (filterPeer.type == LocalFolder::Peer::Type::Chat) {
-			const auto chat = owner->chat(filterPeer.id);
+		} else if (peerIsChat(peerId)) {
+			const auto chat = owner->chat(peerToChat(peerId).bare);
 			peer = (PeerData *)chat;
-		} else if (filterPeer.type == LocalFolder::Peer::Type::Channel) {
-			const auto channel = owner->channel(filterPeer.id);
+		} else if (peerIsChannel(peerId)) {
+			const auto channel = owner->channel(peerToChannel(peerId).bare);
 			peer = (PeerData *)channel;
 		}
 		return peer ? owner->history(peer).get() : nullptr;
@@ -215,70 +216,30 @@ MTPDialogFilter ChatFilter::tl(FilterId replaceId) const {
 
 LocalFolder ChatFilter::toLocal(int cloudOrder, FilterId replaceId) const {
 	auto always = _always;
-	auto pinned = std::vector<LocalFolder::Peer>();
+	auto pinned = std::vector<uint64>();
 	pinned.reserve(_pinned.size());
 	for (const auto history : _pinned) {
 		const auto &peer = history->peer;
-		const auto hash = peer->isChannel()
-			? peer->asChannel()->access
-			: peer->isUser()
-				? peer->asUser()->accessHash()
-				: 0;
-
-		pinned.push_back({
-			.type = history->peer->isChannel()
-				? LocalFolder::Peer::Type::Channel
-				: history->peer->isChat()
-				? LocalFolder::Peer::Type::Chat
-				: LocalFolder::Peer::Type::User,
-			.id = peerToBareInt(peer->id)
-		});
+		pinned.push_back(peer->id.value);
 		always.remove(history);
 	}
-	auto include = std::vector<LocalFolder::Peer>();
+	auto include = std::vector<uint64>();
 	include.reserve(always.size());
 	for (const auto history : always) {
 		const auto &peer = history->peer;
-		const auto hash = peer->isChannel()
-			? peer->asChannel()->access
-			: peer->isUser()
-				? peer->asUser()->accessHash()
-				: 0;
-
-		include.push_back({
-			.type = history->peer->isChannel()
-				? LocalFolder::Peer::Type::Channel
-				: history->peer->isChat()
-				? LocalFolder::Peer::Type::Chat
-				: LocalFolder::Peer::Type::User,
-			.id = peerToBareInt(peer->id)
-		});
+		include.push_back(peer->id.value);
 	}
-	auto never = std::vector<LocalFolder::Peer>();
+	auto never = std::vector<uint64>();
 	never.reserve(_never.size());
 	for (const auto history : _never) {
 		const auto &peer = history->peer;
-		const auto hash = peer->isChannel()
-			? peer->asChannel()->access
-			: peer->isUser()
-				? peer->asUser()->accessHash()
-				: 0;
-
-		never.push_back({
-			.type = history->peer->isChannel()
-				? LocalFolder::Peer::Type::Channel
-				: history->peer->isChat()
-				? LocalFolder::Peer::Type::Chat
-				: LocalFolder::Peer::Type::User,
-			.id = peerToBareInt(peer->id)
-		});
+		never.push_back(peer->id.value);
 	}
 	const auto &session = App::main()->session();
 	return {
 		.id = replaceId ? replaceId : _id,
-		.ownerId = session.mtp().isTestMode()
-				? -session.userId()
-				: session.userId(),
+		.ownerId = session.userId().bare,
+		.isTest = session.mtp().isTestMode(),
 		.cloudOrder = cloudOrder,
 		.name = _title,
 		.emoticon = _iconEmoji,
@@ -490,7 +451,7 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	// First we're adding cloud filters and corresponding local filters.
 	for (const auto &filter : list) {
 		for (const auto &localFilter : localFilters) {
-			if (!account->isCurrent(localFilter.ownerId)
+			if (!account->isCurrent(localFilter.ownerId, localFilter.isTest)
 				|| localFilter.cloudOrder != originalPosition) {
 				continue;
 			}
@@ -503,7 +464,7 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	// Then we adding local filters, retaining cloud order
 	while (originalPosition < kFiltersLimit) {
 		for (const auto &localFilter : localFilters) {
-			if (!account->isCurrent(localFilter.ownerId)
+			if (!account->isCurrent(localFilter.ownerId, localFilter.isTest)
 				|| localFilter.cloudOrder != originalPosition) {
 				continue;
 			}
@@ -514,7 +475,7 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 
 	// And finally we adding other filters
 	for (const auto &localFilter : localFilters) {
-		if (!account->isCurrent(localFilter.ownerId)
+		if (!account->isCurrent(localFilter.ownerId, localFilter.isTest)
 			|| localFilter.cloudOrder < kFiltersLimit) {
 			continue;
 		}
@@ -740,7 +701,7 @@ void ChatFilters::saveOrder(
 		if ((*i).isLocal()) {
 			auto j = ranges::find_if(localFolders, [id, account](LocalFolder localFolder) {
 				return (id == localFolder.id
-					&& account->isCurrent(localFolder.ownerId));
+					&& account->isCurrent(localFolder.ownerId, localFolder.isTest));
 			});
 			(*j).cloudOrder = cloudIds.size();
 			std::rotate(j, j+1, localFolders.end());
@@ -884,7 +845,7 @@ void ChatFilters::saveLocal(FilterId filterId) {
 	const auto account = &_owner->session().account();
 	const auto j = ranges::find_if(localFolders, [filterId, account](LocalFolder localFolder) {
 		return (filterId == localFolder.id
-			&& account->isCurrent(localFolder.ownerId));
+			&& account->isCurrent(localFolder.ownerId, localFolder.isTest));
 	});
 	Assert(i != end(_list));
 	Assert(j != end(localFolders));

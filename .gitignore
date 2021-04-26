@@ -49,3 +49,5 @@ stage
 /Linux/
 /Telegram/Makefile
 *.*~
+.idea/
+cmake-build-debug/

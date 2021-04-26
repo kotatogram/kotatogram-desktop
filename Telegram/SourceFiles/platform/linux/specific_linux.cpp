@@ -748,8 +748,13 @@ void start() {
 
 	if (const auto integration = BaseGtkIntegration::Instance()) {
 		integration->prepareEnvironment();
+		integration->load();
 	} else {
-		g_warning("GTK integration is disabled, some feature unavailable.");
+		g_warning("GTK integration is disabled, some features unavailable.");
+	}
+
+	if (const auto integration = GtkIntegration::Instance()) {
+		integration->load();
 	}
 
 #ifdef DESKTOP_APP_USE_PACKAGED_RLOTTIE
@@ -948,11 +953,7 @@ namespace ThirdParty {
 
 void start() {
 	if (const auto integration = BaseGtkIntegration::Instance()) {
-		integration->load();
-	}
-
-	if (const auto integration = GtkIntegration::Instance()) {
-		integration->load();
+		integration->initializeSettings();
 	}
 
 	if (!cQtScale()) {

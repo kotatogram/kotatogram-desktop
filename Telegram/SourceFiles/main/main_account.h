@@ -110,9 +110,9 @@ public:
 	[[nodiscard]] int defaultFilterId() {
 		return _defaultFilterId;
 	}
-	void setDefaultFilterId(int id);
+	void setDefaultFilterId(uint64 id);
 
-	[[nodiscard]] bool isCurrent(int id);
+	[[nodiscard]] bool isCurrent(uint64 id, bool testMode);
 
 	void addToRecent(PeerId id);
 	[[nodiscard]] bool isRecent(PeerId id);
@@ -164,7 +164,7 @@ private:
 	bool _loggingOut = false;
 	int _defaultFilterId = 0;
 
-	QSet<PeerId> _recent;
+	QSet<uint64> _recent;
 
 	rpl::lifetime _lifetime;
 

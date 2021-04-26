@@ -27,13 +27,14 @@ You will require **api_id** and **api_hash** to access the Telegram API servers.
 * Download **CMake** installer from [https://cmake.org/download/](https://cmake.org/download/) and install to ***BuildPath*\\ThirdParty\\cmake**
 * Download **Ninja** executable from [https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-win.zip](https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-win.zip) and unpack to ***BuildPath*\\ThirdParty\\Ninja**
 * Download **Git** installer from [https://git-scm.com/download/win](https://git-scm.com/download/win) and install it.
+* Download **NuGet** executable from [https://dist.nuget.org/win-x86-commandline/latest/nuget.exe](https://www.nuget.org/downloads) and put to ***BuildPath*\\ThirdParty\\NuGet**
 
 Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** and run
 
     cd ThirdParty
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 41ead72
+    git checkout ad34925
     cd ../
     git clone https://chromium.googlesource.com/external/gyp
     cd gyp
@@ -45,7 +46,7 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
 Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** and run
 
-    SET PATH=%cd%\ThirdParty\gyp;%cd%\ThirdParty\Ninja;%cd%\ThirdParty\Strawberry\perl\bin;%cd%\ThirdParty\Python27;%cd%\ThirdParty\NASM;%cd%\ThirdParty\jom;%cd%\ThirdParty\cmake\bin;%cd%\ThirdParty\yasm;%PATH%
+    SET PATH=%cd%\ThirdParty\NuGet;%cd%\ThirdParty\gyp;%cd%\ThirdParty\Ninja;%cd%\ThirdParty\Strawberry\perl\bin;%cd%\ThirdParty\Python27;%cd%\ThirdParty\NASM;%cd%\ThirdParty\jom;%cd%\ThirdParty\cmake\bin;%cd%\ThirdParty\yasm;%PATH%
 
     git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git
 
@@ -54,7 +55,7 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 41ead72
+    git checkout ad34925
     cd ..
 
     git clone https://github.com/desktop-app/lzma.git

@@ -170,23 +170,23 @@ bool gUseTelegramPanelIcon = false;
 int gCustomAppIcon = 0;
 
 DefaultFilterMap gDefaultFilterId;
-void SetDefaultFilterId(int account, int filter) {
+void SetDefaultFilterId(QString account, int filter) {
 	if (gDefaultFilterId.contains(account)) {
 		gDefaultFilterId[account] = filter;
 	} else {
 		gDefaultFilterId.insert(account, filter);
 	}
 }
-int DefaultFilterId(int account) {
+int DefaultFilterId(QString account) {
 	if (gDefaultFilterId.contains(account)) {
 		return gDefaultFilterId[account];
 	}
 	return 0;
 }
-bool HasDefaultFilterId(int account) {
+bool HasDefaultFilterId(QString account) {
 	return gDefaultFilterId.contains(account);
 }
-bool ClearDefaultFilterId(int account) {
+bool ClearDefaultFilterId(QString account) {
 	return gDefaultFilterId.remove(account);
 }
 bool gUnmutedFilterCounterOnly = false;

@@ -627,7 +627,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			if (row.filter.isLocal()) {
 				const auto j = ranges::find_if(localFolders, [id, account](LocalFolder localFolder) {
 					return (id == localFolder.id
-						&& account->isCurrent(localFolder.ownerId));
+						&& account->isCurrent(localFolder.ownerId, localFolder.isTest));
 				});
 
 				if (j == end(localFolders)) {

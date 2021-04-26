@@ -125,7 +125,7 @@ private:
 }
 
 [[nodiscard]] uint64 TypeId(Flag flag) {
-	return PeerIdFakeShift | static_cast<uint64>(flag);
+	return PeerId(FakeChatId(static_cast<BareId>(flag))).value;
 }
 
 TypeRow::TypeRow(Flag flag) : PeerListRow(TypeId(flag)) {

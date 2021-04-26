@@ -71,13 +71,19 @@ void StripExternalLinks(TextWithEntities &text) {
 } // namespace
 
 QString IDString(not_null<PeerData*> peer) {
-	auto resultId = QString::number(peer->bareId());
+	auto resultId = QString::number(peerIsUser(peer->id)
+		? peerToUser(peer->id).bare
+		: peerIsChat(peer->id)
+		? peerToChat(peer->id).bare
+		: peerIsChannel(peer->id)
+		? peerToChannel(peer->id).bare
+		: peer->id.value);
 
 	if (cShowChatId() == 2) {
 		if (peer->isChannel()) {
-			resultId = QString::number(kMaxChannelId - peer->bareId());
+			resultId = QString::number(peerToChannel(peer->id).bare - kMaxChannelId).prepend("-");
 		} else if (peer->isChat()) {
-			resultId = QString::number(-peer->bareId());
+			resultId = resultId.prepend("-");
 		}
 	}
 

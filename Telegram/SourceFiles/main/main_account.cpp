@@ -36,6 +36,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Main {
 namespace {
 
+constexpr auto kWideIdsTag = ~uint64(0);
+
 [[nodiscard]] QString ComposeDataString(const QString &dataName, int index) {
 	auto result = dataName;
 	result.replace('#', QString());
@@ -128,7 +130,7 @@ uint64 Account::willHaveSessionUniqueId(MTP::Config *config) const {
 	if (!_sessionUserId) {
 		return 0;
 	}
-	return uint64(uint32(_sessionUserId))
+	return _sessionUserId.bare
 		| (config && config->isTestMode() ? 0x0100'0000'0000'0000ULL : 0ULL);
 }
 
@@ -156,7 +158,7 @@ void Account::createSession(
 	createSession(
 		MTP_user(
 			MTP_flags(flags),
-			MTP_int(base::take(_sessionUserId)),
+			MTP_int(base::take(_sessionUserId).bare), // #TODO ids
 			MTPlong(), // access_hash
 			MTPstring(), // first_name
 			MTPstring(), // last_name
@@ -190,13 +192,15 @@ void Account::createSession(
 
 	Ensures(_session != nullptr);
 
-	const auto defaultFilterUserId = _mtp->isTestMode()
-			? -session().userId()
-			: session().userId();
+	auto defaultFilterUserId = QString::number(session().userId().bare);
 
-	if (HasDefaultFilterId(0)) {
-		const auto newDefaultFilterId = DefaultFilterId(0);
-		ClearDefaultFilterId(0);
+	if (_mtp->isTestMode()) {
+		defaultFilterUserId.prepend("test_");
+	}
+
+	if (HasDefaultFilterId("0")) {
+		const auto newDefaultFilterId = DefaultFilterId("0");
+		ClearDefaultFilterId("0");
 		setDefaultFilterId(newDefaultFilterId);
 		Kotato::JsonSettings::Write();
 	} else {
@@ -290,7 +294,8 @@ QByteArray Account::serializeMtpAuthorization() const {
 		};
 
 		auto result = QByteArray();
-		auto size = sizeof(qint32) + sizeof(qint32); // userId + mainDcId
+		// wide tag + userId + mainDcId
+		auto size = 2 * sizeof(quint64) + sizeof(qint32);
 		size += keysSize(keys) + keysSize(keysToDestroy);
 		result.reserve(size);
 		{
@@ -299,12 +304,17 @@ QByteArray Account::serializeMtpAuthorization() const {
 
 			const auto currentUserId = sessionExists()
 				? session().userId()
-				: 0;
-			stream << qint32(currentUserId) << qint32(mainDcId);
+				: UserId();
+			stream
+				<< quint64(kWideIdsTag)
+				<< quint64(currentUserId.bare)
+				<< qint32(mainDcId);
 			writeKeys(stream, keys);
 			writeKeys(stream, keysToDestroy);
 
-			DEBUG_LOG(("MTP Info: Keys written, userId: %1, dcId: %2").arg(currentUserId).arg(mainDcId));
+			DEBUG_LOG(("MTP Info: Keys written, userId: %1, dcId: %2"
+				).arg(currentUserId.bare
+				).arg(mainDcId));
 		}
 		return result;
 	};
@@ -357,8 +367,18 @@ void Account::setMtpAuthorization(const QByteArray &serialized) {
 	QDataStream stream(serialized);
 	stream.setVersion(QDataStream::Qt_5_1);
 
-	auto userId = Serialize::read<qint32>(stream);
-	auto mainDcId = Serialize::read<qint32>(stream);
+	auto legacyUserId = Serialize::read<qint32>(stream);
+	auto legacyMainDcId = Serialize::read<qint32>(stream);
+	auto userId = quint64();
+	auto mainDcId = qint32();
+	if (((uint64(legacyUserId) << 32) | uint64(legacyMainDcId))
+		== kWideIdsTag) {
+		userId = Serialize::read<quint64>(stream);
+		mainDcId = Serialize::read<qint32>(stream);
+	} else {
+		userId = legacyUserId;
+		mainDcId = legacyMainDcId;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("MTP Error: "
 			"Could not read main fields from mtp authorization."));
@@ -589,14 +609,16 @@ void Account::destroyStaleAuthorizationKeys() {
 	}
 }
 
-void Account::setDefaultFilterId(int id) {
+void Account::setDefaultFilterId(uint64 id) {
 	Expects(_mtp != nullptr);
 	Expects(_session != nullptr);
 
 	_defaultFilterId = id;
-	const auto defaultFilterUserId = _mtp->isTestMode()
-			? -session().userId()
-			: session().userId();
+	auto defaultFilterUserId = QString::number(session().userId().bare);
+
+	if (_mtp->isTestMode()) {
+		defaultFilterUserId.prepend("test_");
+	}
 
 	if (id == 0) {
 		ClearDefaultFilterId(defaultFilterUserId);
@@ -605,23 +627,22 @@ void Account::setDefaultFilterId(int id) {
 	}
 }
 
-bool Account::isCurrent(int id) {
+bool Account::isCurrent(uint64 id, bool testMode) {
 	Expects(_mtp != nullptr);
 	Expects(_session != nullptr);
 
-	return id == (_mtp->isTestMode()
-			? -session().userId()
-			: session().userId());
+	return id == session().userId().bare
+		&& _mtp->isTestMode() == testMode;
 }
 
 void Account::addToRecent(PeerId id) {
-	if (!_recent.contains(id)) {
-		_recent << id;
+	if (!_recent.contains(id.value)) {
+		_recent << id.value;
 	}
 }
 
 bool Account::isRecent(PeerId id) {
-	return _recent.contains(id);
+	return _recent.contains(id.value);
 }
 
 void Account::resetAuthorizationKeys() {

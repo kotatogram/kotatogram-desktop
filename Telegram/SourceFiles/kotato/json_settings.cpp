@@ -11,6 +11,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "mainwidget.h"
 #include "window/window_controller.h"
 #include "core/application.h"
+#include "data/data_peer_id.h"
 #include "base/parse_helper.h"
 #include "facades.h"
 #include "ui/widgets/input_fields.h"
@@ -90,7 +91,7 @@ bool ReadObjectOption(QJsonObject obj, QString key, std::function<void(QJsonObje
 	return (readValueResult && readResult);
 }
 
-bool ReadAccountObjectOption(QJsonObject obj, QString key, std::function<void(int, QJsonValue)> callback, std::function<bool(QJsonValue)> test) {
+bool ReadAccountObjectOption(QJsonObject obj, QString key, std::function<void(int, bool, QJsonValue)> callback, std::function<bool(QJsonValue)> test) {
 	auto readResult = false;
 	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
 		if (!v.isObject()) {
@@ -111,14 +112,16 @@ bool ReadAccountObjectOption(QJsonObject obj, QString key, std::function<void(in
 			}
 
 			auto key = i.key();
+			auto isTestAccount = false;
 			if (key.startsWith("test_")) {
-				key = key.mid(5).prepend("-");
+				isTestAccount = true;
+				key = key.mid(5);
 			}
 
-			auto account_id = key.toInt(&isInt, 10);
+			auto accountId = key.toInt(&isInt, 10);
 
 			if (isInt) {
-				callback(account_id, i.value());
+				callback(accountId, isTestAccount, i.value());
 				readResult = true;
 			}
 		}
@@ -232,21 +235,23 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 				continue;
 			}
 
-			auto key = QString::number(std::abs(i.key()));
-
-			if (i.key() < 0) {
-				key.prepend("test_");
-			}
-
-			settingsFoldersDefault.insert(key, value);
+			settingsFoldersDefault.insert(i.key(), value);
 		}
 
-		using PeerType = LocalFolder::Peer::Type;
+		auto peerToLocalBare = [](uint64 peer) {
+			auto peerId = PeerId(peer);
+			return QString::number((peerIsChannel(peerId))
+				? peerToChannel(peerId).bare
+				: (peerIsChat(peerId))
+				? peerToChat(peerId).bare
+				: peerToUser(peerId).bare);
+		};
 
-		auto peerTypeToStr = [](PeerType type) {
-			return (type == PeerType::Channel)
+		auto peerToStr = [](uint64 peer) {
+			auto peerId = PeerId(peer);
+			return (peerIsChannel(peerId))
 				? qsl("channel")
-				: (type == PeerType::Chat)
+				: (peerIsChat(peerId))
 				? qsl("chat")
 				: qsl("user");
 		};
@@ -259,10 +264,10 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 				continue;
 			}
 
-			auto accountId = QString::number(std::abs(folder.ownerId));
+			auto accountId = QString::number(folder.ownerId);
 			auto flags = base::flags<Data::ChatFilter::Flag>::from_raw(folder.flags);
 
-			if (folder.ownerId < 0) {
+			if (folder.isTest) {
 				accountId.prepend("test_");
 			}
 
@@ -326,8 +331,8 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 			auto folderNever = QJsonArray();
 			for (auto peer : folder.never) {
 				auto peerObj = QJsonObject();
-				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
-				peerObj.insert(qsl("id"), peer.id);
+				peerObj.insert(qsl("type"), peerToStr(peer));
+				peerObj.insert(qsl("id"), peerToLocalBare(peer));
 				folderNever << peerObj;
 			}
 			folderObject.insert(qsl("never"), folderNever);
@@ -335,8 +340,8 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 			auto folderPinned = QJsonArray();
 			for (auto peer : folder.pinned) {
 				auto peerObj = QJsonObject();
-				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
-				peerObj.insert(qsl("id"), peer.id);
+				peerObj.insert(qsl("type"), peerToStr(peer));
+				peerObj.insert(qsl("id"), peerToLocalBare(peer));
 				folderPinned << peerObj;
 			}
 			folderObject.insert(qsl("pinned"), folderPinned);
@@ -344,8 +349,8 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 			auto folderAlways = QJsonArray();
 			for (auto peer : folder.always) {
 				auto peerObj = QJsonObject();
-				peerObj.insert(qsl("type"), peerTypeToStr(peer.type));
-				peerObj.insert(qsl("id"), peer.id);
+				peerObj.insert(qsl("type"), peerToStr(peer));
+				peerObj.insert(qsl("id"), peerToLocalBare(peer));
 				folderAlways << peerObj;
 			}
 			folderObject.insert(qsl("always"), folderAlways);
@@ -646,12 +651,16 @@ bool Manager::readCustomFile() {
 
 	ReadObjectOption(settings, "folders", [&](auto o) {
 		auto isDefaultFilterRead = ReadIntOption(o, "default", [&](auto v) {
-			SetDefaultFilterId(0, v);
+			SetDefaultFilterId("0", v);
 		});
 
 		if (!isDefaultFilterRead) {
-			ReadAccountObjectOption(o, "default", [&](auto account_id, auto value) {
-				SetDefaultFilterId(account_id, value.toInt(0));
+			ReadAccountObjectOption(o, "default", [&](auto accountId, auto isTestAccount, auto value) {
+				auto account = QString::number(accountId);
+				if (isTestAccount) {
+					account = account.prepend("test_");
+				}
+				SetDefaultFilterId(account, value.toInt(0));
 			}, [](auto v) {
 				return v.toInt(0) != 0;
 			});
@@ -673,7 +682,7 @@ bool Manager::readCustomFile() {
 			cSetHideFilterAllChats(v);
 		});
 
-		ReadAccountObjectOption(o, "local", [&](auto account_id, auto value) {
+		ReadAccountObjectOption(o, "local", [&](auto accountId, auto isTestAccount, auto value) {
 			auto v = value.toArray();
 			auto &folderOptionRef = cRefLocalFolders();
 			for (auto i = v.constBegin(), e = v.constEnd(); i != e; ++i) {
@@ -683,7 +692,8 @@ bool Manager::readCustomFile() {
 
 				const auto folderObject = (*i).toObject();
 				LocalFolder folderStruct;
-				folderStruct.ownerId = account_id;
+				folderStruct.ownerId = accountId;
+				folderStruct.isTest = isTestAccount;
 				auto flags = base::flags<Data::ChatFilter::Flag>(0);
 
 				ReadIntOption(folderObject, "id", [&](auto id) {
@@ -800,29 +810,35 @@ bool Manager::readCustomFile() {
 						}
 
 						auto peer = (*j).toObject();
-						LocalFolder::Peer peerStruct;
+						BareId peerId = 0;
 
 						auto isPeerIdRead = ReadIntOption(peer, "id", [&](auto id) {
-							peerStruct.id = id;
+							peerId = id;
 						});
 
-						if (peerStruct.id == 0 || !isPeerIdRead) {
+						if (!isPeerIdRead) {
+							isPeerIdRead = ReadStringOption(peer, "id", [&](auto id) {
+								peerId = static_cast<BareId>(id.toLongLong());
+							});
+						}
+
+						if (peerId == 0 || !isPeerIdRead) {
 							continue;
 						}
 
 						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
-							peerStruct.type = (QString::compare(type.toLower(), "channel") == 0)
-								? LocalFolder::Peer::Type::Channel
+							peerId = (QString::compare(type.toLower(), "channel") == 0)
+								? peerFromChannel(ChannelId(peerId)).value
 								: (QString::compare(type.toLower(), "chat") == 0)
-								? LocalFolder::Peer::Type::Chat
-								: LocalFolder::Peer::Type::User;
+								? peerFromChat(ChatId(peerId)).value
+								: peerFromUser(UserId(peerId)).value;
 						});
 
 						if (!isPeerTypeRead) {
-							peerStruct.type = LocalFolder::Peer::Type::User;
+							peerId = peerFromUser(UserId(peerId)).value;
 						}
 
-						folderStruct.never.push_back(peerStruct);
+						folderStruct.never.push_back(peerId);
 					}
 				});
 
@@ -833,29 +849,35 @@ bool Manager::readCustomFile() {
 						}
 
 						auto peer = (*j).toObject();
-						LocalFolder::Peer peerStruct;
+						BareId peerId = 0;
 
 						auto isPeerIdRead = ReadIntOption(peer, "id", [&](auto id) {
-							peerStruct.id = id;
+							peerId = id;
 						});
 
-						if (peerStruct.id == 0 || !isPeerIdRead) {
+						if (!isPeerIdRead) {
+							isPeerIdRead = ReadStringOption(peer, "id", [&](auto id) {
+								peerId = static_cast<BareId>(id.toLongLong());
+							});
+						}
+
+						if (peerId == 0 || !isPeerIdRead) {
 							continue;
 						}
 
 						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
-							peerStruct.type = (QString::compare(type.toLower(), "channel") == 0)
-								? LocalFolder::Peer::Type::Channel
+							peerId = (QString::compare(type.toLower(), "channel") == 0)
+								? peerFromChannel(ChannelId(peerId)).value
 								: (QString::compare(type.toLower(), "chat") == 0)
-								? LocalFolder::Peer::Type::Chat
-								: LocalFolder::Peer::Type::User;
+								? peerFromChat(ChatId(peerId)).value
+								: peerFromUser(UserId(peerId)).value;
 						});
 
 						if (!isPeerTypeRead) {
-							peerStruct.type = LocalFolder::Peer::Type::User;
+							peerId = peerFromUser(UserId(peerId)).value;
 						}
 
-						folderStruct.pinned.push_back(peerStruct);
+						folderStruct.pinned.push_back(peerId);
 					}
 				});
 
@@ -866,29 +888,35 @@ bool Manager::readCustomFile() {
 						}
 
 						auto peer = (*j).toObject();
-						LocalFolder::Peer peerStruct;
+						BareId peerId = 0;
 
 						auto isPeerIdRead = ReadIntOption(peer, "id", [&](auto id) {
-							peerStruct.id = id;
+							peerId = id;
 						});
 
-						if (peerStruct.id == 0 || !isPeerIdRead) {
+						if (!isPeerIdRead) {
+							isPeerIdRead = ReadStringOption(peer, "id", [&](auto id) {
+								peerId = static_cast<BareId>(id.toLongLong());
+							});
+						}
+
+						if (peerId == 0 || !isPeerIdRead) {
 							continue;
 						}
 
 						auto isPeerTypeRead = ReadStringOption(peer, "type", [&](auto type) {
-							peerStruct.type = (QString::compare(type.toLower(), "channel") == 0)
-								? LocalFolder::Peer::Type::Channel
+							peerId = (QString::compare(type.toLower(), "channel") == 0)
+								? peerFromChannel(ChannelId(peerId)).value
 								: (QString::compare(type.toLower(), "chat") == 0)
-								? LocalFolder::Peer::Type::Chat
-								: LocalFolder::Peer::Type::User;
+								? peerFromChat(ChatId(peerId)).value
+								: peerFromUser(UserId(peerId)).value;
 						});
 
 						if (!isPeerTypeRead) {
-							peerStruct.type = LocalFolder::Peer::Type::User;
+							peerId = peerFromUser(UserId(peerId)).value;
 						}
 
-						folderStruct.always.push_back(peerStruct);
+						folderStruct.always.push_back(peerId);
 					}
 				});
 

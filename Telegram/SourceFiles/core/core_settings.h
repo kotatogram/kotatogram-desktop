@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_themes_embedded.h"
 #include "ui/chat/attach/attach_send_files_way.h"
 #include "platform/platform_notifications_manager.h"
+#include "emoji.h"
 
 enum class RectPart;
 
@@ -52,6 +53,10 @@ public:
 	static constexpr auto kDefaultVolume = 0.9;
 
 	Settings();
+
+	[[nodiscard]] rpl::producer<> saveDelayedRequests() const {
+		return _saveDelayed.events();
+	}
 
 	[[nodiscard]] static bool IsLeftCorner(ScreenCorner corner) {
 		return (corner == ScreenCorner::TopLeft)
@@ -510,8 +515,26 @@ public:
 		_windowPosition = position;
 	}
 
+	struct RecentEmoji {
+		EmojiPtr emoji = nullptr;
+		ushort rating = 0;
+	};
+	[[nodiscard]] const std::vector<RecentEmoji> &recentEmoji() const;
+	[[nodiscard]] EmojiPack recentEmojiSection() const;
+	void incrementRecentEmoji(EmojiPtr emoji);
+	void setLegacyRecentEmojiPreload(QVector<QPair<QString, ushort>> data);
+	[[nodiscard]] rpl::producer<> recentEmojiUpdated() const {
+		return _recentEmojiUpdated.events();
+	}
+
+	[[nodiscard]] const base::flat_map<QString, uint8> &emojiVariants() const {
+		return _emojiVariants;
+	}
+	void saveEmojiVariant(EmojiPtr emoji);
+	void setLegacyEmojiVariants(QMap<QString, int> data);
+
 	[[nodiscard]] static bool ThirdColumnByDefault();
-	[[nodiscard]] float64 DefaultDialogsWidthRatio();
+	[[nodiscard]] static float64 DefaultDialogsWidthRatio();
 	[[nodiscard]] static qint32 SerializePlaybackSpeed(float64 speed) {
 		return int(std::round(std::clamp(speed, 0.5, 2.0) * 100));
 	}
@@ -527,9 +550,16 @@ public:
 	void resetOnLastLogout();
 
 private:
+	void resolveRecentEmoji() const;
+
 	static constexpr auto kDefaultThirdColumnWidth = 0;
 	static constexpr auto kDefaultDialogsWidthRatio = 5. / 14;
 	static constexpr auto kDefaultBigDialogsWidthRatio = 0.275;
+
+	struct RecentEmojiId {
+		QString emoji;
+		ushort rating = 0;
+	};
 
 	bool _adaptiveForWide = true;
 	bool _moderateModeEnabled = false;
@@ -578,6 +608,10 @@ private:
 	rpl::variable<std::vector<int>> _dictionariesEnabled;
 	rpl::variable<bool> _autoDownloadDictionaries = true;
 	rpl::variable<bool> _mainMenuAccountsShown = true;
+	mutable std::vector<RecentEmojiId> _recentEmojiPreload;
+	mutable std::vector<RecentEmoji> _recentEmoji;
+	base::flat_map<QString, uint8> _emojiVariants;
+	rpl::event_stream<> _recentEmojiUpdated;
 	bool _tabbedSelectorSectionEnabled = false; // per-window
 	Window::Column _floatPlayerColumn = Window::Column(); // per-window
 	RectPart _floatPlayerCorner = RectPart(); // per-window
@@ -595,6 +629,7 @@ private:
 	bool _tabbedReplacedWithInfo = false; // per-window
 	rpl::event_stream<bool> _tabbedReplacedWithInfoValue; // per-window
 
+	rpl::event_stream<> _saveDelayed;
 	float64 _rememberedSongVolume = kDefaultVolume;
 	bool _rememberedSoundNotifyFromTray = false;
 	bool _rememberedFlashBounceNotifyFromTray = false;

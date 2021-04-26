@@ -115,12 +115,12 @@ DeclareSetting(bool, DisableTrayCounter);
 DeclareSetting(bool, UseTelegramPanelIcon);
 DeclareSetting(int, CustomAppIcon);
 
-using DefaultFilterMap = QMap<int, int>;
+using DefaultFilterMap = QMap<QString, int>;
 DeclareRefSetting(DefaultFilterMap, DefaultFilterId);
-void SetDefaultFilterId(int account, int filter);
-int DefaultFilterId(int account);
-bool HasDefaultFilterId(int account);
-bool ClearDefaultFilterId(int account);
+void SetDefaultFilterId(QString account, int filter);
+int DefaultFilterId(QString account);
+bool HasDefaultFilterId(QString account);
+bool ClearDefaultFilterId(QString account);
 DeclareSetting(bool, UnmutedFilterCounterOnly);
 DeclareSetting(bool, HideFilterEditButton);
 DeclareSetting(bool, HideFilterNames);
@@ -146,30 +146,15 @@ DeclareSetting(bool, ForwardAlbumsAsIs);
 DeclareSetting(bool, ForwardGrouped);
 
 struct LocalFolder {
-	struct Peer {
-		enum Type {
-			User    = 0,
-			Chat    = 1,
-			Channel = 2,
-		};
-
-		Type type;
-		int32 id;
-
-		inline bool operator==(const Peer& other) {
-			return type == other.type
-				&& id == other.id;
-		}
-	};
-
 	int id;
-	int ownerId;
+	uint64 ownerId;
+	bool isTest;
 	int cloudOrder;
 	QString name;
 	QString emoticon;
-	std::vector<Peer> always;
-	std::vector<Peer> never;
-	std::vector<Peer> pinned;
+	std::vector<uint64> always;
+	std::vector<uint64> never;
+	std::vector<uint64> pinned;
 	ushort flags;
 };
 
