@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "main/main_app_config.h"
 #include "mainwindow.h"
+#include "facades.h" // Global::ScreenIsLocked.
 
 namespace Core {
 namespace {
@@ -134,6 +135,10 @@ void UiIntegration::startFontsBegin() {
 	}
 }
 */
+
+bool UiIntegration::screenIsLocked() {
+	return Global::ScreenIsLocked();
+}
 
 QString UiIntegration::timeFormat() {
 	return cTimeFormat();
