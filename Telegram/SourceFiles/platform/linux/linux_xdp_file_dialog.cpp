@@ -8,8 +8,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/linux/linux_xdp_file_dialog.h"
 
 #include "platform/platform_file_utilities.h"
-#include "platform/linux/linux_desktop_environment.h"
-#include "platform/linux/specific_linux.h"
 #include "base/platform/base_platform_info.h"
 #include "base/platform/linux/base_linux_glibmm_helper.h"
 #include "storage/localstorage.h"
@@ -642,18 +640,8 @@ rpl::producer<> XDPFileDialog::rejected() {
 } // namespace
 
 bool Use(Type type) {
-	const auto shouldUse = [&] {
-		const auto setting = FileDialogType() <= ImplementationType::XDP;
-		const auto forceSetting = FileDialogType() == ImplementationType::XDP;
-		const auto confined = InFlatpak() || InSnap();
-		const auto notGtkBased = !DesktopEnvironment::IsGtkBased();
-
-		return setting && (confined || notGtkBased || forceSetting);
-	}();
-
 	static const auto Version = FileChooserPortalVersion();
-
-	return shouldUse
+	return (FileDialogType() <= ImplementationType::XDP)
 		&& Version.has_value()
 		&& (type != Type::ReadFolder || *Version >= 3);
 }
