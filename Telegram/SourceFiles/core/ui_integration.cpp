@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/click_handler_types.h"
 #include "ui/basic_click_handlers.h"
 #include "ui/emoji_config.h"
+#include "ui/style/style_core_custom_font.h"
 #include "lang/lang_keys.h"
 #include "platform/platform_specific.h"
 #include "boxes/url_auth_box.h"
@@ -113,28 +114,16 @@ void UiIntegration::activationFromTopPanel() {
 	Platform::IgnoreApplicationActivationRightNow();
 }
 
-/*
-void UiIntegration::startFontsBegin() {
-	if (!cMainFont().isEmpty()) {
-		style::internal::CustomMainFont = cMainFont();
-	}
-	if (!cSemiboldFont().isEmpty()) {
-		style::internal::CustomSemiboldFont = cSemiboldFont();
-	}
-	if (cSemiboldFontIsBold()) {
-		style::internal::CustomSemiboldIsBold = cSemiboldFontIsBold();
-	}
-	if (!cMonospaceFont().isEmpty()) {
-		style::internal::CustomMonospaceFont = cMonospaceFont();
-	}
-	if (cUseSystemFont()) {
-		style::internal::UseSystemFont = cUseSystemFont();
-	}
-	if (cUseOriginalMetrics()) {
-		style::internal::UseOriginalMetrics = cUseOriginalMetrics();
-	}
+style::CustomFontSettings UiIntegration::fontSettings() {
+	return {
+		cMainFont(),
+		cSemiboldFont(),
+		cMonospaceFont(),
+		cSemiboldFontIsBold(),
+		cUseSystemFont(),
+		cUseOriginalMetrics(),
+	};
 }
-*/
 
 bool UiIntegration::screenIsLocked() {
 	return Global::ScreenIsLocked();
