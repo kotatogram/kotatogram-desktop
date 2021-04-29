@@ -1,3 +1,14 @@
+1.4.1 (29.04.2021)
+- Updated TDesktop sources to 2.7.4.
+- Separate Kotatogram's MPRIS and TDesktop's MPRIS.
+- Fix crash on right clicking emoji button.
+- Attempt to fix repeating changelogs.
+- Smaller font for options with radio buttons.
+- Don't show top notification switch in own profile.
+- Remove unnecessary separator in own profile.
+- Fix dependent separated "Send stickers and GIFs" restriction.
+- Updated translations.
+
 1.4 (13.04.2021)
 - Updated TDesktop sources to 2.7.1.
 - Ability to forward messages without author.

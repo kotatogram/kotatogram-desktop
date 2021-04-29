@@ -7,5 +7,5 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #pragma once
 
-constexpr auto AppKotatoVersion = 1004000;
-constexpr auto AppKotatoVersionStr = "1.4";
+constexpr auto AppKotatoVersion = 1004001;
+constexpr auto AppKotatoVersionStr = "1.4.1";

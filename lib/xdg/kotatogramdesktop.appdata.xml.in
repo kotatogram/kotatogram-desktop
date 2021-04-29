@@ -35,6 +35,22 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4.1" date="2021-04-29">
+            <description>
+                <p>TDesktop sources were updated to 2.7.4.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Separate Kotatogram's MPRIS and TDesktop's MPRIS.</li>
+                    <li>Fix crash on right clicking emoji button.</li>
+                    <li>Attempt to fix repeating changelogs.</li>
+                    <li>Smaller font for options with radio buttons.</li>
+                    <li>Don't show top notification switch in own profile.</li>
+                    <li>Remove unnecessary separator in own profile.</li>
+                    <li>Fix dependent separated "Send stickers and GIFs" restriction.</li>
+                    <li>Updated translations.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.4" date="2021-04-13">
             <description>
                 <p>TDesktop sources were updated to 2.7.1.</p>
