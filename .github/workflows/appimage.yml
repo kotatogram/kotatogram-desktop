@@ -114,7 +114,7 @@ jobs:
           libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev \
           libxcb-util0-dev libx11-xcb-dev libxext-dev libxfixes-dev libxv-dev libva-dev \
           libvdpau-dev libsigc++-2.0-dev libxml-parser-perl mm-common xutils-dev \
-          unzip -y --force-yes && \
+          unzip libwebkit2gtk-4.0-dev -y --force-yes && \
           add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           apt-get update && \
           apt-get install gcc-9 g++-9 -y && \
