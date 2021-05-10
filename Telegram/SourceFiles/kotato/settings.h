@@ -146,10 +146,10 @@ DeclareSetting(bool, ForwardAlbumsAsIs);
 DeclareSetting(bool, ForwardGrouped);
 
 struct LocalFolder {
-	int id;
+	int id = 0;
 	uint64 ownerId;
-	bool isTest;
-	int cloudOrder;
+	bool isTest = false;
+	int cloudOrder = 0;
 	QString name;
 	QString emoticon;
 	std::vector<uint64> always;
