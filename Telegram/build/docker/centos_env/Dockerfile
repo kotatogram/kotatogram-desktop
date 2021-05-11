@@ -636,10 +636,11 @@ COPY --from=opus ${LibrariesPath}/opus-cache /
 COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
 COPY --from=openssl ${LibrariesPath}/openssl-cache /
 
-ADD https://api.github.com/repos/desktop-app/tg_owt/git/refs/heads/master tg_owt-version.json
-RUN git clone --depth=1 --recursive $GIT/desktop-app/tg_owt.git
+ADD https://api.github.com/repos/desktop-app/tg_owt/git/commits/18cb4cd9bb4c2f5f5f5e760ec808f74c302bc1bf tg_owt-version.json
+RUN git clone --recursive $GIT/desktop-app/tg_owt.git
 
 WORKDIR tg_owt
+RUN git checkout 18cb4cd9bb4c2f5f5f5e760ec808f74c302bc1bf
 
 RUN cmake3 -B out/Release . \
 	-DCMAKE_BUILD_TYPE=Release \
