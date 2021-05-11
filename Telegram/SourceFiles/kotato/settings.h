@@ -147,7 +147,7 @@ DeclareSetting(bool, ForwardGrouped);
 
 struct LocalFolder {
 	int id = 0;
-	uint64 ownerId;
+	uint64 ownerId = 0;
 	bool isTest = false;
 	int cloudOrder = 0;
 	QString name;
@@ -155,7 +155,7 @@ struct LocalFolder {
 	std::vector<uint64> always;
 	std::vector<uint64> never;
 	std::vector<uint64> pinned;
-	ushort flags;
+	ushort flags = 0;
 };
 
 using LocalFolderVector = std::vector<LocalFolder>;
