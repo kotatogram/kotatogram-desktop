@@ -30,6 +30,7 @@ DeclareSetting(QString, MainFont);
 DeclareSetting(QString, SemiboldFont);
 DeclareSetting(bool, SemiboldFontIsBold);
 DeclareSetting(QString, MonospaceFont);
+DeclareSetting(int, FontSize);
 DeclareSetting(bool, UseSystemFont);
 DeclareSetting(bool, UseOriginalMetrics);
 

@@ -12,6 +12,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 bool gKotatoFirstRun = true;
 
 QString gMainFont, gSemiboldFont, gMonospaceFont;
+int gFontSize = 0;
 bool gSemiboldFontIsBold = false;
 
 #ifdef DESKTOP_APP_USE_PACKAGED_FONTS
