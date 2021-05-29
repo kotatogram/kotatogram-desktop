@@ -23,6 +23,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "boxes/about_box.h"
 #include "boxes/confirm_box.h"
 #include "platform/platform_specific.h"
+#include "platform/platform_file_utilities.h"
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
 #include "core/update_checker.h"
@@ -656,8 +657,10 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	});
 
 	SettingsMenuCSwitch(ktg_settings_call_confirm, ConfirmBeforeCall);
+	SettingsMenuCSwitch(ktg_settings_ffmpeg_multithread, FFmpegMultithread);
 
 	AddSkip(container);
+	AddDividerText(container, tr::ktg_settings_ffmpeg_multithread_about());
 }
 
 Kotato::Kotato(

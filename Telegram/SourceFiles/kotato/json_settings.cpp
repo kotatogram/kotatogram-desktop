@@ -16,6 +16,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "facades.h"
 #include "ui/widgets/input_fields.h"
 #include "data/data_chat_filters.h"
+#include "platform/platform_file_utilities.h"
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -370,6 +371,8 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("chat_list_lines"), DialogListLines());
 	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
 	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
+	settings.insert(qsl("ffmpeg_multithread"), cFFmpegMultithread());
+	settings.insert(qsl("ffmpeg_thread_count"), int(cFFmpegThreadCount()));
 	settings.insert(qsl("native_decorations"), cUseNativeDecorations());
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
 	settings.insert(qsl("userpic_corner_type"), cUserpicCornersType());
@@ -597,6 +600,14 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "confirm_before_calls", [&](auto v) {
 		cSetConfirmBeforeCall(v);
+	});
+
+	ReadBoolOption(settings, "ffmpeg_multithread", [&](auto v) {
+		cSetFFmpegMultithread(v);
+	});
+
+	ReadIntOption(settings, "ffmpeg_thread_count", [&](auto v) {
+		cSetFFmpegThreadCount(v);
 	});
 
 	ReadBoolOption(settings, "native_decorations", [&](auto v) {

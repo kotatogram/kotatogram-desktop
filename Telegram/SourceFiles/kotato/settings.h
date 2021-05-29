@@ -7,7 +7,15 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #pragma once
 
-#include "platform/platform_file_utilities.h"
+#include <rpl/producer.h>
+
+namespace Platform {
+namespace FileDialog {
+
+enum class ImplementationType;
+
+} // namespace FileDialog
+} // namespace Platform
 
 #define DeclareReadSetting(Type, Name) extern Type g##Name; \
 inline const Type &c##Name() { \
@@ -93,6 +101,9 @@ using CustomReplacementsMap = QMap<QString, QString>;
 DeclareRefSetting(CustomReplacementsMap, CustomReplaces);
 bool AddCustomReplace(QString from, QString to);
 DeclareSetting(bool, ConfirmBeforeCall);
+
+DeclareSetting(bool, FFmpegMultithread);
+DeclareSetting(uint, FFmpegThreadCount);
 
 DeclareSetting(bool, UseNativeDecorations);
 [[nodiscard]] bool UseNativeDecorations();
