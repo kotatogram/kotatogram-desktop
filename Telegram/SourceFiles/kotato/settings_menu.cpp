@@ -224,6 +224,7 @@ void SetupKotatoChats(
 
 	SettingsMenuCSwitch(ktg_settings_top_bar_mute, ProfileTopBarNotifications);
 	SettingsMenuCSwitch(ktg_settings_disable_up_edit, DisableUpEdit);
+	SettingsMenuCSwitch(ktg_settings_auto_scroll_unfocused, AutoScrollUnfocused);
 
 	AddButton(
 		container,
