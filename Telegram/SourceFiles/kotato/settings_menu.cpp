@@ -23,6 +23,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "boxes/about_box.h"
 #include "boxes/confirm_box.h"
 #include "platform/platform_specific.h"
+#include "platform/platform_file_utilities.h"
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
 #include "core/update_checker.h"
@@ -657,8 +658,28 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	});
 
 	SettingsMenuCSwitch(ktg_settings_call_confirm, ConfirmBeforeCall);
+	SettingsMenuCSwitch(ktg_settings_ffmpeg_multithread, FFmpegMultithread);
 
 	AddSkip(container);
+	AddDividerText(container, tr::ktg_settings_ffmpeg_multithread_about());
+	AddSkip(container);
+
+	AddButton(
+		container,
+		tr::ktg_settings_external_video_player(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cUseExternalVideoPlayer())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cUseExternalVideoPlayer());
+	}) | rpl::start_with_next([](bool enabled) {
+		cSetUseExternalVideoPlayer(enabled);
+		Core::App().saveSettingsDelayed();
+	}, container->lifetime());
+
+	AddSkip(container);
+	AddDividerText(container, tr::ktg_settings_external_video_player_about());
 }
 
 Kotato::Kotato(

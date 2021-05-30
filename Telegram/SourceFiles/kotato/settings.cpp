@@ -8,6 +8,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "kotato/settings.h"
 
 #include "base/platform/base_platform_info.h"
+#include "platform/platform_file_utilities.h"
 
 bool gKotatoFirstRun = true;
 
@@ -126,6 +127,9 @@ bool AddCustomReplace(QString from, QString to) {
 }
 
 bool gConfirmBeforeCall = true;
+
+bool gFFmpegMultithread = true;
+uint gFFmpegThreadCount = 0;
 
 bool gUseNativeDecorations = false;
 bool UseNativeDecorations() {
