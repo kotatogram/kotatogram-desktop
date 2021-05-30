@@ -369,6 +369,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
 	settings.insert(qsl("chat_list_lines"), DialogListLines());
 	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
+	settings.insert(qsl("auto_scroll_unfocused"), cAutoScrollUnfocused());
 	settings.insert(qsl("confirm_before_calls"), cConfirmBeforeCall());
 	settings.insert(qsl("native_decorations"), cUseNativeDecorations());
 	settings.insert(qsl("recent_stickers_limit"), RecentStickersLimit());
@@ -579,6 +580,10 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "disable_up_edit", [&](auto v) {
 		cSetDisableUpEdit(v);
+	});
+
+	ReadBoolOption(settings, "auto_scroll_unfocused", [&](auto v) {
+		cSetAutoScrollUnfocused(v);
 	});
 
 	ReadArrayOption(settings, "replaces", [&](auto v) {

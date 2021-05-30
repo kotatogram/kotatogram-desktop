@@ -246,4 +246,6 @@ bool gForwardCaptioned = true;
 bool gForwardAlbumsAsIs = true;
 bool gForwardGrouped = false;
 
+bool gAutoScrollUnfocused = false;
+
 LocalFolderVector gLocalFolders;

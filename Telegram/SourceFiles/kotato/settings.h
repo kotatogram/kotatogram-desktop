@@ -146,6 +146,8 @@ DeclareSetting(bool, ForwardCaptioned);
 DeclareSetting(bool, ForwardAlbumsAsIs);
 DeclareSetting(bool, ForwardGrouped);
 
+DeclareSetting(bool, AutoScrollUnfocused);
+
 struct LocalFolder {
 	int id = 0;
 	uint64 ownerId = 0;
