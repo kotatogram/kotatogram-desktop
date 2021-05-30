@@ -661,6 +661,24 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 
 	AddSkip(container);
 	AddDividerText(container, tr::ktg_settings_ffmpeg_multithread_about());
+	AddSkip(container);
+
+	AddButton(
+		container,
+		tr::ktg_settings_external_video_player(),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cUseExternalVideoPlayer())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cUseExternalVideoPlayer());
+	}) | rpl::start_with_next([](bool enabled) {
+		cSetUseExternalVideoPlayer(enabled);
+		Core::App().saveSettingsDelayed();
+	}, container->lifetime());
+
+	AddSkip(container);
+	AddDividerText(container, tr::ktg_settings_external_video_player_about());
 }
 
 Kotato::Kotato(
