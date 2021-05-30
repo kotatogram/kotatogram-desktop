@@ -386,6 +386,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("forward_retain_selection"), cForwardRetainSelection());
 	settings.insert(qsl("forward_on_click"), cForwardChatOnClick());
 
+	settingsFonts.insert(qsl("size"), cFontSize());
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
 	settingsFonts.insert(qsl("use_original_metrics"), cUseOriginalMetrics());
 
@@ -475,6 +476,10 @@ bool Manager::readCustomFile() {
 
 		ReadStringOption(o, "monospaced", [&](auto v) {
 			cSetMonospaceFont(v);
+		});
+
+		ReadIntOption(o, "size", [&](auto v) {
+			cSetFontSize(v);
 		});
 
 		ReadBoolOption(o, "use_system_font", [&](auto v) {

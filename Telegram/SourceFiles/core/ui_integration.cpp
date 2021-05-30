@@ -119,6 +119,7 @@ style::CustomFontSettings UiIntegration::fontSettings() {
 		cMainFont(),
 		cSemiboldFont(),
 		cMonospaceFont(),
+		cFontSize(),
 		cSemiboldFontIsBold(),
 		cUseSystemFont(),
 		cUseOriginalMetrics(),
