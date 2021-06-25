@@ -133,10 +133,12 @@ parts:
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
     after:
       - desktop-qt5
+      - extra-cmake-modules
       - ffmpeg
       - kwayland
       - mozjpeg
       - openal
+      - rnnoise
       - webrtc
 
   patches:
@@ -221,6 +223,7 @@ parts:
       - -./usr/include
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libexec
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/*.so
       - -./usr/mkspecs
       - -./usr/share
     after:
@@ -243,6 +246,7 @@ parts:
       - -./usr/bin
       - -./usr/include
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/*.so
       - -./usr/share
 
   openal:
@@ -267,6 +271,7 @@ parts:
       - -./usr/include
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/cmake
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libopenal.so
 
   plasma-wayland-protocols:
     source: https://github.com/KDE/plasma-wayland-protocols.git
@@ -406,33 +411,77 @@ parts:
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/bin
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/mkspecs
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/qt5/examples
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/*.a
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/*.la
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/*.prl
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/*.so
       - -./usr/lib/qt5
       - -./usr/share
     after:
       - mozjpeg
       - patches
 
+  rnnoise:
+    source: https://gitlab.xiph.org/xiph/rnnoise.git
+    source-depth: 1
+    source-commit: 7f449bf8bd3b933891d12c30112268c4090e4d59
+    plugin: autotools
+    autotools-configure-parameters:
+      - --prefix=/usr
+      - --libdir=\${exec_prefix}/lib/$SNAPCRAFT_ARCH_TRIPLET
+      - --disable-static
+      - --disable-examples
+      - --disable-doc
+    prime:
+      - -./usr/include
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pkgconfig
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/librnnoise.la
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/librnnoise.so
+      - -./usr/share
+
   webrtc:
     source: https://github.com/desktop-app/tg_owt.git
     source-depth: 1
-    source-commit: 7f965710b93c4dadd7e6f1ac739e708694df7929
+    source-commit: f03ef05abf665437649a4f71886db1343590e862
     plugin: cmake
     build-packages:
       - yasm
+      - libglib2.0-dev
       - libopus-dev
+      - libpipewire-0.2-dev
       - libssl-dev
+      - libx11-dev
+      - libxcomposite-dev
+      - libxdamage-dev
+      - libxext-dev
+      - libxfixes-dev
+      - libxrender-dev
+      - libxrandr-dev
+      - libxtst-dev
     stage-packages:
+      - libglib2.0-0
       - libopus0
+      - libpipewire-0.2-1
       - libssl1.1
+      - libx11-6
+      - libxcomposite1
+      - libxdamage1
+      - libxext6
+      - libxfixes3
+      - libxrender1
+      - libxrandr2
+      - libxtst6
     cmake-parameters:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DBUILD_SHARED_LIBS=OFF
       - -DJPEG_LIBRARY_RELEASE=$SNAPCRAFT_STAGE/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so
       - -DJPEG_INCLUDE_DIR=$SNAPCRAFT_STAGE/usr/include
-      # NEON support for arm 32-bit is broken and no one seem to fix it
-      - -DTG_OWT_ARCH_ARMV7_USE_NEON=OFF
-    prime: [-./*]
+      - -DTG_OWT_BUILD_AUDIO_BACKENDS=OFF
+    prime:
+      - -./usr/include
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/cmake
+      - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/*.a
     after:
       - ffmpeg
       - mozjpeg

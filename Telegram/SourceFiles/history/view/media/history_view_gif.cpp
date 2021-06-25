@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_streaming.h"
 #include "data/data_document.h"
+#include "data/data_file_click_handler.h"
 #include "data/data_file_origin.h"
 #include "data/data_document_media.h"
 #include "layout.h" // FullSelection
@@ -408,7 +409,8 @@ void Gif::draw(Painter &p, const QRect &r, TextSelection selection, crl::time ms
 			}
 			p.drawImage(rthumb, activeOwnPlaying->frozenFrame);
 		} else {
-			if (activeOwnPlaying) {
+			if (activeOwnPlaying
+				&& !activeOwnPlaying->frozenFrame.isNull()) {
 				activeOwnPlaying->frozenFrame = QImage();
 				activeOwnPlaying->frozenStatusText = QString();
 			}
@@ -1405,7 +1407,10 @@ void Gif::playAnimation(bool autoplay) {
 		return;
 	} else if ((_streamed && autoplayEnabled())
 		|| (!autoplay && _data->isVideoFile())) {
-		Core::App().showDocument(_data, _parent->data());
+		_parent->delegate()->elementOpenDocument(
+			_data,
+			_parent->data()->fullId(),
+			true);
 		return;
 	}
 	if (_streamed) {

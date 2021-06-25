@@ -85,6 +85,10 @@ public:
 	void searchMessages(const QString &query, Key inChat = {}, UserData *from = nullptr);
 	void onSearchMore();
 
+	void updateForwardBar();
+
+	[[nodiscard]] rpl::producer<> closeForwardBarRequests() const;
+
 	// Float player interface.
 	bool floatPlayerHandleWheelEvent(QEvent *e) override;
 	QRect floatPlayerAvailableRect() override;
@@ -155,7 +159,6 @@ private:
 	void updateSearchFromVisibility(bool fast = false);
 	void updateControlsGeometry();
 	void refreshFolderTopBar();
-	void updateForwardBar();
 	void checkUpdateStatus();
 	void changeOpenedFolder(Data::Folder *folder, anim::type animated);
 	QPixmap grabForFolderSlideAnimation();
@@ -243,6 +246,8 @@ private:
 	int _draggingScrollDelta = 0;
 
 	int _topDelta = 0;
+
+	rpl::event_stream<> _closeForwardBarRequests;
 
 };
 

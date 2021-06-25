@@ -33,16 +33,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <CoreFoundation/CFURL.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/hidsystem/ev_keymap.h>
-#include <SPMediaKeyTap.h>
 #include <mach-o/dyld.h>
 #include <AVFoundation/AVFoundation.h>
-
-void psWriteDump() {
-#ifndef DESKTOP_APP_DISABLE_CRASH_REPORTS
-	double v = objc_appkitVersion();
-	CrashReports::dump() << "OS-Version: " << v;
-#endif // DESKTOP_APP_DISABLE_CRASH_REPORTS
-}
 
 void psActivateProcess(uint64 pid) {
 	if (!pid) {
@@ -111,6 +103,13 @@ std::optional<bool> IsDarkMode() {
 	return IsMac10_14OrGreater()
 		? std::make_optional(IsDarkMenuBar())
 		: std::nullopt;
+}
+
+void WriteCrashDumpDetails() {
+#ifndef DESKTOP_APP_DISABLE_CRASH_REPORTS
+	double v = objc_appkitVersion();
+	CrashReports::dump() << "OS-Version: " << v;
+#endif // DESKTOP_APP_DISABLE_CRASH_REPORTS
 }
 
 void RegisterCustomScheme(bool force) {

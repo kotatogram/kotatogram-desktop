@@ -132,7 +132,7 @@ void ShowCallsBox(not_null<Window::SessionController*> window) {
 			return true;
 		});
 	};
-	Ui::show(Box<PeerListBox>(std::move(controller), initBox));
+	window->show(Box<PeerListBox>(std::move(controller), initBox));
 }
 
 } // namespace
@@ -624,7 +624,11 @@ MainMenu::MainMenu(
 	refreshBackground();
 
 	_telegram->setRichText(textcmdLink(1, qsl("Kotatogram Desktop")));
-	_telegram->setLink(1, std::make_shared<LambdaClickHandler>([] { Ui::show(Box<AboutBox>()); }));
+	_telegram->setLink(
+		1,
+		std::make_shared<LambdaClickHandler>([=] {
+			controller->show(Box<AboutBox>());
+		}));
 	_version->setRichText(textcmdLink(1, currentVersionText()));
 	_version->setLink(1, std::make_shared<UrlClickHandler>(qsl("https://github.com/kotatogram/kotatogram-desktop")));
 
@@ -926,7 +930,7 @@ void MainMenu::refreshMenu() {
 			controller->showNewChannel();
 		}, &st::mainMenuNewChannel, &st::mainMenuNewChannelOver);
 		_menu->addAction(tr::lng_menu_contacts(tr::now), [=] {
-			Ui::show(PrepareContactsBox(controller));
+			controller->show(PrepareContactsBox(controller));
 		}, &st::mainMenuContacts, &st::mainMenuContactsOver);
 		if (_controller->session().serverConfig().phoneCallsEnabled.current()) {
 			_menu->addAction(tr::lng_menu_calls(tr::now), [=] {
@@ -961,7 +965,7 @@ void MainMenu::refreshMenu() {
 
 	auto nightCallback = [=] {
 		if (Window::Theme::Background()->editingTheme()) {
-			Ui::show(Box<InformBox>(
+			controller->show(Box<InformBox>(
 				tr::lng_theme_editor_cant_change_theme(tr::now)));
 			return;
 		}

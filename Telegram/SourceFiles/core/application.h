@@ -10,7 +10,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/core_settings.h"
 #include "mtproto/mtproto_auth_key.h"
 #include "mtproto/mtproto_proxy_data.h"
-#include "base/observer.h"
 #include "base/timer.h"
 
 class MainWindow;
@@ -104,7 +103,7 @@ namespace Core {
 class Launcher;
 struct LocalUrlHandler;
 
-class Application final : public QObject, private base::Subscriber {
+class Application final : public QObject {
 public:
 	struct ProxyChange {
 		MTP::ProxyData was;
@@ -144,13 +143,6 @@ public:
 	// Media view interface.
 	void checkMediaViewActivation();
 	bool hideMediaView();
-	void showPhoto(not_null<const PhotoOpenClickHandler*> link);
-	void showPhoto(not_null<PhotoData*> photo, HistoryItem *item);
-	void showPhoto(not_null<PhotoData*> photo, not_null<PeerData*> item);
-	void showDocument(not_null<DocumentData*> document, HistoryItem *item);
-	void showTheme(
-		not_null<DocumentData*> document,
-		const Data::CloudTheme &cloud);
 	[[nodiscard]] PeerData *ui_getPeerForMouseAction();
 
 	[[nodiscard]] QPoint getPointForCallPanelCenter() const;
@@ -269,7 +261,7 @@ public:
 	rpl::producer<bool> passcodeLockChanges() const;
 	rpl::producer<bool> passcodeLockValue() const;
 
-	void checkAutoLock();
+	void checkAutoLock(crl::time lastNonIdleTime = 0);
 	void checkAutoLockIn(crl::time time);
 	void localPasscodeChanged();
 
@@ -297,6 +289,10 @@ public:
 
 	void call_handleObservables();
 
+	// Global runtime variables.
+	void setScreenIsLocked(bool locked);
+	bool screenIsLocked() const;
+
 protected:
 	bool eventFilter(QObject *object, QEvent *event) override;
 
@@ -315,13 +311,12 @@ private:
 	void startEmojiImageLoader();
 	void startSystemDarkModeViewer();
 
-	void stateChanged(Qt::ApplicationState state);
-
 	friend void App::quit();
 	static void QuitAttempt();
 	void quitDelayed();
 	[[nodiscard]] bool readyToQuit();
 
+	void showOpenGLCrashNotification();
 	void clearPasscodeLock();
 
 	bool openCustomUrl(
@@ -368,7 +363,6 @@ private:
 	const std::unique_ptr<Lang::CloudManager> _langCloudManager;
 	const std::unique_ptr<ChatHelpers::EmojiKeywords> _emojiKeywords;
 	std::unique_ptr<Lang::Translator> _translator;
-	base::Observable<void> _passcodedChanged;
 	QPointer<Ui::BoxContent> _badProxyDisableBox;
 
 	std::unique_ptr<Media::Player::FloatController> _floatPlayers;
@@ -389,23 +383,18 @@ private:
 	const QImage _logoNoMarginOld;
 
 	rpl::variable<bool> _passcodeLock;
+	bool _screenIsLocked = false;
 
 	crl::time _shouldLockAt = 0;
 	base::Timer _autoLockTimer;
 
 	std::optional<base::Timer> _saveSettingsTimer;
 
-	struct LeaveSubscription {
-		LeaveSubscription(
-			QPointer<QWidget> pointer,
-			rpl::lifetime &&subscription)
-		: pointer(pointer), subscription(std::move(subscription)) {
-		}
-
-		QPointer<QWidget> pointer;
-		rpl::lifetime subscription;
+	struct LeaveFilter {
+		std::vector<QPointer<QWidget>> registered;
+		QPointer<QObject> filter;
 	};
-	std::vector<LeaveSubscription> _leaveSubscriptions;
+	base::flat_map<not_null<QWidget*>, LeaveFilter> _leaveFilters;
 
 	rpl::lifetime _lifetime;
 

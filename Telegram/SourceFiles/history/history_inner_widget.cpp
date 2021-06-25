@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "ui/cached_round_corners.h"
 #include "ui/inactive_press.h"
+#include "window/window_adaptive.h"
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
 #include "window/window_controller.h"
@@ -60,6 +61,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_photo.h"
 #include "data/data_photo_media.h"
 #include "data/data_user.h"
+#include "data/data_file_click_handler.h"
 #include "data/data_file_origin.h"
 #include "data/data_histories.h"
 #include "data/data_changes.h"
@@ -169,14 +171,13 @@ HistoryInner::HistoryInner(
 	notifyIsBotChanged();
 
 	setMouseTracking(true);
-	subscribe(_controller->gifPauseLevelChanged(), [this] {
-		if (!_controller->isGifPausedAtLeastFor(Window::GifPauseReason::Any)) {
+	_controller->gifPauseLevelChanged(
+	) | rpl::start_with_next([=] {
+		if (!_controller->isGifPausedAtLeastFor(
+				Window::GifPauseReason::Any)) {
 			update();
 		}
-	});
-	subscribe(_controller->widget()->dragFinished(), [this] {
-		mouseActionUpdate(QCursor::pos());
-	});
+	}, lifetime());
 	session().data().itemRemoved(
 	) | rpl::start_with_next(
 		[this](auto item) { itemRemoved(item); },
@@ -208,6 +209,11 @@ HistoryInner::HistoryInner(
 		Data::HistoryUpdate::Flag::OutboxRead
 	) | rpl::start_with_next([=] {
 		update();
+	}, lifetime());
+
+	controller->adaptive().chatWideValue(
+	) | rpl::start_with_next([=](bool wide) {
+		_isChatWide = wide;
 	}, lifetime());
 }
 
@@ -358,7 +364,7 @@ bool HistoryInner::canHaveFromUserpics() const {
 	if (_peer->isUser()
 		&& !_peer->isSelf()
 		&& !_peer->isRepliesChat()
-		&& !Core::App().settings().chatWide()) {
+		&& !_isChatWide) {
 		return false;
 	} else if (_peer->isChannel() && !_peer->isMegagroup()) {
 		return false;
@@ -772,13 +778,14 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 							? itemtop
 							: (dateTop - st::msgServiceMargin.top());
 						if (const auto date = view->Get<HistoryView::DateBadge>()) {
-							date->paint(p, dateY, _contentWidth);
+							date->paint(p, dateY, _contentWidth, _isChatWide);
 						} else {
 							HistoryView::ServiceMessagePainter::paintDate(
 								p,
 								view->dateTime(),
 								dateY,
-								_contentWidth);
+								_contentWidth,
+								_isChatWide);
 						}
 					}
 				}
@@ -1211,7 +1218,7 @@ std::unique_ptr<QMimeData> HistoryInner::prepareDrag() {
 		_widget->noSelectingScroll();
 
 		if (!urls.isEmpty()) mimeData->setUrls(urls);
-		if (uponSelected && !Adaptive::OneColumn()) {
+		if (uponSelected && !_controller->adaptive().isOneColumn()) {
 			auto selectedState = getSelectionState();
 			if (selectedState.count > 0 && selectedState.count == selectedState.canForwardCount) {
 				session().data().setMimeForwardIds(getSelectedItems());
@@ -1259,7 +1266,9 @@ std::unique_ptr<QMimeData> HistoryInner::prepareDrag() {
 void HistoryInner::performDrag() {
 	if (auto mimeData = prepareDrag()) {
 		// This call enters event loop and can destroy any QObject.
-		_controller->widget()->launchDrag(std::move(mimeData));
+		_controller->widget()->launchDrag(
+			std::move(mimeData),
+			crl::guard(this, [=] { mouseActionUpdate(QCursor::pos()); }));
 	}
 }
 
@@ -1955,7 +1964,7 @@ void HistoryInner::openContextGif(FullMsgId itemId) {
 	if (const auto item = session().data().message(itemId)) {
 		if (const auto media = item->media()) {
 			if (const auto document = media->document()) {
-				Core::App().showDocument(document, item);
+				_controller->openDocument(document, itemId, true);
 			}
 		}
 	}
@@ -2167,7 +2176,7 @@ void HistoryInner::recountHistoryGeometry() {
 			: (st::msgNameFont->height + st::botDescSkip);
 		int32 descH = st::msgMargin.top() + st::msgPadding.top() + descriptionHeight + _botAbout->height + st::msgPadding.bottom() + st::msgMargin.bottom();
 		int32 descMaxWidth = _scroll->width();
-		if (Core::App().settings().chatWide() && !AdaptiveBubbles()) {
+		if (_isChatWide && !AdaptiveBubbles()) {
 			descMaxWidth = qMin(descMaxWidth, int32(st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left()));
 		}
 		int32 descAtX = (descMaxWidth - _botAbout->width) / 2 - st::msgPadding.left();
@@ -2374,7 +2383,7 @@ void HistoryInner::updateSize() {
 			: (st::msgNameFont->height + st::botDescSkip);
 		int32 descH = st::msgMargin.top() + st::msgPadding.top() + descriptionHeight + _botAbout->height + st::msgPadding.bottom() + st::msgMargin.bottom();
 		int32 descMaxWidth = _scroll->width();
-		if (Core::App().settings().chatWide() && !AdaptiveBubbles()) {
+		if (_isChatWide && !AdaptiveBubbles()) {
 			descMaxWidth = qMin(descMaxWidth, int32(st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left()));
 		}
 		int32 descAtX = (descMaxWidth - _botAbout->width) / 2 - st::msgPadding.left();
@@ -2565,6 +2574,25 @@ void HistoryInner::elementShowPollResults(
 	_controller->showPollResults(poll, context);
 }
 
+void HistoryInner::elementOpenPhoto(
+		not_null<PhotoData*> photo,
+		FullMsgId context) {
+	_controller->openPhoto(photo, context);
+}
+
+void HistoryInner::elementOpenDocument(
+		not_null<DocumentData*> document,
+		FullMsgId context,
+		bool showInMediaView) {
+	_controller->openDocument(document, context, showInMediaView);
+}
+
+void HistoryInner::elementCancelUpload(const FullMsgId &context) {
+	if (const auto item = session().data().message(context)) {
+		_controller->cancelUploadLayer(item);
+	}
+}
+
 void HistoryInner::elementShowTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback) {
@@ -2595,6 +2623,10 @@ void HistoryInner::elementSendBotCommand(
 
 void HistoryInner::elementHandleViaClick(not_null<UserData*> bot) {
 	App::insertBotCommand('@' + bot->username);
+}
+
+bool HistoryInner::elementIsChatWide() {
+	return _isChatWide;
 }
 
 auto HistoryInner::getSelectionState() const
@@ -2753,7 +2785,7 @@ void HistoryInner::mouseActionUpdate() {
 					dateWidth += st::msgServicePadding.left() + st::msgServicePadding.right();
 					auto dateLeft = st::msgServiceMargin.left();
 					auto maxwidth = _contentWidth;
-					if (Core::App().settings().chatWide() && !AdaptiveBubbles()) {
+					if (_isChatWide && !AdaptiveBubbles()) {
 						maxwidth = qMin(maxwidth, int32(st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left()));
 					}
 					auto widthForDate = maxwidth - st::msgServiceMargin.left() - st::msgServiceMargin.left();
@@ -3215,12 +3247,12 @@ void HistoryInner::deleteItem(FullMsgId itemId) {
 void HistoryInner::deleteItem(not_null<HistoryItem*> item) {
 	if (auto message = item->toHistoryMessage()) {
 		if (message->uploading()) {
-			_controller->content()->cancelUploadLayer(item);
+			_controller->cancelUploadLayer(item);
 			return;
 		}
 	}
 	const auto suggestModerateActions = true;
-	Ui::show(Box<DeleteMessagesBox>(item, suggestModerateActions));
+	_controller->show(Box<DeleteMessagesBox>(item, suggestModerateActions));
 }
 
 bool HistoryInner::hasPendingResizedItems() const {
@@ -3234,7 +3266,7 @@ void HistoryInner::deleteAsGroup(FullMsgId itemId) {
 		if (!group) {
 			return deleteItem(item);
 		}
-		Ui::show(Box<DeleteMessagesBox>(
+		_controller->show(Box<DeleteMessagesBox>(
 			&session(),
 			session().data().itemsToIds(group->items)));
 	}
@@ -3257,7 +3289,7 @@ void HistoryInner::reportAsGroup(FullMsgId itemId) {
 
 void HistoryInner::blockSenderItem(FullMsgId itemId) {
 	if (const auto item = session().data().message(itemId)) {
-		Ui::show(Box(
+		_controller->show(Box(
 			Window::BlockSenderFromRepliesBox,
 			_controller,
 			itemId));
@@ -3439,6 +3471,29 @@ not_null<HistoryView::ElementDelegate*> HistoryInner::ElementDelegate() {
 				Instance->elementShowPollResults(poll, context);
 			}
 		}
+		void elementOpenPhoto(
+				not_null<PhotoData*> photo,
+				FullMsgId context) override {
+			if (Instance) {
+				Instance->elementOpenPhoto(photo, context);
+			}
+		}
+		void elementOpenDocument(
+				not_null<DocumentData*> document,
+				FullMsgId context,
+				bool showInMediaView = false) override {
+			if (Instance) {
+				Instance->elementOpenDocument(
+					document,
+					context,
+					showInMediaView);
+			}
+		}
+		void elementCancelUpload(const FullMsgId &context) override {
+			if (Instance) {
+				Instance->elementCancelUpload(context);
+			}
+		}
 		void elementShowTooltip(
 				const TextWithEntities &text,
 				Fn<void()> hiddenCallback) override {
@@ -3466,6 +3521,11 @@ not_null<HistoryView::ElementDelegate*> HistoryInner::ElementDelegate() {
 			if (Instance) {
 				Instance->elementHandleViaClick(bot);
 			}
+		}
+		bool elementIsChatWide() override {
+			return Instance
+				? Instance->elementIsChatWide()
+				: false;
 		}
 	};
 

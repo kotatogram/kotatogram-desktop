@@ -22,7 +22,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "main/main_app_config.h"
 #include "mainwindow.h"
-#include "facades.h" // Global::ScreenIsLocked.
 
 namespace Core {
 namespace {
@@ -86,6 +85,10 @@ const auto kBadPrefix = u"http://"_q;
 	return true;
 }
 
+[[nodiscard]] QString OpenGLCheckFilePath() {
+	return cWorkingDir() + "tdata/opengl_crash_check";
+}
+
 } // namespace
 
 void UiIntegration::postponeCall(FnMut<void()> &&callable) {
@@ -102,6 +105,22 @@ void UiIntegration::unregisterLeaveSubscription(not_null<QWidget*> widget) {
 
 QString UiIntegration::emojiCacheFolder() {
 	return cWorkingDir() + "tdata/emoji";
+}
+
+void UiIntegration::openglCheckStart() {
+	auto f = QFile(OpenGLCheckFilePath());
+	if (f.open(QIODevice::WriteOnly)) {
+		f.write("1", 1);
+		f.close();
+	}
+}
+
+void UiIntegration::openglCheckFinish() {
+	QFile::remove(OpenGLCheckFilePath());
+}
+
+bool UiIntegration::openglLastCheckFailed() {
+	return OpenGLLastCheckFailed();
 }
 
 void UiIntegration::textActionsUpdated() {
@@ -127,7 +146,7 @@ style::CustomFontSettings UiIntegration::fontSettings() {
 }
 
 bool UiIntegration::screenIsLocked() {
-	return Global::ScreenIsLocked();
+	return Core::App().screenIsLocked();
 }
 
 QString UiIntegration::timeFormat() {
@@ -311,6 +330,10 @@ QString UiIntegration::phraseFormattingStrikeOut() {
 
 QString UiIntegration::phraseFormattingMonospace() {
 	return tr::lng_menu_formatting_monospace(tr::now);
+}
+
+bool OpenGLLastCheckFailed() {
+	return QFile::exists(OpenGLCheckFilePath());
 }
 
 } // namespace Core

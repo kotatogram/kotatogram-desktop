@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/add_contact_box.h"
 #include "boxes/peers/edit_peer_info_box.h"
 #include "boxes/peer_list_controllers.h"
+#include "window/window_adaptive.h"
 #include "window/window_controller.h"
 #include "window/main_window.h"
 #include "window/window_filters_menu.h"
@@ -20,6 +21,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_replies_section.h"
 #include "media/player/media_player_instance.h"
+#include "media/view/media_view_open_common.h"
+#include "data/data_document_resolver.h"
 #include "data/data_media_types.h"
 #include "data/data_session.h"
 #include "data/data_folder.h"
@@ -42,10 +45,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/toasts/common_toasts.h"
 #include "calls/calls_instance.h" // Core::App().calls().inCall().
+#include "calls/group/calls_group_call.h"
 #include "ui/boxes/calendar_box.h"
 #include "boxes/confirm_box.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
+#include "main/main_domain.h"
 #include "main/main_session.h"
 #include "main/main_account.h"
 #include "main/main_session_settings.h"
@@ -53,6 +58,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_chat_invite.h"
 #include "api/api_global_privacy.h"
 #include "support/support_helper.h"
+#include "storage/file_upload.h"
 #include "facades.h"
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h"
@@ -67,6 +73,7 @@ constexpr auto kMaxChatEntryHistorySize = 50;
 
 void ActivateWindow(not_null<SessionController*> controller) {
 	const auto window = controller->widget();
+	window->raise();
 	window->activateWindow();
 	Ui::ActivateWindowDelayed(window);
 }
@@ -139,7 +146,7 @@ void SessionNavigation::resolveUsername(
 	}).fail([=](const MTP::Error &error) {
 		_resolveRequestId = 0;
 		if (error.code() == 400) {
-			Ui::show(Box<InformBox>(
+			show(Box<InformBox>(
 				tr::lng_username_not_found(tr::now, lt_user, username)));
 		}
 	}).send();
@@ -474,12 +481,14 @@ SessionController::SessionController(
 		enableGifPauseReason(GifPauseReason::RoundPlaying);
 	}
 
-	subscribe(session->api().fullPeerUpdated(), [=](PeerData *peer) {
+	base::ObservableViewer(
+		session->api().fullPeerUpdated()
+	) | rpl::start_with_next([=](PeerData *peer) {
 		if (peer == _showEditPeer) {
 			_showEditPeer = nullptr;
-			Ui::show(Box<EditPeerInfoBox>(this, peer));
+			show(Box<EditPeerInfoBox>(this, peer));
 		}
-	});
+	}, lifetime());
 
 	session->data().chatsListChanges(
 	) | rpl::filter([=](Data::Folder *folder) {
@@ -799,7 +808,7 @@ void SessionController::enableGifPauseReason(GifPauseReason reason) {
 		auto notify = (static_cast<int>(_gifPauseReasons) < static_cast<int>(reason));
 		_gifPauseReasons |= reason;
 		if (notify) {
-			_gifPauseLevelChanged.notify();
+			_gifPauseLevelChanged.fire({});
 		}
 	}
 }
@@ -808,7 +817,7 @@ void SessionController::disableGifPauseReason(GifPauseReason reason) {
 	if (_gifPauseReasons & reason) {
 		_gifPauseReasons &= ~reason;
 		if (_gifPauseReasons < reason) {
-			_gifPauseLevelChanged.notify();
+			_gifPauseLevelChanged.fire({});
 		}
 	}
 }
@@ -950,7 +959,7 @@ bool SessionController::takeThirdSectionFromLayer() {
 }
 
 void SessionController::resizeForThirdSection() {
-	if (Adaptive::ThreeColumn()) {
+	if (adaptive().isThreeColumn()) {
 		return;
 	}
 
@@ -1036,7 +1045,7 @@ void SessionController::startOrJoinGroupCall(
 		GroupCallJoinConfirm confirm) {
 	auto &calls = Core::App().calls();
 	const auto askConfirmation = [&](QString text, QString button) {
-		Ui::show(Box<ConfirmBox>(text, button, crl::guard(this, [=] {
+		show(Box<ConfirmBox>(text, button, crl::guard(this, [=] {
 			Ui::hideLayer();
 			startOrJoinGroupCall(peer, joinHash, GroupCallJoinConfirm::None);
 		})));
@@ -1138,7 +1147,7 @@ void SessionController::showJumpToDate(Dialogs::Key chat, QDate requestedDate) {
 	box->setMinDate(minPeerDate(chat));
 	box->setMaxDate(maxPeerDate(chat));
 	box->setBeginningButton(true);
-	Ui::show(std::move(box));
+	show(std::move(box));
 }
 
 void SessionController::showPassportForm(const Passport::FormRequest &request) {
@@ -1175,6 +1184,49 @@ void SessionController::showPeerHistory(
 		peerId,
 		params,
 		msgId);
+}
+
+void SessionController::showPeerHistoryAtItem(
+		not_null<const HistoryItem*> item) {
+	_window->invokeForSessionController(
+		&item->history()->peer->session().account(),
+		[=](not_null<SessionController*> controller) {
+			controller->showPeerHistory(
+				item->history()->peer,
+				SectionShow::Way::ClearStack,
+				item->id);
+		});
+}
+
+void SessionController::cancelUploadLayer(not_null<HistoryItem*> item) {
+	const auto itemId = item->fullId();
+	session().uploader().pause(itemId);
+	const auto stopUpload = [=] {
+		Ui::hideLayer();
+		auto &data = session().data();
+		if (const auto item = data.message(itemId)) {
+			if (!item->isEditingMedia()) {
+				const auto history = item->history();
+				item->destroy();
+				history->requestChatListMessage();
+			} else {
+				item->returnSavedMedia();
+				session().uploader().cancel(item->fullId());
+			}
+			data.sendHistoryChangeNotifications();
+		}
+		session().uploader().unpause();
+	};
+	const auto continueUpload = [=] {
+		session().uploader().unpause();
+	};
+
+	show(Box<ConfirmBox>(
+		tr::lng_selected_cancel_sure_this(tr::now),
+		tr::lng_selected_upload_stop(tr::now),
+		tr::lng_continue(tr::now),
+		stopUpload,
+		continueUpload));
 }
 
 void SessionController::showSection(
@@ -1226,7 +1278,7 @@ void SessionController::setActiveChatsFilter(FilterId id) {
 	if (id) {
 		closeFolder(true);
 	}
-	if (Adaptive::OneColumn()) {
+	if (adaptive().isOneColumn()) {
 		Ui::showChatsList(&session());
 	}
 }
@@ -1247,6 +1299,49 @@ void SessionController::showNewChannel() {
 	_window->show(
 		Box<GroupInfoBox>(this, GroupInfoBox::Type::Channel),
 		Ui::LayerOption::KeepOther);
+}
+
+Window::Adaptive &SessionController::adaptive() const {
+	return _window->adaptive();
+}
+
+QPointer<Ui::BoxContent> SessionController::show(
+		object_ptr<Ui::BoxContent> content,
+		Ui::LayerOptions options,
+		anim::type animated) {
+	return _window->show(std::move(content), options, animated);
+}
+
+void SessionController::openPhoto(
+		not_null<PhotoData*> photo,
+		FullMsgId contextId) {
+	_window->openInMediaView(Media::View::OpenRequest(
+		this,
+		photo,
+		session().data().message(contextId)));
+}
+
+void SessionController::openPhoto(
+		not_null<PhotoData*> photo,
+		not_null<PeerData*> peer) {
+	_window->openInMediaView(Media::View::OpenRequest(this, photo, peer));
+}
+
+void SessionController::openDocument(
+		not_null<DocumentData*> document,
+		FullMsgId contextId,
+		bool showInMediaView) {
+	if (showInMediaView) {
+		_window->openInMediaView(Media::View::OpenRequest(
+			this,
+			document,
+			session().data().message(contextId)));
+		return;
+	}
+	Data::ResolveDocument(
+		this,
+		document,
+		session().data().message(contextId));
 }
 
 SessionController::~SessionController() = default;

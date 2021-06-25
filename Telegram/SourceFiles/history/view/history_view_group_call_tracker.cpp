@@ -15,7 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/group_call_bar.h"
 #include "ui/chat/group_call_userpics.h"
 #include "ui/painter.h"
-#include "calls/calls_group_call.h"
+#include "calls/group/calls_group_call.h"
 #include "calls/calls_instance.h"
 #include "core/application.h"
 #include "styles/style_chat.h"
@@ -100,7 +100,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 	};
 
 	// speaking DESC, std::max(date, lastActive) DESC
-	static const auto SortKey = [](const Data::GroupCall::Participant &p) {
+	static const auto SortKey = [](const Data::GroupCallParticipant &p) {
 		const auto result = (p.speaking ? uint64(0x100000000ULL) : uint64(0))
 			| uint64(std::max(p.lastActive, p.date));
 		return (~uint64(0)) - result; // sorting with less(), so invert.
@@ -115,7 +115,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 		if (already >= kLimit || participants.size() <= already) {
 			return false;
 		}
-		std::array<const Data::GroupCall::Participant*, kLimit> adding{
+		std::array<const Data::GroupCallParticipant*, kLimit> adding{
 			{ nullptr }
 		};
 		for (const auto &participant : call->participants()) {
@@ -222,7 +222,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 			const auto j = ranges::find(
 				participants,
 				i->peer,
-				&Data::GroupCall::Participant::peer);
+				&Data::GroupCallParticipant::peer);
 			if (j == end(participants) || !j->speaking) {
 				// Found a non-speaking one, put the new speaking one here.
 				break;
@@ -253,7 +253,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 				const auto j = ranges::find(
 					participants,
 					i->peer,
-					&Data::GroupCall::Participant::peer);
+					&Data::GroupCallParticipant::peer);
 				if (j == end(participants) || !j->speaking) {
 					// Found a non-speaking one, remove.
 					state->userpics.erase(i);
@@ -331,7 +331,7 @@ rpl::producer<Ui::GroupCallBarContent> GroupCallTracker::ContentByCall(
 			}
 		}, lifetime);
 
-		call->participantsSliceAdded(
+		call->participantsReloaded(
 		) | rpl::filter([=] {
 			return RegenerateUserpics(state, call, userpicSize);
 		}) | rpl::start_with_next(pushNext, lifetime);

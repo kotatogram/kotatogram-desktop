@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "base/timer.h"
+#include "base/event_filter.h"
 #include "base/concurrent_timer.h"
 #include "base/qt_signal_producer.h"
 #include "base/unixtime.h"
@@ -24,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "chat_helpers/emoji_keywords.h"
 #include "chat_helpers/stickers_emoji_image_loader.h"
 #include "base/platform/base_platform_last_input.h"
+#include "base/platform/base_platform_info.h"
 #include "platform/platform_specific.h"
 #include "mainwindow.h"
 #include "dialogs/dialogs_entry.h"
@@ -42,6 +44,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_domain.h"
 #include "main/main_session.h"
 #include "media/view/media_view_overlay_widget.h"
+#include "media/view/media_view_open_common.h"
 #include "mtproto/mtproto_dc_options.h"
 #include "mtproto/mtproto_config.h"
 #include "mtproto/mtp_instance.h"
@@ -73,7 +76,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/confirm_phone_box.h"
 #include "boxes/confirm_box.h"
 #include "boxes/share_box.h"
-#include "facades.h"
 #include "app.h"
 
 #include <QtWidgets/QDesktopWidget>
@@ -195,7 +197,6 @@ Application::~Application() {
 	Media::Player::finish(_audio.get());
 	style::stopManager();
 
-	Global::finish();
 	ThirdParty::finish();
 
 	Instance = nullptr;
@@ -205,8 +206,7 @@ void Application::run() {
 	style::internal::StartFonts();
 
 	ThirdParty::start();
-	Global::start();
-	refreshGlobalProxy(); // Depends on Global::start().
+	refreshGlobalProxy(); // Depends on Core::IsAppLaunched().
 
 	// Depends on OpenSSL on macOS, so on ThirdParty::start().
 	// Depends on notifications settings.
@@ -305,6 +305,43 @@ void Application::run() {
 	for (const auto &error : Shortcuts::Errors()) {
 		LOG(("Shortcuts Error: %1").arg(error));
 	}
+
+	if (!Platform::IsMac()
+		&& Ui::Integration::Instance().openglLastCheckFailed()) {
+		showOpenGLCrashNotification();
+	}
+
+	_window->openInMediaViewRequests(
+	) | rpl::start_with_next([=](Media::View::OpenRequest &&request) {
+		if (_mediaView) {
+			_mediaView->show(std::move(request));
+		}
+	}, _window->lifetime());
+}
+
+void Application::showOpenGLCrashNotification() {
+	const auto enable = [=] {
+		Ui::GL::ForceDisable(false);
+		Ui::Integration::Instance().openglCheckFinish();
+		Core::App().settings().setDisableOpenGL(false);
+		Local::writeSettings();
+		App::restart();
+	};
+	const auto keepDisabled = [=] {
+		Ui::GL::ForceDisable(true);
+		Ui::Integration::Instance().openglCheckFinish();
+		Core::App().settings().setDisableOpenGL(true);
+		Local::writeSettings();
+	};
+	_window->show(Box<ConfirmBox>(
+		"There may be a problem with your graphics drivers and OpenGL. "
+		"Try updating your drivers.\n\n"
+		"OpenGL has been disabled. You can try to enable it again "
+		"or keep it disabled if crashes continue.",
+		"Enable",
+		"Keep Disabled",
+		enable,
+		keepDisabled));
 }
 
 void Application::startDomain() {
@@ -314,8 +351,6 @@ void Application::startDomain() {
 		startSettingsAndBackground();
 	}
 	if (state != Storage::StartResult::Success) {
-		Global::SetLocalPasscode(true);
-		Global::RefLocalPasscodeChanged().notify();
 		lockByPasscode();
 		DEBUG_LOG(("Application Info: passcode needed..."));
 	}
@@ -378,57 +413,6 @@ bool Application::hideMediaView() {
 		return true;
 	}
 	return false;
-}
-
-void Application::showPhoto(not_null<const PhotoOpenClickHandler*> link) {
-	const auto photo = link->photo();
-	const auto peer = link->peer();
-	const auto item = photo->owner().message(link->context());
-	return (!item && peer)
-		? showPhoto(photo, peer)
-		: showPhoto(photo, item);
-}
-
-void Application::showPhoto(not_null<PhotoData*> photo, HistoryItem *item) {
-	Expects(_mediaView != nullptr);
-
-	_mediaView->showPhoto(photo, item);
-	_mediaView->activateWindow();
-	_mediaView->setFocus();
-}
-
-void Application::showPhoto(
-		not_null<PhotoData*> photo,
-		not_null<PeerData*> peer) {
-	Expects(_mediaView != nullptr);
-
-	_mediaView->showPhoto(photo, peer);
-	_mediaView->activateWindow();
-	_mediaView->setFocus();
-}
-
-void Application::showDocument(not_null<DocumentData*> document, HistoryItem *item) {
-	Expects(_mediaView != nullptr);
-
-	if (cUseExternalVideoPlayer()
-		&& document->isVideoFile()
-		&& !document->filepath().isEmpty()) {
-		File::Launch(document->location(false).fname);
-	} else {
-		_mediaView->showDocument(document, item);
-		_mediaView->activateWindow();
-		_mediaView->setFocus();
-	}
-}
-
-void Application::showTheme(
-		not_null<DocumentData*> document,
-		const Data::CloudTheme &cloud) {
-	Expects(_mediaView != nullptr);
-
-	_mediaView->showTheme(document, cloud);
-	_mediaView->activateWindow();
-	_mediaView->setFocus();
 }
 
 PeerData *Application::ui_getPeerForMouseAction() {
@@ -526,17 +510,17 @@ void Application::setCurrentProxy(
 		const MTP::ProxyData &proxy,
 		MTP::ProxyData::Settings settings) {
 	const auto current = [&] {
-		return (Global::ProxySettings() == MTP::ProxyData::Settings::Enabled)
-			? Global::SelectedProxy()
+		return _settings.proxy().isEnabled()
+			? _settings.proxy().selected()
 			: MTP::ProxyData();
 	};
 	const auto was = current();
-	Global::SetSelectedProxy(proxy);
-	Global::SetProxySettings(settings);
+	_settings.proxy().setSelected(proxy);
+	_settings.proxy().setSettings(settings);
 	const auto now = current();
 	refreshGlobalProxy();
 	_proxyChanges.fire({ was, now });
-	Global::RefConnectionTypeChanged().notify();
+	_settings.proxy().connectionTypeChangesNotify();
 }
 
 auto Application::proxyChanges() const -> rpl::producer<ProxyChange> {
@@ -544,11 +528,10 @@ auto Application::proxyChanges() const -> rpl::producer<ProxyChange> {
 }
 
 void Application::badMtprotoConfigurationError() {
-	if (Global::ProxySettings() == MTP::ProxyData::Settings::Enabled
-		&& !_badProxyDisableBox) {
+	if (_settings.proxy().isEnabled() && !_badProxyDisableBox) {
 		const auto disableCallback = [=] {
 			setCurrentProxy(
-				Global::SelectedProxy(),
+				_settings.proxy().selected(),
 				MTP::ProxyData::Settings::System);
 		};
 		_badProxyDisableBox = Ui::show(Box<InformBox>(
@@ -591,6 +574,14 @@ void Application::startEmojiImageLoader() {
 			loader.switchTo(std::move(source));
 		});
 	}, _lifetime);
+}
+
+void Application::setScreenIsLocked(bool locked) {
+	_screenIsLocked = locked;
+}
+
+bool Application::screenIsLocked() const {
+	return _screenIsLocked;
 }
 
 void Application::setDefaultFloatPlayerDelegate(
@@ -883,7 +874,7 @@ bool Application::passcodeLocked() const {
 void Application::updateNonIdle() {
 	_lastNonIdleTime = crl::now();
 	if (const auto session = maybeActiveSession()) {
-		session->updates().checkIdleFinish();
+		session->updates().checkIdleFinish(_lastNonIdleTime);
 	}
 }
 
@@ -910,19 +901,21 @@ bool Application::someSessionExists() const {
 	return false;
 }
 
-void Application::checkAutoLock() {
-	if (!Global::LocalPasscode()
+void Application::checkAutoLock(crl::time lastNonIdleTime) {
+	if (!_domain->local().hasLocalPasscode()
 		|| passcodeLocked()
 		|| !someSessionExists()) {
 		_shouldLockAt = 0;
 		_autoLockTimer.cancel();
 		return;
+	} else if (!lastNonIdleTime) {
+		lastNonIdleTime = this->lastNonIdleTime();
 	}
 
 	checkLocalTime();
 	const auto now = crl::now();
 	const auto shouldLockInMs = _settings.autoLock() * 1000LL;
-	const auto checkTimeMs = now - lastNonIdleTime();
+	const auto checkTimeMs = now - lastNonIdleTime;
 	if (checkTimeMs >= shouldLockInMs || (_shouldLockAt > 0 && now > _shouldLockAt + kAutoLockTimeoutLateMs)) {
 		_shouldLockAt = 0;
 		_autoLockTimer.cancel();
@@ -944,7 +937,7 @@ void Application::checkAutoLockIn(crl::time time) {
 void Application::localPasscodeChanged() {
 	_shouldLockAt = 0;
 	_autoLockTimer.cancel();
-	checkAutoLock();
+	checkAutoLock(crl::now());
 }
 
 bool Application::hasActiveWindow(not_null<Main::Session*> session) const {
@@ -1001,10 +994,10 @@ bool Application::minimizeActiveWindow() {
 }
 
 QWidget *Application::getFileDialogParent() {
-	return (_mediaView && _mediaView->isVisible())
-		? (QWidget*)_mediaView.get()
+	return (_mediaView && !_mediaView->isHidden())
+		? static_cast<QWidget*>(_mediaView->widget())
 		: activeWindow()
-		? (QWidget*)activeWindow()->widget()
+		? static_cast<QWidget*>(activeWindow()->widget())
 		: nullptr;
 }
 
@@ -1016,9 +1009,7 @@ void Application::notifyFileDialogShown(bool shown) {
 
 void Application::checkMediaViewActivation() {
 	if (_mediaView && !_mediaView->isHidden()) {
-		_mediaView->activateWindow();
-		QApplication::setActiveWindow(_mediaView.get());
-		_mediaView->setFocus();
+		_mediaView->activate();
 	}
 }
 
@@ -1032,30 +1023,49 @@ QPoint Application::getPointForCallPanelCenter() const {
 // macOS Qt bug workaround, sometimes no leaveEvent() gets to the nested widgets.
 void Application::registerLeaveSubscription(not_null<QWidget*> widget) {
 #ifdef Q_OS_MAC
-	if (const auto topLevel = widget->window()) {
-		if (topLevel == _window->widget()) {
-			auto weak = Ui::MakeWeak(widget);
-			auto subscription = _window->widget()->leaveEvents(
-			) | rpl::start_with_next([weak] {
-				if (const auto window = weak.data()) {
-					QEvent ev(QEvent::Leave);
-					QGuiApplication::sendEvent(window, &ev);
+	if (const auto window = widget->window()) {
+		auto i = _leaveFilters.find(window);
+		if (i == end(_leaveFilters)) {
+			const auto check = [=](not_null<QEvent*> e) {
+				if (e->type() == QEvent::Leave) {
+					if (const auto taken = _leaveFilters.take(window)) {
+						for (const auto weak : taken->registered) {
+							if (const auto widget = weak.data()) {
+								QEvent ev(QEvent::Leave);
+								QCoreApplication::sendEvent(widget, &ev);
+							}
+						}
+						delete taken->filter.data();
+					}
 				}
+				return base::EventFilterResult::Continue;
+			};
+			const auto filter = base::install_event_filter(window, check);
+			QObject::connect(filter, &QObject::destroyed, [=] {
+				_leaveFilters.remove(window);
 			});
-			_leaveSubscriptions.emplace_back(weak, std::move(subscription));
+			i = _leaveFilters.emplace(
+				window,
+				LeaveFilter{ .filter = filter.get() }).first;
 		}
+		i->second.registered.push_back(widget.get());
 	}
 #endif // Q_OS_MAC
 }
 
 void Application::unregisterLeaveSubscription(not_null<QWidget*> widget) {
 #ifdef Q_OS_MAC
-	_leaveSubscriptions = std::move(
-		_leaveSubscriptions
-	) | ranges::actions::remove_if([&](const LeaveSubscription &subscription) {
-		auto pointer = subscription.pointer.data();
-		return !pointer || (pointer == widget);
-	});
+	if (const auto topLevel = widget->window()) {
+		const auto i = _leaveFilters.find(topLevel);
+		if (i != end(_leaveFilters)) {
+			i->second.registered = std::move(
+				i->second.registered
+			) | ranges::actions::remove_if([&](QPointer<QWidget> widget) {
+				const auto pointer = widget.data();
+				return !pointer || (pointer == widget);
+			});
+		}
+	}
 #endif // Q_OS_MAC
 }
 
@@ -1130,7 +1140,7 @@ void Application::startShortcuts() {
 			return true;
 		});
 		request->check(Command::Lock) && request->handle([=] {
-			if (!passcodeLocked() && Global::LocalPasscode()) {
+			if (!passcodeLocked() && _domain->local().hasLocalPasscode()) {
 				lockByPasscode();
 				return true;
 			}

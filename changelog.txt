@@ -1,3 +1,44 @@
+2.7.10 beta (22.06.21)
+
+- Added ability to mix together bold, italic and other formatting.
+- Fix voice chats and video calls OpenGL with some drivers on Windows.
+- Several bug fixes.
+
+2.7.9 beta (17.06.21)
+
+- Added "Enable noise suppression" option to group calls Settings.
+- Fix media viewer with Retina + Non-Retina dual monitor setup on macOS.
+- Several bug and crash fixes.
+
+2.7.8 beta (11.06.21)
+
+- Crash fixes.
+
+2.7.7 beta (11.06.21)
+
+- Optimized video playback in media viewer and Picture-in-Picture mode.
+- Added integration with System Media Transport Controls on Windows 10.
+- Added "Now Playing" integration for music playback on macOS.
+- Added "Archive Sticker" into the "..." menu of the Sticker Set Box.
+- Fixed memory not being freed on Linux.
+- Several crash fixes.
+
+2.7.6 beta (31.05.21)
+
+- Optimized video playback in media viewer and Picture-in-Picture on Windows and Linux.
+- Added integration with System Media Transport Controls on Windows 10.
+- Added "Archive Sticker" into the "..." menu of the Sticker Set Box.
+- Fixed memory not being freed on Linux.
+- Several crash fixes.
+
+2.7.5 beta (04.05.21)
+
+- Add "Voice chats" filter in "Recent actions" for channels.
+- Write local drafts to disk on a background thread.
+- Support autoupdate for Telegram in write-protected folders on Linux.
+- Fix crash in native notifications on Linux.
+- Fix crash in file dialog on Linux.
+
 2.7.4 (28.04.21)
 
 - Fix crash in viewing an invoice after a payment is made.

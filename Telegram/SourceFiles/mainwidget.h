@@ -160,7 +160,6 @@ public:
 
 	void showForwardLayer(MessageIdsList &&items);
 	void showSendPathsLayer();
-	void cancelUploadLayer(not_null<HistoryItem*> item);
 	void shareUrlLayer(const QString &url, const QString &text);
 	void inlineSwitchLayer(const QString &botAndQuery);
 	void hiderLayer(base::unique_qptr<Window::HistoryHider> h);
@@ -324,6 +323,8 @@ private:
 		Window::Column widgetColumn)> callback) override;
 	bool floatPlayerIsVisible(not_null<HistoryItem*> item) override;
 	void floatPlayerClosed(FullMsgId itemId);
+	void floatPlayerDoubleClickEvent(
+		not_null<const HistoryItem*> item) override;
 
 	void viewsIncrementDone(
 		QVector<MTPint> ids,
@@ -348,6 +349,10 @@ private:
 		QImage &&image);
 
 	void handleHistoryBack();
+
+	bool isOneColumn() const;
+	bool isNormalColumn() const;
+	bool isThreeColumn() const;
 
 	const not_null<Window::SessionController*> _controller;
 	MTP::Sender _api;

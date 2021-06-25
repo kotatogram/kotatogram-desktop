@@ -79,7 +79,7 @@ QString IDString(not_null<PeerData*> peer) {
 		? peerToChannel(peer->id).bare
 		: peer->id.value);
 
-	if (cShowChatId() == 2) {
+	if (ShowChatId() == 2) {
 		if (peer->isChannel()) {
 			resultId = QString::number(peerToChannel(peer->id).bare - kMaxChannelId).prepend("-");
 		} else if (peer->isChat()) {

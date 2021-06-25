@@ -27,8 +27,8 @@ public:
 		return _y;
 	}
 
-	base::Observable<void> &changed() {
-		return _changed;
+	rpl::producer<> changed() const {
+		return _changed.events();
 	}
 	void setHSB(HSB hsb);
 	void setRGB(int red, int green, int blue);
@@ -61,7 +61,7 @@ private:
 	float64 _y = 0.;
 
 	bool _choosing = false;
-	base::Observable<void> _changed;
+	rpl::event_stream<> _changed;
 
 };
 
@@ -234,7 +234,7 @@ void EditColorBox::Picker::updateCurrentPoint(QPoint localPosition) {
 		_x = x;
 		_y = y;
 		update();
-		_changed.notify();
+		_changed.fire({});
 	}
 }
 
@@ -284,8 +284,8 @@ public:
 	};
 	Slider(QWidget *parent, Direction direction, Type type, QColor color);
 
-	base::Observable<void> &changed() {
-		return _changed;
+	rpl::producer<> changed() const {
+		return _changed.events();
 	}
 	float64 value() const {
 		return _value;
@@ -335,7 +335,7 @@ private:
 	QBrush _transparent;
 
 	bool _choosing = false;
-	base::Observable<void> _changed;
+	rpl::event_stream<> _changed;
 
 };
 
@@ -349,7 +349,9 @@ EditColorBox::Slider::Slider(
 , _type(type)
 , _color(color.red(), color.green(), color.blue())
 , _value(valueFromColor(color))
-, _transparent((_type == Type::Opacity) ? style::transparentPlaceholderBrush() : QBrush()) {
+, _transparent((_type == Type::Opacity)
+		? style::TransparentPlaceholder()
+		: QBrush()) {
 	prepareMinSize();
 }
 
@@ -538,7 +540,7 @@ void EditColorBox::Slider::updateCurrentPoint(QPoint localPosition) {
 	if (_value != value) {
 		_value = value;
 		update();
-		_changed.notify();
+		_changed.fire({});
 	}
 }
 
@@ -758,7 +760,7 @@ EditColorBox::EditColorBox(
 , _greenField(this, st::colorValueInput, "G", 255)
 , _blueField(this, st::colorValueInput, "B", 255)
 , _result(this, st::colorResultInput)
-, _transparent(style::transparentPlaceholderBrush())
+, _transparent(style::TransparentPlaceholder())
 , _current(current)
 , _new(current) {
 	if (_mode == Mode::RGBA) {
@@ -824,16 +826,14 @@ void EditColorBox::prepare() {
 	auto height = st::colorEditSkip + st::colorPickerSize + st::colorEditSkip + st::colorSliderWidth + st::colorEditSkip;
 	setDimensions(st::colorEditWidth, height);
 
-	subscribe(_picker->changed(), [=] { updateFromControls(); });
-	if (_hueSlider) {
-		subscribe(_hueSlider->changed(), [=] { updateFromControls(); });
-	}
-	if (_opacitySlider) {
-		subscribe(_opacitySlider->changed(), [=] { updateFromControls(); });
-	}
-	if (_lightnessSlider) {
-		subscribe(_lightnessSlider->changed(), [=] { updateFromControls(); });
-	}
+	rpl::merge(
+		_picker->changed(),
+		(_hueSlider ? _hueSlider->changed() : rpl::never<>()),
+		(_opacitySlider ? _opacitySlider->changed() : rpl::never<>()),
+		(_lightnessSlider ? _lightnessSlider->changed() : rpl::never<>())
+	) | rpl::start_with_next([=] {
+		updateFromControls();
+	}, lifetime());
 
 	boxClosing() | rpl::start_with_next([=] {
 		if (_cancelCallback) {

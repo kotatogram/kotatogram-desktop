@@ -269,7 +269,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		return result;
 	};
 	if (const auto user = _peer->asUser()) {
-		if (cShowChatId() != 0) {
+		if (ShowChatId() != 0) {
 			auto idDrawableText = IDValue(
 				user
 			) | rpl::map([](TextWithEntities &&text) {
@@ -364,7 +364,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			[=] { controller->window().show(Box(EditContactBox, controller, user)); },
 			tracker);
 	} else {
-		if (cShowChatId() != 0) {
+		if (ShowChatId() != 0) {
 			auto idDrawableText = IDValue(
 				_peer
 			) | rpl::map([](TextWithEntities &&text) {

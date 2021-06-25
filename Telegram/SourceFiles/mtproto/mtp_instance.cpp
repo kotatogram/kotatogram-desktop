@@ -20,13 +20,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_account.h" // Account::configUpdated.
 #include "apiwrap.h"
 #include "core/application.h"
+#include "core/core_settings.h"
 #include "lang/lang_instance.h"
 #include "lang/lang_cloud_manager.h"
 #include "base/unixtime.h"
 #include "base/call_delayed.h"
 #include "base/timer.h"
 #include "base/network_reachability.h"
-#include "facades.h" // Proxies list.
 
 namespace MTP {
 namespace {
@@ -279,6 +279,8 @@ private:
 
 	base::Timer _checkDelayedTimer;
 
+	Core::SettingsProxy &_proxySettings;
+
 	rpl::lifetime _lifetime;
 
 };
@@ -299,7 +301,8 @@ Instance::Private::Private(
 , _instance(instance)
 , _mode(mode)
 , _config(std::move(fields.config))
-, _networkReachability(base::NetworkReachability::Instance()) {
+, _networkReachability(base::NetworkReachability::Instance())
+, _proxySettings(Core::App().settings().proxy()) {
 	Expects(_config != nullptr);
 
 	const auto idealThreadPoolSize = QThread::idealThreadCount();
@@ -338,6 +341,13 @@ Instance::Private::Private(
 		_mainDcId = fields.mainDcId;
 		_mainDcIdForced = true;
 	}
+
+	_proxySettings.connectionTypeChanges(
+	) | rpl::start_with_next([=] {
+		if (_configLoader) {
+			_configLoader->setProxyEnabled(_proxySettings.isEnabled());
+		}
+	}, _lifetime);
 }
 
 void Instance::Private::start() {
@@ -397,11 +407,12 @@ void Instance::Private::applyDomainIps(
 		}
 		return true;
 	};
-	for (auto &proxy : Global::RefProxiesList()) {
+	for (auto &proxy : _proxySettings.list()) {
 		applyToProxy(proxy);
 	}
-	if (applyToProxy(Global::RefSelectedProxy())
-		&& (Global::ProxySettings() == ProxyData::Settings::Enabled)) {
+	auto selected = _proxySettings.selected();
+	if (applyToProxy(selected) && _proxySettings.isEnabled()) {
+		_proxySettings.setSelected(selected);
 		for (const auto &[shiftedDcId, session] : _sessions) {
 			session->refreshOptions();
 		}
@@ -427,11 +438,13 @@ void Instance::Private::setGoodProxyDomain(
 		}
 		return true;
 	};
-	for (auto &proxy : Global::RefProxiesList()) {
+	for (auto &proxy : _proxySettings.list()) {
 		applyToProxy(proxy);
 	}
-	if (applyToProxy(Global::RefSelectedProxy())
-		&& (Global::ProxySettings() == ProxyData::Settings::Enabled)) {
+
+	auto selected = _proxySettings.selected();
+	if (applyToProxy(selected) && _proxySettings.isEnabled()) {
+		_proxySettings.setSelected(selected);
 		Core::App().refreshGlobalProxy();
 	}
 }
@@ -473,7 +486,8 @@ void Instance::Private::requestConfig() {
 		[=](const MTPConfig &result) { configLoadDone(result); },
 		[=](const Error &error, const Response &) {
 			return configLoadFail(error);
-		});
+		},
+		_proxySettings.isEnabled());
 	_configLoader->load();
 }
 
@@ -1266,12 +1280,12 @@ bool Instance::Private::onErrorDefault(
 		int breakpoint = 0;
 	}
 	auto badGuestDc = (code == 400) && (type == qsl("FILE_ID_INVALID"));
-	QRegularExpressionMatch m;
-	if ((m = QRegularExpression("^(FILE|PHONE|NETWORK|USER)_MIGRATE_(\\d+)$").match(type)).hasMatch()) {
+	QRegularExpressionMatch m1, m2;
+	if ((m1 = QRegularExpression("^(FILE|PHONE|NETWORK|USER)_MIGRATE_(\\d+)$").match(type)).hasMatch()) {
 		if (!requestId) return false;
 
 		auto dcWithShift = ShiftedDcId(0);
-		auto newdcWithShift = ShiftedDcId(m.captured(2).toInt());
+		auto newdcWithShift = ShiftedDcId(m1.captured(2).toInt());
 		if (const auto shiftedDcId = queryRequestByDc(requestId)) {
 			dcWithShift = *shiftedDcId;
 		} else {
@@ -1329,7 +1343,11 @@ bool Instance::Private::onErrorDefault(
 			(dcWithShift < 0) ? -newdcWithShift : newdcWithShift);
 		session->sendPrepared(request);
 		return true;
-	} else if (code < 0 || code >= 500 || (m = QRegularExpression("^FLOOD_WAIT_(\\d+)$").match(type)).hasMatch()) {
+	} else if (code < 0
+		|| code >= 500
+		|| (m1 = QRegularExpression("^FLOOD_WAIT_(\\d+)$").match(type)).hasMatch()
+		|| ((m2 = QRegularExpression("^SLOWMODE_WAIT_(\\d+)$").match(type)).hasMatch()
+			&& m2.captured(1).toInt() < 3)) {
 		if (!requestId) return false;
 
 		int32 secs = 1;
@@ -1340,9 +1358,11 @@ bool Instance::Private::onErrorDefault(
 			} else {
 				_requestsDelays.emplace(requestId, secs);
 			}
-		} else {
-			secs = m.captured(1).toInt();
+		} else if (m1.hasMatch()) {
+			secs = m1.captured(1).toInt();
 //			if (secs >= 60) return false;
+		} else if (m2.hasMatch()) {
+			secs = m2.captured(1).toInt();
 		}
 		auto sendAt = crl::now() + secs * 1000 + 10;
 		auto it = _delayedRequests.begin(), e = _delayedRequests.end();

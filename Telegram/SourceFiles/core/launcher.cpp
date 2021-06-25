@@ -12,12 +12,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/base_platform_info.h"
 #include "base/platform/base_platform_file_utilities.h"
 #include "ui/main_queue_processor.h"
-#include "ui/ui_utility.h"
 #include "core/crash_reports.h"
 #include "core/update_checker.h"
 #include "core/sandbox.h"
 #include "base/concurrent_timer.h"
 #include "kotato/json_settings.h"
+
+#include <QtCore/QLoggingCategory>
 
 namespace Core {
 namespace {
@@ -101,6 +102,9 @@ void ComputeDebugMode() {
 	}
 	if (cDebugMode()) {
 		Logs::SetDebugEnabled(true);
+	}
+	if (Logs::DebugEnabled()) {
+		QLoggingCategory::setFilterRules("qt.qpa.gl.debug=true");
 	}
 }
 
@@ -339,10 +343,6 @@ int Launcher::exec() {
 	// Must be started before Sandbox is created.
 	Platform::start();
 
-	if (!cQtScale()) {
-		Ui::DisableCustomScaling();
-	}
-
 	if (cUseEnvApi()
 		&& qEnvironmentVariableIsSet(kApiIdVarName.utf8().constData())
 		&& qEnvironmentVariableIsSet(kApiHashVarName.utf8().constData())) {
@@ -441,7 +441,6 @@ void Launcher::prepareSettings() {
 
 void Launcher::initQtMessageLogging() {
 	static QtMessageHandler OriginalMessageHandler = nullptr;
-	static bool WritingQtMessage = false;
 	OriginalMessageHandler = qInstallMessageHandler([](
 			QtMsgType type,
 			const QMessageLogContext &context,
@@ -450,10 +449,9 @@ void Launcher::initQtMessageLogging() {
 			OriginalMessageHandler(type, context, msg);
 		}
 		if (Logs::DebugEnabled() || !Logs::started()) {
-			if (!WritingQtMessage) {
-				WritingQtMessage = true;
+			if (!Logs::WritingEntry()) {
+				// Sometimes Qt logs something inside our own logging.
 				LOG((msg));
-				WritingQtMessage = false;
 			}
 		}
 	});

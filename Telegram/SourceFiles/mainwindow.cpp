@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_account.h" // Account::sessionValue.
 #include "main/main_domain.h"
 #include "mainwidget.h"
+#include "media/system_media_controls_manager.h"
 #include "boxes/confirm_box.h"
 #include "boxes/connection_box.h"
 #include "storage/storage_account.h"
@@ -82,6 +83,7 @@ void FeedLangTestingKey(int key) {
 
 MainWindow::MainWindow(not_null<Window::Controller*> controller)
 : Platform::MainWindow(controller) {
+
 	updateIconCache();
 
 	resize(st::windowDefaultWidth, st::windowDefaultHeight);
@@ -122,6 +124,11 @@ void MainWindow::initHook() {
 		this,
 		[=] { checkHistoryActivation(); },
 		Qt::QueuedConnection);
+
+	if (Media::SystemMediaControlsManager::Supported()) {
+		using MediaManager = Media::SystemMediaControlsManager;
+		_mediaControlsManager = std::make_unique<MediaManager>(&controller());
+	}
 }
 
 void MainWindow::createTrayIconMenu() {
@@ -166,7 +173,8 @@ void MainWindow::createTrayIconMenu() {
 }
 
 void MainWindow::applyInitialWorkMode() {
-	Global::RefWorkMode().setForced(Global::WorkMode().value(), true);
+	const auto workMode = Core::App().settings().workMode();
+	workmodeUpdated(workMode);
 
 	if (Core::App().settings().windowPosition().maximized) {
 		DEBUG_LOG(("Window Pos: First show, setting maximized."));
@@ -179,8 +187,8 @@ void MainWindow::applyInitialWorkMode() {
 		const auto minimizeAndHide = [=] {
 			DEBUG_LOG(("Window Pos: First show, setting minimized after."));
 			setWindowState(windowState() | Qt::WindowMinimized);
-			if (Global::WorkMode().value() == dbiwmTrayOnly
-				|| Global::WorkMode().value() == dbiwmWindowAndTray) {
+			if (workMode == Core::Settings::WorkMode::TrayOnly
+				|| workMode == Core::Settings::WorkMode::WindowAndTray) {
 				hide();
 			}
 		};
@@ -285,7 +293,11 @@ void MainWindow::setupIntro(Intro::EnterPoint point) {
 	auto bg = animated ? grabInner() : QPixmap();
 
 	destroyLayer();
-	auto created = object_ptr<Intro::Widget>(bodyWidget(), &account(), point);
+	auto created = object_ptr<Intro::Widget>(
+		bodyWidget(),
+		&controller(),
+		&account(),
+		point);
 	created->showSettingsRequested(
 	) | rpl::start_with_next([=] {
 		showSettings();
@@ -763,13 +775,13 @@ void MainWindow::toggleDisplayNotifyFromTray() {
 	}
 	account().session().saveSettings();
 	using Change = Window::Notifications::ChangeType;
-	auto &changes = Core::App().notifications().settingsChanged();
-	changes.notify(Change::DesktopEnabled);
+	auto &notifications = Core::App().notifications();
+	notifications.notifySettingsChanged(Change::DesktopEnabled);
 	if (soundNotifyChanged) {
-		changes.notify(Change::SoundEnabled);
+		notifications.notifySettingsChanged(Change::SoundEnabled);
 	}
 	if (flashBounceNotifyChanged) {
-		changes.notify(Change::FlashBounceEnabled);
+		notifications.notifySettingsChanged(Change::FlashBounceEnabled);
 	}
 }
 
@@ -787,8 +799,8 @@ void MainWindow::toggleSoundNotifyFromTray() {
 	settings.setSoundNotify(!settings.soundNotify());
 	account().session().saveSettings();
 	using Change = Window::Notifications::ChangeType;
-	auto &changes = Core::App().notifications().settingsChanged();
-	changes.notify(Change::SoundEnabled);
+	auto &notifications = Core::App().notifications();
+	notifications.notifySettingsChanged(Change::SoundEnabled);
 }
 
 void MainWindow::closeEvent(QCloseEvent *e) {
@@ -991,7 +1003,7 @@ void MainWindow::sendPaths() {
 	}
 }
 
-void MainWindow::updateIsActiveHook() {
+void MainWindow::activeChangedHook() {
 	if (const auto controller = sessionController()) {
 		controller->session().updates().updateOnline();
 	}

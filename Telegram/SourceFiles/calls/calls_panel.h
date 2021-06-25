@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/object_ptr.h"
 #include "calls/calls_call.h"
 #include "ui/effects/animations.h"
+#include "ui/gl/gl_window.h"
 #include "ui/rp_widget.h"
 
 class Image;
@@ -30,6 +31,9 @@ class FadeWrap;
 template <typename Widget>
 class PaddingWrap;
 class Window;
+namespace GL {
+enum class Backend;
+} // namespace GL
 namespace Platform {
 class TitleControls;
 } // namespace Platform
@@ -57,6 +61,8 @@ public:
 	void replaceCall(not_null<Call*> call);
 	void closeBeforeDestroy();
 
+	rpl::lifetime &lifetime();
+
 private:
 	class Incoming;
 	using State = Call::State;
@@ -67,6 +73,7 @@ private:
 		Redial,
 	};
 
+	[[nodiscard]] not_null<Ui::Window*> window() const;
 	[[nodiscard]] not_null<Ui::RpWidget*> widget() const;
 
 	void paint(QRect clip);
@@ -79,9 +86,6 @@ private:
 	void initGeometry();
 
 	void handleClose();
-
-	QRect signalBarsRect() const;
-	void paintSignalBarsBg(Painter &p);
 
 	void updateControlsGeometry();
 	void updateHangupGeometry();
@@ -105,7 +109,7 @@ private:
 	Call *_call = nullptr;
 	not_null<UserData*> _user;
 
-	const std::unique_ptr<Ui::Window> _window;
+	Ui::GL::Window _window;
 	std::unique_ptr<Incoming> _incoming;
 
 #ifndef Q_OS_MAC

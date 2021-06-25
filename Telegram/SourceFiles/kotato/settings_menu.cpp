@@ -632,12 +632,13 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 			tr::ktg_settings_chat_id(),
 			st::settingsButton));
 	auto chatIdText = rpl::single(
-		rpl::empty_value()
-	) | rpl::then(base::ObservableViewer(
-		Global::RefChatIDFormatChanged()
-	)) | rpl::map([] {
-		return ChatIdLabel(cShowChatId());
-	});
+		ChatIdLabel(ShowChatId())
+	) | rpl::then(
+		ShowChatIdChanges(
+		) | rpl::map([] (int chatIdType) {
+			return ChatIdLabel(chatIdType);
+		})
+	);
 	CreateRightLabel(
 		chatIdButton,
 		std::move(chatIdText),
@@ -647,13 +648,12 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 		Ui::show(Box<::Kotato::RadioBox>(
 			tr::ktg_settings_chat_id(tr::now),
 			tr::ktg_settings_chat_id_desc(tr::now),
-			cShowChatId(),
+			ShowChatId(),
 			3,
 			ChatIdLabel,
 			[=] (int value) {
-				cSetShowChatId(value);
+				SetShowChatId(value);
 				::Kotato::JsonSettings::Write();
-				Global::RefChatIDFormatChanged().notify();
 			}));
 	});
 

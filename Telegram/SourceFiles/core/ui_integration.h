@@ -38,6 +38,10 @@ public:
 
 	QString emojiCacheFolder() override;
 
+	void openglCheckStart() override;
+	void openglCheckFinish() override;
+	bool openglLastCheckFailed() override;
+
 	void textActionsUpdated() override;
 	void activationFromTopPanel() override;
 
@@ -71,5 +75,7 @@ public:
 	QString phraseFormattingMonospace() override;
 
 };
+
+[[nodiscard]] bool OpenGLLastCheckFailed();
 
 } // namespace Core

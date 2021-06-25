@@ -149,4 +149,4 @@ bool Launcher::launch(
 	return true;
 }
 
-} // namespace
+} // namespace Platform

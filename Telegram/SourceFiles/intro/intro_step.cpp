@@ -75,15 +75,16 @@ Step::Step(
 			? st::introCoverDescription
 			: st::introDescription)) {
 	hide();
-	subscribe(Window::Theme::Background(), [this](
-			const Window::Theme::BackgroundUpdate &update) {
-		if (update.paletteChanged()) {
-			if (!_coverMask.isNull()) {
-				_coverMask = QPixmap();
-				prepareCoverMask();
-			}
+	base::ObservableViewer(
+		*Window::Theme::Background()
+	) | rpl::filter([](const Window::Theme::BackgroundUpdate &update) {
+		return update.paletteChanged();
+	}) | rpl::start_with_next([=] {
+		if (!_coverMask.isNull()) {
+			_coverMask = QPixmap();
+			prepareCoverMask();
 		}
-	});
+	}, lifetime());
 
 	_errorText.value(
 	) | rpl::start_with_next([=](const QString &text) {
@@ -157,6 +158,7 @@ void Step::finish(const MTPUser &user, QImage &&photo) {
 				_account->logOut();
 				crl::on_main(raw, [=] {
 					Core::App().domain().activate(raw);
+					Local::sync();
 				});
 				return;
 			}
@@ -203,6 +205,7 @@ void Step::createSession(
 	if (session.supportMode()) {
 		PrepareSupportMode(&session);
 	}
+	Local::sync();
 }
 
 void Step::paintEvent(QPaintEvent *e) {

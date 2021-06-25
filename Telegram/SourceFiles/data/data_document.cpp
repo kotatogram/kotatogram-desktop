@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_document.h"
 
+#include "data/data_document_resolver.h"
 #include "data/data_session.h"
 #include "data/data_streaming.h"
 #include "data/data_document_media.h"
@@ -40,7 +41,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/confirm_box.h"
 #include "ui/image/image.h"
 #include "ui/text/text_utilities.h"
-#include "ui/text/format_values.h"
 #include "base/base_file_utilities.h"
 #include "mainwindow.h"
 #include "core/application.h"
@@ -74,59 +74,6 @@ QString JoinStringList(const QStringList &list, const QString &separator) {
 		result.append(separator).append(list[i]);
 	}
 	return result;
-}
-
-void LaunchWithWarning(
-		not_null<Main::Session*> session,
-		const QString &name,
-		HistoryItem *item) {
-	const auto isExecutable = Data::IsExecutableName(name);
-	const auto isIpReveal = Data::IsIpRevealingName(name);
-	auto &app = Core::App();
-	const auto warn = [&] {
-		if (item && item->history()->peer->isVerified()) {
-			return false;
-		}
-		return (isExecutable && app.settings().exeLaunchWarning())
-			|| (isIpReveal && app.settings().ipRevealWarning());
-	}();
-	const auto extension = '.' + Data::FileExtension(name);
-	if (Platform::IsWindows() && extension == u"."_q) {
-		// If you launch a file without extension, like "test", in case
-		// there is an executable file with the same name in this folder,
-		// like "test.bat", the executable file will be launched.
-		//
-		// Now we always force an Open With dialog box for such files.
-		crl::on_main([=] {
-			Platform::File::UnsafeShowOpenWith(name);
-		});
-		return;
-	} else if (!warn) {
-		File::Launch(name);
-		return;
-	}
-	const auto callback = [=, &app](bool checked) {
-		if (checked) {
-			if (isExecutable) {
-				app.settings().setExeLaunchWarning(false);
-			} else if (isIpReveal) {
-				app.settings().setIpRevealWarning(false);
-			}
-			app.saveSettingsDelayed();
-		}
-		File::Launch(name);
-	};
-	auto text = isExecutable
-		? tr::lng_launch_exe_warning(
-			lt_extension,
-			rpl::single(Ui::Text::Bold(extension)),
-			Ui::Text::WithEntities)
-		: tr::lng_launch_svg_warning(Ui::Text::WithEntities);
-	Ui::show(Box<ConfirmDontWarnBox>(
-		std::move(text),
-		tr::lng_launch_exe_dont_ask(tr::now),
-		(isExecutable ? tr::lng_launch_exe_sure : tr::lng_continue)(),
-		callback));
 }
 
 } // namespace
@@ -307,162 +254,6 @@ QString DocumentFileNameForSave(
 		name,
 		forceSavingAs,
 		dir);
-}
-
-DocumentClickHandler::DocumentClickHandler(
-	not_null<DocumentData*> document,
-	FullMsgId context)
-: FileClickHandler(&document->session(), context)
-, _document(document) {
-}
-
-void DocumentOpenClickHandler::Open(
-		Data::FileOrigin origin,
-		not_null<DocumentData*> data,
-		HistoryItem *context) {
-	if (!data->date) {
-		return;
-	}
-
-	const auto media = data->createMediaView();
-	const auto openImageInApp = [&] {
-		if (data->size >= App::kImageSizeLimit) {
-			return false;
-		}
-		const auto &location = data->location(true);
-		if (!location.isEmpty() && location.accessEnable()) {
-			const auto guard = gsl::finally([&] {
-				location.accessDisable();
-			});
-			const auto path = location.name();
-			if (Core::MimeTypeForFile(path).name().startsWith("image/")
-				&& QImageReader(path).canRead()) {
-				Core::App().showDocument(data, context);
-				return true;
-			}
-		} else if (data->mimeString().startsWith("image/")
-			&& !media->bytes().isEmpty()) {
-			auto bytes = media->bytes();
-			auto buffer = QBuffer(&bytes);
-			if (QImageReader(&buffer).canRead()) {
-				Core::App().showDocument(data, context);
-				return true;
-			}
-		}
-		return false;
-	};
-	const auto &location = data->location(true);
-	if (data->isTheme() && media->loaded(true)) {
-		Core::App().showDocument(data, context);
-		location.accessDisable();
-	} else if (media->canBePlayed()) {
-		if (data->isAudioFile()
-			|| data->isVoiceMessage()
-			|| data->isVideoMessage()) {
-			const auto msgId = context ? context->fullId() : FullMsgId();
-			Media::Player::instance()->playPause({ data, msgId });
-		/*
-		} else if (context
-			&& data->isAnimation()
-			&& HistoryView::Gif::CanPlayInline(data)) {
-			data->owner().requestAnimationPlayInline(context);
-		*/
-		} else {
-			Core::App().showDocument(data, context);
-		}
-	} else {
-		data->saveFromDataSilent();
-		if (!openImageInApp()) {
-			if (!data->filepath(true).isEmpty()) {
-				LaunchWithWarning(&data->session(), location.name(), context);
-			} else if (data->status == FileReady
-				|| data->status == FileDownloadFailed) {
-				DocumentSaveClickHandler::Save(origin, data);
-			}
-		}
-	}
-}
-
-void DocumentOpenClickHandler::onClickImpl() const {
-	Open(context(), document(), getActionItem());
-}
-
-void DocumentSaveClickHandler::Save(
-		Data::FileOrigin origin,
-		not_null<DocumentData*> data,
-		Mode mode) {
-	if (!data->date) {
-		return;
-	}
-
-	auto savename = QString();
-	if (mode != Mode::ToCacheOrFile || !data->saveToCache()) {
-		if (mode != Mode::ToNewFile && data->saveFromData()) {
-			return;
-		}
-		const auto filepath = data->filepath(true);
-		const auto fileinfo = QFileInfo(
-			);
-		const auto filedir = filepath.isEmpty()
-			? QDir()
-			: fileinfo.dir();
-		const auto filename = filepath.isEmpty()
-			? QString()
-			: fileinfo.fileName();
-		savename = DocumentFileNameForSave(
-			data,
-			(mode == Mode::ToNewFile),
-			filename,
-			filedir);
-		if (savename.isEmpty()) {
-			return;
-		}
-	}
-	data->save(origin, savename);
-}
-
-void DocumentSaveClickHandler::onClickImpl() const {
-	Save(context(), document());
-}
-
-void DocumentCancelClickHandler::onClickImpl() const {
-	const auto data = document();
-	if (!data->date) {
-		return;
-	} else if (data->uploading()) {
-		if (const auto item = data->owner().message(context())) {
-			if (const auto m = App::main()) { // multi good
-				if (&m->session() == &data->session()) {
-					m->cancelUploadLayer(item);
-				}
-			}
-		}
-	} else {
-		data->cancel();
-	}
-}
-
-void DocumentOpenWithClickHandler::Open(
-		Data::FileOrigin origin,
-		not_null<DocumentData*> data) {
-	if (!data->date) {
-		return;
-	}
-
-	data->saveFromDataSilent();
-	const auto path = data->filepath(true);
-	if (!path.isEmpty()) {
-		File::OpenWith(path, QCursor::pos());
-	} else {
-		DocumentSaveClickHandler::Save(
-			origin,
-			data,
-			DocumentSaveClickHandler::Mode::ToFile);
-	}
-}
-
-void DocumentOpenWithClickHandler::onClickImpl() const {
-	Open(context(), document());
 }
 
 Data::FileOrigin StickerData::setOrigin() const {
@@ -1466,16 +1257,6 @@ uint8 DocumentData::cacheTag() const {
 	return 0;
 }
 
-QString DocumentData::composeNameString() const {
-	if (auto songData = song()) {
-		return Ui::ComposeNameString(
-			_filename,
-			songData->title,
-			songData->performer);
-	}
-	return Ui::ComposeNameString(_filename, QString(), QString());
-}
-
 LocationType DocumentData::locationType() const {
 	return isVoiceMessage()
 		? AudioFileLocation
@@ -1647,126 +1428,3 @@ void DocumentData::collectLocalData(not_null<DocumentData*> local) {
 		session().local().writeFileLocation(mediaKey(), _location);
 	}
 }
-
-namespace Data {
-
-QString FileExtension(const QString &filepath) {
-	const auto reversed = ranges::views::reverse(filepath);
-	const auto last = ranges::find_first_of(reversed, ".\\/");
-	if (last == reversed.end() || *last != '.') {
-		return QString();
-	}
-	return QString(last.base(), last - reversed.begin());
-}
-
-bool IsValidMediaFile(const QString &filepath) {
-	static const auto kExtensions = [] {
-		const auto list = qsl("\
-16svx 2sf 3g2 3gp 8svx aac aaf aif aifc aiff amr amv ape asf ast au aup \
-avchd avi brstm bwf cam cdda cust dat divx drc dsh dsf dts dtshd dtsma \
-dvr-ms dwd evo f4a f4b f4p f4v fla flac flr flv gif gifv gsf gsm gym iff \
-ifo it jam la ly m1v m2p m2ts m2v m4a m4p m4v mcf mid mk3d mka mks mkv mng \
-mov mp1 mp2 mp3 mp4 minipsf mod mpc mpe mpeg mpg mpv mscz mt2 mus mxf mxl \
-niff nsf nsv off ofr ofs ogg ogv opus ots pac ps psf psf2 psflib ptb qsf \
-qt ra raw rka rm rmj rmvb roq s3m shn sib sid smi smp sol spc spx ssf svi \
-swa swf tak ts tta txm usf vgm vob voc vox vqf wav webm wma wmv wrap wtv \
-wv xm xml ym yuv").split(' ');
-		return base::flat_set<QString>(list.begin(), list.end());
-	}();
-
-	return ranges::binary_search(
-		kExtensions,
-		FileExtension(filepath).toLower());
-}
-
-bool IsExecutableName(const QString &filepath) {
-	static const auto kExtensions = [] {
-		const auto joined =
-#ifdef Q_OS_MAC
-			qsl("\
-applescript action app bin command csh osx workflow terminal url caction \
-mpkg pkg scpt scptd xhtm webarchive");
-#elif defined Q_OS_UNIX // Q_OS_MAC
-			qsl("bin csh deb desktop ksh out pet pkg pup rpm run sh shar \
-slp zsh");
-#else // Q_OS_MAC || Q_OS_UNIX
-			qsl("\
-ad ade adp app application appref-ms asp asx bas bat bin cab cdxml cer cfg \
-chi chm cmd cnt com cpl crt csh der diagcab dll drv eml exe fon fxp gadget \
-grp hlp hpj hta htt inf ini ins inx isp isu its jar jnlp job js jse key ksh \
-lnk local lua mad maf mag mam manifest maq mar mas mat mau mav maw mcf mda \
-mdb mde mdt mdw mdz mht mhtml mjs mmc mof msc msg msh msh1 msh2 msh1xml \
-msh2xml mshxml msi msp mst ops osd paf pcd phar php php3 php4 php5 php7 phps \
-php-s pht phtml pif pl plg pm pod prf prg ps1 ps2 ps1xml ps2xml psc1 psc2 \
-psd1 psm1 pssc pst py py3 pyc pyd pyi pyo pyw pywz pyz rb reg rgs scf scr \
-sct search-ms settingcontent-ms sh shb shs slk sys t tmp u3p url vb vbe vbp \
-vbs vbscript vdx vsmacros vsd vsdm vsdx vss vssm vssx vst vstm vstx vsw vsx \
-vtx website ws wsc wsf wsh xbap xll xnk xs");
-#endif // !Q_OS_MAC && !Q_OS_UNIX
-		const auto list = joined.split(' ');
-		return base::flat_set<QString>(list.begin(), list.end());
-	}();
-
-	return ranges::binary_search(
-		kExtensions,
-		FileExtension(filepath).toLower());
-}
-
-bool IsIpRevealingName(const QString &filepath) {
-	static const auto kExtensions = [] {
-		const auto joined = u"htm html svg"_q;
-		const auto list = joined.split(' ');
-		return base::flat_set<QString>(list.begin(), list.end());
-	}();
-	static const auto kMimeTypes = [] {
-		const auto joined = u"text/html image/svg+xml"_q;
-		const auto list = joined.split(' ');
-		return base::flat_set<QString>(list.begin(), list.end());
-	}();
-
-	return ranges::binary_search(
-		kExtensions,
-		FileExtension(filepath).toLower()
-	) || ranges::binary_search(
-		kMimeTypes,
-		QMimeDatabase().mimeTypeForFile(QFileInfo(filepath)).name()
-	);
-}
-
-base::binary_guard ReadImageAsync(
-		not_null<Data::DocumentMedia*> media,
-		FnMut<QImage(QImage)> postprocess,
-		FnMut<void(QImage&&)> done) {
-	auto result = base::binary_guard();
-	crl::async([
-		bytes = media->bytes(),
-		path = media->owner()->filepath(),
-		postprocess = std::move(postprocess),
-		guard = result.make_guard(),
-		callback = std::move(done)
-	]() mutable {
-		auto format = QByteArray();
-		if (bytes.isEmpty()) {
-			QFile f(path);
-			if (f.size() <= App::kImageSizeLimit
-				&& f.open(QIODevice::ReadOnly)) {
-				bytes = f.readAll();
-			}
-		}
-		auto image = bytes.isEmpty()
-			? QImage()
-			: App::readImage(bytes, &format, false, nullptr);
-		if (postprocess) {
-			image = postprocess(std::move(image));
-		}
-		crl::on_main(std::move(guard), [
-			image = std::move(image),
-			callback = std::move(callback)
-		]() mutable {
-			callback(std::move(image));
-		});
-	});
-	return result;
-}
-
-} // namespace Data

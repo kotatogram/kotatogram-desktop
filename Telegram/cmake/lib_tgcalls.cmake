@@ -56,8 +56,21 @@ PRIVATE
     VideoCaptureInterfaceImpl.h
     VideoCapturerInterface.h
 
+    # Desktop capturer
+    desktop_capturer/DesktopCaptureSource.h
+    desktop_capturer/DesktopCaptureSource.cpp
+    desktop_capturer/DesktopCaptureSourceHelper.h
+    desktop_capturer/DesktopCaptureSourceHelper.cpp
+    desktop_capturer/DesktopCaptureSourceManager.h
+    desktop_capturer/DesktopCaptureSourceManager.cpp
+
+    # Group calls
     group/GroupInstanceCustomImpl.cpp
     group/GroupInstanceCustomImpl.h
+    group/GroupInstanceImpl.h
+    group/GroupJoinPayloadInternal.cpp
+    group/GroupJoinPayloadInternal.h
+    group/GroupJoinPayload.h
     group/GroupNetworkManager.cpp
     group/GroupNetworkManager.h
     group/StreamingPart.cpp
@@ -78,8 +91,20 @@ PRIVATE
     # iOS / macOS
     platform/darwin/DarwinInterface.h
     platform/darwin/DarwinInterface.mm
+    platform/darwin/DarwinVideoSource.h
+    platform/darwin/DarwinVideoSource.mm
+    platform/darwin/DesktopCaptureSourceView.h
+    platform/darwin/DesktopCaptureSourceView.mm
+    platform/darwin/DesktopSharingCapturer.h
+    platform/darwin/DesktopSharingCapturer.mm
     platform/darwin/GLVideoView.h
     platform/darwin/GLVideoView.mm
+    platform/darwin/GLVideoViewMac.h
+    platform/darwin/GLVideoViewMac.mm
+    platform/darwin/TGCMIOCapturer.h
+    platform/darwin/TGCMIOCapturer.m
+    platform/darwin/TGCMIODevice.h
+    platform/darwin/TGCMIODevice.mm
     platform/darwin/TGRTCCVPixelBuffer.h
     platform/darwin/TGRTCCVPixelBuffer.mm
     platform/darwin/TGRTCDefaultVideoDecoderFactory.h
@@ -100,11 +125,13 @@ PRIVATE
     platform/darwin/VideoCameraCapturerMac.mm
     platform/darwin/VideoCapturerInterfaceImpl.h
     platform/darwin/VideoCapturerInterfaceImpl.mm
+    platform/darwin/VideoCMIOCapture.h
+    platform/darwin/VideoCMIOCapture.mm
     platform/darwin/VideoMetalView.h
     platform/darwin/VideoMetalView.mm
     platform/darwin/VideoMetalViewMac.h
     platform/darwin/VideoMetalViewMac.mm
-
+    
     # POSIX
 
     # Teleram Desktop
@@ -120,6 +147,10 @@ PRIVATE
     # All
     reference/InstanceImplReference.cpp
     reference/InstanceImplReference.h
+
+    # third-party
+    third-party/json11.cpp
+    third-party/json11.hpp
 )
 
 target_link_libraries(lib_tgcalls
@@ -127,9 +158,12 @@ PRIVATE
     desktop-app::external_webrtc
     desktop-app::external_ffmpeg
     desktop-app::external_openssl
+    desktop-app::external_rnnoise
 )
 
 target_compile_definitions(lib_tgcalls
+PUBLIC
+    TGCALLS_USE_STD_OPTIONAL
 PRIVATE
     WEBRTC_APP_TDESKTOP
     RTC_ENABLE_VP9
@@ -150,8 +184,12 @@ elseif (APPLE)
         WEBRTC_MAC
     )
     remove_target_sources(lib_tgcalls ${tgcalls_loc}
+        platform/darwin/DesktopCaptureSourceView.h
+        platform/darwin/DesktopCaptureSourceView.mm
         platform/darwin/GLVideoView.h
         platform/darwin/GLVideoView.mm
+        platform/darwin/GLVideoViewMac.h
+        platform/darwin/GLVideoViewMac.mm
         platform/darwin/VideoCameraCapturer.h
         platform/darwin/VideoCameraCapturer.mm
         platform/darwin/VideoMetalView.h
@@ -160,10 +198,12 @@ elseif (APPLE)
         platform/darwin/VideoMetalViewMac.mm
         platform/tdesktop/DesktopInterface.cpp
         platform/tdesktop/DesktopInterface.h
-        platform/tdesktop/VideoCapturerTrackSource.cpp
-        platform/tdesktop/VideoCapturerTrackSource.h
         platform/tdesktop/VideoCapturerInterfaceImpl.cpp
         platform/tdesktop/VideoCapturerInterfaceImpl.h
+        platform/tdesktop/VideoCapturerTrackSource.cpp
+        platform/tdesktop/VideoCapturerTrackSource.h
+        platform/tdesktop/VideoCameraCapturer.cpp
+        platform/tdesktop/VideoCameraCapturer.h
     )
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(lib_tgcalls

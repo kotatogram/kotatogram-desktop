@@ -13,16 +13,14 @@ namespace Platform {
 namespace FileDialog {
 namespace XDP {
 
-using Type = ::FileDialog::internal::Type;
-
-bool Use(Type type = Type::ReadFile);
-bool Get(
+void Start();
+std::optional<bool> Get(
 	QPointer<QWidget> parent,
 	QStringList &files,
 	QByteArray &remoteContent,
 	const QString &caption,
 	const QString &filter,
-	Type type,
+	::FileDialog::internal::Type type,
 	QString startFile);
 
 } // namespace XDP

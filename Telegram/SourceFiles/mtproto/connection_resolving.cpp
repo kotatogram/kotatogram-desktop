@@ -83,7 +83,8 @@ void ResolvingConnection::setChild(ConnectionPointer &&child) {
 			_address,
 			_port,
 			_protocolSecret,
-			_protocolDcId);
+			_protocolDcId,
+			_protocolForFiles);
 	}
 }
 
@@ -197,12 +198,6 @@ void ResolvingConnection::sendData(mtpBuffer &&buffer) {
 	_child->sendData(std::move(buffer));
 }
 
-bool ResolvingConnection::requiresExtendedPadding() const {
-	Expects(_child != nullptr);
-
-	return _child->requiresExtendedPadding();
-}
-
 void ResolvingConnection::disconnectFromServer() {
 	_address = QString();
 	_port = 0;
@@ -218,7 +213,8 @@ void ResolvingConnection::connectToServer(
 		const QString &address,
 		int port,
 		const bytes::vector &protocolSecret,
-		int16 protocolDcId) {
+		int16 protocolDcId,
+		bool protocolForFiles) {
 	if (!_child) {
 		InvokeQueued(this, [=] { emitError(kErrorCodeOther); });
 		return;
@@ -227,6 +223,7 @@ void ResolvingConnection::connectToServer(
 	_port = port;
 	_protocolSecret = protocolSecret;
 	_protocolDcId = protocolDcId;
+	_protocolForFiles = protocolForFiles;
 	DEBUG_LOG(("Resolving Info: dc:%1 proxy '%2' connects a child '%3'").arg(
 		QString::number(_protocolDcId),
 		_proxy.host +':' + QString::number(_proxy.port),
@@ -237,7 +234,8 @@ void ResolvingConnection::connectToServer(
 		address,
 		port,
 		protocolSecret,
-		protocolDcId);
+		protocolDcId,
+		protocolForFiles);
 }
 
 bool ResolvingConnection::isConnected() const {

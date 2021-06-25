@@ -80,7 +80,19 @@ rpl::producer<bool> MonospaceLargeBubblesChanges() {
 }
 
 bool gAlwaysShowScheduled = false;
-int gShowChatId = 2;
+
+rpl::variable<int> gShowChatId = 2;
+void SetShowChatId(int chatIdType) {
+	if (chatIdType >= 0 && chatIdType <= 2) {
+		gShowChatId = chatIdType;
+	}
+}
+int ShowChatId() {
+	return gShowChatId.current();
+}
+rpl::producer<int> ShowChatIdChanges() {
+	return gShowChatId.changes();
+}
 
 int gNetSpeedBoost = 0;
 int gNetRequestsCount = 2;

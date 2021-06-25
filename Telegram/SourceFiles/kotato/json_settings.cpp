@@ -366,7 +366,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("adaptive_bubbles"), AdaptiveBubbles());
 	settings.insert(qsl("big_emoji_outline"), BigEmojiOutline());
 	settings.insert(qsl("always_show_scheduled"), cAlwaysShowScheduled());
-	settings.insert(qsl("show_chat_id"), cShowChatId());
+	settings.insert(qsl("show_chat_id"), ShowChatId());
 	settings.insert(qsl("show_phone_in_drawer"), cShowPhoneInDrawer());
 	settings.insert(qsl("chat_list_lines"), DialogListLines());
 	settings.insert(qsl("disable_up_edit"), cDisableUpEdit());
@@ -529,13 +529,13 @@ bool Manager::readCustomFile() {
 
 	auto isShowChatIdSet = ReadIntOption(settings, "show_chat_id", [&](auto v) {
 		if (v >= 0 && v <= 2) {
-			cSetShowChatId(v);
+			SetShowChatId(v);
 		}
 	});
 
 	if (!isShowChatIdSet) {
 		ReadBoolOption(settings, "show_chat_id", [&](auto v) {
-			cSetShowChatId(v ? 1 : 0);
+			SetShowChatId(v ? 1 : 0);
 		});
 	}
 

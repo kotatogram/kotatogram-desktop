@@ -63,7 +63,10 @@ void SetMonospaceLargeBubbles(bool enabled);
 [[nodiscard]] rpl::producer<bool> MonospaceLargeBubblesChanges();
 
 DeclareSetting(bool, AlwaysShowScheduled);
-DeclareSetting(int, ShowChatId);
+
+void SetShowChatId(int chatIdType);
+[[nodiscard]] int ShowChatId();
+[[nodiscard]] rpl::producer<int> ShowChatIdChanges();
 
 DeclareSetting(int, NetSpeedBoost);
 DeclareSetting(int, NetRequestsCount);

@@ -649,7 +649,7 @@ Editor::Editor(
 	const Data::CloudTheme &cloud)
 : _window(window)
 , _cloud(cloud)
-, _scroll(this, st::themesScroll)
+, _scroll(this)
 , _close(this, st::defaultMultiSelect.fieldCancel)
 , _menuToggle(this, st::themesMenuToggle)
 , _select(this, st::defaultMultiSelect, tr::lng_country_ph())
@@ -665,8 +665,8 @@ Editor::Editor(
 		this,
 		[=] { save(); }));
 
-	_inner->setErrorCallback([this] {
-		Ui::show(Box<InformBox>(tr::lng_theme_editor_error(tr::now)));
+	_inner->setErrorCallback([=] {
+		window->show(Box<InformBox>(tr::lng_theme_editor_error(tr::now)));
 
 		// This could be from inner->_context observable notification.
 		// We should not destroy it while iterating in subscribers.
@@ -748,12 +748,14 @@ void Editor::exportTheme() {
 		QFile f(path);
 		if (!f.open(QIODevice::WriteOnly)) {
 			LOG(("Theme Error: could not open zip-ed theme file '%1' for writing").arg(path));
-			Ui::show(Box<InformBox>(tr::lng_theme_editor_error(tr::now)));
+			_window->show(
+				Box<InformBox>(tr::lng_theme_editor_error(tr::now)));
 			return;
 		}
 		if (f.write(result) != result.size()) {
 			LOG(("Theme Error: could not write zip-ed theme to file '%1'").arg(path));
-			Ui::show(Box<InformBox>(tr::lng_theme_editor_error(tr::now)));
+			_window->show(
+				Box<InformBox>(tr::lng_theme_editor_error(tr::now)));
 			return;
 		}
 		Ui::Toast::Show(tr::lng_theme_editor_done(tr::now));

@@ -862,26 +862,35 @@ int32 Updates::pts() const {
 	return _ptsWaiter.current();
 }
 
-void Updates::updateOnline() {
-	updateOnline(false);
+void Updates::updateOnline(crl::time lastNonIdleTime) {
+	updateOnline(lastNonIdleTime, false);
 }
 
 bool Updates::isIdle() const {
-	return _isIdle;
+	return _isIdle.current();
 }
 
-void Updates::updateOnline(bool gotOtherOffline) {
-	crl::on_main(&session(), [] { Core::App().checkAutoLock(); });
+rpl::producer<bool> Updates::isIdleValue() const {
+	return _isIdle.value();
+}
+
+void Updates::updateOnline(crl::time lastNonIdleTime, bool gotOtherOffline) {
+	if (!lastNonIdleTime) {
+		lastNonIdleTime = Core::App().lastNonIdleTime();
+	}
+	crl::on_main(&session(), [=] {
+		Core::App().checkAutoLock(lastNonIdleTime);
+	});
 
 	const auto &config = _session->serverConfig();
 	bool isOnline = Core::App().hasActiveWindow(&session());
 	int updateIn = config.onlineUpdatePeriod;
 	Assert(updateIn >= 0);
 	if (isOnline) {
-		const auto idle = crl::now() - Core::App().lastNonIdleTime();
+		const auto idle = crl::now() - lastNonIdleTime;
 		if (idle >= config.offlineIdleTimeout) {
 			isOnline = false;
-			if (!_isIdle) {
+			if (!isIdle()) {
 				_isIdle = true;
 				_idleFinishTimer.callOnce(900);
 			}
@@ -929,13 +938,15 @@ void Updates::updateOnline(bool gotOtherOffline) {
 	_onlineTimer.callOnce(updateIn);
 }
 
-void Updates::checkIdleFinish() {
-	if (crl::now() - Core::App().lastNonIdleTime()
+void Updates::checkIdleFinish(crl::time lastNonIdleTime) {
+	if (!lastNonIdleTime) {
+		lastNonIdleTime = Core::App().lastNonIdleTime();
+	}
+	if (crl::now() - lastNonIdleTime
 		< _session->serverConfig().offlineIdleTimeout) {
+		updateOnline(lastNonIdleTime);
 		_idleFinishTimer.cancel();
 		_isIdle = false;
-		updateOnline();
-		App::wnd()->checkHistoryActivation();
 	} else {
 		_idleFinishTimer.callOnce(900);
 	}
@@ -954,9 +965,10 @@ bool Updates::isQuitPrevent() {
 		return false;
 	}
 	LOG(("Api::Updates prevents quit, sending offline status..."));
-	updateOnline();
+	updateOnline(crl::now());
 	return true;
 }
+
 void Updates::handleSendActionUpdate(
 		PeerId peerId,
 		MsgId rootId,
@@ -1747,7 +1759,7 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 		if (UserId(d.vuser_id()) == session().userId()) {
 			if (d.vstatus().type() == mtpc_userStatusOffline
 				|| d.vstatus().type() == mtpc_userStatusEmpty) {
-				updateOnline(true);
+				updateOnline(Core::App().lastNonIdleTime(), true);
 				if (d.vstatus().type() == mtpc_userStatusOffline) {
 					cSetOtherOnline(
 						d.vstatus().c_userStatusOffline().vwas_online().v);
@@ -1878,6 +1890,7 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 	case mtpc_updatePhoneCall:
 	case mtpc_updatePhoneCallSignalingData:
 	case mtpc_updateGroupCallParticipants:
+	case mtpc_updateGroupCallConnection:
 	case mtpc_updateGroupCall: {
 		Core::App().calls().handleUpdate(&session(), update);
 	} break;

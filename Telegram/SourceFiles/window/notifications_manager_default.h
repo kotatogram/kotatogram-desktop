@@ -38,7 +38,7 @@ class HideAllButton;
 class Manager;
 std::unique_ptr<Manager> Create(System *system);
 
-class Manager final : public Notifications::Manager, private base::Subscriber {
+class Manager final : public Notifications::Manager {
 public:
 	Manager(System *system);
 	~Manager();
@@ -122,8 +122,11 @@ private:
 	std::deque<QueuedNotification> _queuedNotifications;
 
 	Ui::Animations::Simple _demoMasterOpacity;
+	bool _demoIsShown = false;
 
 	mutable QPixmap _hiddenUserpicPlaceholder;
+
+	rpl::lifetime _lifetime;
 
 };
 
@@ -231,7 +234,9 @@ public:
 	bool unlinkItem(HistoryItem *del);
 	bool unlinkHistory(History *history = nullptr);
 	bool unlinkSession(not_null<Main::Session*> session);
-	bool checkLastInput(bool hasReplyingNotifications);
+	bool checkLastInput(
+		bool hasReplyingNotifications,
+		std::optional<crl::time> lastInputTime);
 
 protected:
 	void enterEventHook(QEvent *e) override;

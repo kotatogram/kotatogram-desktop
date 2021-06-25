@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_document.h"
 #include "data/data_session.h"
 #include "data/data_streaming.h"
+#include "data/data_file_click_handler.h"
 #include "media/audio/media_audio.h"
 #include "media/audio/media_audio_capture.h"
 #include "media/streaming/media_streaming_instance.h"
@@ -411,6 +412,16 @@ rpl::producer<> Media::Player::Instance::startsPlay(
 	}) | rpl::to_empty;
 }
 
+auto Media::Player::Instance::seekingChanges(AudioMsgId::Type type) const
+-> rpl::producer<Media::Player::Instance::Seeking> {
+	return _seekingChanges.events(
+	) | rpl::filter([=](SeekingChanges data) {
+		return data.type == type;
+	}) | rpl::map([](SeekingChanges data) {
+		return data.seeking;
+	});
+}
+
 not_null<Instance*> instance() {
 	Expects(SingleInstance != nullptr);
 	return SingleInstance;
@@ -625,6 +636,7 @@ void Instance::startSeeking(AudioMsgId::Type type) {
 	}
 	pause(type);
 	emitUpdate(type);
+	_seekingChanges.fire({ .seeking = Seeking::Start, .type = type });
 }
 
 void Instance::finishSeeking(AudioMsgId::Type type, float64 progress) {
@@ -643,6 +655,7 @@ void Instance::finishSeeking(AudioMsgId::Type type, float64 progress) {
 		}
 	}
 	cancelSeeking(type);
+	_seekingChanges.fire({ .seeking = Seeking::Finish, .type = type });
 }
 
 void Instance::cancelSeeking(AudioMsgId::Type type) {
@@ -650,6 +663,7 @@ void Instance::cancelSeeking(AudioMsgId::Type type) {
 		data->seeking = AudioMsgId();
 	}
 	emitUpdate(type);
+	_seekingChanges.fire({ .seeking = Seeking::Cancel, .type = type });
 }
 
 void Instance::updateVoicePlaybackSpeed() {

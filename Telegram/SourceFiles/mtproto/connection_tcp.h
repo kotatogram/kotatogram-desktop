@@ -32,10 +32,10 @@ public:
 		const QString &address,
 		int port,
 		const bytes::vector &protocolSecret,
-		int16 protocolDcId) override;
+		int16 protocolDcId,
+		bool protocolForFiles) override;
 	void timedOut() override;
 	bool isConnected() const override;
-	bool requiresExtendedPadding() const override;
 
 	int32 debugState() const override;
 

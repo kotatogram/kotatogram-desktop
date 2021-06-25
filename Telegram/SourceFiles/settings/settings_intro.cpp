@@ -65,7 +65,7 @@ object_ptr<Ui::RpWidget> CreateIntroSettings(
 	AddDivider(result);
 	AddSkip(result);
 	SetupLanguageButton(result, false);
-	SetupConnectionType(&window->account(), result);
+	SetupConnectionType(window, &window->account(), result);
 	AddSkip(result);
 	if (HasUpdate()) {
 		AddDivider(result);
@@ -75,7 +75,9 @@ object_ptr<Ui::RpWidget> CreateIntroSettings(
 	}
 	{
 		auto wrap = object_ptr<Ui::VerticalLayout>(result);
-		SetupSystemIntegrationContent(wrap.data());
+		SetupSystemIntegrationContent(
+			window->sessionController(),
+			wrap.data());
 		if (wrap->count() > 0) {
 			AddDivider(result);
 			AddSkip(result);
@@ -87,7 +89,7 @@ object_ptr<Ui::RpWidget> CreateIntroSettings(
 	}
 	AddDivider(result);
 	AddSkip(result);
-	SetupInterfaceScale(result, false);
+	SetupInterfaceScale(window, result, false);
 	SetupDefaultThemes(window, result);
 	AddSkip(result);
 
@@ -217,7 +219,7 @@ IntroWidget::IntroWidget(
 	not_null<Window::Controller*> window)
 : RpWidget(parent)
 , _wrap(this)
-, _scroll(Ui::CreateChild<Ui::ScrollArea>(_wrap.data(), st::infoScroll))
+, _scroll(Ui::CreateChild<Ui::ScrollArea>(_wrap.data()))
 , _topShadow(this) {
 	_wrap->setAttribute(Qt::WA_OpaquePaintEvent);
 	_wrap->paintRequest(

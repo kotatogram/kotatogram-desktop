@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/local_url_handlers.h"
 
+#include "api/api_authorizations.h"
 #include "api/api_text_entities.h"
 #include "api/api_chat_invite.h"
 #include "base/qthelp_regex.h"
@@ -68,7 +69,7 @@ bool ShowStickerSet(
 		return false;
 	}
 	Core::App().hideMediaView();
-	Ui::show(Box<StickerSetBox>(
+	controller->show(Box<StickerSetBox>(
 		controller,
 		MTP_inputStickerSetShortName(MTP_string(match->captured(1)))));
 	return true;
@@ -84,6 +85,7 @@ bool ShowTheme(
 	const auto fromMessageId = context.value<ClickHandlerContext>().itemId;
 	Core::App().hideMediaView();
 	controller->session().data().cloudThemes().resolve(
+		&controller->window(),
 		match->captured(1),
 		fromMessageId);
 	return true;
@@ -231,9 +233,15 @@ bool ShowWallPaper(
 	const auto params = url_parse_params(
 		match->captured(1),
 		qthelp::UrlParamNameTransform::ToLower);
+	if (!params.value("gradient").isEmpty()) {
+		Ui::show(Box<InformBox>(
+			tr::lng_background_gradient_unsupported(tr::now)));
+		return false;
+	}
+	const auto color = params.value("color");
 	return BackgroundPreviewBox::Start(
 		controller,
-		params.value(qsl("slug")),
+		(color.isEmpty() ? params.value(qsl("slug")) : color),
 		params);
 }
 
@@ -366,7 +374,8 @@ bool ResolveSettings(
 		return true;
 	}
 	if (section == qstr("devices")) {
-		Ui::show(Box<SessionsBox>(&controller->session()));
+		controller->session().api().authorizations().reload();
+		controller->show(Box<SessionsBox>(&controller->session()));
 		return true;
 	} else if (section == qstr("language")) {
 		ShowLanguagesBox();
@@ -401,12 +410,12 @@ bool HandleUnknown(
 				Core::UpdateApplication();
 				close();
 			};
-			Ui::show(Box<ConfirmBox>(
+			controller->show(Box<ConfirmBox>(
 				text,
 				tr::lng_menu_update(tr::now),
 				callback));
 		} else {
-			Ui::show(Box<InformBox>(text));
+			controller->show(Box<InformBox>(text));
 		}
 	});
 	controller->session().api().requestDeepLinkInfo(request, callback);
@@ -437,9 +446,7 @@ bool OpenMediaTimestamp(
 			documentId,
 			time * crl::time(1000));
 		if (document->isVideoFile()) {
-			Core::App().showDocument(
-				document,
-				session->data().message(itemId));
+			controller->openDocument(document, itemId, true);
 		} else if (document->isSong() || document->isVoiceMessage()) {
 			Media::Player::instance()->play({ document, itemId });
 		}
@@ -584,9 +591,16 @@ QString TryConvertUrlToLocal(QString url) {
 			return qsl("tg://socks?") + socksMatch->captured(1);
 		} else if (auto proxyMatch = regex_match(qsl("^proxy/?\\?(.+)(#|$)"), query, matchOptions)) {
 			return qsl("tg://proxy?") + proxyMatch->captured(1);
-		} else if (auto bgMatch = regex_match(qsl("^bg/([a-zA-Z0-9\\.\\_\\-]+)(\\?(.+)?)?$"), query, matchOptions)) {
+		} else if (auto bgMatch = regex_match(qsl("^bg/([a-zA-Z0-9\\.\\_\\-\\~]+)(\\?(.+)?)?$"), query, matchOptions)) {
 			const auto params = bgMatch->captured(3);
-			return qsl("tg://bg?slug=") + bgMatch->captured(1) + (params.isEmpty() ? QString() : '&' + params);
+			const auto bg = bgMatch->captured(1);
+			const auto type = regex_match(qsl("^[a-fA-F0-9]{6}^"), bg)
+				? "color"
+				: (regex_match(qsl("^[a-fA-F0-9]{6}\\-[a-fA-F0-9]{6}$"), bg)
+					|| regex_match(qsl("^[a-fA-F0-9]{6}(\\~[a-fA-F0-9]{6}){1,3}$"), bg))
+				? "gradient"
+				: "slug";
+			return qsl("tg://bg?") + type + '=' + bg + (params.isEmpty() ? QString() : '&' + params);
 		} else if (auto postMatch = regex_match(qsl("^c/(\\-?\\d+)/(\\d+)(/?\\?|/?$)"), query, matchOptions)) {
 			auto params = query.mid(postMatch->captured(0).size()).toString();
 			return qsl("tg://privatepost?channel=%1&post=%2").arg(postMatch->captured(1), postMatch->captured(2)) + (params.isEmpty() ? QString() : '&' + params);

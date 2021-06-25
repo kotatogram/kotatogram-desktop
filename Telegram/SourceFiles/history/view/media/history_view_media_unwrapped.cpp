@@ -14,8 +14,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "history/history_item_components.h"
 #include "lottie/lottie_single_player.h"
-#include "core/application.h"
-#include "core/core_settings.h"
 #include "data/data_session.h"
 #include "ui/cached_round_corners.h"
 #include "layout.h"
@@ -106,7 +104,8 @@ QSize UnwrappedMedia::countCurrentSize(int newWidth) {
 		}
 	}
 	auto newHeight = minHeight();
-	if (_parent->hasOutLayout() && !Core::App().settings().chatWide()) {
+	if (_parent->hasOutLayout()
+			&& !_parent->delegate()->elementIsChatWide()) {
 		// Add some height to isolated emoji for the timestamp info.
 		const auto infoHeight = st::msgDateImgPadding.y() * 2
 			+ st::msgDateFont->height;
@@ -128,7 +127,8 @@ void UnwrappedMedia::draw(
 	}
 	bool selected = (selection == FullSelection);
 
-	const auto rightAligned = _parent->hasOutLayout() && !Core::App().settings().chatWide();
+	const auto rightAligned = _parent->hasOutLayout()
+		&& !_parent->delegate()->elementIsChatWide();
 	const auto inWebPage = (_parent->media() != this);
 	const auto item = _parent->data();
 	const auto via = inWebPage ? nullptr : item->Get<HistoryMessageVia>();
@@ -196,7 +196,8 @@ void UnwrappedMedia::drawSurrounding(
 		const HistoryMessageVia *via,
 		const HistoryMessageReply *reply,
 		const HistoryMessageForwarded *forwarded) const {
-	const auto rightAligned = _parent->hasOutLayout() && !Core::App().settings().chatWide();
+	const auto rightAligned = _parent->hasOutLayout()
+		&& !_parent->delegate()->elementIsChatWide();
 	const auto rightActionSize = _parent->rightActionSize();
 	const auto fullRight = calculateFullRight(inner);
 	auto fullBottom = height();
@@ -256,7 +257,8 @@ PointState UnwrappedMedia::pointState(QPoint point) const {
 		return PointState::Outside;
 	}
 
-	const auto rightAligned = _parent->hasOutLayout() && !Core::App().settings().chatWide();
+	const auto rightAligned = _parent->hasOutLayout()
+		&& !_parent->delegate()->elementIsChatWide();
 	const auto inWebPage = (_parent->media() != this);
 	const auto item = _parent->data();
 	const auto via = inWebPage ? nullptr : item->Get<HistoryMessageVia>();
@@ -296,7 +298,8 @@ TextState UnwrappedMedia::textState(QPoint point, StateRequest request) const {
 		return result;
 	}
 
-	const auto rightAligned = _parent->hasOutLayout() && !Core::App().settings().chatWide();
+	const auto rightAligned = _parent->hasOutLayout()
+		&& !_parent->delegate()->elementIsChatWide();
 	const auto inWebPage = (_parent->media() != this);
 	const auto item = _parent->data();
 	const auto via = inWebPage ? nullptr : item->Get<HistoryMessageVia>();
@@ -409,7 +412,8 @@ std::unique_ptr<Lottie::SinglePlayer> UnwrappedMedia::stickerTakeLottie(
 }
 
 int UnwrappedMedia::calculateFullRight(const QRect &inner) const {
-	const auto rightAligned = _parent->hasOutLayout() && !Core::App().settings().chatWide();
+	const auto rightAligned = _parent->hasOutLayout()
+		&& !_parent->delegate()->elementIsChatWide();
 	const auto infoWidth = _parent->infoWidth()
 		+ st::msgDateImgPadding.x() * 2
 		+ st::msgReplyPadding.left();
@@ -455,7 +459,7 @@ bool UnwrappedMedia::needInfoDisplay() const {
 		|| (_parent->rightActionSize())
 		|| (_parent->isLastAndSelfMessage())
 		|| (_parent->hasOutLayout()
-			&& !Core::App().settings().chatWide()
+			&& !_parent->delegate()->elementIsChatWide()
 			&& _content->alwaysShowOutTimestamp());
 }
 

@@ -28,7 +28,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "webrtc/webrtc_create_adm.h"
 #include "data/data_user.h"
 #include "data/data_session.h"
-#include "facades.h"
 
 #include <tgcalls/Instance.h>
 #include <tgcalls/VideoCaptureInterface.h>
@@ -161,8 +160,12 @@ Call::Call(
 , _user(user)
 , _api(&_user->session().mtp())
 , _type(type)
-, _videoIncoming(std::make_unique<Webrtc::VideoTrack>(StartVideoState(video)))
-, _videoOutgoing(std::make_unique<Webrtc::VideoTrack>(StartVideoState(video))) {
+, _videoIncoming(
+	std::make_unique<Webrtc::VideoTrack>(
+		StartVideoState(video)))
+, _videoOutgoing(
+	std::make_unique<Webrtc::VideoTrack>(
+		StartVideoState(video))) {
 	_discardByTimeoutTimer.setCallback([=] { hangup(); });
 
 	if (_type == Type::Outgoing) {
@@ -380,7 +383,7 @@ void Call::setupOutgoingVideo() {
 			// Paused not supported right now.
 			Assert(state == Webrtc::VideoState::Active);
 			if (!_videoCapture) {
-				_videoCapture = _delegate->getVideoCapture();
+				_videoCapture = _delegate->callGetVideoCapture();
 				_videoCapture->setOutput(_videoOutgoing->sink());
 			}
 			if (_instance) {
@@ -801,16 +804,19 @@ void Call::createAndStartController(const MTPDphoneCall &call) {
 		AppendServer(descriptor.rtcServers, connection);
 	}
 
-	if (Global::UseProxyForCalls()
-		&& (Global::ProxySettings() == MTP::ProxyData::Settings::Enabled)) {
-		const auto &selected = Global::SelectedProxy();
-		if (selected.supportsCalls() && !selected.host.isEmpty()) {
-			Assert(selected.type == MTP::ProxyData::Type::Socks5);
-			descriptor.proxy = std::make_unique<tgcalls::Proxy>();
-			descriptor.proxy->host = selected.host.toStdString();
-			descriptor.proxy->port = selected.port;
-			descriptor.proxy->login = selected.user.toStdString();
-			descriptor.proxy->password = selected.password.toStdString();
+	{
+		auto &settingsProxy = Core::App().settings().proxy();
+		using ProxyData = MTP::ProxyData;
+		if (settingsProxy.useProxyForCalls() && settingsProxy.isEnabled()) {
+			const auto &selected = settingsProxy.selected();
+			if (selected.supportsCalls() && !selected.host.isEmpty()) {
+				Assert(selected.type == ProxyData::Type::Socks5);
+				descriptor.proxy = std::make_unique<tgcalls::Proxy>();
+				descriptor.proxy->host = selected.host.toStdString();
+				descriptor.proxy->port = selected.port;
+				descriptor.proxy->login = selected.user.toStdString();
+				descriptor.proxy->password = selected.password.toStdString();
+			}
 		}
 	}
 

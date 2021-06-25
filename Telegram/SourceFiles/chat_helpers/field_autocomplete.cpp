@@ -34,8 +34,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/cached_round_corners.h"
 #include "base/unixtime.h"
 #include "base/openssl_help.h"
+#include "window/window_adaptive.h"
 #include "window/window_session_controller.h"
-#include "facades.h"
 #include "styles/style_chat.h"
 #include "styles/style_widgets.h"
 #include "styles/style_chat_helpers.h"
@@ -123,6 +123,8 @@ private:
 
 	bool _previewShown = false;
 
+	bool _isOneColumn = false;
+
 	Fn<SendMenu::Type()> _sendMenuType;
 
 	rpl::event_stream<FieldAutocomplete::MentionChosen> _mentionChosen;
@@ -140,7 +142,7 @@ FieldAutocomplete::FieldAutocomplete(
 	not_null<Window::SessionController*> controller)
 : RpWidget(parent)
 , _controller(controller)
-, _scroll(this, st::mentionScroll) {
+, _scroll(this) {
 	hide();
 
 	_scroll->setGeometry(rect());
@@ -745,6 +747,12 @@ FieldAutocomplete::Inner::Inner(
 	) | rpl::start_with_next([=] {
 		update();
 	}, lifetime());
+
+	controller->adaptive().value(
+	) | rpl::start_with_next([=] {
+		_isOneColumn = controller->adaptive().isOneColumn();
+		update();
+	}, lifetime());
 }
 
 void FieldAutocomplete::Inner::paintEvent(QPaintEvent *e) {
@@ -763,7 +771,7 @@ void FieldAutocomplete::Inner::paintEvent(QPaintEvent *e) {
 	auto htagwidth = width()
 		- st::mentionPadding.right()
 		- htagleft
-		- st::mentionScroll.width;
+		- st::defaultScrollArea.width;
 
 	if (!_srows->empty()) {
 		int32 rows = rowscount(_srows->size(), _stickersPerRow);
@@ -941,9 +949,9 @@ void FieldAutocomplete::Inner::paintEvent(QPaintEvent *e) {
 				}
 			}
 		}
-		p.fillRect(Adaptive::OneColumn() ? 0 : st::lineWidth, _parent->innerBottom() - st::lineWidth, width() - (Adaptive::OneColumn() ? 0 : st::lineWidth), st::lineWidth, st::shadowFg);
+		p.fillRect(_isOneColumn ? 0 : st::lineWidth, _parent->innerBottom() - st::lineWidth, width() - (_isOneColumn ? 0 : st::lineWidth), st::lineWidth, st::shadowFg);
 	}
-	p.fillRect(Adaptive::OneColumn() ? 0 : st::lineWidth, _parent->innerTop(), width() - (Adaptive::OneColumn() ? 0 : st::lineWidth), st::lineWidth, st::shadowFg);
+	p.fillRect(_isOneColumn ? 0 : st::lineWidth, _parent->innerTop(), width() - (_isOneColumn ? 0 : st::lineWidth), st::lineWidth, st::shadowFg);
 }
 
 void FieldAutocomplete::Inner::resizeEvent(QResizeEvent *e) {
@@ -1017,7 +1025,7 @@ bool FieldAutocomplete::Inner::chooseAtIndex(
 		FieldAutocomplete::ChooseMethod method,
 		int index,
 		Api::SendOptions options) const {
-	if (index < 0) {
+	if (index < 0 || (method == ChooseMethod::ByEnter && _mouseSelection)) {
 		return false;
 	}
 	if (!_srows->empty()) {
