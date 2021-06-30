@@ -449,6 +449,7 @@ void GifsListWidget::selectInlineResult(
 
 	forceSend |= (QGuiApplication::keyboardModifiers()
 		== Qt::ControlModifier);
+	options.hideVia = true;
 	auto item = _rows[row].items[column];
 	if (const auto photo = item->getPhoto()) {
 		using Data::PhotoSize;
