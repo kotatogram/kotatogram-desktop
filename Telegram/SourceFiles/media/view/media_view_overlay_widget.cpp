@@ -2502,7 +2502,7 @@ void OverlayWidget::displayDocument(
 	}
 	refreshFromLabel(item);
 	_blurred = false;
-	if (_showAsPip && _streamed && !videoIsGifOrUserpic()) {
+	if (_showAsPip && _streamed/* && !videoIsGifOrUserpic()*/) {
 		switchToPip();
 	} else {
 		displayFinished();

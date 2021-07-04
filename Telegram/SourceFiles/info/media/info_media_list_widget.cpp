@@ -73,6 +73,7 @@ bool HasFloatingHeader(Type type) {
 	switch (type) {
 	case Type::Photo:
 	case Type::Video:
+	case Type::GIF:
 	case Type::RoundFile:
 	case Type::RoundVoiceFile:
 	case Type::MusicFile:
