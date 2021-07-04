@@ -1099,7 +1099,22 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	const auto isGame = firstItem->getMessageBot()
 		&& firstItem->media()
 		&& (firstItem->media()->game() != nullptr);
-	const auto canCopyLink = items.size() == 1 && (firstItem->hasDirectLink() || isGame);
+	const auto canCopyLink = [=] {
+		if (items.size() > 10) {
+			return false;
+		}
+
+		const auto groupId = firstItem->groupId();
+
+		for (const auto item : history->owner().idsToItems(items)) {
+			if (groupId != item->groupId()) {
+				return false;
+			}
+		}
+
+		return (firstItem->hasDirectLink() || isGame);
+	}();
+
 	auto hasMediaForGrouping = false;
 
 	if (items.size() > 1) {
