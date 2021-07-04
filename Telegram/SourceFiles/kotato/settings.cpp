@@ -265,3 +265,5 @@ bool gForwardGrouped = false;
 bool gAutoScrollUnfocused = false;
 
 LocalFolderVector gLocalFolders;
+
+bool gTelegramSitesAutologin = true;

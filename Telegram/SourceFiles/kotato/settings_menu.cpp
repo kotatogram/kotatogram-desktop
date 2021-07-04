@@ -417,6 +417,8 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 			}, true));
 	});
 
+	SettingsMenuCSwitch(ktg_settings_telegram_sites_autologin, TelegramSitesAutologin);
+
 	AddSkip(container);
 }
 

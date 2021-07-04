@@ -177,3 +177,5 @@ struct LocalFolder {
 
 using LocalFolderVector = std::vector<LocalFolder>;
 DeclareRefSetting(LocalFolderVector, LocalFolders);
+
+DeclareSetting(bool, TelegramSitesAutologin);
