@@ -9,6 +9,11 @@ Copyright (C) 2017, Nicholas Guriev <guriev-ns@ya.ru>
 
 #include "boxes/abstract_box.h"
 
+namespace Ui {
+class InputField;
+class DropdownMenu;
+}
+
 /* This class implements a dialog-box with radio-buttons for pick duration of
  * turning off notifications from a chat. The widget is opened by a context menu
  * in the left list of dialogues. */
@@ -22,8 +27,22 @@ protected:
 	void keyPressEvent(QKeyEvent *e) override;
 
 private:
+	enum Period {
+		Second = 1,
+		Minute = 60,
+		Hour = 3600,
+		Day = 86400,
+	};
+
 	not_null<PeerData*> _peer;
 	Fn<void()> _save;
 
+	object_ptr<Ui::InputField> _forNumberInput;
+	object_ptr<Ui::InputField> _forPeriodInput;
+
+	Period _period = Period::Hour;
+	base::unique_qptr<Ui::DropdownMenu> _menu;
+
+	rpl::lifetime _lifetime;
 };
 // vi: ts=4 tw=80

@@ -3095,4 +3095,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_filters_hide_all_chats_toast" = "\"All Chats\" folder is hidden.\nYou can enable it back in Kotatogram Settings.";
 "ktg_filters_hide_edit_toast" = "Edit button is hidden.\nYou can enable it back in Kotatogram Settings.";
 
+"ktg_mute_for_selected_time" = "For selected time";
+
 // Keys finished
