@@ -104,7 +104,7 @@ jobs:
           apt-get install software-properties-common -y && \
           add-apt-repository ppa:git-core/ppa -y && \
           apt-get update && \
-          apt-get install libglib2.0-dev libicu-dev liblzma-dev zlib1g-dev \
+          apt-get install libglib2.0-dev libicu-dev liblzma-dev zlib1g-dev libudev-dev \
           git wget autoconf automake build-essential libtool pkg-config bison yasm \
           libasound2-dev libpulse-dev libdrm-dev libfuse2 libgtk-3-dev libgtk2.0-dev \
           libatspi2.0-dev libgl1-mesa-dev libegl1-mesa-dev libffi-dev libxcb1-dev \
@@ -114,7 +114,7 @@ jobs:
           libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev \
           libxcb-util0-dev libx11-xcb-dev libxext-dev libxfixes-dev libxv-dev libva-dev \
           libvdpau-dev libsigc++-2.0-dev libxml-parser-perl mm-common xutils-dev \
-          unzip libwebkit2gtk-4.0-dev -y --force-yes && \
+          unzip libwebkit2gtk-4.0-dev subversion -y --force-yes && \
           add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           apt-get update && \
           apt-get install gcc-9 g++-9 -y && \
@@ -157,6 +157,17 @@ jobs:
         run: |
           cd $LibrariesPath
           git clone --depth=1 $GIT/desktop-app/patches.git
+
+      - name: Rnnoise.
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 https://gitlab.xiph.org/xiph/rnnoise.git
+          cd rnnoise
+          ./autogen.sh
+          ./configure --disable-examples --disable-doc
+          make -j$(nproc)
+          make install
 
       - name: OpenSSL cache.
         id: cache-openssl
@@ -632,6 +643,18 @@ jobs:
           cd ..
           rm -rf kwindowsystem
 
+      - name: Qt5Ct.
+        run: |
+          cd $LibrariesPath
+
+          svn checkout https://svn.code.sf.net/p/qt5ct/code/tags/qt5ct-1.2 qt5ct
+          cd qt5ct
+          cmake . -DCMAKE_BUILD_TYPE=Release
+          cmake --build . -j$(nproc)
+          cmake --install .
+          cd ..
+          rm -rf qt5ct
+
       - name: Kvantum.
         run: |
           cd $LibrariesPath
@@ -655,9 +678,20 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone --recursive --depth=1 $GIT/desktop-app/tg_owt.git
+          mkdir tg_owt
           cd tg_owt
-          cmake -B build . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF
+          git init
+          git remote add origin $GIT/desktop-app/tg_owt.git
+          git fetch --depth=1 origin 91d836dc84a16584c6ac52b36c04c0de504d9c34
+          git reset --hard FETCH_HEAD
+          git submodule init
+          git submodule update
+
+          cd src/third_party/pipewire
+          meson build
+          cd ../../..
+
+          cmake -B build . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DTG_OWT_DLOPEN_PIPEWIRE=ON
           cmake --build build -j$(nproc)
 
       - name: Kotatogram Desktop build.
@@ -698,7 +732,7 @@ jobs:
           AppDir/usr/share/applications/*.desktop \
           -appimage \
           -exclude-libs=libatk-1.0.so.0,libatk-bridge-2.0.so.0,libatspi.so.0,libcairo-gobject.so.2,libcairo.so.2,libgdk-3.so.0,libgdk-x11-2.0.so.0,libgmodule-2.0.so.0,libgtk-3.so.0,libgtk-x11-2.0.so.0,libpixman-1.so.0,libpng12.so.0 \
-          -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,styles/libkvantum.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
+          -extra-plugins=bearer,iconengines,imageformats,platforminputcontexts,platforms/libqwayland-egl.so,platforms/libqwayland-generic.so,platformthemes/libqgtk3.so,platformthemes/libqxdgdesktopportal.so,platformthemes/libqt5ct.so,styles/libqt5ct-style.so,styles/libkvantum.so,wayland-decoration-client,wayland-graphics-integration-client,wayland-shell-integration
 
           appimage_name=$(echo Kotatogram_Desktop*.AppImage)
           echo "APPIMAGE_NAME=$appimage_name" >> $GITHUB_ENV
