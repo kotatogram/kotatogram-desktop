@@ -43,6 +43,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/base_platform_info.h"
 #include "ui/platform/ui_platform_utility.h"
 #include "base/call_delayed.h"
+#include "base/variant.h"
 #include "window/notifications_manager.h"
 #include "window/themes/window_theme.h"
 #include "window/themes/window_theme_warning.h"
@@ -52,7 +53,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_media_preview.h"
 #include "facades.h"
-#include "app.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h"
 #include "styles/style_window.h"
@@ -90,9 +90,12 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 
 	setLocale(QLocale(QLocale::English, QLocale::UnitedStates));
 
-	subscribe(Window::Theme::Background(), [this](const Window::Theme::BackgroundUpdate &data) {
+	using Window::Theme::BackgroundUpdate;
+	Window::Theme::Background()->updates(
+	) | rpl::start_with_next([=](const BackgroundUpdate &data) {
 		themeUpdated(data);
-	});
+	}, lifetime());
+
 	Core::App().passcodeLockChanges(
 	) | rpl::start_with_next([=] {
 		updateGlobalMenu();
@@ -144,30 +147,46 @@ void MainWindow::createTrayIconMenu() {
 	});
 #endif // else for Q_OS_WIN
 
-	auto notificationActionText = Core::App().settings().desktopNotify()
-		? tr::lng_disable_notifications_from_tray(tr::now)
-		: tr::lng_enable_notifications_from_tray(tr::now);
-
-	auto soundActionText = Core::App().settings().soundNotify()
-		? tr::ktg_settings_disable_sound_from_tray(tr::now)
-		: tr::ktg_settings_enable_sound_from_tray(tr::now);
-
-	trayIconMenu->addAction(tr::lng_minimize_to_tray(tr::now), [=] {
+	const auto minimizeAction = trayIconMenu->addAction(QString(), [=] {
 		if (_activeForTrayIconAction) {
 			minimizeToTray();
 		} else {
 			showFromTrayMenu();
 		}
 	});
-	trayIconMenu->addAction(notificationActionText, [=] {
+	const auto notificationAction = trayIconMenu->addAction(QString(), [=] {
 		toggleDisplayNotifyFromTray();
 	});
-	trayIconMenu->addAction(soundActionText, [=] {
+	const auto soundAction = trayIconMenu->addAction(QString(), [=] {
 		toggleSoundNotifyFromTray();
 	});
 	trayIconMenu->addAction(tr::ktg_quit_from_tray(tr::now), [=] {
 		quitFromTray();
 	});
+
+	_updateTrayMenuTextActions.events(
+	) | rpl::start_with_next([=] {
+		if (!trayIconMenu) {
+			return;
+		}
+
+		_activeForTrayIconAction = isActiveForTrayMenu();
+		minimizeAction->setText(_activeForTrayIconAction
+			? tr::lng_minimize_to_tray(tr::now)
+			: tr::ktg_open_from_tray(tr::now));
+
+		auto notificationActionText = Core::App().settings().desktopNotify()
+			? tr::lng_disable_notifications_from_tray(tr::now)
+			: tr::lng_enable_notifications_from_tray(tr::now);
+		notificationAction->setText(notificationActionText);
+
+		auto soundActionText = Core::App().settings().soundNotify()
+			? tr::ktg_settings_disable_sound_from_tray(tr::now)
+			: tr::ktg_settings_enable_sound_from_tray(tr::now);
+		soundAction->setText(soundActionText);
+	}, lifetime());
+
+	_updateTrayMenuTextActions.fire({});
 
 	initTrayMenuHook();
 }
@@ -464,13 +483,21 @@ MainWidget *MainWindow::sessionContent() const {
 	return _main.data();
 }
 
-void MainWindow::ui_showBox(
-		object_ptr<Ui::BoxContent> box,
+void MainWindow::showBoxOrLayer(
+		std::variant<
+			v::null_t,
+			object_ptr<Ui::BoxContent>,
+			std::unique_ptr<Ui::LayerWidget>> &&layer,
 		Ui::LayerOptions options,
 		anim::type animated) {
-	if (box) {
+	using UniqueLayer = std::unique_ptr<Ui::LayerWidget>;
+	using ObjectBox = object_ptr<Ui::BoxContent>;
+	if (auto layerWidget = std::get_if<UniqueLayer>(&layer)) {
 		ensureLayerCreated();
-		_layer->showBox(std::move(box), options, animated);
+		_layer->showLayer(std::move(*layerWidget), options, animated);
+	} else if (auto box = std::get_if<ObjectBox>(&layer); *box != nullptr) {
+		ensureLayerCreated();
+		_layer->showBox(std::move(*box), options, animated);
 	} else {
 		if (_layer) {
 			_layer->hideTopLayer(animated);
@@ -482,6 +509,20 @@ void MainWindow::ui_showBox(
 		}
 		Core::App().hideMediaView();
 	}
+}
+
+void MainWindow::ui_showBox(
+		object_ptr<Ui::BoxContent> box,
+		Ui::LayerOptions options,
+		anim::type animated) {
+	showBoxOrLayer(std::move(box), options, animated);
+}
+
+void MainWindow::showLayer(
+		std::unique_ptr<Ui::LayerWidget> &&layer,
+		Ui::LayerOptions options,
+		anim::type animated) {
+	showBoxOrLayer(std::move(layer), options, animated);
 }
 
 bool MainWindow::ui_isLayerShown() {
@@ -533,7 +574,7 @@ void MainWindow::themeUpdated(const Window::Theme::BackgroundUpdate &data) {
 	using Type = Window::Theme::BackgroundUpdate::Type;
 
 	// We delay animating theme warning because we want all other
-	// subscribers to receive paltte changed notification before any
+	// subscribers to receive palette changed notification before any
 	// animations (that include pixmap caches with old palette values).
 	if (data.type == Type::TestingTheme) {
 		if (!_testingThemeWarning) {
@@ -663,22 +704,10 @@ bool MainWindow::eventFilter(QObject *object, QEvent *e) {
 }
 
 void MainWindow::updateTrayMenu() {
-	if (!trayIconMenu) return;
-
-	auto actions = trayIconMenu->actions();
-	const auto active = isActiveForTrayMenu();
-	if (_activeForTrayIconAction != active) {
-		_activeForTrayIconAction = active;
-		const auto toggleAction = actions.at(0);
-		toggleAction->setText(_activeForTrayIconAction
-			? tr::lng_minimize_to_tray(tr::now)
-			: tr::ktg_open_from_tray(tr::now));
+	if (!trayIconMenu) {
+		return;
 	}
-	auto notificationAction = actions.at(1);
-	auto notificationActionText = Core::App().settings().desktopNotify()
-		? tr::lng_disable_notifications_from_tray(tr::now)
-		: tr::lng_enable_notifications_from_tray(tr::now);
-	notificationAction->setText(notificationActionText);
+	_updateTrayMenuTextActions.fire({});
 
 	auto soundAction = actions.at(2);
 	auto soundActionText = Core::App().settings().soundNotify()
@@ -987,7 +1016,11 @@ QImage MainWindow::iconWithCounter(int size, int count, style::color bg, style::
 		placeSmallCounter(img, size, count, bg, QPoint(), fg);
 	} else {
 		QPainter p(&img);
-		p.drawPixmap(size / 2, size / 2, App::pixmapFromImageInPlace(iconWithCounter(-size / 2, count, bg, fg, false)));
+		p.drawPixmap(
+			size / 2,
+			size / 2,
+			Ui::PixmapFromImage(
+				iconWithCounter(-size / 2, count, bg, fg, false)));
 	}
 	return img;
 }

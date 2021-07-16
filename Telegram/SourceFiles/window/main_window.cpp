@@ -13,7 +13,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/base_platform_info.h"
 #include "ui/platform/ui_platform_utility.h"
 #include "history/history.h"
-#include "window/themes/window_theme.h"
 #include "window/window_session_controller.h"
 #include "window/window_lock_widgets.h"
 #include "window/window_outdated_bar.h"
@@ -93,7 +92,6 @@ void ConvertIconToBlack(QImage &image) {
 	constexpr auto igreen = shifter(green);
 	constexpr auto iblue = shifter(blue);
 	constexpr auto threshold = 100;
-	constexpr auto ithreshold = shifter(threshold);
 
 	const auto width = image.width();
 	const auto height = image.height();
@@ -133,8 +131,7 @@ QIcon CreateOfficialIcon(Main::Session *session) {
 	if (session && session->supportMode()) {
 		ConvertIconToBlack(image);
 	}
-
-	return QIcon(App::pixmapFromImageInPlace(std::move(image)));
+	return QIcon(Ui::PixmapFromImage(std::move(image)));
 }
 
 QIcon CreateIcon(Main::Session *session) {
@@ -195,12 +192,10 @@ MainWindow::MainWindow(not_null<Controller*> controller)
 , _outdated(CreateOutdatedBar(this))
 , _body(this)
 , _titleText(qsl("Kotatogram")) {
-	subscribe(Theme::Background(), [=](
-			const Theme::BackgroundUpdate &data) {
-		if (data.paletteChanged()) {
-			updatePalette();
-		}
-	});
+	style::PaletteChanged(
+	) | rpl::start_with_next([=] {
+		updatePalette();
+	}, lifetime());
 
 	Core::App().unreadBadgeChanges(
 	) | rpl::start_with_next([=] {
@@ -562,28 +557,30 @@ void MainWindow::initSize() {
 					if (position.w > w) position.w = w;
 					if (position.h > h) position.h = h;
 					const auto rightPoint = position.x + position.w;
-					if (rightPoint > w) {
-						const auto distance = rightPoint - w;
+					const auto screenRightPoint = x + w;
+					if (rightPoint > screenRightPoint) {
+						const auto distance = rightPoint - screenRightPoint;
 						const auto newXPos = position.x - distance;
 						if (newXPos >= x) {
 							position.x = newXPos;
 						} else {
 							position.x = x;
 							const auto newRightPoint = position.x + position.w;
-							const auto newDistance = newRightPoint - w;
+							const auto newDistance = newRightPoint - screenRightPoint;
 							position.w -= newDistance;
 						}
 					}
 					const auto bottomPoint = position.y + position.h;
-					if (bottomPoint > h) {
-						const auto distance = bottomPoint - h;
+					const auto screenBottomPoint = y + h;
+					if (bottomPoint > screenBottomPoint) {
+						const auto distance = bottomPoint - screenBottomPoint;
 						const auto newYPos = position.y - distance;
 						if (newYPos >= y) {
 							position.y = newYPos;
 						} else {
 							position.y = y;
 							const auto newBottomPoint = position.y + position.h;
-							const auto newDistance = newBottomPoint - h;
+							const auto newDistance = newBottomPoint - screenBottomPoint;
 							position.h -= newDistance;
 						}
 					}
@@ -818,7 +815,6 @@ void MainWindow::showRightColumn(object_ptr<TWidget> widget) {
 		setInnerFocus();
 	}
 	const auto nowRightWidth = _rightColumn ? _rightColumn->width() : 0;
-	const auto wasMaximized = isMaximized();
 	const auto wasMinimumWidth = minimumWidth();
 	const auto nowMinimumWidth = computeMinWidth();
 	const auto firstResize = (nowMinimumWidth < wasMinimumWidth);

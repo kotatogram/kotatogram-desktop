@@ -45,7 +45,7 @@ constexpr auto kSortByOnlineDelay = crl::time(1000);
 void RemoveAdmin(
 		not_null<ChannelData*> channel,
 		not_null<UserData*> user,
-		const MTPChatAdminRights &oldRights,
+		ChatAdminRightsInfo oldRights,
 		Fn<void()> onDone,
 		Fn<void()> onFail) {
 	const auto newRights = MTP_chatAdminRights(MTP_flags(0));
@@ -56,7 +56,7 @@ void RemoveAdmin(
 		MTP_string(QString())
 	)).done([=](const MTPUpdates &result) {
 		channel->session().api().applyUpdates(result);
-		channel->applyEditAdmin(user, oldRights, newRights, QString());
+		channel->applyEditAdmin(user, oldRights, ChatAdminRightsInfo(), QString());
 		if (onDone) {
 			onDone();
 		}
@@ -122,15 +122,16 @@ void SaveChatAdmin(
 void SaveChannelAdmin(
 		not_null<ChannelData*> channel,
 		not_null<UserData*> user,
-		const MTPChatAdminRights &oldRights,
-		const MTPChatAdminRights &newRights,
+		ChatAdminRightsInfo oldRights,
+		ChatAdminRightsInfo newRights,
 		const QString &rank,
 		Fn<void()> onDone,
 		Fn<void()> onFail) {
 	channel->session().api().request(MTPchannels_EditAdmin(
 		channel->inputChannel,
 		user->inputUser,
-		newRights,
+		MTP_chatAdminRights(MTP_flags(
+			MTPDchatAdminRights::Flags::from_raw(uint32(newRights.flags)))),
 		MTP_string(rank)
 	)).done([=](const MTPUpdates &result) {
 		channel->session().api().applyUpdates(result);
@@ -149,14 +150,17 @@ void SaveChannelAdmin(
 void SaveChannelRestriction(
 		not_null<ChannelData*> channel,
 		not_null<PeerData*> participant,
-		const MTPChatBannedRights &oldRights,
-		const MTPChatBannedRights &newRights,
+		ChatRestrictionsInfo oldRights,
+		ChatRestrictionsInfo newRights,
 		Fn<void()> onDone,
 		Fn<void()> onFail) {
 	channel->session().api().request(MTPchannels_EditBanned(
 		channel->inputChannel,
 		participant->input,
-		newRights
+		MTP_chatBannedRights(
+			MTP_flags(MTPDchatBannedRights::Flags::from_raw(
+				uint32(newRights.flags))),
+			MTP_int(newRights.until))
 	)).done([=](const MTPUpdates &result) {
 		channel->session().api().applyUpdates(result);
 		channel->applyEditBanned(participant, oldRights, newRights);
@@ -194,18 +198,18 @@ void SaveChatParticipantKick(
 } // namespace
 
 Fn<void(
-	const MTPChatAdminRights &oldRights,
-	const MTPChatAdminRights &newRights,
+	ChatAdminRightsInfo oldRights,
+	ChatAdminRightsInfo newRights,
 	const QString &rank)> SaveAdminCallback(
 		not_null<PeerData*> peer,
 		not_null<UserData*> user,
 		Fn<void(
-			const MTPChatAdminRights &newRights,
+			ChatAdminRightsInfo newRights,
 			const QString &rank)> onDone,
 		Fn<void()> onFail) {
 	return [=](
-			const MTPChatAdminRights &oldRights,
-			const MTPChatAdminRights &newRights,
+			ChatAdminRightsInfo oldRights,
+			ChatAdminRightsInfo newRights,
 			const QString &rank) {
 		const auto done = [=] { if (onDone) onDone(newRights, rank); };
 		const auto saveForChannel = [=](not_null<ChannelData*> channel) {
@@ -222,13 +226,10 @@ Fn<void(
 			const auto saveChatAdmin = [&](bool isAdmin) {
 				SaveChatAdmin(chat, user, isAdmin, done, onFail);
 			};
-			const auto flags = newRights.match([](
-					const MTPDchatAdminRights &data) {
-				return data.vflags().v;
-			});
-			if (flags == chat->defaultAdminRights(user) && rank.isEmpty()) {
+			if (newRights.flags == chat->defaultAdminRights(user).flags
+				&& rank.isEmpty()) {
 				saveChatAdmin(true);
-			} else if (!flags) {
+			} else if (!newRights.flags) {
 				saveChatAdmin(false);
 			} else {
 				peer->session().api().migrateChat(chat, saveForChannel);
@@ -242,15 +243,15 @@ Fn<void(
 }
 
 Fn<void(
-	const MTPChatBannedRights &oldRights,
-	const MTPChatBannedRights &newRights)> SaveRestrictedCallback(
+	ChatRestrictionsInfo oldRights,
+	ChatRestrictionsInfo newRights)> SaveRestrictedCallback(
 		not_null<PeerData*> peer,
 		not_null<PeerData*> participant,
-		Fn<void(const MTPChatBannedRights &newRights)> onDone,
+		Fn<void(ChatRestrictionsInfo newRights)> onDone,
 		Fn<void()> onFail) {
 	return [=](
-			const MTPChatBannedRights &oldRights,
-			const MTPChatBannedRights &newRights) {
+			ChatRestrictionsInfo oldRights,
+			ChatRestrictionsInfo newRights) {
 		const auto done = [=] { if (onDone) onDone(newRights); };
 		const auto saveForChannel = [=](not_null<ChannelData*> channel) {
 			SaveChannelRestriction(
@@ -262,15 +263,14 @@ Fn<void(
 				onFail);
 		};
 		if (const auto chat = peer->asChatNotMigrated()) {
-			const auto flags = Data::ChatBannedRightsFlags(newRights);
 			if (participant->isUser()
-				&& (flags & MTPDchatBannedRights::Flag::f_view_messages)) {
+				&& (newRights.flags & ChatRestriction::ViewMessages)) {
 				SaveChatParticipantKick(
 					chat,
 					participant->asUser(),
 					done,
 					onFail);
-			} else if (!flags) {
+			} else if (!newRights.flags) {
 				done();
 			} else {
 				peer->session().api().migrateChat(chat, saveForChannel);
@@ -375,11 +375,10 @@ bool ParticipantsAdditionalData::canRemoveParticipant(
 
 auto ParticipantsAdditionalData::adminRights(
 	not_null<UserData*> user) const
--> std::optional<MTPChatAdminRights> {
+-> std::optional<ChatAdminRightsInfo> {
 	if (const auto chat = _peer->asChat()) {
 		return _admins.contains(user)
-			? std::make_optional(MTPChatAdminRights(MTP_chatAdminRights(
-				MTP_flags(chat->defaultAdminRights(user)))))
+			? std::make_optional(chat->defaultAdminRights(user))
 			: std::nullopt;
 	}
 	const auto i = _adminRights.find(user);
@@ -396,7 +395,7 @@ QString ParticipantsAdditionalData::adminRank(
 
 auto ParticipantsAdditionalData::restrictedRights(
 	not_null<PeerData*> participant) const
--> std::optional<MTPChatBannedRights> {
+-> std::optional<ChatRestrictionsInfo> {
 	if (_peer->isChat()) {
 		return std::nullopt;
 	}
@@ -591,7 +590,7 @@ UserData *ParticipantsAdditionalData::applyCreator(
 		const MTPDchannelParticipantCreator &data) {
 	if (const auto user = applyRegular(data.vuser_id())) {
 		_creator = user;
-		_adminRights[user] = data.vadmin_rights();
+		_adminRights[user] = ChatAdminRightsInfo(data.vadmin_rights());
 		if (user->isSelf()) {
 			_adminCanEdit.emplace(user);
 		} else {
@@ -622,7 +621,7 @@ UserData *ParticipantsAdditionalData::applyAdmin(
 	_restrictedRights.erase(user);
 	_kicked.erase(user);
 	_restrictedBy.erase(user);
-	_adminRights[user] = data.vadmin_rights();
+	_adminRights[user] = ChatAdminRightsInfo(data.vadmin_rights());
 	if (data.is_can_edit()) {
 		_adminCanEdit.emplace(user);
 	} else {
@@ -686,7 +685,8 @@ PeerData *ParticipantsAdditionalData::applyBanned(
 	} else {
 		_kicked.erase(participant);
 	}
-	_restrictedRights[participant] = data.vbanned_rights();
+	_restrictedRights[participant] = ChatRestrictionsInfo(
+		data.vbanned_rights());
 	if (const auto by = _peer->owner().userLoaded(data.vkicked_by())) {
 		const auto i = _restrictedBy.find(participant);
 		if (i == _restrictedBy.end()) {
@@ -705,9 +705,7 @@ void ParticipantsAdditionalData::migrate(
 	fillFromChannel(channel);
 
 	for (const auto user : _admins) {
-		_adminRights.emplace(
-			user,
-			MTP_chatAdminRights(MTP_flags(chat->defaultAdminRights(user))));
+		_adminRights.emplace(user, chat->defaultAdminRights(user));
 		if (channel->amCreator()) {
 			_adminCanEdit.emplace(user);
 		}
@@ -942,13 +940,13 @@ void ParticipantsBoxController::addNewItem() {
 	}
 	const auto adminDone = crl::guard(this, [=](
 			not_null<UserData*> user,
-			const MTPChatAdminRights &rights,
+			ChatAdminRightsInfo rights,
 			const QString &rank) {
 		editAdminDone(user, rights, rank);
 	});
 	const auto restrictedDone = crl::guard(this, [=](
 			not_null<PeerData*> participant,
-			const MTPChatBannedRights &rights) {
+			ChatRestrictionsInfo rights) {
 		editRestrictedDone(participant, rights);
 	});
 	const auto initBox = [](not_null<PeerListBox*> box) {
@@ -1459,7 +1457,6 @@ void ParticipantsBoxController::rowActionClicked(
 base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 		QWidget *parent,
 		not_null<PeerListRow*> row) {
-	const auto chat = _peer->asChat();
 	const auto channel = _peer->asChannel();
 	const auto participant = row->peer();
 	const auto user = participant->asUser();
@@ -1539,9 +1536,7 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 
 void ParticipantsBoxController::showAdmin(not_null<UserData*> user) {
 	const auto adminRights = _additional.adminRights(user);
-	const auto currentRights = adminRights
-		? *adminRights
-		: MTPChatAdminRights(MTP_chatAdminRights(MTP_flags(0)));
+	const auto currentRights = adminRights.value_or(ChatAdminRightsInfo());
 	auto box = Box<EditAdminBox>(
 		_peer,
 		user,
@@ -1561,11 +1556,9 @@ void ParticipantsBoxController::showAdmin(not_null<UserData*> user) {
 				tr::lng_channel_admin_status_not_admin(tr::now));
 		}
 	}
-	const auto chat = _peer->asChat();
-	const auto channel = _peer->asChannel();
 	if (_additional.canAddOrEditAdmin(user)) {
 		const auto done = crl::guard(this, [=](
-				const MTPChatAdminRights &newRights,
+				ChatAdminRightsInfo newRights,
 				const QString &rank) {
 			editAdminDone(user, newRights, rank);
 		});
@@ -1581,7 +1574,7 @@ void ParticipantsBoxController::showAdmin(not_null<UserData*> user) {
 
 void ParticipantsBoxController::editAdminDone(
 		not_null<UserData*> user,
-		const MTPChatAdminRights &rights,
+		ChatAdminRightsInfo rights,
 		const QString &rank) {
 	_addBox = nullptr;
 	if (_editParticipantBox) {
@@ -1594,9 +1587,11 @@ void ParticipantsBoxController::editAdminDone(
 		_additional.applyParticipant(MTP_channelParticipantCreator(
 			MTP_flags(rank.isEmpty() ? Flag(0) : Flag::f_rank),
 			peerToBareMTPInt(user->id),
-			rights,
+			MTP_chatAdminRights(
+				MTP_flags(MTPDchatAdminRights::Flags::from_raw(
+					uint32(rights.flags)))),
 			MTP_string(rank)));
-	} else if (rights.c_chatAdminRights().vflags().v == 0) {
+	} else if (!rights.flags) {
 		_additional.applyParticipant(MTP_channelParticipant(
 			peerToBareMTPInt(user->id),
 			MTP_int(date)));
@@ -1615,7 +1610,9 @@ void ParticipantsBoxController::editAdminDone(
 				? alreadyPromotedBy->id
 				: user->session().userPeerId()),
 			MTP_int(date),
-			rights,
+			MTP_chatAdminRights(
+				MTP_flags(MTPDchatAdminRights::Flags::from_raw(
+					uint32(rights.flags)))),
 			MTP_string(rank)));
 		if (_role == Role::Admins) {
 			prependRow(user);
@@ -1631,18 +1628,16 @@ void ParticipantsBoxController::showRestricted(not_null<UserData*> user) {
 	const auto restrictedRights = _additional.restrictedRights(user);
 	const auto currentRights = restrictedRights
 		? *restrictedRights
-		: ChannelData::EmptyRestrictedRights(user);
+		: ChatRestrictionsInfo();
 	const auto hasAdminRights = _additional.adminRights(user).has_value();
 	auto box = Box<EditRestrictedBox>(
 		_peer,
 		user,
 		hasAdminRights,
 		currentRights);
-	const auto chat = _peer->asChat();
-	const auto channel = _peer->asChannel();
 	if (_additional.canRestrictParticipant(user)) {
 		const auto done = crl::guard(this, [=](
-				const MTPChatBannedRights &newRights) {
+				ChatRestrictionsInfo newRights) {
 			editRestrictedDone(user, newRights);
 		});
 		const auto fail = crl::guard(this, [=] {
@@ -1658,7 +1653,7 @@ void ParticipantsBoxController::showRestricted(not_null<UserData*> user) {
 
 void ParticipantsBoxController::editRestrictedDone(
 		not_null<PeerData*> participant,
-		const MTPChatBannedRights &rights) {
+		ChatRestrictionsInfo rights) {
 	_addBox = nullptr;
 	if (_editParticipantBox) {
 		_editParticipantBox->closeBox();
@@ -1666,7 +1661,7 @@ void ParticipantsBoxController::editRestrictedDone(
 
 	const auto user = participant->asUser();
 	const auto date = base::unixtime::now(); // Incorrect, but ignored.
-	if (Data::ChatBannedRightsFlags(rights) == 0) {
+	if (!rights.flags) {
 		if (user) {
 			_additional.applyParticipant(MTP_channelParticipant(
 				peerToBareMTPInt(user->id),
@@ -1678,8 +1673,7 @@ void ParticipantsBoxController::editRestrictedDone(
 			removeRow(participant);
 		}
 	} else {
-		const auto kicked = Data::ChatBannedRightsFlags(rights)
-			& ChatRestriction::f_view_messages;
+		const auto kicked = rights.flags & ChatRestriction::ViewMessages;
 		const auto alreadyRestrictedBy = _additional.restrictedBy(
 			participant);
 		_additional.applyParticipant(MTP_channelParticipantBanned(
@@ -1691,7 +1685,10 @@ void ParticipantsBoxController::editRestrictedDone(
 				? alreadyRestrictedBy->id
 				: participant->session().userPeerId()),
 			MTP_int(date),
-			rights));
+			MTP_chatBannedRights(
+				MTP_flags(MTPDchatBannedRights::Flags::from_raw(
+					uint32(rights.flags))),
+				MTP_int(rights.until))));
 		if (kicked) {
 			if (_role == Role::Kicked) {
 				prependRow(participant);
@@ -1746,7 +1743,7 @@ void ParticipantsBoxController::kickParticipantSure(
 	const auto restrictedRights = _additional.restrictedRights(participant);
 	const auto currentRights = restrictedRights
 		? *restrictedRights
-		: ChannelData::EmptyRestrictedRights(participant);
+		: ChatRestrictionsInfo();
 
 	if (const auto row = delegate()->peerListFindRow(participant->id.value)) {
 		delegate()->peerListRemoveRow(row);
@@ -1779,7 +1776,7 @@ void ParticipantsBoxController::removeAdminSure(not_null<UserData*> user) {
 		SaveChatAdmin(chat, user, false, crl::guard(this, [=] {
 			editAdminDone(
 				user,
-				MTP_chatAdminRights(MTP_flags(0)),
+				ChatAdminRightsInfo(),
 				QString());
 		}), nullptr);
 	} else if (const auto channel = _peer->asChannel()) {
@@ -1790,7 +1787,7 @@ void ParticipantsBoxController::removeAdminSure(not_null<UserData*> user) {
 		RemoveAdmin(channel, user, *adminRights, crl::guard(this, [=] {
 			editAdminDone(
 				user,
-				MTP_chatAdminRights(MTP_flags(0)),
+				ChatAdminRightsInfo(),
 				QString());
 		}), nullptr);
 	}
@@ -2005,7 +2002,7 @@ void ParticipantsBoxController::subscribeToCreatorChange(
 	const auto isCreator = channel->amCreator();
 	channel->flagsValue(
 	) | rpl::filter([](const ChannelData::Flags::Change &change) {
-		return (change.diff & MTPDchannel::Flag::f_creator);
+		return (change.diff & ChannelDataFlag::Creator);
 	}) | rpl::filter([=] {
 		return (isCreator != channel->amCreator());
 	}) | rpl::start_with_next([=] {

@@ -364,7 +364,7 @@ bool MediaPhoto::allowsEditMedia() const {
 QString MediaPhoto::errorTextForForward(not_null<PeerData*> peer) const {
 	return Data::RestrictionError(
 		peer,
-		ChatRestriction::f_send_media
+		ChatRestriction::SendMedia
 	).value_or(QString());
 }
 
@@ -633,26 +633,26 @@ QString MediaFile::errorTextForForward(not_null<PeerData*> peer) const {
 	if (const auto sticker = _document->sticker()) {
 		if (const auto error = Data::RestrictionError(
 				peer,
-				ChatRestriction::f_send_stickers)) {
+				ChatRestriction::SendStickers)) {
 			return *error;
 		}
 	} else if (_document->isAnimation()) {
 		if (_document->isVideoMessage()) {
 			if (const auto error = Data::RestrictionError(
 					peer,
-					ChatRestriction::f_send_media)) {
+					ChatRestriction::SendMedia)) {
 				return *error;
 			}
 		} else {
 			if (const auto error = Data::RestrictionError(
 					peer,
-					ChatRestriction::f_send_gifs)) {
+					ChatRestriction::SendGifs)) {
 				return *error;
 			}
 		}
 	} else if (const auto error = Data::RestrictionError(
 			peer,
-			ChatRestriction::f_send_media)) {
+			ChatRestriction::SendMedia)) {
 		return *error;
 	}
 	return QString();
@@ -1143,7 +1143,7 @@ TextForMimeData MediaGame::clipboardText() const {
 QString MediaGame::errorTextForForward(not_null<PeerData*> peer) const {
 	return Data::RestrictionError(
 		peer,
-		ChatRestriction::f_send_games
+		ChatRestriction::SendGames
 	).value_or(QString());
 }
 
@@ -1297,7 +1297,7 @@ QString MediaPoll::errorTextForForward(not_null<PeerData*> peer) const {
 	}
 	return Data::RestrictionError(
 		peer,
-		ChatRestriction::f_send_polls
+		ChatRestriction::SendPolls
 	).value_or(QString());
 }
 

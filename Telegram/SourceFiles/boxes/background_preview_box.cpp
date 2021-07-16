@@ -29,7 +29,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/confirm_box.h"
 #include "boxes/background_preview_box.h"
 #include "window/window_session_controller.h"
-#include "app.h"
 #include "styles/style_chat.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
@@ -100,12 +99,10 @@ private:
 };
 
 ServiceCheck::Generator::Generator() {
-	*_lifetime.make_state<base::Subscription>() = Window::Theme::Background(
-	)->add_subscription([=](const Window::Theme::BackgroundUpdate &update) {
-		if (update.paletteChanged()) {
-			invalidate();
-		}
-	});
+	style::PaletteChanged(
+	) | rpl::start_with_next([=] {
+		invalidate();
+	}, _lifetime);
 }
 
 auto ServiceCheck::Generator::framesForStyle(
@@ -399,7 +396,7 @@ BackgroundPreviewBox::BackgroundPreviewBox(
 	QWidget*,
 	not_null<Window::SessionController*> controller,
 	const Data::WallPaper &paper)
-: SimpleElementDelegate(controller)
+: SimpleElementDelegate(controller, [=] { update(); })
 , _controller(controller)
 , _text1(GenerateTextItem(
 	delegate(),
@@ -688,8 +685,8 @@ void BackgroundPreviewBox::setScaledFromImage(
 	if (!_full.isNull()) {
 		startFadeInFrom(std::move(_scaled));
 	}
-	_scaled = App::pixmapFromImageInPlace(std::move(image));
-	_blurred = App::pixmapFromImageInPlace(std::move(blurred));
+	_scaled = Ui::PixmapFromImage(std::move(image));
+	_blurred = Ui::PixmapFromImage(std::move(blurred));
 	if (_blur && (!_paper.document() || !_full.isNull())) {
 		_blur->setDisabled(false);
 	}

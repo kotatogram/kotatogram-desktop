@@ -25,7 +25,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/notifications_manager_default.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
-#include "window/themes/window_theme.h"
 #include "platform/mac/touchbar/mac_touchbar_manager.h"
 #include "platform/platform_specific.h"
 #include "platform/platform_notifications_manager.h"
@@ -35,8 +34,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "base/platform/mac/base_utilities_mac.h"
 #include "ui/widgets/input_fields.h"
+#include "ui/ui_utility.h"
 #include "facades.h"
-#include "app.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QClipboard>
@@ -477,11 +476,10 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 
 	_hideAfterFullScreenTimer.setCallback([this] { hideAndDeactivate(); });
 
-	subscribe(Window::Theme::Background(), [this](const Window::Theme::BackgroundUpdate &data) {
-		if (data.paletteChanged()) {
-			_private->updateNativeTitle();
-		}
-	});
+	style::PaletteChanged(
+	) | rpl::start_with_next([=] {
+		_private->updateNativeTitle();
+	}, lifetime());
 }
 
 void MainWindow::closeWithoutDestroy() {
@@ -657,8 +655,12 @@ QIcon MainWindow::generateIconForTray(int counter, bool muted) const {
 		_placeCounter(img, size, counter, bg, (dm && muted) ? st::trayCounterFgMacInvert : st::trayCounterFg);
 		_placeCounter(imgsel, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
 	}
-	result.addPixmap(App::pixmapFromImageInPlace(std::move(img)), QIcon::Normal);
-	result.addPixmap(App::pixmapFromImageInPlace(std::move(imgsel)), QIcon::Active);
+	result.addPixmap(Ui::PixmapFromImage(
+		std::move(img)),
+		QIcon::Normal);
+	result.addPixmap(Ui::PixmapFromImage(
+		std::move(imgsel)),
+		QIcon::Active);
 	return result;
 }
 

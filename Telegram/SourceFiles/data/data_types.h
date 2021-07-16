@@ -95,7 +95,7 @@ class PeerData;
 class UserData;
 class ChatData;
 class ChannelData;
-class BotCommand;
+struct BotCommand;
 struct BotInfo;
 
 namespace Data {
@@ -351,3 +351,16 @@ inline bool operator!=(
 		const MessageCursor &b) {
 	return !(a == b);
 }
+
+struct StickerSetIdentifier {
+	uint64 id = 0;
+	uint64 accessHash = 0;
+	QString shortName;
+
+	[[nodiscard]] bool empty() const {
+		return !id && shortName.isEmpty();
+	}
+	[[nodiscard]] explicit operator bool() const {
+		return !empty();
+	}
+};

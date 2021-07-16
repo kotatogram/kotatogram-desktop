@@ -480,7 +480,6 @@ void Autocomplete::submitValue(const QString &value) {
 	if (value.startsWith(prefix)) {
 		const auto line = value.indexOf('\n');
 		const auto text = (line > 0) ? value.mid(line + 1) : QString();
-		const auto commented = !text.isEmpty();
 		const auto contact = value.mid(
 			prefix.size(),
 			(line > 0) ? (line - prefix.size()) : -1);
@@ -508,7 +507,7 @@ ConfirmContactBox::ConfirmContactBox(
 	not_null<History*> history,
 	const Contact &data,
 	Fn<void(Qt::KeyboardModifiers)> submit)
-: SimpleElementDelegate(controller)
+: SimpleElementDelegate(controller, [=] { update(); })
 , _comment(GenerateCommentItem(this, history, data))
 , _contact(GenerateContactItem(this, history, data))
 , _submit(submit) {

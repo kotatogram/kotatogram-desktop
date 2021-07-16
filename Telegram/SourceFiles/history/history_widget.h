@@ -89,9 +89,6 @@ class TabbedSelector;
 
 namespace Storage {
 enum class MimeDataState;
-struct UploadedPhoto;
-struct UploadedDocument;
-struct UploadedThumbDocument;
 } // namespace Storage
 
 namespace HistoryView {
@@ -192,8 +189,6 @@ public:
 
 	MessageIdsList getSelectedItems() const;
 	void itemEdited(not_null<HistoryItem*> item);
-
-	void updateScrollColors();
 
 	void replyToMessage(FullMsgId itemId);
 	void replyToMessage(not_null<HistoryItem*> item);
@@ -732,7 +727,7 @@ private:
 	bool _kbShown = false;
 	HistoryItem *_kbReplyTo = nullptr;
 	object_ptr<Ui::ScrollArea> _kbScroll;
-	QPointer<BotKeyboard> _keyboard;
+	const not_null<BotKeyboard*> _keyboard;
 
 	object_ptr<Ui::InnerDropdown> _membersDropdown = { nullptr };
 	base::Timer _membersDropdownShowTimer;

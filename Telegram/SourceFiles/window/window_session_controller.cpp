@@ -1250,6 +1250,13 @@ void SessionController::showSpecialLayer(
 	widget()->showSpecialLayer(std::move(layer), animated);
 }
 
+void SessionController::showLayer(
+		std::unique_ptr<Ui::LayerWidget> &&layer,
+		Ui::LayerOptions options,
+		anim::type animated) {
+	_window->showLayer(std::move(layer), options, animated);
+}
+
 void SessionController::removeLayerBlackout() {
 	widget()->ui_removeLayerBlackout();
 }
@@ -1344,6 +1351,8 @@ void SessionController::openDocument(
 		session().data().message(contextId));
 }
 
-SessionController::~SessionController() = default;
+SessionController::~SessionController() {
+	resetFakeUnreadWhileOpened();
+}
 
 } // namespace Window

@@ -562,7 +562,6 @@ QString XDPFileDialog::selectedNameFilter() const {
 }
 
 int XDPFileDialog::exec() {
-	bool deleteOnClose = testAttribute(Qt::WA_DeleteOnClose);
 	setAttribute(Qt::WA_DeleteOnClose, false);
 
 	bool wasShowModal = testAttribute(Qt::WA_ShowModal);
@@ -578,20 +577,20 @@ int XDPFileDialog::exec() {
 
 	// HACK we have to avoid returning until we emit
 	// that the dialog was accepted or rejected
-	QEventLoop loop;
+	const auto loop = Glib::MainLoop::create();
 	rpl::lifetime lifetime;
 
 	accepted(
 	) | rpl::start_with_next([&] {
-		loop.quit();
+		loop->quit();
 	}, lifetime);
 
 	rejected(
 	) | rpl::start_with_next([&] {
-		loop.quit();
+		loop->quit();
 	}, lifetime);
 
-	loop.exec();
+	loop->run();
 
 	if (guard.isNull()) {
 		return QDialog::Rejected;

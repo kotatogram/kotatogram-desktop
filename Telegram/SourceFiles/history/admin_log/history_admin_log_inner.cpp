@@ -35,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image.h"
 #include "ui/text/text_utilities.h"
 #include "ui/inactive_press.h"
+#include "ui/effects/path_shift_gradient.h"
 #include "core/file_utilities.h"
 #include "lang/lang_keys.h"
 #include "boxes/peers/edit_participant_box.h"
@@ -235,6 +236,7 @@ InnerWidget::InnerWidget(
 , _channel(channel)
 , _history(channel->owner().history(channel))
 , _api(&_channel->session().mtp())
+, _pathGradient(HistoryView::MakePathShiftGradient([=] { update(); }))
 , _scrollDateCheck([=] { scrollDateCheck(); })
 , _emptyText(
 		st::historyAdminLogEmptyWidth
@@ -652,6 +654,10 @@ bool InnerWidget::elementIsChatWide() {
 	return _controller->adaptive().isChatWide();
 }
 
+not_null<Ui::PathShiftGradient*> InnerWidget::elementPathShiftGradient() {
+	return _pathGradient.get();
+}
+
 void InnerWidget::saveState(not_null<SectionMemento*> memento) {
 	memento->setFilter(std::move(_filter));
 	memento->setAdmins(std::move(_admins));
@@ -893,6 +899,11 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 	if (_items.empty() && _upLoaded && _downLoaded) {
 		paintEmpty(p);
 	} else {
+		_pathGradient->startFrame(
+			0,
+			width(),
+			std::min(st::msgMaxWidth / 2, width() / 2));
+
 		auto begin = std::rbegin(_items), end = std::rend(_items);
 		auto from = std::lower_bound(begin, end, clip.top(), [this](auto &elem, int top) {
 			return this->itemTop(elem) + elem->height() <= top;
@@ -909,7 +920,6 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 					? _selectedText
 					: TextSelection();
 				view->draw(p, clip.translated(0, -top), selection, ms);
-				const auto item = view->data();
 				auto height = view->height();
 				top += height;
 				p.translate(0, height);
@@ -1014,7 +1024,6 @@ auto InnerWidget::viewForItem(const HistoryItem *item) -> Element* {
 }
 
 void InnerWidget::paintEmpty(Painter &p) {
-	style::font font(st::msgServiceFont);
 	auto rectWidth = st::historyAdminLogEmptyWidth;
 	auto innerWidth = rectWidth - st::historyAdminLogEmptyPadding.left() - st::historyAdminLogEmptyPadding.right();
 	auto rectHeight = st::historyAdminLogEmptyPadding.top() + _emptyText.countHeight(innerWidth) + st::historyAdminLogEmptyPadding.bottom();
@@ -1325,13 +1334,13 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 		}
 	}
 	_menu->addAction(tr::lng_context_restrict_user(tr::now), [=] {
-		auto editRestrictions = [=](bool hasAdminRights, const MTPChatBannedRights &currentRights) {
+		auto editRestrictions = [=](bool hasAdminRights, ChatRestrictionsInfo currentRights) {
 			auto weak = QPointer<InnerWidget>(this);
 			auto weakBox = std::make_shared<QPointer<EditRestrictedBox>>();
 			auto box = Box<EditRestrictedBox>(_channel, user, hasAdminRights, currentRights);
 			box->setSaveCallback([=](
-					const MTPChatBannedRights &oldRights,
-					const MTPChatBannedRights &newRights) {
+					ChatRestrictionsInfo oldRights,
+					ChatRestrictionsInfo newRights) {
 				if (weak) {
 					weak->restrictUser(user, oldRights, newRights);
 				}
@@ -1345,7 +1354,7 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 				Ui::LayerOption::KeepOther);
 		};
 		if (base::contains(_admins, user)) {
-			editRestrictions(true, ChannelData::EmptyRestrictedRights(user));
+			editRestrictions(true, ChatRestrictionsInfo());
 		} else {
 			_api.request(MTPchannels_GetParticipant(
 				_channel->inputChannel,
@@ -1358,16 +1367,16 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 				auto type = participant.vparticipant().type();
 				if (type == mtpc_channelParticipantBanned) {
 					auto &banned = participant.vparticipant().c_channelParticipantBanned();
-					editRestrictions(false, banned.vbanned_rights());
+					editRestrictions(
+						false,
+						ChatRestrictionsInfo(banned.vbanned_rights()));
 				} else {
 					auto hasAdminRights = (type == mtpc_channelParticipantAdmin)
 						|| (type == mtpc_channelParticipantCreator);
-					auto bannedRights = ChannelData::EmptyRestrictedRights(user);
-					editRestrictions(hasAdminRights, bannedRights);
+					editRestrictions(hasAdminRights, ChatRestrictionsInfo());
 				}
 			}).fail([=](const MTP::Error &error) {
-				auto bannedRights = ChannelData::EmptyRestrictedRights(user);
-				editRestrictions(false, bannedRights);
+				editRestrictions(false, ChatRestrictionsInfo());
 			}).send();
 		}
 	});
@@ -1425,9 +1434,9 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 
 void InnerWidget::restrictUser(
 		not_null<UserData*> user,
-		const MTPChatBannedRights &oldRights,
-		const MTPChatBannedRights &newRights) {
-	const auto done = [=](const MTPChatBannedRights &newRights) {
+		ChatRestrictionsInfo oldRights,
+		ChatRestrictionsInfo newRights) {
+	const auto done = [=](ChatRestrictionsInfo newRights) {
 		restrictUserDone(user, newRights);
 	};
 	const auto callback = SaveRestrictedCallback(
@@ -1438,10 +1447,16 @@ void InnerWidget::restrictUser(
 	callback(oldRights, newRights);
 }
 
-void InnerWidget::restrictUserDone(not_null<UserData*> user, const MTPChatBannedRights &rights) {
-	if (Data::ChatBannedRightsFlags(rights)) {
-		_admins.erase(std::remove(_admins.begin(), _admins.end(), user), _admins.end());
-		_adminsCanEdit.erase(std::remove(_adminsCanEdit.begin(), _adminsCanEdit.end(), user), _adminsCanEdit.end());
+void InnerWidget::restrictUserDone(
+		not_null<UserData*> user,
+		ChatRestrictionsInfo rights) {
+	if (rights.flags) {
+		_admins.erase(
+			std::remove(_admins.begin(), _admins.end(), user),
+			_admins.end());
+		_adminsCanEdit.erase(
+			std::remove(_adminsCanEdit.begin(), _adminsCanEdit.end(), user),
+			_adminsCanEdit.end());
 	}
 	_downLoaded = false;
 	checkPreloadMore();
@@ -1768,7 +1783,7 @@ void InnerWidget::updateSelected() {
 void InnerWidget::performDrag() {
 	if (_mouseAction != MouseAction::Dragging) return;
 
-	auto uponSelected = false;
+	//auto uponSelected = false;
 	//if (_mouseActionItem) {
 	//	if (!_selected.isEmpty() && _selected.cbegin().value() == FullSelection) {
 	//		uponSelected = _selected.contains(_mouseActionItem);

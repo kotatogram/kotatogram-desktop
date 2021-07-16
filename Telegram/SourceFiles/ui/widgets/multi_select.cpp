@@ -13,8 +13,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/scroll_area.h"
 #include "ui/effects/cross_animation.h"
 #include "ui/text/text_options.h"
+#include "ui/ui_utility.h"
 #include "lang/lang_keys.h"
-#include "app.h"
 
 namespace Ui {
 namespace {
@@ -159,7 +159,6 @@ bool MultiSelect::Item::paintCached(Painter &p, int x, int y, int outerWidth) {
 	PainterHighQualityEnabler hq(p);
 
 	auto opacity = _visibility.value(_hiding ? 0. : 1.);
-	auto scale = opacity + _st.minScale * (1. - opacity);
 	auto height = opacity * _cache.height() / _cache.devicePixelRatio();
 	auto width = opacity * _cache.width() / _cache.devicePixelRatio();
 
@@ -248,7 +247,7 @@ void MultiSelect::Item::prepareCache() {
 		Painter p(&data);
 		paintOnce(p, _width * (kWideScale - 1) / 2, _st.height  * (kWideScale - 1) / 2, cacheWidth);
 	}
-	_cache = App::pixmapFromImageInPlace(std::move(data));
+	_cache = Ui::PixmapFromImage(std::move(data));
 }
 
 void MultiSelect::Item::setVisibleAnimated(bool visible) {
@@ -784,7 +783,7 @@ void MultiSelect::Inner::removeItem(uint64 itemId) {
 
 			item->hideAnimated();
 			_idsMap.erase(item->id());
-			auto inserted = _removingItems.insert(std::move(item));
+			_removingItems.insert(std::move(item));
 			_items.erase(_items.begin() + i);
 
 			if (_active == i) {

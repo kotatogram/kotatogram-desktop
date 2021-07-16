@@ -173,7 +173,8 @@ void SetupPrivacy(
 	add(
 		tr::lng_settings_forwards_privacy(),
 		Key::Forwards,
-		[=] { return std::make_unique<ForwardsPrivacyController>(controller); });
+		[=] { return std::make_unique<ForwardsPrivacyController>(
+			controller); });
 	add(
 		tr::lng_settings_profile_photo_privacy(),
 		Key::ProfilePhoto,
@@ -234,15 +235,6 @@ void SetupArchiveAndMute(
 		session->api().globalPrivacy().showArchiveAndMute(
 		) | rpl::filter(_1) | rpl::take(1)
 	));
-}
-
-not_null<Ui::SlideWrap<Ui::PlainShadow>*> AddSeparator(
-		not_null<Ui::VerticalLayout*> container) {
-	return container->add(
-		object_ptr<Ui::SlideWrap<Ui::PlainShadow>>(
-			container,
-			object_ptr<Ui::PlainShadow>(container),
-			st::settingsSeparatorPadding));
 }
 
 void SetupLocalPasscode(

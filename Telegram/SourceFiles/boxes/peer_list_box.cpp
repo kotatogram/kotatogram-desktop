@@ -27,7 +27,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_changes.h"
 #include "base/unixtime.h"
-#include "window/themes/window_theme.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_dialogs.h"
@@ -852,11 +851,11 @@ PeerListContent::PeerListContent(
 		}
 	}, lifetime());
 
-	subscribe(Window::Theme::Background(), [this](const Window::Theme::BackgroundUpdate &update) {
-		if (update.paletteChanged()) {
-			invalidatePixmapsCache();
-		}
-	});
+	style::PaletteChanged(
+	) | rpl::start_with_next([=] {
+		invalidatePixmapsCache();
+	}, lifetime());
+
 	_repaintByStatus.setCallback([this] { update(); });
 }
 

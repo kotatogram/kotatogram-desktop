@@ -38,7 +38,7 @@ QImage LoadLogoNoMargin(int variant = 0);
 QIcon CreateIcon(Main::Session *session = nullptr);
 void ConvertIconToBlack(QImage &image);
 
-class MainWindow : public Ui::RpWidget, protected base::Subscriber {
+class MainWindow : public Ui::RpWidget {
 public:
 	explicit MainWindow(not_null<Controller*> controller);
 	virtual ~MainWindow();

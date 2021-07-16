@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
+#include "ui/effects/path_shift_gradient.h"
 #include "history/view/history_view_cursor_state.h"
 #include "styles/style_chat_helpers.h"
 
@@ -36,6 +37,10 @@ Inner::Inner(
 	not_null<Window::SessionController*> controller)
 : RpWidget(parent)
 , _controller(controller)
+, _pathGradient(std::make_unique<Ui::PathShiftGradient>(
+	st::windowBgRipple,
+	st::windowBgOver,
+	[=] { update(); }))
 , _updateInlineItems([=] { updateInlineItems(); })
 , _previewTimer([=] { showPreview(); }) {
 	resize(st::emojiPanWidth - st::emojiScroll.width - st::roundRadiusSmall, st::inlineResultsMinHeight);
@@ -83,7 +88,7 @@ void Inner::checkRestrictedPeer() {
 	if (_inlineQueryPeer) {
 		const auto error = Data::RestrictionError(
 			_inlineQueryPeer,
-			ChatRestriction::f_send_inline);
+			ChatRestriction::SendInline);
 		if (error) {
 			if (!_restrictedLabel) {
 				_restrictedLabel.create(this, *error, st::stickersRestrictedLabel);
@@ -172,6 +177,8 @@ void Inner::paintInlineItems(Painter &p, const QRect &r) {
 	}
 	auto gifPaused = _controller->isGifPausedAtLeastFor(Window::GifPauseReason::InlineResults);
 	InlineBots::Layout::PaintContext context(crl::now(), false, gifPaused, false);
+	context.pathGradient = _pathGradient.get();
+	context.pathGradient->startFrame(0, width(), width() / 2);
 
 	auto top = st::stickerPanPadding;
 	if (_switchPmButton) {
@@ -643,7 +650,6 @@ bool Inner::inlineItemVisible(const ItemBase *layout) {
 	int row = position / MatrixRowShift, col = position % MatrixRowShift;
 	Assert((row < _rows.size()) && (col < _rows[row].items.size()));
 
-	auto &inlineItems = _rows[row].items;
 	int top = st::stickerPanPadding;
 	for (int32 i = 0; i < row; ++i) {
 		top += _rows.at(i).height;
@@ -661,7 +667,6 @@ void Inner::updateSelected() {
 		return;
 	}
 
-	auto newSelected = -1;
 	auto p = mapFromGlobal(_lastMousePos);
 
 	int sx = (rtl() ? width() - p.x() : p.x()) - (st::inlineResultsLeft - st::roundRadiusSmall);

@@ -38,7 +38,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "storage/storage_account.h"
 #include "apiwrap.h"
-#include "window/themes/window_theme.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "window/notifications_manager.h"
@@ -710,10 +709,6 @@ void InnerWidget::paintCollapsedRow(
 		bool selected) const {
 	Expects(row->folder != nullptr);
 
-	const auto smallWidth = st::dialogsPadding.x()
-		+ st::dialogsPhotoSize
-		+ st::dialogsPhotoPadding;
-	const auto narrow = (width() <= smallWidth);
 	const auto text = row->folder->chatListName();
 	const auto unread = row->folder->chatListUnreadCount();
 	Layout::PaintCollapsedRow(
@@ -2615,7 +2610,7 @@ void InnerWidget::loadPeerPhotos() {
 		int32 from = (yFrom - filteredOffset()) / DialogsRowHeight();
 		if (from < 0) from = 0;
 		if (from < _filterResults.size()) {
-			int32 to = (yTo / int32(DialogsRowHeight())) + 1, w = width();
+			int32 to = (yTo / int32(DialogsRowHeight())) + 1;
 			if (to > _filterResults.size()) to = _filterResults.size();
 
 			for (; from < to; ++from) {
@@ -2626,7 +2621,7 @@ void InnerWidget::loadPeerPhotos() {
 		from = (yFrom > filteredOffset() + st::searchedBarHeight ? ((yFrom - filteredOffset() - st::searchedBarHeight) / int32(DialogsRowHeight())) : 0) - _filterResults.size();
 		if (from < 0) from = 0;
 		if (from < _peerSearchResults.size()) {
-			int32 to = (yTo > filteredOffset() + st::searchedBarHeight ? ((yTo - filteredOffset() - st::searchedBarHeight) / int32(DialogsRowHeight())) : 0) - _filterResults.size() + 1, w = width();
+			int32 to = (yTo > filteredOffset() + st::searchedBarHeight ? ((yTo - filteredOffset() - st::searchedBarHeight) / int32(DialogsRowHeight())) : 0) - _filterResults.size() + 1;
 			if (to > _peerSearchResults.size()) to = _peerSearchResults.size();
 
 			for (; from < to; ++from) {
@@ -2636,7 +2631,7 @@ void InnerWidget::loadPeerPhotos() {
 		from = (yFrom > filteredOffset() + ((_peerSearchResults.empty() ? 0 : st::searchedBarHeight) + st::searchedBarHeight) ? ((yFrom - filteredOffset() - (_peerSearchResults.empty() ? 0 : st::searchedBarHeight) - st::searchedBarHeight) / int32(DialogsRowHeight())) : 0) - _filterResults.size() - _peerSearchResults.size();
 		if (from < 0) from = 0;
 		if (from < _searchResults.size()) {
-			int32 to = (yTo > filteredOffset() + (_peerSearchResults.empty() ? 0 : st::searchedBarHeight) + st::searchedBarHeight ? ((yTo - filteredOffset() - (_peerSearchResults.empty() ? 0 : st::searchedBarHeight) - st::searchedBarHeight) / int32(DialogsRowHeight())) : 0) - _filterResults.size() - _peerSearchResults.size() + 1, w = width();
+			int32 to = (yTo > filteredOffset() + (_peerSearchResults.empty() ? 0 : st::searchedBarHeight) + st::searchedBarHeight ? ((yTo - filteredOffset() - (_peerSearchResults.empty() ? 0 : st::searchedBarHeight) - st::searchedBarHeight) / int32(DialogsRowHeight())) : 0) - _filterResults.size() - _peerSearchResults.size() + 1;
 			if (to > _searchResults.size()) to = _searchResults.size();
 
 			for (; from < to; ++from) {
@@ -2711,7 +2706,6 @@ bool InnerWidget::chooseHashtag() {
 }
 
 ChosenRow InnerWidget::computeChosenRow() const {
-	auto msgId = ShowAtUnreadMsgId;
 	if (_state == WidgetState::Default) {
 		if (_selected) {
 			return {
@@ -2778,7 +2772,6 @@ RowDescriptor InnerWidget::chatListEntryBefore(
 	}
 
 	const auto whichHistory = which.key.history();
-	const auto whichFullId = which.fullId;
 	if (!whichHistory) {
 		return RowDescriptor();
 	}
@@ -2856,7 +2849,6 @@ RowDescriptor InnerWidget::chatListEntryAfter(
 	}
 
 	const auto whichHistory = which.key.history();
-	const auto whichFullId = which.fullId;
 	if (!whichHistory) {
 		return RowDescriptor();
 	}

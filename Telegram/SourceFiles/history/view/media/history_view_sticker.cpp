@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_cursor_state.h"
 #include "history/view/media/history_view_media_common.h"
 #include "ui/image/image.h"
+#include "ui/effects/path_shift_gradient.h"
 #include "ui/emoji_config.h"
 #include "core/application.h"
 #include "core/core_settings.h"
@@ -155,9 +156,10 @@ void Sticker::draw(Painter &p, const QRect &r, bool selected) {
 	ensureDataMediaCreated();
 	if (readyToDrawLottie()) {
 		paintLottie(p, r, selected);
-	} else if (_data->sticker()
-		&& (!_data->sticker()->animated || !_replacements)) {
-		paintPixmap(p, r, selected);
+	} else if (!_data->sticker()
+		|| (_data->sticker()->animated && _replacements)
+		|| !paintPixmap(p, r, selected)) {
+		paintPath(p, r, selected);
 	}
 }
 
@@ -218,15 +220,34 @@ void Sticker::paintLottie(Painter &p, const QRect &r, bool selected) {
 	}
 }
 
-void Sticker::paintPixmap(Painter &p, const QRect &r, bool selected) {
+bool Sticker::paintPixmap(Painter &p, const QRect &r, bool selected) {
 	const auto pixmap = paintedPixmap(selected);
-	if (!pixmap.isNull()) {
-		p.drawPixmap(
-			QPoint(
-				r.x() + (r.width() - _size.width()) / 2,
-				r.y() + (r.height() - _size.height()) / 2),
-			pixmap);
+	if (pixmap.isNull()) {
+		return false;
 	}
+	p.drawPixmap(
+		QPoint(
+			r.x() + (r.width() - _size.width()) / 2,
+			r.y() + (r.height() - _size.height()) / 2),
+		pixmap);
+	return true;
+}
+
+void Sticker::paintPath(Painter &p, const QRect &r, bool selected) {
+	const auto pathGradient = _parent->delegate()->elementPathShiftGradient();
+	if (selected) {
+		pathGradient->overrideColors(
+			st::msgServiceBgSelected,
+			st::msgServiceBg);
+	} else {
+		pathGradient->clearOverridenColors();
+	}
+	p.setBrush(selected ? st::msgServiceBgSelected : st::msgServiceBg);
+	ChatHelpers::PaintStickerThumbnailPath(
+		p,
+		_dataMedia.get(),
+		r,
+		pathGradient);
 }
 
 QPixmap Sticker::paintedPixmap(bool selected) const {
@@ -273,7 +294,7 @@ void Sticker::refreshLink() {
 			that->_parent->history()->owner().requestViewRepaint(
 				that->_parent);
 		});
-	} else if (sticker && sticker->set.type() != mtpc_inputStickerSetEmpty) {
+	} else if (sticker && sticker->set) {
 		_link = std::make_shared<LambdaClickHandler>([document = _data](ClickContext context) {
 			const auto my = context.other.value<ClickHandlerContext>();
 			if (const auto window = my.sessionWindow.get()) {
@@ -309,7 +330,9 @@ void Sticker::dataMediaCreated() const {
 	Expects(_dataMedia != nullptr);
 
 	_dataMedia->goodThumbnailWanted();
-	_dataMedia->thumbnailWanted(_parent->data()->fullId());
+	if (_dataMedia->thumbnailPath().isEmpty()) {
+		_dataMedia->thumbnailWanted(_parent->data()->fullId());
+	}
 	_parent->history()->owner().registerHeavyViewPart(_parent);
 }
 

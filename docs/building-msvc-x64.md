@@ -34,7 +34,7 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     cd ThirdParty
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 7f8a282
+    git checkout 4409bae
     cd ../
     git clone https://chromium.googlesource.com/external/gyp
     cd gyp
@@ -55,7 +55,7 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 7f8a282
+    git checkout 4409bae
     cd ..
 
     git clone https://github.com/desktop-app/lzma.git
@@ -100,9 +100,9 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     cmake --build . --config Release
     cd ..
 
-    git clone https://github.com/kcat/openal-soft.git
+    git clone https://github.com/telegramdesktop/openal-soft.git
     cd openal-soft
-    git checkout openal-soft-1.21.0
+    git checkout wasapi_exact_device_time
     cd build
     cmake .. ^
         -G "Visual Studio 16 2019" ^
@@ -146,6 +146,28 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     SET PATH=%PATH_BACKUP_%
     cd ..
 
+    git clone https://github.com/desktop-app/tg_angle.git
+    cd tg_angle
+    git checkout f7b17cd
+    mkdir out
+    cd out
+    mkdir Debug
+    cd Debug
+    cmake -G Ninja ^
+        -DCMAKE_BUILD_TYPE=Debug ^
+        -DTG_ANGLE_SPECIAL_TARGET=win64 ^
+        -DTG_ANGLE_ZLIB_INCLUDE_PATH=%cd%/../../../zlib ../..
+    ninja
+    cd ..
+    mkdir Release
+    cd Release
+    cmake -G Ninja ^
+        -DCMAKE_BUILD_TYPE=Release ^
+        -DTG_ANGLE_SPECIAL_TARGET=win64 ^
+        -DTG_ANGLE_ZLIB_INCLUDE_PATH=%cd%/../../../zlib ../..
+    ninja
+    cd ..\..\..
+
     SET LibrariesPath=%cd%
     git clone git://code.qt.io/qt/qt5.git qt_5_15_2
     cd qt_5_15_2
@@ -164,7 +186,16 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
         -confirm-license ^
         -static ^
         -static-runtime ^
-        -opengl dynamic ^
+        -opengl es2 -no-angle ^
+        -I "%LibrariesPath%\tg_angle\include" ^
+        -D "GL_APICALL=" ^
+        QMAKE_LIBS_OPENGL_ES2_DEBUG="%LibrariesPath%\tg_angle\out\Debug\tg_angle.lib %LibrariesPath%\zlib\contrib\vstudio\vc14\x64\ZlibStatDebug\zlibstat.lib d3d9.lib dxgi.lib dxguid.lib" ^
+        QMAKE_LIBS_OPENGL_ES2_RELEASE="%LibrariesPath%\tg_angle\out\Release\tg_angle.lib %LibrariesPath%\zlib\contrib\vstudio\vc14\x64\ZlibStatReleaseWithoutAsm\zlibstat.lib d3d9.lib dxgi.lib dxguid.lib" ^
+        -egl ^
+        -D "EGLAPI=" ^
+        -D "DESKTOP_APP_QT_STATIC_ANGLE=" ^
+        QMAKE_LIBS_EGL_DEBUG="%LibrariesPath%\tg_angle\out\Debug\tg_angle.lib %LibrariesPath%\zlib\contrib\vstudio\vc14\x64\ZlibStatDebug\zlibstat.lib d3d9.lib dxgi.lib dxguid.lib Gdi32.lib User32.lib" ^
+        QMAKE_LIBS_EGL_RELEASE="%LibrariesPath%\tg_angle\out\Release\tg_angle.lib %LibrariesPath%\zlib\contrib\vstudio\vc14\x64\ZlibStatReleaseWithoutAsm\zlibstat.lib d3d9.lib dxgi.lib dxguid.lib Gdi32.lib User32.lib" ^
         -openssl-linked ^
         -I "%LibrariesPath%\openssl_1_1_1\include" ^
         OPENSSL_LIBS_DEBUG="%LibrariesPath%\openssl_1_1_1\out64.dbg\libssl.lib %LibrariesPath%\openssl_1_1_1\out64.dbg\libcrypto.lib Ws2_32.lib Gdi32.lib Advapi32.lib Crypt32.lib User32.lib" ^
@@ -183,7 +214,7 @@ Open **x64 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
     git clone https://github.com/desktop-app/tg_owt.git
     cd tg_owt
-    git checkout f03ef05abf
+    git checkout 91d836dc84
     git submodule init
     git submodule update
     mkdir out

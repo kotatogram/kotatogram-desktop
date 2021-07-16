@@ -541,7 +541,7 @@ bool AddBotToGroupBoxController::needToCreateRow(
 		not_null<PeerData*> peer) const {
 	if (sharingBotGame()) {
 		if (!peer->canWrite()
-			|| peer->amRestricted(ChatRestriction::f_send_games)) {
+			|| peer->amRestricted(ChatRestriction::SendGames)) {
 			return false;
 		}
 		return true;

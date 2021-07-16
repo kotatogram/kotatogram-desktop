@@ -75,14 +75,14 @@ void GroupMembersWidget::removePeer(PeerData *selectedPeer) {
 	Assert(user != nullptr);
 
 	auto text = tr::lng_profile_sure_kick(tr::now, lt_user, user->firstName);
-	auto currentRestrictedRights = [&]() -> MTPChatBannedRights {
+	auto currentRestrictedRights = [&]() -> ChatRestrictionsInfo {
 		if (auto channel = peer()->asMegagroup()) {
 			auto it = channel->mgInfo->lastRestricted.find(user);
 			if (it != channel->mgInfo->lastRestricted.cend()) {
 				return it->second.rights;
 			}
 		}
-		return ChannelData::EmptyRestrictedRights(user);
+		return ChatRestrictionsInfo();
 	}();
 
 	const auto peer = this->peer();
@@ -199,7 +199,6 @@ void GroupMembersWidget::refreshMembers() {
 		}
 		fillChatMembers(chat);
 	} else if (const auto megagroup = peer()->asMegagroup()) {
-		auto &megagroupInfo = megagroup->mgInfo;
 		if (megagroup->lastParticipantsRequestNeeded()) {
 			megagroup->session().api().requestLastParticipants(megagroup);
 		}
@@ -215,7 +214,7 @@ void GroupMembersWidget::checkSelfAdmin(not_null<ChatData*> chat) {
 		return;
 	}
 
-	const auto self = chat->session().user();
+	//const auto self = chat->session().user();
 	//if (chat->amAdmin() && !chat->admins.contains(self)) {
 	//	chat->admins.insert(self);
 	//} else if (!chat->amAdmin() && chat->admins.contains(self)) {
@@ -312,7 +311,7 @@ void GroupMembersWidget::setItemFlags(
 	if (item->peer->id == chat->session().userPeerId()) {
 		item->hasRemoveLink = false;
 	} else if (chat->amCreator()
-		|| ((chat->adminRights() & ChatAdminRight::f_ban_users)
+		|| ((chat->adminRights() & ChatAdminRight::BanUsers)
 			&& (adminState == AdminState::None))) {
 		item->hasRemoveLink = true;
 	} else if (chat->invitedByMe.contains(user)

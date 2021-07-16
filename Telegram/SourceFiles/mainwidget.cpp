@@ -42,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/resize_area.h"
 #include "ui/text/text_options.h"
 #include "ui/emoji_config.h"
+#include "ui/ui_utility.h"
 #include "window/section_memento.h"
 #include "window/section_widget.h"
 #include "window/window_connecting_widget.h"
@@ -109,7 +110,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_facade.h"
 #include "storage/storage_shared_media.h"
 #include "storage/storage_user_photos.h"
-#include "app.h"
 #include "facades.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_chat.h"
@@ -243,7 +243,6 @@ MainWidget::MainWidget(
 , _cacheBackgroundTimer([=] { cacheBackground(); })
 , _viewsIncrementTimer([=] { viewsIncrement(); })
 , _changelogs(Core::Changelogs::Create(&controller->session())) {
-	updateScrollColors();
 	setupConnectingWidget();
 
 	connect(_dialogs, SIGNAL(cancelled()), this, SLOT(dialogsCancelled()));
@@ -348,11 +347,13 @@ MainWidget::MainWidget(
 	QCoreApplication::instance()->installEventFilter(this);
 
 	using Update = Window::Theme::BackgroundUpdate;
-	subscribe(Window::Theme::Background(), [this](const Update &update) {
-		if (update.type == Update::Type::New || update.type == Update::Type::Changed) {
+	Window::Theme::Background()->updates(
+	) | rpl::start_with_next([=](const Update &update) {
+		if (update.type == Update::Type::New
+			|| update.type == Update::Type::Changed) {
 			clearCachedBackground();
 		}
-	});
+	}, lifetime());
 
 	subscribe(Media::Player::instance()->playerWidgetOver(), [this](bool over) {
 		if (over) {
@@ -611,7 +612,7 @@ bool MainWidget::sendPaths(PeerId peerId) {
 		return false;
 	} else if (const auto error = Data::RestrictionError(
 			peer,
-			ChatRestriction::f_send_media)) {
+			ChatRestriction::SendMedia)) {
 		Ui::show(Box<InformBox>(*error));
 		return false;
 	}
@@ -802,10 +803,6 @@ void MainWidget::cacheBackground() {
 		result.setDevicePixelRatio(cRetinaFactor());
 		{
 			QPainter p(&result);
-			auto left = 0;
-			auto top = 0;
-			auto right = _willCacheFor.width();
-			auto bottom = _willCacheFor.height();
 			auto w = bg.width() / cRetinaFactor();
 			auto h = bg.height() / cRetinaFactor();
 			auto sx = 0;
@@ -820,7 +817,7 @@ void MainWidget::cacheBackground() {
 		}
 		_cachedX = 0;
 		_cachedY = 0;
-		_cachedBackground = App::pixmapFromImageInPlace(std::move(result));
+		_cachedBackground = Ui::PixmapFromImage(std::move(result));
 	} else {
 		auto &bg = Window::Theme::Background()->pixmap();
 
@@ -828,7 +825,12 @@ void MainWidget::cacheBackground() {
 		Window::Theme::ComputeBackgroundRects(_willCacheFor, bg.size(), to, from);
 		_cachedX = to.x();
 		_cachedY = to.y();
-		_cachedBackground = App::pixmapFromImageInPlace(bg.toImage().copy(from).scaled(to.width() * cIntRetinaFactor(), to.height() * cIntRetinaFactor(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+		_cachedBackground = Ui::PixmapFromImage(
+			bg.toImage().copy(from).scaled(
+				to.width() * cIntRetinaFactor(),
+				to.height() * cIntRetinaFactor(),
+				Qt::IgnoreAspectRatio,
+				Qt::SmoothTransformation));
 		_cachedBackground.setDevicePixelRatio(cRetinaFactor());
 	}
 	_cachedFor = _willCacheFor;
@@ -1177,10 +1179,6 @@ QPixmap MainWidget::cachedBackground(const QRect &forRect, int &x, int &y) {
 	return QPixmap();
 }
 
-void MainWidget::updateScrollColors() {
-	_history->updateScrollColors();
-}
-
 void MainWidget::setChatBackground(
 		const Data::WallPaper &background,
 		QImage &&image) {
@@ -1201,8 +1199,7 @@ void MainWidget::setChatBackground(
 	checkChatBackground();
 
 	const auto tile = Data::IsLegacy1DefaultWallPaper(background);
-	using Update = Window::Theme::BackgroundUpdate;
-	Window::Theme::Background()->notify(Update(Update::Type::Start, tile));
+	Window::Theme::Background()->downloadingStarted(tile);
 }
 
 bool MainWidget::isReadyChatBackground(
@@ -1691,7 +1688,6 @@ Window::SectionSlideParams MainWidget::prepareThirdSectionAnimation(Window::Sect
 		result.withTopBarShadow = false;
 	}
 	floatPlayerHideAll();
-	auto sectionTop = getThirdSectionTop();
 	result.oldContentCache = _thirdSection->grabForShowAnimation(result);
 	floatPlayerShowVisible();
 	return result;

@@ -140,7 +140,7 @@ void AddButtonDelete(
 
 void SaveDefaultRestrictions(
 		not_null<PeerData*> peer,
-		MTPChatBannedRights rights,
+		ChatRestrictions rights,
 		Fn<void()> done) {
 	const auto api = &peer->session().api();
 	const auto key = Api::RequestKey("default_restrictions", peer->id);
@@ -148,7 +148,10 @@ void SaveDefaultRestrictions(
 	const auto requestId = api->request(
 		MTPmessages_EditChatDefaultBannedRights(
 			peer->input,
-			rights)
+			MTP_chatBannedRights(
+				MTP_flags(
+					MTPDchatBannedRights::Flags::from_raw(uint32(rights))),
+				MTP_int(0)))
 	).done([=](const MTPUpdates &result) {
 		api->clearModifyRequest(key);
 		api->applyUpdates(result);
@@ -217,52 +220,7 @@ void ShowEditPermissions(
 		const auto close = crl::guard(box, [=] { box->closeBox(); });
 		SaveDefaultRestrictions(
 			peer,
-			MTP_chatBannedRights(MTP_flags(result.rights), MTP_int(0)),
-			close);
-		if (const auto channel = peer->asChannel()) {
-			SaveSlowmodeSeconds(channel, result.slowmodeSeconds, close);
-		}
-	};
-	box->saveEvents(
-	) | rpl::start_with_next([=](EditPeerPermissionsBox::Result result) {
-		if (*saving) {
-			return;
-		}
-		*saving = true;
-
-		const auto saveFor = peer->migrateToOrMe();
-		const auto chat = saveFor->asChat();
-		if (!result.slowmodeSeconds || !chat) {
-			save(saveFor, result);
-			return;
-		}
-		const auto api = &peer->session().api();
-		api->migrateChat(chat, [=](not_null<ChannelData*> channel) {
-			save(channel, result);
-		}, [=](const MTP::Error &error) {
-			*saving = false;
-		});
-	}, box->lifetime());
-}
-
-void ShowEditInviteLinks(
-		not_null<Window::SessionNavigation*> navigation,
-		not_null<PeerData*> peer) {
-	auto content = Box<EditPeerPermissionsBox>(navigation, peer);
-	const auto box = QPointer<EditPeerPermissionsBox>(content.data());
-	navigation->parentController()->show(
-		std::move(content),
-		Ui::LayerOption::KeepOther);
-	const auto saving = box->lifetime().make_state<int>(0);
-	const auto save = [=](
-			not_null<PeerData*> peer,
-			EditPeerPermissionsBox::Result result) {
-		Expects(result.slowmodeSeconds == 0 || peer->isChannel());
-
-		const auto close = crl::guard(box, [=] { box->closeBox(); });
-		SaveDefaultRestrictions(
-			peer,
-			MTP_chatBannedRights(MTP_flags(result.rights), MTP_int(0)),
+			result.rights,
 			close);
 		if (const auto channel = peer->asChannel()) {
 			SaveSlowmodeSeconds(channel, result.slowmodeSeconds, close);
@@ -495,6 +453,7 @@ object_ptr<Ui::RpWidget> Controller::createPhotoEdit() {
 		_wrap,
 		object_ptr<Ui::UserpicButton>(
 			_wrap,
+			&_navigation->parentController()->window(),
 			_peer,
 			Ui::UserpicButton::Role::ChangePhoto,
 			st::defaultUserpicButton),
@@ -1354,7 +1313,6 @@ void Controller::saveLinkedChat() {
 		channel->setLinkedChat(*_savingData.linkedChat);
 		continueSave();
 	}).fail([=](const MTP::Error &error) {
-		const auto &type = error.type();
 		cancelSave();
 	}).send();
 }
@@ -1407,7 +1365,6 @@ void Controller::saveTitle() {
 }
 
 void Controller::saveDescription() {
-	const auto channel = _peer->asChannel();
 	if (!_savingData.description
 		|| *_savingData.description == _peer->about()) {
 		return continueSave();
@@ -1467,9 +1424,9 @@ void Controller::togglePreHistoryHidden(
 		// Update in the result doesn't contain the
 		// channelFull:flags field which holds this value.
 		// So after saving we need to update it manually.
-		const auto flags = channel->fullFlags();
-		const auto flag = MTPDchannelFull::Flag::f_hidden_prehistory;
-		channel->setFullFlags(hidden ? (flags | flag) : (flags & ~flag));
+		const auto flags = channel->flags();
+		const auto flag = ChannelDataFlag::PreHistoryHidden;
+		channel->setFlags(hidden ? (flags | flag) : (flags & ~flag));
 
 		done();
 	};

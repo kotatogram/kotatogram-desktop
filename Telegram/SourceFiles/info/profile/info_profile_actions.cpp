@@ -673,10 +673,10 @@ void ActionsFiller::addBotCommandActions(not_null<UserData*> user) {
 		if (!user->isBot()) {
 			return QString();
 		}
-		for_const (auto &data, user->botInfo->commands) {
-			auto isSame = data.command.compare(
+		for (const auto &data : user->botInfo->commands) {
+			const auto isSame = !data.command.compare(
 				command,
-				Qt::CaseInsensitive) == 0;
+				Qt::CaseInsensitive);
 			if (isSame) {
 				return data.command;
 			}
@@ -1099,9 +1099,9 @@ object_ptr<Ui::RpWidget> SetupChannelMembers(
 
 	auto membersShown = rpl::combine(
 		MembersCountValue(channel),
-		Data::PeerFullFlagValue(
+		Data::PeerFlagValue(
 			channel,
-			MTPDchannelFull::Flag::f_can_view_participants),
+			ChannelDataFlag::CanViewParticipants),
 			(_1 > 0) && _2);
 	auto membersText = tr::lng_chat_status_subscribers(
 		lt_count_decimal,
