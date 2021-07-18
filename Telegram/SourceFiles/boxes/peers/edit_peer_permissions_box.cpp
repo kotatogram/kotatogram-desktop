@@ -186,16 +186,16 @@ auto Dependencies(ChatRestrictions)
 		{ Flag::EmbedLinks, Flag::SendMessages },
 
 		// send_games -> send_messages
-		{ Flag::SendGames, Flag::f_send_messages },
+		{ Flag::SendGames, Flag::SendMessages },
 
 		// send_gifs -> send_messages
-		{ Flag::SendGifs, Flag::f_send_messages },
+		{ Flag::SendGifs, Flag::SendMessages },
 
 		// send_inline -> send_messages
-		{ Flag::SendInline, Flag::f_send_messages },
+		{ Flag::SendInline, Flag::SendMessages },
 
 		// send_stickers -> send_messages
-		{ Flag::SendStickers, Flag::f_send_messages },
+		{ Flag::SendStickers, Flag::SendMessages },
 
 		// send_media -> send_messages
 		{ Flag::SendMedia, Flag::SendMessages },

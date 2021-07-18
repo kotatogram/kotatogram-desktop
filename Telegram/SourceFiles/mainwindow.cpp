@@ -709,12 +709,6 @@ void MainWindow::updateTrayMenu() {
 	}
 	_updateTrayMenuTextActions.fire({});
 
-	auto soundAction = actions.at(2);
-	auto soundActionText = Core::App().settings().soundNotify()
-		? tr::ktg_settings_disable_sound_from_tray(tr::now)
-		: tr::ktg_settings_enable_sound_from_tray(tr::now);
-	soundAction->setText(soundActionText);
-
 	psTrayMenuUpdated();
 }
 

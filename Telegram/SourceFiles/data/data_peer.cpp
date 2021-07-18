@@ -1097,9 +1097,9 @@ std::vector<ChatRestrictions> ListOfRestrictions() {
 	return {
 		Flag::SendMessages,
 		Flag::SendMedia,
-		Flag::SendStickers
-		Flag::SendGifs
-		Flag::SendGames
+		Flag::SendStickers,
+		Flag::SendGifs,
+		Flag::SendGames,
 		Flag::SendInline,
 		Flag::EmbedLinks,
 		Flag::SendPolls,

@@ -309,9 +309,9 @@ void FilterChatsPreview::paintEvent(QPaintEvent *e) {
 					}
 					if (user->isBot()) {
 						statuses << tr::lng_status_bot(tr::now);
-					} else if (flags & MTPDuser::Flag::f_mutual_contact) {
+					} else if (flags & UserDataFlag::MutualContact) {
 						statuses << tr::ktg_status_mutual_contact(tr::now);
-					} else if (flags & MTPDuser::Flag::f_contact) {
+					} else if (flags & UserDataFlag::Contact) {
 						statuses << tr::ktg_status_contact(tr::now);
 					} else {
 						statuses << tr::ktg_status_non_contact(tr::now);

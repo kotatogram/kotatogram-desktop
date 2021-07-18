@@ -388,7 +388,7 @@ bool StickerSetBox::showMenu(not_null<Ui::IconButton*> button) {
 
 	if (!_inner->notInstalled()) {
 		const auto archive = [=] {
-			archiveStickers();
+			_inner->archiveStickers();
 			closeBox();
 		};
 		_menu->addAction(tr::lng_stickers_archive_pack(tr::now), archive);
