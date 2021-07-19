@@ -41,15 +41,15 @@ using BaseGtkIntegration = base::Platform::GtkIntegration;
 
 namespace {
 
-constexpr auto kService = "org.telegram.desktop.GtkIntegration-%1"_cs;
-constexpr auto kBaseService = "org.telegram.desktop.BaseGtkIntegration-%1"_cs;
-constexpr auto kWebviewService = "org.telegram.desktop.GtkIntegration.WebviewHelper-%1-%2"_cs;
-constexpr auto kObjectPath = "/org/telegram/desktop/GtkIntegration"_cs;
-constexpr auto kInterface = "org.telegram.desktop.GtkIntegration"_cs;
-constexpr auto kGifcShmId = "tdesktop-gtk-gifc"_cs;
+constexpr auto kService = "io.github.kotatogram.GtkIntegration-%1"_cs;
+constexpr auto kBaseService = "io.github.kotatogram.BaseGtkIntegration-%1"_cs;
+constexpr auto kWebviewService = "io.github.kotatogram.GtkIntegration.WebviewHelper-%1-%2"_cs;
+constexpr auto kObjectPath = "/io/github/kotatogram/GtkIntegration"_cs;
+constexpr auto kInterface = "io.github.kotatogram.GtkIntegration"_cs;
+constexpr auto kGifcShmId = "kdesktop-gtk-gifc"_cs;
 
 constexpr auto kIntrospectionXML = R"INTROSPECTION(<node>
-	<interface name='org.telegram.desktop.GtkIntegration'>
+	<interface name='io.github.kotatogram.GtkIntegration'>
 		<method name='Load'>
 			<arg type='s' name='allowed-backends' direction='in'/>
 		</method>
