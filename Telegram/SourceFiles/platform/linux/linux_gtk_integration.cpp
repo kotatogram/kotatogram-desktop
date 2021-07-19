@@ -46,7 +46,7 @@ constexpr auto kBaseService = "io.github.kotatogram.BaseGtkIntegration-%1"_cs;
 constexpr auto kWebviewService = "io.github.kotatogram.GtkIntegration.WebviewHelper-%1-%2"_cs;
 constexpr auto kObjectPath = "/io/github/kotatogram/GtkIntegration"_cs;
 constexpr auto kInterface = "io.github.kotatogram.GtkIntegration"_cs;
-constexpr auto kGifcShmId = "kdesktop-gtk-gifc"_cs;
+constexpr auto kGifcShmId = "ktgdesktop-gtk-gifc"_cs;
 
 constexpr auto kIntrospectionXML = R"INTROSPECTION(<node>
 	<interface name='io.github.kotatogram.GtkIntegration'>
