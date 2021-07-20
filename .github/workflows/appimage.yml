@@ -273,22 +273,6 @@ jobs:
           cd ..
           rm -rf nasm
 
-      - name: Dav1d.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b 0.6.0 --depth=1 $GIT/videolan/dav1d.git
-          cd dav1d
-          meson build \
-          --libdir=/usr/local/lib \
-          -Denable_tools=false \
-          -Denable_tests=false
-          meson compile -C build -j$(nproc)
-          meson install -C build
-          ldconfig
-          cd ..
-          rm -rf dav1d
-
       - name: MozJPEG.
         run: |
           cd $LibrariesPath
@@ -337,7 +321,7 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone --branch release/4.2 --depth=1 $GIT/FFmpeg/FFmpeg ffmpeg
+          git clone --branch release/4.4 --depth=1 $GIT/FFmpeg/FFmpeg ffmpeg
           cd ffmpeg
           ./configure \
           --disable-static \
@@ -346,102 +330,22 @@ jobs:
           --disable-doc \
           --disable-network \
           --disable-autodetect \
-          --disable-everything \
+          --disable-encoders \
+          --disable-muxers \
+          --disable-bsfs \
+          --disable-protocols \
+          --disable-devices \
+          --disable-filters \
           --disable-alsa \
           --disable-iconv \
           --enable-shared \
-          --enable-libdav1d \
           --enable-libopus \
           --enable-vaapi \
           --enable-vdpau \
           --enable-xlib \
           --enable-libdrm \
           --enable-protocol=file \
-          --enable-hwaccel=h264_vaapi \
-          --enable-hwaccel=h264_vdpau \
-          --enable-hwaccel=mpeg4_vaapi \
-          --enable-hwaccel=mpeg4_vdpau \
-          --enable-decoder=aac \
-          --enable-decoder=aac_fixed \
-          --enable-decoder=aac_latm \
-          --enable-decoder=aasc \
-          --enable-decoder=alac \
-          --enable-decoder=flac \
-          --enable-decoder=gif \
-          --enable-decoder=h264 \
-          --enable-decoder=hevc \
-          --enable-decoder=libdav1d \
-          --enable-decoder=mp1 \
-          --enable-decoder=mp1float \
-          --enable-decoder=mp2 \
-          --enable-decoder=mp2float \
-          --enable-decoder=mp3 \
-          --enable-decoder=mp3adu \
-          --enable-decoder=mp3adufloat \
-          --enable-decoder=mp3float \
-          --enable-decoder=mp3on4 \
-          --enable-decoder=mp3on4float \
-          --enable-decoder=mpeg4 \
-          --enable-decoder=msmpeg4v2 \
-          --enable-decoder=msmpeg4v3 \
-          --enable-decoder=opus \
-          --enable-decoder=pcm_alaw \
-          --enable-decoder=pcm_f32be \
-          --enable-decoder=pcm_f32le \
-          --enable-decoder=pcm_f64be \
-          --enable-decoder=pcm_f64le \
-          --enable-decoder=pcm_lxf \
-          --enable-decoder=pcm_mulaw \
-          --enable-decoder=pcm_s16be \
-          --enable-decoder=pcm_s16be_planar \
-          --enable-decoder=pcm_s16le \
-          --enable-decoder=pcm_s16le_planar \
-          --enable-decoder=pcm_s24be \
-          --enable-decoder=pcm_s24daud \
-          --enable-decoder=pcm_s24le \
-          --enable-decoder=pcm_s24le_planar \
-          --enable-decoder=pcm_s32be \
-          --enable-decoder=pcm_s32le \
-          --enable-decoder=pcm_s32le_planar \
-          --enable-decoder=pcm_s64be \
-          --enable-decoder=pcm_s64le \
-          --enable-decoder=pcm_s8 \
-          --enable-decoder=pcm_s8_planar \
-          --enable-decoder=pcm_u16be \
-          --enable-decoder=pcm_u16le \
-          --enable-decoder=pcm_u24be \
-          --enable-decoder=pcm_u24le \
-          --enable-decoder=pcm_u32be \
-          --enable-decoder=pcm_u32le \
-          --enable-decoder=pcm_u8 \
-          --enable-decoder=pcm_zork \
-          --enable-decoder=vorbis \
-          --enable-decoder=wavpack \
-          --enable-decoder=wmalossless \
-          --enable-decoder=wmapro \
-          --enable-decoder=wmav1 \
-          --enable-decoder=wmav2 \
-          --enable-decoder=wmavoice \
           --enable-encoder=libopus \
-          --enable-parser=aac \
-          --enable-parser=aac_latm \
-          --enable-parser=flac \
-          --enable-parser=h264 \
-          --enable-parser=hevc \
-          --enable-parser=mpeg4video \
-          --enable-parser=mpegaudio \
-          --enable-parser=opus \
-          --enable-parser=vorbis \
-          --enable-demuxer=aac \
-          --enable-demuxer=flac \
-          --enable-demuxer=gif \
-          --enable-demuxer=h264 \
-          --enable-demuxer=hevc \
-          --enable-demuxer=m4v \
-          --enable-demuxer=mov \
-          --enable-demuxer=mp3 \
-          --enable-demuxer=ogg \
-          --enable-demuxer=wav \
           --enable-muxer=ogg \
           --enable-muxer=opus
 
