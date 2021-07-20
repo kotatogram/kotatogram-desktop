@@ -94,7 +94,6 @@ namespace FileDialog {
 QString ImplementationTypeLabel(ImplementationType value) {
 	switch (value) {
 	case ImplementationType::XDP: return qsl("XDG Desktop Portal");
-	case ImplementationType::GTK: return qsl("GTK");
 	case ImplementationType::Qt: return qsl("Qt");
 	}
 	Unexpected("Value in Platform::FileDialog::ImplementationTypeLabel.");
@@ -105,14 +104,6 @@ QString ImplementationTypeDescription(ImplementationType value) {
 #ifdef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 	case ImplementationType::XDP: return tr::ktg_file_dialog_disabled_on_build(tr::now);
 #endif // DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-#ifdef DESKTOP_APP_DISABLE_GTK_INTEGRATION
-	case ImplementationType::GTK: return tr::ktg_file_dialog_disabled_on_build(tr::now);
-#else // DESKTOP_APP_DISABLE_GTK_INTEGRATION
-	case ImplementationType::GTK:
-		return GtkIntegration::Instance()
-			? QString()
-			: tr::ktg_file_dialog_disabled_by_option(tr::now);
-#endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
 	}
 	return QString();
 }
