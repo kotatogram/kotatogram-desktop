@@ -30,7 +30,6 @@ namespace FileDialog {
 enum class ImplementationType {
 	Default,
 	XDP,
-	GTK,
 	Qt,
 	Count,
 };

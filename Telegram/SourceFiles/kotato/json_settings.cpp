@@ -650,10 +650,13 @@ bool Manager::readCustomFile() {
 	});
 
 	ReadIntOption(settings, "file_dialog_type", [&](auto v) {
-		const auto typedValue = Platform::FileDialog::ImplementationType(v);
-		if (typedValue >= Platform::FileDialog::ImplementationType::Default
-			&& typedValue < Platform::FileDialog::ImplementationType::Count) {
-			SetFileDialogType(typedValue);
+		using Platform::FileDialog::ImplementationType;
+		if (v >= int(ImplementationType::Default)
+			&& v < int(ImplementationType::Count)) {
+			SetFileDialogType(ImplementationType(v));
+		} else if (v >= int(ImplementationType::Count)) {
+			SetFileDialogType(ImplementationType(
+				int(ImplementationType::Count) - 1));
 		}
 	});
 
