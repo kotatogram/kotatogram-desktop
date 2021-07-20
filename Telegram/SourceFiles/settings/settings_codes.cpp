@@ -127,7 +127,7 @@ auto GenerateCodes() {
 		}
 	});
 	codes.emplace(qsl("registertg"), [](SessionController *window) {
-		Platform::RegisterCustomScheme(true);
+		Core::Application::RegisterUrlScheme();
 		Ui::Toast::Show("Forced custom scheme register.");
 	});
 

@@ -372,58 +372,6 @@ namespace {
 
 namespace Platform {
 
-void RegisterCustomScheme(bool force) {
-	if (cExeName().isEmpty()) {
-		return;
-	}
-	DEBUG_LOG(("App Info: Checking custom scheme 'tg'..."));
-
-	HKEY rkey;
-	QString exe = QDir::toNativeSeparators(cExeDir() + cExeName());
-	QString possibleParams;
-
-	if (!cUseEnvApi()) {
-		possibleParams += " -no-env-api";
-	}
-	if (cApiFromStartParams()) {
-		possibleParams += " -api-id \"" + QString::number(cApiId()) + "\"";
-		possibleParams += " -api-hash \"" + cApiHash() + "\"";
-	}
-
-	// Legacy URI scheme registration
-	if (!_psOpenRegKey(L"Software\\Classes\\tg", &rkey)) return;
-	if (!_psSetKeyValue(rkey, L"URL Protocol", QString())) return;
-	if (!_psSetKeyValue(rkey, 0, qsl("URL:Telegram Link"))) return;
-
-	if (!_psOpenRegKey(L"Software\\Classes\\tg\\DefaultIcon", &rkey)) return;
-	if (!_psSetKeyValue(rkey, 0, '"' + exe + qsl(",1\""))) return;
-
-	if (!_psOpenRegKey(L"Software\\Classes\\tg\\shell", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\Classes\\tg\\shell\\open", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\Classes\\tg\\shell\\open\\command", &rkey)) return;
-	if (!_psSetKeyValue(rkey, 0, '"' + exe + qsl("\" -workdir \"") + cWorkingDir() + qsl("\"") + possibleParams + qsl(" -- \"%1\""))) return;
-
-	// URI scheme registration as Default Program - Windows Vista and above
-	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg\\DefaultIcon", &rkey)) return;
-	if (!_psSetKeyValue(rkey, 0, '"' + exe + qsl(",1\""))) return;
-
-	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg\\shell", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg\\shell\\open", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\Classes\\ktgdesktop.tg\\shell\\open\\command", &rkey)) return;
-	if (!_psSetKeyValue(rkey, 0, '"' + exe + qsl("\" -workdir \"") + cWorkingDir() + qsl("\"") + possibleParams + qsl(" -- \"%1\""))) return;
-
-	if (!_psOpenRegKey(L"Software\\KotatogramDesktop", &rkey)) return;
-	if (!_psOpenRegKey(L"Software\\KotatogramDesktop\\Capabilities", &rkey)) return;
-	if (!_psSetKeyValue(rkey, L"ApplicationName", qsl("Kotatogram Desktop"))) return;
-	if (!_psSetKeyValue(rkey, L"ApplicationDescription", qsl("Kotatogram Desktop"))) return;
-	if (!_psOpenRegKey(L"Software\\KotatogramDesktop\\Capabilities\\UrlAssociations", &rkey)) return;
-	if (!_psSetKeyValue(rkey, L"tg", qsl("ktgdesktop.tg"))) return;
-
-	if (!_psOpenRegKey(L"Software\\RegisteredApplications", &rkey)) return;
-	if (!_psSetKeyValue(rkey, L"Kotatogram Desktop", qsl("SOFTWARE\\KotatogramDesktop\\Capabilities"))) return;
-}
-
 PermissionStatus GetPermissionStatus(PermissionType type) {
 	if (type==PermissionType::Microphone) {
 		PermissionStatus result=PermissionStatus::Granted;
@@ -476,7 +424,6 @@ bool OpenSystemSettings(SystemSettingsType type) {
 } // namespace Platform
 
 void psNewVersion() {
-	Platform::RegisterCustomScheme();
 	if (Local::oldSettingsVersion() < 8051) {
 		AppUserModelId::checkPinned();
 	}

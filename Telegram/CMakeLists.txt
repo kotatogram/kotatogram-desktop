@@ -113,25 +113,16 @@ if (LINUX)
     endif()
 
     if (NOT DESKTOP_APP_DISABLE_GTK_INTEGRATION)
-        target_link_libraries(Telegram PRIVATE rt)
         find_package(PkgConfig REQUIRED)
 
-        if (DESKTOP_APP_USE_PACKAGED AND NOT DESKTOP_APP_USE_PACKAGED_LAZY)
-            pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0)
-            target_link_libraries(Telegram PRIVATE PkgConfig::GTK3)
+        pkg_check_modules(GTK REQUIRED gtk+-3.0)
+        target_include_directories(Telegram SYSTEM PRIVATE ${GTK_INCLUDE_DIRS})
 
-            if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
-                pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
-                target_link_libraries(Telegram PRIVATE PkgConfig::X11)
-            endif()
-        else()
-            pkg_check_modules(GTK REQUIRED gtk+-3.0)
-            target_include_directories(Telegram PRIVATE ${GTK_INCLUDE_DIRS})
-
-            if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
-                target_link_libraries(Telegram PRIVATE X11)
-            endif()
+        if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
+            target_link_libraries(Telegram PRIVATE X11)
         endif()
+
+        target_link_libraries(Telegram PRIVATE rt)
     endif()
 endif()
 
@@ -909,16 +900,12 @@ PRIVATE
     platform/linux/linux_desktop_environment.h
     platform/linux/linux_gdk_helper.cpp
     platform/linux/linux_gdk_helper.h
-    platform/linux/linux_gsd_media_keys.cpp
-    platform/linux/linux_gsd_media_keys.h
     platform/linux/linux_gtk_integration_dummy.cpp
     platform/linux/linux_gtk_integration_p.h
     platform/linux/linux_gtk_integration.cpp
     platform/linux/linux_gtk_integration.h
     platform/linux/linux_gtk_open_with_dialog.cpp
     platform/linux/linux_gtk_open_with_dialog.h
-    platform/linux/linux_notification_service_watcher.cpp
-    platform/linux/linux_notification_service_watcher.h
     platform/linux/linux_wayland_integration_dummy.cpp
     platform/linux/linux_wayland_integration.cpp
     platform/linux/linux_wayland_integration.h
@@ -1214,12 +1201,6 @@ endif()
 
 if (DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
     remove_target_sources(Telegram ${src_loc}
-        platform/linux/linux_gsd_media_keys.cpp
-        platform/linux/linux_gsd_media_keys.h
-        platform/linux/linux_mpris_support.cpp
-        platform/linux/linux_mpris_support.h
-        platform/linux/linux_notification_service_watcher.cpp
-        platform/linux/linux_notification_service_watcher.h
         platform/linux/linux_xdp_file_dialog.cpp
         platform/linux/linux_xdp_file_dialog.h
         platform/linux/linux_xdp_open_with_dialog.cpp
