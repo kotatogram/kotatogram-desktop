@@ -1,4 +1,4 @@
-# Build instructions for Visual Studio 2019
+# Build instructions for Windows
 
 - [Prepare folder](#prepare-folder)
 - [Install third party software](#install-third-party-software)

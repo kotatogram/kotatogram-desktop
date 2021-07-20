@@ -5,7 +5,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
-      - '!docs/building-cmake.md'
+      - '!docs/building-linux.md'
       - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
@@ -14,7 +14,6 @@ on:
       - '!.github/workflows/linux.yml'
       - 'snap/**'
       - 'Telegram/build/**'
-      - 'Telegram/Patches/**'
       - 'Telegram/Resources/uwp/**'
       - 'Telegram/Resources/winrc/**'
       - 'Telegram/SourceFiles/platform/win/**'
@@ -26,7 +25,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
-      - '!docs/building-cmake.md'
+      - '!docs/building-linux.md'
       - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
@@ -35,7 +34,6 @@ on:
       - '!.github/workflows/linux.yml'
       - 'snap/**'
       - 'Telegram/build/**'
-      - 'Telegram/Patches/**'
       - 'Telegram/Resources/uwp/**'
       - 'Telegram/Resources/winrc/**'
       - 'Telegram/SourceFiles/platform/win/**'

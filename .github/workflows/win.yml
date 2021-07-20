@@ -5,7 +5,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
-      - '!docs/building-msvc.md'
+      - '!docs/building-win.md'
       - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
@@ -15,8 +15,6 @@ on:
       - 'lib/xdg/**'
       - 'snap/**'
       - 'Telegram/build/**'
-      - 'Telegram/Patches/**'
-      - '!Telegram/Patches/build_ffmpeg_win.sh'
       - 'Telegram/Resources/uwp/**'
       - 'Telegram/SourceFiles/platform/linux/**'
       - 'Telegram/SourceFiles/platform/mac/**'
@@ -27,7 +25,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
-      - '!docs/building-msvc.md'
+      - '!docs/building-win.md'
       - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
@@ -37,12 +35,9 @@ on:
       - 'lib/xdg/**'
       - 'snap/**'
       - 'Telegram/build/**'
-      - 'Telegram/Patches/**'
-      - '!Telegram/Patches/build_ffmpeg_win.sh'
       - 'Telegram/Resources/uwp/**'
       - 'Telegram/SourceFiles/platform/linux/**'
       - 'Telegram/SourceFiles/platform/mac/**'
-      - '!Telegram/Patches/breakpad.diff'
       - 'Telegram/Telegram/**'
       - 'Telegram/configure.sh'
       - 'Telegram/Telegram.plist'
@@ -72,7 +67,7 @@ jobs:
       UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       MANUAL_CACHING: "2"
-      DOC_PATH: "docs/building-msvc.md"
+      DOC_PATH: "docs/building-win.md"
       AUTO_CACHING: "1"
 
     defaults:

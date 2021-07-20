@@ -62,6 +62,6 @@ Read [CONTRIBUTING.md][contributing].
 [contributing]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/.github/CONTRIBUTING.md
 [archive]: https://github.com/kotatogram/kotatogram-archived
 [build]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs
-[building-msvc]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/building-msvc.md
-[building-msvc-x64]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/building-msvc-x64.md
-[building-cmake]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/building-cmake.md
+[win32]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/building-win.md
+[win64]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/building-win-x64.md
+[linux]: https://github.com/kotatogram/kotatogram-desktop/blob/dev/docs/building-linux.md
