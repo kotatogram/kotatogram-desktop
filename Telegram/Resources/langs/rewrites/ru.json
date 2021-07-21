@@ -223,5 +223,6 @@
 	"ktg_filters_hide_edit_toast": "Кнопка изменения скрыта.\nВы можете включить её обратно в настройках Kotatogram.",
 	"ktg_settings_telegram_sites_autologin": "Авто-вход на сайты Telegram",
 	"ktg_mute_for_selected_time": "На указанное время",
+	"ktg_send_hide_via_message": "Отправить без \"через @bot\"",
 	"dummy_last_string": ""
 }

@@ -316,6 +316,10 @@ void Inner::contextMenuEvent(QContextMenuEvent *e) {
 		SendMenu::DefaultSilentCallback(send),
 		SendMenu::DefaultScheduleCallback(this, type, send));
 
+	_menu->addAction(tr::ktg_send_hide_via_message(tr::now), [=] {
+		send({ .hideVia = true });
+	});
+
 	auto item = _rows[row].items[column];
 	if (const auto previewDocument = item->getPreviewDocument()) {
 		auto callback = [&](const QString &text, Fn<void()> &&done) {
