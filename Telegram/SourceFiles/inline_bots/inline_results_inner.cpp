@@ -308,6 +308,9 @@ void Inner::contextMenuEvent(QContextMenuEvent *e) {
 	_menu = base::make_unique_q<Ui::PopupMenu>(this);
 
 	const auto send = [=](Api::SendOptions options) {
+		if (cHideVia()) {
+			options.hideVia = true;
+		}
 		selectInlineResult(row, column, options, false);
 	};
 	SendMenu::FillSendMenu(
