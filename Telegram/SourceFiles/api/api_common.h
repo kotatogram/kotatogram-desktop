@@ -16,6 +16,7 @@ struct SendOptions {
 	bool silent = false;
 	bool handleSupportSwitch = false;
 	bool removeWebPageId = false;
+	bool hideVia = false;
 };
 
 enum class SendType {

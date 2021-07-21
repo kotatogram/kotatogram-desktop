@@ -682,6 +682,11 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 
 	AddSkip(container);
 	AddDividerText(container, tr::ktg_settings_external_video_player_about());
+	AddSkip(container);
+
+	SettingsMenuCSwitch(ktg_settings_hide_via, HideVia);
+
+	AddSkip(container);
 }
 
 Kotato::Kotato(

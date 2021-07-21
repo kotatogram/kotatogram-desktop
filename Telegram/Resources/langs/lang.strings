@@ -2948,6 +2948,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_settings_external_video_player" = "External video player";
 "ktg_settings_external_video_player_about" = "When this option is enabled, autoplay is force-disabled and system video player is used to play videos.";
 
+"ktg_settings_hide_via" = "Send inline results without 'via @bot'";
+
 "ktg_user_status_unaccessible" = "account inaccessible";
 
 "ktg_settings_show_json_settings" = "Show settings file";
@@ -3117,5 +3119,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ktg_filters_hide_edit_toast" = "Edit button is hidden.\nYou can enable it back in Kotatogram Settings.";
 
 "ktg_mute_for_selected_time" = "For selected time";
+
+"ktg_send_hide_via_message" = "Send without 'via @bot'";
 
 // Keys finished

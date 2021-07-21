@@ -308,6 +308,9 @@ void Inner::contextMenuEvent(QContextMenuEvent *e) {
 	_menu = base::make_unique_q<Ui::PopupMenu>(this);
 
 	const auto send = [=](Api::SendOptions options) {
+		if (cHideVia()) {
+			options.hideVia = true;
+		}
 		selectInlineResult(row, column, options, false);
 	};
 	SendMenu::FillSendMenu(
@@ -315,6 +318,10 @@ void Inner::contextMenuEvent(QContextMenuEvent *e) {
 		type,
 		SendMenu::DefaultSilentCallback(send),
 		SendMenu::DefaultScheduleCallback(this, type, send));
+
+	_menu->addAction(tr::ktg_send_hide_via_message(tr::now), [=] {
+		send({ .hideVia = true });
+	});
 
 	auto item = _rows[row].items[column];
 	if (const auto previewDocument = item->getPreviewDocument()) {
