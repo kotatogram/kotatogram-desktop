@@ -183,7 +183,7 @@ jobs:
         env:
           tg_owt_DIR: ${{ env.LibrariesPath }}/tg_owt/build
         run: |
-          cd $REPO_NAME/Telegram
+          cd $REPO_NAME
 
           DEFINE=""
           if [ -n "${{ matrix.defines }}" ]; then
@@ -194,16 +194,17 @@ jobs:
             echo "ARTIFACT_NAME=Kotatogram" >> $GITHUB_ENV
           fi
 
-          ./configure.sh \
+          cmake -Bbuild . \
+          -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_FIND_FRAMEWORK=LAST \
           -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FFMPEG_STATIC=ON \
           $DEFINE
 
-          cmake --build ../out --config Debug
+          cmake --build build -j$(sysctl -n hw.logicalcpu)
 
-          cd ../out/Debug
+          cd build
           macdeployqt Kotatogram.app
           codesign --remove-signature Kotatogram.app
 
@@ -214,7 +215,7 @@ jobs:
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          cd $REPO_NAME/out/Debug
+          cd $REPO_NAME/build
           mkdir artifact
           mv Kotatogram.dmg artifact/
       - uses: actions/upload-artifact@master
@@ -222,4 +223,4 @@ jobs:
         name: Upload artifact.
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.REPO_NAME }}/out/Debug/artifact/
+          path: ${{ env.REPO_NAME }}/build/artifact/
