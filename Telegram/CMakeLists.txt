@@ -1320,10 +1320,15 @@ elseif (APPLE)
     endif()
 endif()
 
+set(bundle_identifier "io.github.kotatogram")
+if (LINUX AND DESKTOP_APP_USE_PACKAGED)
+    set(output_name "kotatogram-desktop")
+else()
+    set(output_name "Kotatogram")
+endif()
+
 if (build_macstore)
-    set(bundle_identifier "io.github.kotatogram")
     set(bundle_entitlements "Telegram Lite.entitlements")
-    set(output_name "Kotatogram Lite")
     set_target_properties(Telegram PROPERTIES
         XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS ${libs_loc}/breakpad/src/client/mac/build/Release
     )
@@ -1334,18 +1339,8 @@ if (build_macstore)
         COMMAND mkdir -p $<TARGET_FILE_DIR:Telegram>/../Frameworks
         COMMAND cp -a ${libs_loc}/breakpad/src/client/mac/build/Release/Breakpad.framework $<TARGET_FILE_DIR:Telegram>/../Frameworks/Breakpad.framework
     )
-elseif (build_osx)
-    set(bundle_identifier "io.github.kotatogram$<$<CONFIG:Debug>:DebugOsx>")
-    set(bundle_entitlements "Telegram.entitlements")
-    set(output_name "Kotatogram")
 else()
-    set(bundle_identifier "io.github.kotatogram$<$<CONFIG:Debug>:Debug>")
     set(bundle_entitlements "Telegram.entitlements")
-    if (LINUX AND DESKTOP_APP_USE_PACKAGED)
-        set(output_name "kotatogram-desktop")
-    else()
-        set(output_name "Kotatogram")
-    endif()
 endif()
 
 set_target_properties(Telegram PROPERTIES
