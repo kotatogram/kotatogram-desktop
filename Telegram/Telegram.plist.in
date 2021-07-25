@@ -6,6 +6,10 @@
 	<string>@output_name@</string>
 	<key>CFBundleGetInfoString</key>
 	<string>Telegram Desktop messaging app</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>@bundle_identifier@</string>
 	<key>CFBundlePackageType</key>
@@ -20,7 +24,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLIconFile</key>
-			<string>Icon.icns</string>
+			<string>AppIcon</string>
 			<key>CFBundleURLName</key>
 			<string>@bundle_identifier@</string>
 			<key>CFBundleURLSchemes</key>
