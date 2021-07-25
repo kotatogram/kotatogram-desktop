@@ -1281,9 +1281,20 @@ elseif (APPLE)
         target_link_libraries(Telegram PRIVATE desktop-app::external_iconv)
     endif()
 
-    set(icons_path ${CMAKE_CURRENT_SOURCE_DIR}/Telegram/Images.xcassets)
-    set_target_properties(Telegram PROPERTIES RESOURCE ${icons_path})
-    target_sources(Telegram PRIVATE ${icons_path})
+    set(appicon_path ${CMAKE_CURRENT_SOURCE_DIR}/Telegram/Images.xcassets/Icon.iconset)
+
+    add_custom_command(
+        OUTPUT AppIcon.icns
+        COMMAND iconutil
+        ARGS
+            --convert icns
+            --output AppIcon.icns
+            ${appicon_path}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+
+    set_source_files_properties(AppIcon.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    target_sources(Telegram PRIVATE AppIcon.icns)
 
     set(lang_packs
         en
