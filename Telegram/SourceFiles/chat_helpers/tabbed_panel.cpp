@@ -409,7 +409,7 @@ void TabbedPanel::showStarted() {
 }
 
 bool TabbedPanel::eventFilter(QObject *obj, QEvent *e) {
-	if (e->type() == QEvent::Enter) {
+	if (e->type() == QEvent::Enter && !_preventHover) {
 		otherEnter();
 	} else if (e->type() == QEvent::Leave) {
 		otherLeave();
