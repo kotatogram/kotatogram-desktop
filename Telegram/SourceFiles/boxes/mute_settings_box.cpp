@@ -24,6 +24,7 @@ Copyright (C) 2017, Nicholas Guriev <guriev-ns@ya.ru>
 namespace {
 
 constexpr auto kForeverHours = 24 * 365;
+constexpr auto kForeverSeconds = kForeverHours * 3600;
 constexpr auto kCustomFor = kForeverHours - 1;
 
 } // namespace
@@ -204,7 +205,7 @@ void MuteSettingsBox::prepare() {
 		const auto muteForSeconds = (group->value() == kCustomFor)
 			? _forNumberInput->getLastText().toInt() * int(_period)
 			: group->value() * 3600;
-		if (muteForSeconds <= 0 || muteForSeconds > kForeverHours) {
+		if (muteForSeconds <= 0 || muteForSeconds > kForeverSeconds) {
 			_forNumberInput->showError();
 		} else {
 			_peer->owner().updateNotifySettings(
