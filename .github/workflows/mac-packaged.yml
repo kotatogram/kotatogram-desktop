@@ -194,7 +194,7 @@ jobs:
             echo "ARTIFACT_NAME=Kotatogram" >> $GITHUB_ENV
           fi
 
-          cmake -Bbuild . \
+          cmake -Bbuild -GNinja . \
           -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_FIND_FRAMEWORK=LAST \
           -DTDESKTOP_API_TEST=ON \
