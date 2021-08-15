@@ -469,26 +469,29 @@ jobs:
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
-          cd %REPO_NAME%\Telegram
-          
-          call configure.bat ^
+          cd %REPO_NAME%
+          call vcvarsall.bat x86 %SDK%
+
+          cmake -B build . ^
           -G Ninja ^
+          -D CMAKE_BUILD_TYPE=Debug ^
+          -D CMAKE_C_COMPILER=cl ^
+          -D CMAKE_CXX_COMPILER=cl ^
           -D TDESKTOP_API_TEST=ON ^
           -D DESKTOP_APP_USE_PACKAGED=OFF ^
           -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON ^
           -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON ^
           -D DESKTOP_APP_NO_PDB=ON ^
           %TDESKTOP_BUILD_DEFINE% ^
-          -DCMAKE_SYSTEM_VERSION=%SDK%
+          -DCMAKE_SYSTEM_VERSION=%SDK% ^
+          -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=%SDK%
 
-          call vcvars32.bat
-          cd ..\out
-          msbuild Telegram.sln /nologo /p:Configuration=Debug,Platform=Win32
+          cmake --build build
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          cd %REPO_NAME%\out\Debug
+          cd %REPO_NAME%\build\bin
           mkdir artifact
           move Kotatogram.exe artifact/
       - uses: actions/upload-artifact@master
@@ -496,4 +499,4 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.REPO_NAME }}\out\Debug\artifact\
+          path: ${{ env.REPO_NAME }}\build\bin\artifact\
