@@ -248,7 +248,7 @@ void Inner::mouseReleaseEvent(QMouseEvent *e) {
 	if (dynamic_cast<SendClickHandler*>(activated.get()) || open) {
 		const auto row = int(_selected / MatrixRowShift);
 		const auto column = int(_selected % MatrixRowShift);
-		selectInlineResult(row, column, {}, !!open);
+		selectInlineResult(row, column, { .hideVia = cHideVia() }, !!open);
 	} else {
 		ActivateClickHandler(window(), activated, e->button());
 	}
