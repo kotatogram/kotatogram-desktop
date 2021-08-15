@@ -621,6 +621,7 @@ jobs:
           fi
 
           ./configure.sh \
+          -GNinja \
           -DCMAKE_CXX_FLAGS="-DDESKTOP_APP_GLIBMM_BACKPORTS" \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DTDESKTOP_API_TEST=ON \
