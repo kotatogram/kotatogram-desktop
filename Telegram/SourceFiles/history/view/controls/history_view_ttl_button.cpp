@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_changes.h"
 #include "main/main_session.h"
 #include "lang/lang_keys.h"
+#include "lang/lang_instance.h"
 #include "boxes/peers/edit_peer_info_box.h"
 #include "ui/boxes/auto_delete_settings.h"
 #include "ui/toast/toast.h"
@@ -25,6 +26,46 @@ namespace HistoryView::Controls {
 namespace {
 
 constexpr auto kToastDuration = crl::time(3500);
+
+enum {
+	TTLIcon1 = 0,
+	TTLIcon1Over,
+	TTLIcon2,
+	TTLIcon2Over,
+	TTLIcon3,
+	TTLIcon3Over
+};
+
+QList<const style::icon *> defaultLangTTLIcons = {
+	nullptr,
+	nullptr,
+	&st::historyMessagesTTL2Icon,
+	&st::historyMessagesTTL2IconOver,
+	&st::historyMessagesTTL3Icon,
+	&st::historyMessagesTTL3IconOver
+};
+
+QList<const style::icon *> ruLangTTLIcons = {
+	&st::historyMessagesTTLRUIcon,
+	&st::historyMessagesTTLRUIconOver,
+	&st::historyMessagesTTLRU2Icon,
+	&st::historyMessagesTTLRU2IconOver,
+	&st::historyMessagesTTLRU3Icon,
+	&st::historyMessagesTTLRU3IconOver
+};
+
+const QList<const style::icon *> &TTLIconsList() {
+	const auto baseLang = Lang::GetInstance().baseId();
+	const auto currentLang = Lang::Id();
+
+	for (const auto language : { "ru", "uk", "be" }) {
+		if (baseLang.startsWith(QLatin1String(language)) || currentLang == QString(language)) {
+			return ruLangTTLIcons;
+		}
+	}
+
+	return defaultLangTTLIcons;
+}
 
 } // namespace
 
@@ -96,6 +137,9 @@ void AutoDeleteSettingsBox(
 TTLButton::TTLButton(not_null<QWidget*> parent, not_null<PeerData*> peer)
 : _peer(peer)
 , _button(parent, st::historyMessagesTTL) {
+	const auto iconsList = TTLIconsList();
+	_button.setIconOverride(iconsList[TTLIcon1], iconsList[TTLIcon1Over]);
+
 	_button.setClickedCallback([=] {
 		const auto canEdit = peer->isUser()
 			|| (peer->isChat()
@@ -116,15 +160,11 @@ TTLButton::TTLButton(not_null<QWidget*> parent, not_null<PeerData*> peer)
 	) | rpl::start_with_next([=] {
 		const auto ttl = peer->messagesTTL();
 		if (ttl < 2 * 86400) {
-			_button.setIconOverride(nullptr, nullptr);
+			_button.setIconOverride(iconsList[TTLIcon1], iconsList[TTLIcon1Over]);
 		} else if (ttl < 8 * 86400) {
-			_button.setIconOverride(
-				&st::historyMessagesTTL2Icon,
-				&st::historyMessagesTTL2IconOver);
+			_button.setIconOverride(iconsList[TTLIcon2], iconsList[TTLIcon2Over]);
 		} else {
-			_button.setIconOverride(
-				&st::historyMessagesTTL3Icon,
-				&st::historyMessagesTTL3IconOver);
+			_button.setIconOverride(iconsList[TTLIcon3], iconsList[TTLIcon3Over]);
 		}
 	}, _button.lifetime());
 }

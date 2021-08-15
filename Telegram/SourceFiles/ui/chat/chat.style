@@ -313,6 +313,12 @@ historyMessagesTTL2Icon: icon {{ "chat/input_autodelete_7d", historyComposeIconF
 historyMessagesTTL2IconOver: icon {{ "chat/input_autodelete_7d", historyComposeIconFgOver }};
 historyMessagesTTL3Icon: icon {{ "chat/input_autodelete_30d", historyComposeIconFg }};
 historyMessagesTTL3IconOver: icon {{ "chat/input_autodelete_30d", historyComposeIconFgOver }};
+historyMessagesTTLRUIcon: icon {{ "chat/input_autodelete_1d_ru", historyComposeIconFg }};
+historyMessagesTTLRUIconOver: icon {{ "chat/input_autodelete_1d_ru", historyComposeIconFgOver }};
+historyMessagesTTLRU2Icon: icon {{ "chat/input_autodelete_7d_ru", historyComposeIconFg }};
+historyMessagesTTLRU2IconOver: icon {{ "chat/input_autodelete_7d_ru", historyComposeIconFgOver }};
+historyMessagesTTLRU3Icon: icon {{ "chat/input_autodelete_30d_ru", historyComposeIconFg }};
+historyMessagesTTLRU3IconOver: icon {{ "chat/input_autodelete_30d_ru", historyComposeIconFgOver }};
 historyAttachEmojiFgActive: windowActiveTextFg;
 historyAttachEmojiActive: icon {{ "chat/input_smile_face", historyAttachEmojiFgActive }};
 historyAttachEmojiTooltipDelta: 4px;
