@@ -491,7 +491,7 @@ jobs:
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          cd %REPO_NAME%\build\bin
+          cd %REPO_NAME%\build
           mkdir artifact
           move Kotatogram.exe artifact/
       - uses: actions/upload-artifact@master
@@ -499,4 +499,4 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.REPO_NAME }}\build\bin\artifact\
+          path: ${{ env.REPO_NAME }}\build\artifact\
