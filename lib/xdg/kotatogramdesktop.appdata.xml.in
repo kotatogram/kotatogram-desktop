@@ -35,6 +35,24 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4.2" date="2021-08-21">
+            <description>
+                <p>TDesktop sources were updated to 2.8.11.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Manually choose notification mute time.</li>
+                    <li>Auto-login option for Telegram sites.</li>
+                    <li>Multi-threaded video decoding option.</li>
+                    <li>External video player.</li>
+                    <li>Sending without "via @bot" mark.</li>
+                    <li>Font size JSON option.</li>
+                    <li>Backported message self-destruct 1 month option.</li>
+                    <li>Localized self-destruct messages button to Russian.</li>
+                    <li>Fixed missing "Copy Share Link" in forward window when a single album is selected.</li>
+                    <li>Fixed applying of some bundled Kotatogram translations.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.4.1" date="2021-04-29">
             <description>
                 <p>TDesktop sources were updated to 2.7.4.</p>

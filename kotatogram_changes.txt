@@ -1,3 +1,16 @@
+1.4.2(21.08.2021)
+- Updated TDesktop sources to 2.8.11.
+- Manually choose notification mute time.
+- Auto-login option for Telegram sites.
+- Multi-threaded video decoding option.
+- External video player.
+- Sending without "via @bot" mark.
+- Font size JSON option.
+- Backported message self-destruct 1 month option.
+- Localized self-destruct messages button to Russian.
+- Fixed missing "Copy Share Link" in forward window when a single album is selected.
+- Fixed applying of some bundled Kotatogram translations.
+
 1.4.1 (29.04.2021)
 - Updated TDesktop sources to 2.7.4.
 - Separate Kotatogram's MPRIS and TDesktop's MPRIS.
