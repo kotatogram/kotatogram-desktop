@@ -390,7 +390,6 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("forward_retain_selection"), cForwardRetainSelection());
 	settings.insert(qsl("forward_on_click"), cForwardChatOnClick());
 	settings.insert(qsl("telegram_sites_autologin"), cTelegramSitesAutologin());
-	settings.insert(qsl("hide_via"), cHideVia());
 
 	settingsFonts.insert(qsl("size"), cFontSize());
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
@@ -972,11 +971,6 @@ bool Manager::readCustomFile() {
 	ReadBoolOption(settings, "telegram_sites_autologin", [&](auto v) {
 		cSetTelegramSitesAutologin(v);
 	});
-
-	ReadBoolOption(settings, "hide_via", [&](auto v) {
-		cSetHideVia(v);
-	});
-
 	return true;
 }
 

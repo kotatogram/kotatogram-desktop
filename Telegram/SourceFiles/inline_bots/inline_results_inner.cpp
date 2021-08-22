@@ -248,7 +248,7 @@ void Inner::mouseReleaseEvent(QMouseEvent *e) {
 	if (dynamic_cast<SendClickHandler*>(activated.get()) || open) {
 		const auto row = int(_selected / MatrixRowShift);
 		const auto column = int(_selected % MatrixRowShift);
-		selectInlineResult(row, column, { .hideVia = cHideVia() }, !!open);
+		selectInlineResult(row, column, {}, !!open);
 	} else {
 		ActivateClickHandler(window(), activated, e->button());
 	}
@@ -308,9 +308,6 @@ void Inner::contextMenuEvent(QContextMenuEvent *e) {
 	_menu = base::make_unique_q<Ui::PopupMenu>(this);
 
 	const auto send = [=](Api::SendOptions options) {
-		if (cHideVia()) {
-			options.hideVia = true;
-		}
 		selectInlineResult(row, column, options, false);
 	};
 	SendMenu::FillSendMenu(

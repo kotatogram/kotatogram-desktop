@@ -267,5 +267,3 @@ bool gAutoScrollUnfocused = false;
 LocalFolderVector gLocalFolders;
 
 bool gTelegramSitesAutologin = true;
-
-bool gHideVia = false;

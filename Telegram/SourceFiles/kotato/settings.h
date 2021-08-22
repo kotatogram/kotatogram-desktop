@@ -179,5 +179,3 @@ using LocalFolderVector = std::vector<LocalFolder>;
 DeclareRefSetting(LocalFolderVector, LocalFolders);
 
 DeclareSetting(bool, TelegramSitesAutologin);
-
-DeclareSetting(bool, HideVia);
