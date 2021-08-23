@@ -44,6 +44,13 @@ FillMenuResult FillSendMenu(
 	Fn<void()> silent,
 	Fn<void()> schedule);
 
+FillMenuResult FillSendPreviewMenu(
+	not_null<Ui::PopupMenu*> menu,
+	Type type,
+	Fn<void()> defaultSend,
+	Fn<void()> silent,
+	Fn<void()> schedule);
+
 void SetupMenuAndShortcuts(
 	not_null<Ui::RpWidget*> button,
 	Fn<Type()> type,

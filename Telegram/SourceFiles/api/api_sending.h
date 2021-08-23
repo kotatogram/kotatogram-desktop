@@ -25,6 +25,12 @@ namespace Api {
 struct MessageToSend;
 struct SendAction;
 
+void SendWebDocument(
+	Api::MessageToSend &&message,
+	not_null<DocumentData*> document,
+	Fn<void()> doneCallback = nullptr,
+	bool forwarding = false);
+
 void SendExistingDocument(
 	Api::MessageToSend &&message,
 	not_null<DocumentData*> document,

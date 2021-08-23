@@ -184,6 +184,26 @@ void SendExistingMedia(
 
 } // namespace
 
+void SendWebDocument(
+		Api::MessageToSend &&message,
+		not_null<DocumentData*> document,
+		Fn<void()> doneCallback,
+		bool forwarding) {
+	const auto inputMedia = [=] {
+		return MTP_inputMediaDocumentExternal(
+			MTP_flags(0),
+			MTP_string(document->url()),
+			MTPint()); // ttl_seconds
+	};
+	SendExistingMedia(
+		std::move(message),
+		document,
+		inputMedia,
+		document->stickerOrGifOrigin(),
+		(doneCallback ? std::move(doneCallback) : nullptr),
+		forwarding);
+}
+
 void SendExistingDocument(
 		Api::MessageToSend &&message,
 		not_null<DocumentData*> document,

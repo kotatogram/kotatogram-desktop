@@ -65,6 +65,36 @@ FillMenuResult FillSendMenu(
 	return FillMenuResult::Success;
 }
 
+FillMenuResult FillSendPreviewMenu(
+		not_null<Ui::PopupMenu*> menu,
+		Type type,
+		Fn<void()> defaultSend,
+		Fn<void()> silent,
+		Fn<void()> schedule) {
+	if (!defaultSend && !silent && !schedule) {
+		return FillMenuResult::None;
+	}
+	const auto now = type;
+	if (now == Type::Disabled) {
+		return FillMenuResult::None;
+	}
+
+	if (defaultSend && now != Type::Scheduled && now != Type::ScheduledToUser) {
+		menu->addAction(tr::ktg_send_preview(tr::now), defaultSend);
+	}
+	if (silent && now != Type::Reminder) {
+		menu->addAction(tr::ktg_send_silent_preview(tr::now), silent);
+	}
+	if (schedule && now != Type::SilentOnly) {
+		menu->addAction(
+			(now == Type::Reminder
+				? tr::ktg_reminder_preview(tr::now)
+				: tr::ktg_schedule_preview(tr::now)),
+			schedule);
+	}
+	return FillMenuResult::Success;
+}
+
 void SetupMenuAndShortcuts(
 		not_null<Ui::RpWidget*> button,
 		Fn<Type()> type,

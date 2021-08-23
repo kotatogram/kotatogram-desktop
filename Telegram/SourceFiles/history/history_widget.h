@@ -378,6 +378,8 @@ private:
 	void requestMessageData(MsgId msgId);
 	void messageDataReceived(ChannelData *channel, MsgId msgId);
 
+	void addRecentBot(not_null<UserData*> bot);
+
 	void send(Api::SendOptions options);
 	void sendWithModifiers(Qt::KeyboardModifiers modifiers);
 	void sendSilent();

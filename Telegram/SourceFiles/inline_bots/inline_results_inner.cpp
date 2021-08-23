@@ -258,7 +258,8 @@ void Inner::selectInlineResult(
 		int row,
 		int column,
 		Api::SendOptions options,
-		bool open) {
+		bool open,
+		bool sendPreview) {
 	if (row >= _rows.size() || column >= _rows.at(row).items.size()) {
 		return;
 	}
@@ -271,6 +272,7 @@ void Inner::selectInlineResult(
 				.bot = _inlineBot,
 				.options = std::move(options),
 				.open = open,
+				.sendPreview = sendPreview,
 			});
 		}
 	}
@@ -316,16 +318,29 @@ void Inner::contextMenuEvent(QContextMenuEvent *e) {
 		SendMenu::DefaultSilentCallback(send),
 		SendMenu::DefaultScheduleCallback(this, type, send));
 
-	_menu->addAction(tr::ktg_send_hide_via_message(tr::now), [=] {
-		send({ .hideVia = true });
-	});
+	const auto hideViaActions = [&] {
+		const auto sendPreview = [=](Api::SendOptions options) {
+			selectInlineResult(row, column, options, false, true);
+		};
+
+		SendMenu::FillSendPreviewMenu(
+			_menu,
+			type,
+			[=] { sendPreview({}); },
+			SendMenu::DefaultSilentCallback(sendPreview),
+			SendMenu::DefaultScheduleCallback(this, type, sendPreview));
+	};
 
 	auto item = _rows[row].items[column];
 	if (const auto previewDocument = item->getPreviewDocument()) {
+		hideViaActions();
+
 		auto callback = [&](const QString &text, Fn<void()> &&done) {
 			_menu->addAction(text, std::move(done));
 		};
 		ChatHelpers::AddGifAction(std::move(callback), previewDocument);
+	} else if (const auto previewPhoto = item->getPreviewPhoto()) {
+		hideViaActions();
 	}
 
 	if (!_menu->empty()) {
