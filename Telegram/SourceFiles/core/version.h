@@ -8,7 +8,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #pragma once
 
 #include "base/const_string.h"
-#include "kotato/version.h"
 
 #define TDESKTOP_REQUESTED_ALPHA_VERSION (0ULL)
 
@@ -25,5 +24,5 @@ constexpr auto AppName = "Kotatogram Desktop"_cs;
 constexpr auto AppFile = "Kotatogram"_cs;
 constexpr auto AppVersion = 2008011;
 constexpr auto AppVersionStr = "2.8.11";
-constexpr auto AppBetaVersion = true;
+constexpr auto AppBetaVersion = false;
 constexpr auto AppAlphaVersion = TDESKTOP_ALPHA_VERSION;

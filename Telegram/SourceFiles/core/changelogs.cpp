@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/changelogs.h"
 
+#include "kotato/kotato_version.h"
 #include "storage/localstorage.h"
 #include "lang/lang_keys.h"
 #include "lang/lang_instance.h"
@@ -247,7 +248,7 @@ void Changelogs::requestCloudLogs() {
 }
 
 void Changelogs::addLocalLogs() {
-	if (AppBetaVersion || cAlphaVersion()) {
+	if (AppKotatoBetaVersion || cAlphaVersion()) {
 		addBetaLogs();
 	}
 	if (!_addedSomeLocal) {

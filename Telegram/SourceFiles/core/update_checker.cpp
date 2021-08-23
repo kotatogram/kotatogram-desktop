@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/update_checker.h"
 
+#include "kotato/kotato_version.h"
 #include "platform/platform_specific.h"
 #include "base/platform/base_platform_info.h"
 #include "base/platform/base_platform_file_utilities.h"
@@ -304,7 +305,7 @@ bool UnpackUpdate(const QString &filepath) {
 	RSA *pbKey = [] {
 		const auto bio = MakeBIO(
 			const_cast<char*>(
-				AppBetaVersion
+				AppKotatoBetaVersion
 					? UpdatesPublicBetaKey
 					: UpdatesPublicKey),
 			-1);
@@ -321,7 +322,7 @@ bool UnpackUpdate(const QString &filepath) {
 		pbKey = [] {
 			const auto bio = MakeBIO(
 				const_cast<char*>(
-					AppBetaVersion
+					AppKotatoBetaVersion
 						? UpdatesPublicKey
 						: UpdatesPublicBetaKey),
 				-1);
@@ -550,7 +551,7 @@ bool ParseCommonMap(
 	const auto types = (*it).toObject();
 	const auto list = [&]() -> std::vector<QString> {
 		if (cAlphaVersion()) {
-			return { "alpha", "beta", "stable" };
+			return { AppKotatoTestBranch };
 		} else if (cInstallBetaVersion()) {
 			return { "beta", "stable" };
 		}
@@ -573,7 +574,7 @@ bool ParseCommonMap(
 		if (version == map.constEnd()) {
 			continue;
 		}
-		const auto isAvailableAlpha = (type == "alpha");
+		const auto isAvailableAlpha = (type == AppKotatoTestBranch);
 		const auto availableVersion = [&] {
 			if ((*version).isString()) {
 				const auto string = (*version).toString();
@@ -1520,12 +1521,12 @@ bool checkReadyUpdate() {
 		if (versionNum == 0x7FFFFFFF) { // alpha version
 			quint64 alphaVersion = 0;
 			if (fVersion.read((char*)&alphaVersion, sizeof(quint64)) != sizeof(quint64)) {
-				LOG(("Update Error: cant read alpha version from file '%1'").arg(versionPath));
+				LOG(("Update Error: cant read test version from file '%1'").arg(versionPath));
 				ClearAll();
 				return false;
 			}
 			if (!cAlphaVersion() || alphaVersion <= cAlphaVersion()) {
-				LOG(("Update Error: cant install alpha version %1 having alpha version %2").arg(alphaVersion).arg(cAlphaVersion()));
+				LOG(("Update Error: cant install test version %1 having %2 version %3").arg(alphaVersion).arg(AppKotatoTestBranch).arg(cAlphaVersion()));
 				ClearAll();
 				return false;
 			}
@@ -1660,7 +1661,7 @@ void UpdateApplication() {
 
 QString countAlphaVersionSignature(uint64 version) { // duplicated in packer.cpp
 	if (cAlphaPrivateKey().isEmpty()) {
-		LOG(("Error: Trying to count alpha version signature without alpha private key!"));
+		//LOG(("Error: Trying to count alpha version signature without alpha private key!"));
 		return QString();
 	}
 

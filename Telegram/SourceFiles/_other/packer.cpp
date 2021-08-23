@@ -182,10 +182,12 @@ int main(int argc, char *argv[])
 			AlphaVersion = QString(argv[i + 1]).toULongLong();
 			if (AlphaVersion > version * 1000ULL && AlphaVersion < (version + 1) * 1000ULL) {
 				BetaChannel = false;
+				/*
 				AlphaSignature = countAlphaVersionSignature(AlphaVersion);
 				if (AlphaSignature.isEmpty()) {
 					return -1;
 				}
+				*/
 			} else {
 				cout << "Bad -alpha param value passed, should be for the same version: " << version << ", alpha: " << AlphaVersion << "\n";
 				return -1;
@@ -506,9 +508,11 @@ int main(int argc, char *argv[])
 #else
 #error Unknown platform!
 #endif
+	/*
 	if (AlphaVersion) {
 		outName += "_" + AlphaSignature;
 	}
+	*/
 	QFile out(outName);
 	if (!out.open(QIODevice::WriteOnly)) {
 		cout << "Can't open '" << outName.toUtf8().constData() << "' for write..\n";

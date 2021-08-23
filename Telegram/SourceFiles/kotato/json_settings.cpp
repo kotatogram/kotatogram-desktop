@@ -7,6 +7,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #include "kotato/json_settings.h"
 
+#include "kotato/kotato_version.h"
 #include "mainwindow.h"
 #include "mainwidget.h"
 #include "window/window_controller.h"

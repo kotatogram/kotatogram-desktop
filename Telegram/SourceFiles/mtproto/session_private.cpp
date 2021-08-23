@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "mtproto/session_private.h"
 
+#include "kotato/kotato_version.h"
 #include "mtproto/details/mtproto_bound_key_creator.h"
 #include "mtproto/details/mtproto_dcenter.h"
 #include "mtproto/details/mtproto_dump_to_text.h"
@@ -88,7 +89,9 @@ using namespace details;
 #else // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
 		return Platform::IsWindows64Bit() ? u" x64"_q : QString();
 #endif // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
-	})() + qsl(" (TD %1)").arg(AppVersionStr);
+	})() + (cAlphaVersion()
+				? qsl("-%1.%2").arg(AppKotatoTestBranch).arg(AppKotatoTestVersion)
+				: QString());
 }
 
 void WrapInvokeAfter(

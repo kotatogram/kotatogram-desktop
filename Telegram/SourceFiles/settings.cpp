@@ -7,13 +7,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings.h"
 
+#include "kotato/kotato_version.h"
 #include "ui/emoji_config.h"
 
 Qt::LayoutDirection gLangDir = Qt::LeftToRight;
 
-bool gInstallBetaVersion = AppBetaVersion;
-uint64 gAlphaVersion = AppAlphaVersion;
-uint64 gRealAlphaVersion = AppAlphaVersion;
+bool gInstallBetaVersion = AppKotatoBetaVersion;
+uint64 gAlphaVersion = AppKotatoTestVersionFull;
+uint64 gRealAlphaVersion = AppKotatoTestVersionFull;
 QByteArray gAlphaPrivateKey;
 
 bool gManyInstance = false;

@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "storage/localstorage.h"
 //
+
+#include "kotato/kotato_version.h"
 #include "storage/serialize_common.h"
 #include "storage/storage_account.h"
 #include "storage/details/storage_file_utilities.h"

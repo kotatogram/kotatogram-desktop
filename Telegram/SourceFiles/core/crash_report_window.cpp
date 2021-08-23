@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/crash_report_window.h"
 
+#include "kotato/kotato_version.h"
 #include "core/crash_reports.h"
 #include "core/launcher.h"
 #include "core/sandbox.h"
@@ -482,7 +483,7 @@ QString LastCrashedWindow::getReportField(const QLatin1String &name, const QLati
 			QString data = lines.at(i).trimmed().mid(prefix.size()).trimmed();
 
 			if (name == qstr("version")) {
-				if (data.endsWith(qstr(" alpha"))) {
+				if (data.endsWith(qstr(" %1").arg(AppKotatoTestBranch))) {
 					data = QString::number(-data.replace(QRegularExpression(qsl("[^\\d]")), "").toLongLong());
 				} else {
 					data = QString::number(data.replace(QRegularExpression(qsl("[^\\d]")), "").toLongLong());
