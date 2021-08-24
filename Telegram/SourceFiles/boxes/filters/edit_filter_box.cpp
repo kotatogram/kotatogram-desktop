@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/filters/edit_filter_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "boxes/filters/edit_filter_chats_list.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "ui/layers/generic_box.h"
@@ -302,7 +303,7 @@ void FilterChatsPreview::paintEvent(QPaintEvent *e) {
 				const auto flags = user->flags();
 
 				if (user->isInaccessible()) {
-					statuses << tr::ktg_user_status_unaccessible(tr::now);
+					statuses << ktr("ktg_user_status_unaccessible");
 				} else {
 					if (user->isSupport()) {
 						statuses << tr::lng_status_support(tr::now);
@@ -310,11 +311,11 @@ void FilterChatsPreview::paintEvent(QPaintEvent *e) {
 					if (user->isBot()) {
 						statuses << tr::lng_status_bot(tr::now);
 					} else if (flags & UserDataFlag::MutualContact) {
-						statuses << tr::ktg_status_mutual_contact(tr::now);
+						statuses << ktr("ktg_status_mutual_contact");
 					} else if (flags & UserDataFlag::Contact) {
-						statuses << tr::ktg_status_contact(tr::now);
+						statuses << ktr("ktg_status_contact");
 					} else {
-						statuses << tr::ktg_status_non_contact(tr::now);
+						statuses << ktr("ktg_status_non_contact");
 					}
 				}
 			} else if (history->peer->isChat()) {
@@ -322,16 +323,16 @@ void FilterChatsPreview::paintEvent(QPaintEvent *e) {
 
 				const auto chat = history->peer->asChat();
 				if (!chat->amIn()) {
-					statuses << tr::ktg_group_status_not_in(tr::now);
+					statuses << ktr("ktg_group_status_not_in");
 				} else if (chat->amCreator()) {
-					statuses << tr::ktg_group_status_owner(tr::now);
+					statuses << ktr("ktg_group_status_owner");
 				} else if (chat->hasAdminRights()) {
-					statuses << tr::ktg_group_status_admin(tr::now);
+					statuses << ktr("ktg_group_status_admin");
 				}
 
 			} else if (history->peer->isChannel()) {
 				if (history->peer->isMegagroup()) {
-					statuses << tr::ktg_supergroup_status(tr::now);
+					statuses << ktr("ktg_supergroup_status");
 				} else {
 					statuses << tr::lng_channel_status(tr::now);
 				}
@@ -339,12 +340,12 @@ void FilterChatsPreview::paintEvent(QPaintEvent *e) {
 				const auto channel = history->peer->asChannel();
 				if (!channel->amIn()) {
 					statuses << (channel->isMegagroup()
-						? tr::ktg_group_status_not_in(tr::now)
-						: tr::ktg_channel_status_not_in(tr::now));
+						? ktr("ktg_group_status_not_in")
+						: ktr("ktg_channel_status_not_in"));
 				} else if (channel->amCreator()) {
-					statuses << tr::ktg_group_status_owner(tr::now);
+					statuses << ktr("ktg_group_status_owner");
 				} else if (channel->hasAdminRights()) {
-					statuses << tr::ktg_group_status_admin(tr::now);
+					statuses << ktr("ktg_group_status_admin");
 				}
 			}
 
@@ -603,13 +604,13 @@ void EditFilterBox(
 		Fn<void(const Data::ChatFilter &)> doneCallback) {
 	const auto creating = filter.title().isEmpty();
 	const auto isLocal = filter.isLocal();
-	box->setTitle(creating
+	box->setTitle(rpl::single(creating
 		? (isLocal
-			? tr::ktg_filters_new_local()
-			: tr::ktg_filters_new_cloud())
+			? ktr("ktg_filters_new_local")
+			: ktr("ktg_filters_new_cloud"))
 		: (isLocal
-			? tr::ktg_filters_edit_local()
-			: tr::ktg_filters_edit_cloud()));
+			? ktr("ktg_filters_edit_local")
+			: ktr("ktg_filters_edit_cloud"))));
 	box->setCloseByOutsideClick(false);
 
 	using State = rpl::variable<Data::ChatFilter>;
@@ -689,7 +690,7 @@ void EditFilterBox(
 	const auto checkboxDefault = content->add(
 		object_ptr<Ui::Checkbox>(
 			box,
-			tr::ktg_filters_default(tr::now),
+			ktr("ktg_filters_default"),
 			(creating ? false : isCurrent),
 			st::defaultBoxCheckbox),
 		style::margins(

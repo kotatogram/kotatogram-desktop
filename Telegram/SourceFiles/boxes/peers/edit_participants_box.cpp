@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/edit_participants_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "boxes/peers/add_participants_box.h"
@@ -1472,7 +1473,7 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				_navigation->showPeerInfo(participant); }));
 	}
 	result->addAction(
-		tr::ktg_context_show_messages_from(tr::now),
+		ktr("ktg_context_show_messages_from"),
 		crl::guard(this, [=] { App::searchByHashtag(QString(), _peer, user); }));
 	if (_role == Role::Kicked) {
 		if (_peer->isMegagroup()
@@ -1493,7 +1494,7 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 			if (const auto openedPeer = mainwidget->peer()) {
 				if (openedPeer->canWrite()) {
 					result->addAction(
-						tr::ktg_profile_mention_user(tr::now),
+						ktr("ktg_profile_mention_user"),
 						crl::guard(this, [=] { mainwidget->mentionUser(user); }));
 				}
 			}

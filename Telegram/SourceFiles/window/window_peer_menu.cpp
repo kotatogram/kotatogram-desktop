@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_peer_menu.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "api/api_sending.h"
 #include "boxes/confirm_box.h"
@@ -475,11 +476,11 @@ void Filler::addUserActions(not_null<UserData*> user) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(user);
 			if (hasHidden) {
 				_addAction(
-					tr::ktg_pinned_message_show(tr::now),
+					ktr("ktg_pinned_message_show"),
 					[=] { PeerMenuUnhidePinnedMessage(user); });
 			} else {
 				_addAction(
-					tr::ktg_pinned_message_hide(tr::now),
+					ktr("ktg_pinned_message_hide"),
 					[=] { PeerMenuHidePinnedMessage(user); });
 			}
 		}
@@ -543,11 +544,11 @@ void Filler::addChatActions(not_null<ChatData*> chat) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(chat);
 			if (hasHidden) {
 				_addAction(
-					tr::ktg_pinned_message_show(tr::now),
+					ktr("ktg_pinned_message_show"),
 					[=] { PeerMenuUnhidePinnedMessage(chat); });
 			} else {
 				_addAction(
-					tr::ktg_pinned_message_hide(tr::now),
+					ktr("ktg_pinned_message_hide"),
 					[=] { PeerMenuHidePinnedMessage(chat); });
 			}
 		}
@@ -608,11 +609,11 @@ void Filler::addChannelActions(not_null<ChannelData*> channel) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(channel);
 			if (hasHidden) {
 				_addAction(
-					tr::ktg_pinned_message_show(tr::now),
+					ktr("ktg_pinned_message_show"),
 					[=] { PeerMenuUnhidePinnedMessage(channel); });
 			} else {
 				_addAction(
-					tr::ktg_pinned_message_hide(tr::now),
+					ktr("ktg_pinned_message_hide"),
 					[=] { PeerMenuHidePinnedMessage(channel); });
 			}
 		}

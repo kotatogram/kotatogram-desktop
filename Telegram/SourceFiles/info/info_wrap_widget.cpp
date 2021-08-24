@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/info_wrap_widget.h"
 
+#include "kotato/kotato_lang.h"
 #include "info/profile/info_profile_widget.h"
 #include "info/profile/info_profile_values.h"
 #include "info/media/info_media_widget.h"
@@ -487,7 +488,7 @@ void WrapWidget::addProfileCallsButton() {
 					: st::infoTopBarCall))
 		)->addClickHandler([=] {
 			if (cConfirmBeforeCall()) {
-				Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
+				Ui::show(Box<ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
 					Ui::hideLayer();
 					Core::App().calls().startOutgoingCall(user, false);
 				}));

@@ -7,6 +7,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #include "kotato/customboxes/unpin_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "apiwrap.h"
 #include "history/history_widget.h"
@@ -30,7 +31,7 @@ UnpinMessageBox::UnpinMessageBox(
 }
 
 void UnpinMessageBox::prepare() {
-	addLeftButton(tr::ktg_hide_pinned_message(), [this] { hideMessage(); });
+	addLeftButton(rktr("ktg_hide_pinned_message"), [this] { hideMessage(); });
 
 	addButton(tr::lng_pinned_unpin(), [this] { unpinMessage(); });
 	addButton(tr::lng_cancel(), [this] { closeBox(); });

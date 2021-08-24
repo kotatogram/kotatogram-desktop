@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "chat_helpers/send_context_menu.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_common.h"
 #include "base/event_filter.h"
 #include "boxes/abstract_box.h"
@@ -80,16 +81,16 @@ FillMenuResult FillSendPreviewMenu(
 	}
 
 	if (defaultSend && now != Type::Scheduled && now != Type::ScheduledToUser) {
-		menu->addAction(tr::ktg_send_preview(tr::now), defaultSend);
+		menu->addAction(ktr("ktg_send_preview"), defaultSend);
 	}
 	if (silent && now != Type::Reminder) {
-		menu->addAction(tr::ktg_send_silent_preview(tr::now), silent);
+		menu->addAction(ktr("ktg_send_silent_preview"), silent);
 	}
 	if (schedule && now != Type::SilentOnly) {
 		menu->addAction(
 			(now == Type::Reminder
-				? tr::ktg_reminder_preview(tr::now)
-				: tr::ktg_schedule_preview(tr::now)),
+				? ktr("ktg_reminder_preview")
+				: ktr("ktg_schedule_preview")),
 			schedule);
 	}
 	return FillMenuResult::Success;

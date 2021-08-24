@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_box_controller.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/widgets/labels.h"
@@ -385,7 +386,7 @@ void BoxController::rowActionClicked(not_null<PeerListRow*> row) {
 	Assert(user != nullptr);
 
 	if (cConfirmBeforeCall()) {
-		Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
+		Ui::show(Box<ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
 			Ui::hideLayer();
 			Core::App().calls().startOutgoingCall(user, false);
 		}));

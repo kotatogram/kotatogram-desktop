@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_widget.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_editing.h"
 #include "api/api_bot.h"
 #include "api/api_sending.h"
@@ -5574,20 +5575,20 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 			_menu = base::make_unique_q<Ui::PopupMenu>(this);
 			
 			if (!cForwardQuoted()) {
-				_menu->addAction(tr::ktg_forward_menu_quoted(tr::now), [=] {
+				_menu->addAction(ktr("ktg_forward_menu_quoted"), [=] {
 					cSetForwardQuoted(true);
 					updateForwardingTexts();
 				});
 			}
 			if (cForwardQuoted() || !cForwardCaptioned()) {
-				_menu->addAction(tr::ktg_forward_menu_unquoted(tr::now), [=] {
+				_menu->addAction(ktr("ktg_forward_menu_unquoted"), [=] {
 					cSetForwardQuoted(false);
 					cSetForwardCaptioned(true);
 					updateForwardingTexts();
 				});
 			}
 			if (cForwardQuoted() || cForwardCaptioned()) {
-				_menu->addAction(tr::ktg_forward_menu_uncaptioned(tr::now), [=] {
+				_menu->addAction(ktr("ktg_forward_menu_uncaptioned"), [=] {
 					cSetForwardQuoted(false);
 					cSetForwardCaptioned(false);
 					updateForwardingTexts();
@@ -5596,20 +5597,20 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 			if (hasMediaToGroup && count > 1) {
 				_menu->addSeparator();
 				if (!cForwardAlbumsAsIs()) {
-					_menu->addAction(tr::ktg_forward_menu_default_albums(tr::now), [=] {
+					_menu->addAction(ktr("ktg_forward_menu_default_albums"), [=] {
 						cSetForwardAlbumsAsIs(true);
 						updateForwardingTexts();
 					});
 				}
 				if (cForwardAlbumsAsIs() || !cForwardGrouped()) {
-					_menu->addAction(tr::ktg_forward_menu_group_all_media(tr::now), [=] {
+					_menu->addAction(ktr("ktg_forward_menu_group_all_media"), [=] {
 						cSetForwardAlbumsAsIs(false);
 						cSetForwardGrouped(true);
 						updateForwardingTexts();
 					});
 				}
 				if (cForwardAlbumsAsIs() || cForwardGrouped()) {
-					_menu->addAction(tr::ktg_forward_menu_separate_messages(tr::now), [=] {
+					_menu->addAction(ktr("ktg_forward_menu_separate_messages"), [=] {
 						cSetForwardAlbumsAsIs(false);
 						cSetForwardGrouped(false);
 						updateForwardingTexts();
@@ -7066,13 +7067,13 @@ void HistoryWidget::updateForwardingTexts() {
 				+ (cForwardQuoted()
 					? QString()
 					: qsl(", ") + (cForwardCaptioned()
-						? tr::ktg_forward_subtitle_unquoted(tr::now)
-						: tr::ktg_forward_subtitle_uncaptioned(tr::now)))
+						? ktr("ktg_forward_subtitle_unquoted")
+						: ktr("ktg_forward_subtitle_uncaptioned")))
 				+ (cForwardAlbumsAsIs() || !hasMediaToGroup
 					? QString()
 					: qsl(", ") + (cForwardGrouped()
-						? tr::ktg_forward_subtitle_group_all_media(tr::now)
-						: tr::ktg_forward_subtitle_separate_messages(tr::now))));
+						? ktr("ktg_forward_subtitle_group_all_media")
+						: ktr("ktg_forward_subtitle_separate_messages"))));
 		}
 	}
 	_toForwardFrom.setText(st::msgNameStyle, from, Ui::NameTextOptions());

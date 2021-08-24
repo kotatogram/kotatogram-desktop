@@ -7,6 +7,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #include "kotato/customboxes/fonts_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/platform/base_platform_info.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
@@ -19,23 +20,23 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "app.h"
 
 FontsBox::FontsBox(QWidget* parent)
-: _useSystemFont(this, tr::ktg_fonts_use_system_font(tr::now), cUseSystemFont())
-, _useOriginalMetrics(this, tr::ktg_fonts_use_original_metrics(tr::now), cUseOriginalMetrics())
-, _mainFontName(this, st::defaultInputField, tr::ktg_fonts_main())
-, _semiboldFontName(this, st::defaultInputField, tr::ktg_fonts_semibold())
-, _semiboldIsBold(this, tr::ktg_fonts_semibold_is_bold(tr::now), cSemiboldFontIsBold())
-, _monospacedFontName(this, st::defaultInputField, tr::ktg_fonts_monospaced())
+: _useSystemFont(this, ktr("ktg_fonts_use_system_font"), cUseSystemFont())
+, _useOriginalMetrics(this, ktr("ktg_fonts_use_original_metrics"), cUseOriginalMetrics())
+, _mainFontName(this, st::defaultInputField, rktr("ktg_fonts_main"))
+, _semiboldFontName(this, st::defaultInputField, rktr("ktg_fonts_semibold"))
+, _semiboldIsBold(this, ktr("ktg_fonts_semibold_is_bold"), cSemiboldFontIsBold())
+, _monospacedFontName(this, st::defaultInputField, rktr("ktg_fonts_monospaced"))
 , _about(st::boxWidth - st::boxPadding.left() * 1.5)
 {
 }
 
 void FontsBox::prepare() {
-	setTitle(tr::ktg_fonts_title());
+	setTitle(rktr("ktg_fonts_title"));
 
 	addButton(tr::lng_settings_save(), [=] { save(); });
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 
-	addLeftButton(tr::ktg_fonts_reset(), [=] { resetToDefault(); });
+	addLeftButton(rktr("ktg_fonts_reset"), [=] { resetToDefault(); });
 
 	if (!cMainFont().isEmpty()) {
 		_mainFontName->setText(cMainFont());
@@ -49,7 +50,7 @@ void FontsBox::prepare() {
 		_monospacedFontName->setText(cMonospaceFont());
 	}
 
-	_about.setText(st::fontsBoxTextStyle, tr::ktg_fonts_about(tr::now));
+	_about.setText(st::fontsBoxTextStyle, ktr("ktg_fonts_about"));
 	_aboutHeight = _about.countHeight(st::boxWidth - st::boxPadding.left() * 1.5);
 
 	setDimensions(st::boxWidth, _useSystemFont->height()

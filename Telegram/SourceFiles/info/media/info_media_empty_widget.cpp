@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/media/info_media_empty_widget.h"
 
+#include "kotato/kotato_lang.h"
 #include "ui/widgets/labels.h"
 #include "styles/style_info.h"
 #include "lang/lang_keys.h"
@@ -57,7 +58,7 @@ void EmptyWidget::setSearchQuery(const QString &query) {
 		case Type::Video:
 			return tr::lng_media_video_empty(tr::now);
 		case Type::GIF:
-			return tr::ktg_media_gif_empty(tr::now);
+			return ktr("ktg_media_gif_empty");
 		case Type::MusicFile:
 			return query.isEmpty()
 				? tr::lng_media_song_empty(tr::now)

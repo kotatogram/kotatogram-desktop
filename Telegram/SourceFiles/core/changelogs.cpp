@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/changelogs.h"
 
+#include "kotato/kotato_lang.h"
 #include "kotato/kotato_version.h"
 #include "storage/localstorage.h"
 #include "lang/lang_keys.h"
@@ -203,14 +204,10 @@ void Changelogs::addKotatoLogs() {
 		channelLink = "https://t.me/kotatogram";
 	}
 
-	const auto text = tr::ktg_new_version(
-		tr::now,
-		lt_version,
-		QString::fromLatin1(AppKotatoVersionStr),
-		lt_td_version,
-		QString::fromLatin1(AppVersionStr),
-		lt_link,
-		channelLink);
+	const auto text = ktr("ktg_new_version",
+		{ "version", QString::fromLatin1(AppKotatoVersionStr) },
+		{ "td_version", QString::fromLatin1(AppVersionStr) },
+		{ "link", channelLink });
 	addLocalLog(text.trimmed());
 }
 

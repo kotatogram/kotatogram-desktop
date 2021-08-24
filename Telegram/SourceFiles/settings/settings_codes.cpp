@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_codes.h"
 
+#include "kotato/kotato_lang.h"
 #include "platform/platform_specific.h"
 #include "ui/toast/toast.h"
 #include "mainwidget.h"
@@ -193,6 +194,12 @@ auto GenerateCodes() {
 				&window->session(),
 				Fn<void()>()),
 			Ui::LayerOption::KeepOther);
+	});
+	codes.emplace(qsl("reloadlang"), [](SessionController *window) {
+		Kotato::Lang::Load(
+			Lang::GetInstance().baseId(), 
+			Lang::GetInstance().id());
+		Ui::Toast::Show(ktr("ktg_language_reloaded"));
 	});
 
 	return codes;

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/edit_peer_permissions_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
@@ -107,24 +108,24 @@ void ApplyDependencies(
 
 std::vector<std::pair<ChatRestrictions, QString>> RestrictionLabels() {
 	const auto langKeys = {
-		tr::lng_rights_chat_send_text,
-		tr::lng_rights_chat_send_media,
-		tr::ktg_rights_chat_send_stickers,
-		tr::ktg_rights_chat_send_gif,
-		tr::ktg_rights_chat_send_games,
-		tr::ktg_rights_chat_use_inline,
-		tr::lng_rights_chat_send_links,
-		tr::lng_rights_chat_send_polls,
-		tr::lng_rights_chat_add_members,
-		tr::lng_rights_group_pin,
-		tr::lng_rights_group_info,
+		tr::lng_rights_chat_send_text(tr::now),
+		tr::lng_rights_chat_send_media(tr::now),
+		ktr("ktg_rights_chat_send_stickers"),
+		ktr("ktg_rights_chat_send_gif"),
+		ktr("ktg_rights_chat_send_games"),
+		ktr("ktg_rights_chat_use_inline"),
+		tr::lng_rights_chat_send_links(tr::now),
+		tr::lng_rights_chat_send_polls(tr::now),
+		tr::lng_rights_chat_add_members(tr::now),
+		tr::lng_rights_group_pin(tr::now),
+		tr::lng_rights_group_info(tr::now),
 	};
 
 	std::vector<std::pair<ChatRestrictions, QString>> vector;
 	const auto restrictions = Data::ListOfRestrictions();
 	auto i = 0;
 	for (const auto &key : langKeys) {
-		vector.emplace_back(restrictions[i++], key(tr::now));
+		vector.emplace_back(restrictions[i++], key);
 	}
 	return vector;
 }

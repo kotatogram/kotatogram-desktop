@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/application.h"
 
+#include "kotato/kotato_lang.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
@@ -62,6 +63,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/gl/gl_detection.h"
 #include "ui/image/image.h"
 #include "ui/text/text_options.h"
+#include "ui/toast/toast.h"
 #include "ui/emoji_config.h"
 #include "ui/effects/animations.h"
 #include "storage/serialize_common.h"
@@ -215,8 +217,7 @@ void Application::run() {
 	_notifications = std::make_unique<Window::Notifications::System>();
 
 	startLocalStorage();
-	Lang::GetInstance().fillDefaultJson();
-	Lang::GetInstance().fillFromJson();
+	Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 
 	if (!cQtScale()) {
 		ValidateScale();
@@ -1153,6 +1154,13 @@ void Application::startShortcuts() {
 		});
 		request->check(Command::Close) && request->handle([=] {
 			return closeActiveWindow();
+		});
+		request->check(Command::ReloadLang) && request->handle([=] {
+			Kotato::Lang::Load(
+				Lang::GetInstance().baseId(), 
+				Lang::GetInstance().id());
+			Ui::Toast::Show(ktr("ktg_language_reloaded"));
+			return true;
 		});
 	}, _lifetime);
 }

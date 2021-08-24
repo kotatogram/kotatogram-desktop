@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/share_box.h"
 
 #include "dialogs/dialogs_indexed_list.h"
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
 #include "mainwidget.h"
@@ -480,7 +481,7 @@ void ShareBox::createButtons() {
 	if (_hasSelected) {
 		if (_descriptor.goToChatCallback && _inner->selected().size() == 1) {
 			const auto singleChat = _inner->selected().at(0);
-			addLeftButton(tr::ktg_forward_go_to_chat(), [=] { goToChat(singleChat); });
+			addLeftButton(rktr("ktg_forward_go_to_chat"), [=] { goToChat(singleChat); });
 		}
 
 		const auto send = addButton(tr::lng_share_confirm(), [=] {
@@ -524,20 +525,20 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 	button->installEventFilter(_menu);
 
 	if (!cForwardQuoted()) {
-		_menu->addAction(tr::ktg_forward_menu_quoted(tr::now), [=] {
+		_menu->addAction(ktr("ktg_forward_menu_quoted"), [=] {
 			cSetForwardQuoted(true);
 			updateAdditionalTitle();
 		});
 	}
 	if (cForwardQuoted() || !cForwardCaptioned()) {
-		_menu->addAction(tr::ktg_forward_menu_unquoted(tr::now), [=] {
+		_menu->addAction(ktr("ktg_forward_menu_unquoted"), [=] {
 			cSetForwardQuoted(false);
 			cSetForwardCaptioned(true);
 			updateAdditionalTitle();
 		});
 	}
 	if (cForwardQuoted() || cForwardCaptioned()) {
-		_menu->addAction(tr::ktg_forward_menu_uncaptioned(tr::now), [=] {
+		_menu->addAction(ktr("ktg_forward_menu_uncaptioned"), [=] {
 			cSetForwardQuoted(false);
 			cSetForwardCaptioned(false);
 			updateAdditionalTitle();
@@ -546,20 +547,20 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 	if (_descriptor.hasMedia) {
 		_menu->addSeparator();
 		if (!cForwardAlbumsAsIs()) {
-			_menu->addAction(tr::ktg_forward_menu_default_albums(tr::now), [=] {
+			_menu->addAction(ktr("ktg_forward_menu_default_albums"), [=] {
 				cSetForwardAlbumsAsIs(true);
 				updateAdditionalTitle();
 			});
 		}
 		if (cForwardAlbumsAsIs() || !cForwardGrouped()) {
-			_menu->addAction(tr::ktg_forward_menu_group_all_media(tr::now), [=] {
+			_menu->addAction(ktr("ktg_forward_menu_group_all_media"), [=] {
 				cSetForwardAlbumsAsIs(false);
 				cSetForwardGrouped(true);
 				updateAdditionalTitle();
 			});
 		}
 		if (cForwardAlbumsAsIs() || cForwardGrouped()) {
-			_menu->addAction(tr::ktg_forward_menu_separate_messages(tr::now), [=] {
+			_menu->addAction(ktr("ktg_forward_menu_separate_messages"), [=] {
 				cSetForwardAlbumsAsIs(false);
 				cSetForwardGrouped(false);
 				updateAdditionalTitle();
@@ -584,8 +585,8 @@ void ShareBox::updateAdditionalTitle() {
 
 	if (!cForwardQuoted()) {
 		result += (cForwardCaptioned()
-			? tr::ktg_forward_subtitle_unquoted(tr::now)
-			: tr::ktg_forward_subtitle_uncaptioned(tr::now));
+			? ktr("ktg_forward_subtitle_unquoted")
+			: ktr("ktg_forward_subtitle_uncaptioned"));
 	}
 
 	if (_descriptor.hasMedia && !cForwardAlbumsAsIs()) {
@@ -593,8 +594,8 @@ void ShareBox::updateAdditionalTitle() {
 			result += ", ";
 		}
 		result += (cForwardGrouped()
-			? tr::ktg_forward_subtitle_group_all_media(tr::now)
-			: tr::ktg_forward_subtitle_separate_messages(tr::now));
+			? ktr("ktg_forward_subtitle_group_all_media")
+			: ktr("ktg_forward_subtitle_separate_messages"));
 	}
 
 	setAdditionalTitle(rpl::single(result));

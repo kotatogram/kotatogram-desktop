@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/sticker_set_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
 #include "data/data_file_origin.h"
@@ -255,7 +256,7 @@ void StickerSetBox::copyTitle() {
 	_inner->title(
 	) | rpl::start_with_next([](const TextWithEntities &value) {
 		QGuiApplication::clipboard()->setText(value.text);
-		Ui::show(Box<InformBox>(tr::ktg_stickers_title_copied(tr::now)));
+		Ui::show(Box<InformBox>(ktr("ktg_stickers_title_copied")));
 	}, lifetime());
 }
 
@@ -380,7 +381,7 @@ bool StickerSetBox::showMenu(not_null<Ui::IconButton*> button) {
 	});
 	button->installEventFilter(_menu);
 
-	_menu->addAction(tr::ktg_stickers_copy_title(tr::now), [=] { copyTitle(); });
+	_menu->addAction(ktr("ktg_stickers_copy_title"), [=] { copyTitle(); });
 
 	if (!_inner->shortName().isEmpty()) {
 		_menu->addAction(tr::lng_stickers_share_pack(tr::now), [=] { copyStickersLink(); });

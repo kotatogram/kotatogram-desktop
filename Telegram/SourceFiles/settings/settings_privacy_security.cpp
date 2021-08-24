@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_privacy_security.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_authorizations.h"
 #include "api/api_self_destruct.h"
 #include "api/api_sensitive_content.h"
@@ -761,7 +762,7 @@ object_ptr<Ui::BoxContent> CloudPasswordAppOutdatedBox() {
 		close();
 	};
 	return Box<ConfirmBox>(
-		tr::ktg_passport_app_out_of_date(tr::now),
+		ktr("ktg_passport_app_out_of_date"),
 		tr::lng_menu_update(tr::now),
 		callback);
 }

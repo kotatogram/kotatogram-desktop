@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_inner_widget.h"
 
 #include <rpl/merge.h>
+#include "kotato/kotato_lang.h"
 #include "core/file_utilities.h"
 #include "core/crash_reports.h"
 #include "core/click_handler_types.h"
@@ -1594,7 +1595,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}
 		const auto peer = item->history()->peer;
 		if (peer->isChat() || peer->isMegagroup()) {
-			_menu->addAction(tr::ktg_context_show_messages_from(tr::now), [=] {
+			_menu->addAction(ktr("ktg_context_show_messages_from"), [=] {
 				App::searchByHashtag(QString(), peer, item->from()->asUser());
 			});
 		}

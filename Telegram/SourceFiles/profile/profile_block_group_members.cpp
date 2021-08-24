@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "profile/profile_block_group_members.h"
 
+#include "kotato/kotato_lang.h"
 #include "styles/style_profile.h"
 #include "ui/widgets/labels.h"
 #include "boxes/confirm_box.h"
@@ -168,7 +169,7 @@ void GroupMembersWidget::updateItemStatusText(Item *item) {
 	auto user = member->user();
 	if (member->statusText.isEmpty() || (member->onlineTextTill <= _now)) {
 		if (user->isInaccessible()) {
-			member->statusText = tr::ktg_user_status_unaccessible(tr::now);
+			member->statusText = ktr("ktg_user_status_unaccessible");
 		} else if (user->isBot()) {
 			auto seesAllMessages = (user->botInfo->readsAllHistory || (member->adminState != Item::AdminState::None));
 			member->statusText = seesAllMessages

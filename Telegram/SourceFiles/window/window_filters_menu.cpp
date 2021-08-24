@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_filters_menu.h"
 
+#include "kotato/kotato_lang.h"
 #include "mainwindow.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -362,11 +363,11 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 		addAction);
 	if (defaultFilterId != id) {
 		_popupMenu->addAction(
-			tr::ktg_filters_context_make_default(tr::now),
+			ktr("ktg_filters_context_make_default"),
 			crl::guard(&_outer, [=] { setDefaultFilter(id); }));
 	} else if (id) {
 		_popupMenu->addAction(
-			tr::ktg_filters_context_reset_default(tr::now),
+			ktr("ktg_filters_context_reset_default"),
 			crl::guard(&_outer, [=] { setDefaultFilter(0); }));
 	}
 	_popupMenu->addAction(
@@ -389,21 +390,21 @@ void FiltersMenu::showAllMenu(QPoint position) {
 	};
 	MenuAddMarkAsReadAllChatsAction(&_session->session().data(), addAction);
 	_popupMenu->addAction(
-		tr::ktg_filters_context_edit_all(tr::now),
+		ktr("ktg_filters_context_edit_all"),
 		crl::guard(&_outer, [=] { _session->showSettings(Settings::Type::Folders); }));
 	if (defaultFilterId != 0) {
 		_popupMenu->addAction(
-			tr::ktg_filters_context_make_default(tr::now),
+			ktr("ktg_filters_context_make_default"),
 			crl::guard(&_outer, [=] { setDefaultFilter(0); }));
 	}
 	_popupMenu->addAction(
-		tr::ktg_filters_hide_folder(tr::now),
+		ktr("ktg_filters_hide_folder"),
 		crl::guard(&_outer, [=] {
 			cSetHideFilterAllChats(true);
 			Kotato::JsonSettings::Write();
 			_all = nullptr;
 			Ui::Toast::Show(Ui::Toast::Config{
-				.text = { tr::ktg_filters_hide_all_chats_toast(tr::now) },
+				.text = { ktr("ktg_filters_hide_all_chats_toast") },
 				.st = &st::windowArchiveToast,
 				.multiline = true,
 			});
@@ -419,13 +420,13 @@ void FiltersMenu::showEditMenu(QPoint position) {
 	}
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(_setup);
 	_popupMenu->addAction(
-		tr::ktg_filters_hide_button(tr::now),
+		ktr("ktg_filters_hide_button"),
 		crl::guard(&_outer, [=] {
 			cSetHideFilterEditButton(true);
 			Kotato::JsonSettings::Write();
 			_setup = nullptr;
 			Ui::Toast::Show(Ui::Toast::Config{
-				.text = { tr::ktg_filters_hide_edit_toast(tr::now) },
+				.text = { ktr("ktg_filters_hide_edit_toast") },
 				.st = &st::windowArchiveToast,
 				.multiline = true,
 			});

@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/about_box.h"
 
 #include "kotato/kotato_version.h"
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "lang/lang_instance.h"
 #include "mainwidget.h"
@@ -29,11 +30,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 rpl::producer<TextWithEntities> Text1() {
-	return tr::ktg_about_text1(
-		lt_tdesktop_link,
-		tr::ktg_about_text1_tdesktop(
-		) | Ui::Text::ToLink("https://desktop.telegram.org/"),
-		Ui::Text::WithEntities);
+	return rktre("ktg_about_text1", {
+		"tdesktop_link",
+		Ui::Text::Link(ktr("ktg_about_text1_tdesktop"), "https://desktop.telegram.org/")
+	});
 }
 
 rpl::producer<TextWithEntities> Text2() {
@@ -65,12 +65,13 @@ rpl::producer<TextWithEntities> Text3() {
 		channelLink = "https://t.me/kotatogram";
 	}
 
-	return tr::ktg_about_text3(
-		lt_channel_link,
-		tr::ktg_about_text3_channel() | Ui::Text::ToLink(channelLink),
-		lt_faq_link,
-		tr::lng_about_text3_faq() | Ui::Text::ToLink(telegramFaqLink()),
-		Ui::Text::WithEntities);
+	return rktre("ktg_about_text3", {
+		"channel_link",
+		Ui::Text::Link(ktr("ktg_about_text3_channel"), channelLink)
+	}, {
+		"faq_link",
+		Ui::Text::Link(tr::lng_about_text3_faq(tr::now), telegramFaqLink())
+	});
 }
 
 } // namespace

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/file_utilities_linux.h"
 
+#include "kotato/kotato_lang.h"
 #include "platform/linux/linux_gtk_integration.h"
 #include "platform/linux/specific_linux.h"
 #include "lang/lang_keys.h"
@@ -102,7 +103,7 @@ QString ImplementationTypeLabel(ImplementationType value) {
 QString ImplementationTypeDescription(ImplementationType value) {
 	switch (value) {
 #ifdef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-	case ImplementationType::XDP: return tr::ktg_file_dialog_disabled_on_build(tr::now);
+	case ImplementationType::XDP: return ktr("ktg_file_dialog_disabled_on_build");
 #endif // DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 	}
 	return QString();

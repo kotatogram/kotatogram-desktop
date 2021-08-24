@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "intro/intro_code.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "intro/intro_signup.h"
 #include "intro/intro_password_check.h"
@@ -352,7 +353,7 @@ void CodeWidget::gotPassword(const MTPaccount_Password &result) {
 			close();
 		};
 		Ui::show(Box<ConfirmBox>(
-			tr::ktg_passport_app_out_of_date(tr::now),
+			ktr("ktg_passport_app_out_of_date"),
 			tr::lng_menu_update(tr::now),
 			callback));
 		return;

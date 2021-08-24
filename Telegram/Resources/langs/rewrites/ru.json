@@ -227,5 +227,6 @@
 	"ktg_send_silent_preview": "Отправить превью тихо",
 	"ktg_reminder_preview": "Напомнить с помощью превью",
 	"ktg_schedule_preview": "Отправить превью позже",
+	"ktg_language_reloaded": "Языковые строки Kotatogram были перезагружены.",
 	"dummy_last_string": ""
 }

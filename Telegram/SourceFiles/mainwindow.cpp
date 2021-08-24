@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "mainwindow.h"
 
+#include "kotato/kotato_lang.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
 #include "data/data_document_media.h"
@@ -160,7 +161,7 @@ void MainWindow::createTrayIconMenu() {
 	const auto soundAction = trayIconMenu->addAction(QString(), [=] {
 		toggleSoundNotifyFromTray();
 	});
-	trayIconMenu->addAction(tr::ktg_quit_from_tray(tr::now), [=] {
+	trayIconMenu->addAction(ktr("ktg_quit_from_tray"), [=] {
 		quitFromTray();
 	});
 
@@ -173,7 +174,7 @@ void MainWindow::createTrayIconMenu() {
 		_activeForTrayIconAction = isActiveForTrayMenu();
 		minimizeAction->setText(_activeForTrayIconAction
 			? tr::lng_minimize_to_tray(tr::now)
-			: tr::ktg_open_from_tray(tr::now));
+			: ktr("ktg_open_from_tray"));
 
 		auto notificationActionText = Core::App().settings().desktopNotify()
 			? tr::lng_disable_notifications_from_tray(tr::now)
@@ -181,8 +182,8 @@ void MainWindow::createTrayIconMenu() {
 		notificationAction->setText(notificationActionText);
 
 		auto soundActionText = Core::App().settings().soundNotify()
-			? tr::ktg_settings_disable_sound_from_tray(tr::now)
-			: tr::ktg_settings_enable_sound_from_tray(tr::now);
+			? ktr("ktg_settings_disable_sound_from_tray")
+			: ktr("ktg_settings_enable_sound_from_tray");
 		soundAction->setText(soundActionText);
 	}, lifetime());
 

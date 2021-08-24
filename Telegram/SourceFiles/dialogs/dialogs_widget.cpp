@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_widget.h"
 
+#include "kotato/kotato_lang.h"
 #include "dialogs/dialogs_inner_widget.h"
 #include "dialogs/dialogs_search_from_controllers.h"
 #include "dialogs/dialogs_key.h"
@@ -574,7 +575,7 @@ void Widget::checkUpdateStatus() {
 		if (_updateTelegram) return;
 		_updateTelegram.create(
 			this,
-			tr::ktg_update_telegram(tr::now),
+			ktr("ktg_update_telegram"),
 			st::dialogsUpdateButton,
 			st::dialogsInstallUpdate,
 			st::dialogsInstallUpdateOver);

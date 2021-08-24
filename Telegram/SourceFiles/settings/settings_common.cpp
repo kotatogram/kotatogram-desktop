@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_common.h"
 
+#include "kotato/kotato_lang.h"
 #include "settings/settings_chat.h"
 #include "settings/settings_advanced.h"
 #include "settings/settings_information.h"
@@ -225,8 +226,8 @@ void FillMenu(
 				addAction(tr::lng_menu_add_account(tr::now), [=] {
 					Ui::show(
 					Box<ConfirmBox>(
-						tr::ktg_too_many_accounts_warning(tr::now),
-						tr::ktg_account_add_anyway(tr::now),
+						ktr("ktg_too_many_accounts_warning"),
+						ktr("ktg_account_add_anyway"),
 						[=] {
 							Core::App().domain().addActivated(MTP::Environment{});
 						}),
@@ -241,10 +242,10 @@ void FillMenu(
 				[=] { showOther(Type::Information); });
 		}
 		addAction(
-			tr::ktg_settings_show_json_settings(tr::now),
+			ktr("ktg_settings_show_json_settings"),
 			[=] { File::ShowInFolder(customSettingsFile); });
 		addAction(
-			tr::ktg_settings_restart(tr::now),
+			ktr("ktg_settings_restart"),
 			[=] { App::restart(); });
 		if (type != Type::Kotato) {
 			addAction(

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "lang/lang_cloud_manager.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_instance.h"
 #include "lang/lang_file_parser.h"
 #include "lang/lang_text_entity.h"
@@ -118,12 +119,9 @@ NotReadyBox::NotReadyBox(
 void NotReadyBox::prepare() {
 	setTitle(tr::lng_language_not_ready_title());
 
-	auto text = tr::ktg_language_not_ready_about(
-		lt_lang_name,
-		rpl::single(_name) | Ui::Text::ToWithEntities(),
-		lt_link,
-		tr::lng_language_not_ready_link() | Ui::Text::ToLink(_editLink),
-		Ui::Text::WithEntities);
+	auto text = rktre("ktg_language_not_ready_about",
+		{ "lang_name", { _name } },
+		{ "link", Ui::Text::Link(tr::lng_language_not_ready_link(tr::now), _editLink) });
 	const auto content = Ui::CreateChild<Ui::PaddingWrap<Ui::FlatLabel>>(
 		this,
 		object_ptr<Ui::FlatLabel>(
@@ -447,8 +445,7 @@ void CloudManager::sendSwitchingToLanguageRequest() {
 		const auto finalize = [=] {
 			if (canApplyWithoutRestart(language.id)) {
 				performSwitchAndAddToRecent(language);
-				Lang::GetInstance().fillDefaultJson();
-				Lang::GetInstance().fillFromJson();
+				Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 			} else {
 				performSwitchAndRestart(language);
 			}
@@ -484,8 +481,7 @@ void CloudManager::switchToLanguage(const Language &data) {
 		performSwitchToCustom();
 	} else if (canApplyWithoutRestart(data.id)) {
 		performSwitchAndAddToRecent(data);
-		Lang::GetInstance().fillDefaultJson();
-		Lang::GetInstance().fillFromJson();
+		Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 	} else {
 		QVector<MTPstring> keys;
 		keys.reserve(3);
@@ -539,8 +535,7 @@ void CloudManager::performSwitchToCustom() {
 			}
 			if (canApplyWithoutRestart(qsl("#custom"))) {
 				_langpack.switchToCustomFile(filePath);
-				Lang::GetInstance().fillDefaultJson();
-				Lang::GetInstance().fillFromJson();
+				Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 			} else {
 				const auto values = loader.found();
 				const auto getValue = [&](ushort key) {

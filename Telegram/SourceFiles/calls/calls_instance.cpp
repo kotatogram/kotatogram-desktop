@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_instance.h"
 
+#include "kotato/kotato_lang.h"
 #include "calls/calls_call.h"
 #include "calls/group/calls_group_common.h"
 #include "calls/group/calls_choose_join_as.h"
@@ -691,7 +692,7 @@ void Instance::requestPermissionOrFail(Platform::PermissionType type, Fn<void()>
 		if (inGroupCall()) {
 			_currentGroupCall->hangup();
 		}
-		Ui::show(Box<ConfirmBox>(tr::ktg_no_mic_permission(tr::now), tr::lng_menu_settings(tr::now), crl::guard(this, [=] {
+		Ui::show(Box<ConfirmBox>(ktr("ktg_no_mic_permission"), tr::lng_menu_settings(tr::now), crl::guard(this, [=] {
 			Platform::OpenSystemSettingsForPermission(type);
 			Ui::hideLayer();
 		})));

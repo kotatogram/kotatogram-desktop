@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/local_storage_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/widgets/labels.h"
@@ -116,7 +117,7 @@ QString TimeLimitText(size_type limit) {
 		: (weeks > 0)
 		? tr::lng_local_storage_limit_weeks(tr::now, lt_count, weeks)
 		: (limit > 0)
-		? tr::ktg_local_storage_limit_days(tr::now, lt_count, days)
+		? ktr("ktg_local_storage_limit_days", days, { "count", QString::number(days) })
 		: tr::lng_local_storage_limit_never(tr::now);
 }
 

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_main.h"
 
+#include "kotato/kotato_lang.h"
 #include "settings/settings_common.h"
 #include "settings/settings_codes.h"
 #include "settings/settings_chat.h"
@@ -162,7 +163,7 @@ void SetupSections(
 		Type::Advanced,
 		&st::settingsIconGeneral);
 	addSection(
-		tr::ktg_settings_kotato(),
+		rktr("ktg_settings_kotato"),
 		Type::Kotato,
 		(cCustomAppIcon() == 5
 			? &st::settingsIconKotatoOld

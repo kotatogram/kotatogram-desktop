@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <rpl/combine.h>
 #include <rpl/combine_previous.h>
+#include "kotato/kotato_lang.h"
 #include "history/history.h"
 #include "history/view/history_view_send_action.h"
 #include "boxes/add_contact_box.h"
@@ -222,7 +223,7 @@ void TopBarWidget::call() {
 	if (const auto peer = _activeChat.key.peer()) {
 		if (const auto user = peer->asUser()) {
 			if (cConfirmBeforeCall()) {
-				Ui::show(Box<ConfirmBox>(tr::ktg_call_sure(tr::now), tr::ktg_call_button(tr::now), [=] {
+				Ui::show(Box<ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
 					Ui::hideLayer();
 					Core::App().calls().startOutgoingCall(user, false);
 				}));

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_folders.h"
 
+#include "kotato/kotato_lang.h"
 #include "boxes/filters/edit_filter_box.h"
 #include "data/data_session.h"
 #include "data/data_folder.h"
@@ -157,8 +158,8 @@ struct FilterRow {
 			: tr::lng_filters_no_chats(tr::now))
 		+ ", "
 		+ (filter.isLocal()
-			? tr::ktg_filters_local(tr::now)
-			: tr::ktg_filters_cloud(tr::now));
+			? ktr("ktg_filters_local")
+			: ktr("ktg_filters_cloud"));
 }
 
 FilterRowButton::FilterRowButton(
@@ -345,7 +346,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 		return &*i;
 	};
 	const auto toast = Ui::Toast::Config{
-		.text = { tr::ktg_filters_cloud_limit(tr::now) },
+		.text = { ktr("ktg_filters_cloud_limit") },
 		.st = &st::windowArchiveToast,
 		.multiline = true,
 	};
@@ -361,14 +362,14 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 	};
 	const auto newCloudButton = AddButton(
 		container,
-		tr::ktg_filters_create_cloud(),
+		rktr("ktg_filters_create_cloud"),
 		st::settingsChatButton,
 		&st::settingsIconCloud,
 		st::settingsChatIconLeft
 	);
 	const auto newLocalButton = AddButton(
 		container,
-		tr::ktg_filters_create_local(),
+		rktr("ktg_filters_create_local"),
 		st::settingsChatButton,
 		&st::settingsIconFolders,
 		st::settingsChatIconLeft
@@ -499,7 +500,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			container,
 			object_ptr<Ui::FlatLabel>(
 				container,
-				tr::ktg_filters_description(),
+				rktr("ktg_filters_description"),
 				st::boxDividerLabel),
 			st::settingsDividerLabelPadding)
 	)->setDuration(0);
@@ -509,7 +510,7 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 			object_ptr<Ui::VerticalLayout>(container))
 	)->setDuration(0);
 	const auto aboutRows = nonEmptyAbout->entity();
-	AddDividerText(aboutRows, tr::ktg_filters_description());
+	AddDividerText(aboutRows, rktr("ktg_filters_description"));
 	AddSkip(aboutRows);
 	AddSubsectionTitle(aboutRows, tr::lng_filters_recommended());
 

@@ -750,6 +750,8 @@ PRIVATE
     kotato/settings_menu.h
     kotato/settings.cpp
     kotato/settings.h
+    kotato/kotato_lang.cpp
+    kotato/kotato_lang.h
     kotato/kotato_version.h
     lang/lang_cloud_manager.cpp
     lang/lang_cloud_manager.h

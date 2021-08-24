@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_actions.h"
 
+#include "kotato/kotato_lang.h"
 #include "data/data_peer_values.h"
 #include "data/data_session.h"
 #include "data/data_folder.h"
@@ -277,18 +278,18 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			});
 			auto idInfo = addInfoOneLineInline(
 				(user->isBot()
-					? tr::ktg_profile_bot_id()
-					: tr::ktg_profile_user_id()),
+					? rktr("ktg_profile_bot_id")
+					: rktr("ktg_profile_user_id")),
 				std::move(idDrawableText),
-				tr::ktg_profile_copy_id(tr::now));
+				ktr("ktg_profile_copy_id"));
 
 			idInfo->setClickHandlerFilter([user](auto&&...) {
 				const auto idText = IDString(user);
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
 					Ui::Toast::Show(user->isBot()
-						? tr::ktg_bot_id_copied(tr::now)
-						: tr::ktg_user_id_copied(tr::now));
+						? ktr("ktg_bot_id_copied")
+						: ktr("ktg_user_id_copied"));
 				}
 				return false;
 			});
@@ -324,7 +325,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			const auto phoneText = user->phone();
 			if (!phoneText.isEmpty()) {
 				QGuiApplication::clipboard()->setText(App::formatPhone(phoneText));
-				Ui::Toast::Show(tr::ktg_phone_copied(tr::now));
+				Ui::Toast::Show(ktr("ktg_phone_copied"));
 			}
 			return false;
 		});
@@ -351,7 +352,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			const auto usernameText = user->userName();
 			if (!usernameText.isEmpty()) {
 				QGuiApplication::clipboard()->setText('@' + usernameText);
-				Ui::Toast::Show(tr::ktg_mention_copied(tr::now));
+				Ui::Toast::Show(ktr("ktg_mention_copied"));
 			}
 			return false;
 		});
@@ -372,22 +373,22 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			});
 			auto idInfo = addInfoOneLineInline(
 				(_peer->isChat()
-					? tr::ktg_profile_group_id()
+					? rktr("ktg_profile_group_id")
 					: _peer->isMegagroup()
-					? tr::ktg_profile_supergroup_id()
-					: tr::ktg_profile_channel_id()),
+					? rktr("ktg_profile_supergroup_id")
+					: rktr("ktg_profile_channel_id")),
 				std::move(idDrawableText),
-				tr::ktg_profile_copy_id(tr::now));
+				ktr("ktg_profile_copy_id"));
 
 			idInfo->setClickHandlerFilter([peer = _peer](auto&&...) {
 				const auto idText = IDString(peer);
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
 					Ui::Toast::Show(peer->isChat()
-						? tr::ktg_group_id_copied(tr::now)
+						? ktr("ktg_group_id_copied")
 						: peer->isMegagroup()
-						? tr::ktg_supergroup_id_copied(tr::now)
-						: tr::ktg_channel_id_copied(tr::now));
+						? ktr("ktg_supergroup_id_copied")
+						: ktr("ktg_channel_id_copied"));
 				}
 				return false;
 			});

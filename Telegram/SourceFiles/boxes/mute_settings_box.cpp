@@ -7,6 +7,7 @@ Copyright (C) 2017, Nicholas Guriev <guriev-ns@ya.ru>
 */
 #include "boxes/mute_settings_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "base/event_filter.h"
 #include "main/main_session.h"
@@ -96,7 +97,7 @@ void MuteSettingsBox::prepare() {
 	for (const auto hours : { kCustomFor, kForeverHours }) {
 		const auto text = [&] {
 			if (hours == kCustomFor) {
-				return tr::ktg_mute_for_selected_time(tr::now);
+				return ktr("ktg_mute_for_selected_time");
 			} else {
 				return tr::lng_mute_duration_forever(tr::now);
 			}

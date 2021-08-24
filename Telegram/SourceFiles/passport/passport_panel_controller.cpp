@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "passport/passport_panel_controller.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "passport/passport_panel_edit_document.h"
 #include "passport/passport_panel_edit_contact.h"
@@ -946,7 +947,7 @@ void PanelController::showUpdateAppBox() {
 	};
 	show(
 		Box<ConfirmBox>(
-			tr::ktg_passport_app_out_of_date(tr::now),
+			ktr("ktg_passport_app_out_of_date"),
 			tr::lng_menu_update(tr::now),
 			callback,
 			[=] { _form->cancelSure(); }),

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peer_list_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "main/main_session.h"
 #include "mainwidget.h"
 #include "ui/widgets/multi_select.h"
@@ -482,7 +483,7 @@ void PeerListRow::refreshStatus() {
 		if (_isSavedMessagesChat) {
 			setStatusText(tr::lng_saved_forward_here(tr::now));
 		} else if (user->isInaccessible()) {
-			setStatusText(tr::ktg_user_status_unaccessible(tr::now));
+			setStatusText(ktr("ktg_user_status_unaccessible"));
 		} else {
 			auto time = base::unixtime::now();
 			setStatusText(Data::OnlineText(user, time));
@@ -502,9 +503,9 @@ void PeerListRow::refreshStatus() {
 		}
 	} else if (peer()->isMegagroup()) {
 		if (peer()->asChannel()->membersCountKnown()) {
-			setStatusText(tr::ktg_supergroup_status(tr::now) + ", " + tr::lng_chat_status_members(tr::now, lt_count_decimal, peer()->asChannel()->membersCount()));
+			setStatusText(ktr("ktg_supergroup_status") + ", " + tr::lng_chat_status_members(tr::now, lt_count_decimal, peer()->asChannel()->membersCount()));
 		} else {
-			setStatusText(tr::ktg_supergroup_status(tr::now));
+			setStatusText(ktr("ktg_supergroup_status"));
 		}
 	} else if (peer()->isChannel()) {
 		if (peer()->asChannel()->membersCountKnown()) {

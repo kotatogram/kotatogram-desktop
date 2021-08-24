@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/filters/edit_filter_chats_list.h"
 
+#include "kotato/kotato_lang.h"
 #include "history/history.h"
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
@@ -252,12 +253,12 @@ auto TypeController::rowSelectionChanges() const
 	case Flag::NoMuted: return tr::lng_filters_type_no_muted(tr::now);
 	case Flag::NoArchived: return tr::lng_filters_type_no_archived(tr::now);
 	case Flag::NoRead: return tr::lng_filters_type_no_read(tr::now);
-	case Flag::Owned: return tr::ktg_filters_exclude_not_owned(tr::now);
-	case Flag::Admin: return tr::ktg_filters_exclude_not_admin(tr::now);
-	case Flag::NotOwned: return tr::ktg_filters_exclude_owned(tr::now);
-	case Flag::NotAdmin: return tr::ktg_filters_exclude_admin(tr::now);
-	case Flag::Recent: return tr::ktg_filters_exclude_not_recent(tr::now);
-	case Flag::NoFilter: return tr::ktg_filters_exclude_filtered(tr::now);
+	case Flag::Owned: return ktr("ktg_filters_exclude_not_owned");
+	case Flag::Admin: return ktr("ktg_filters_exclude_not_admin");
+	case Flag::NotOwned: return ktr("ktg_filters_exclude_owned");
+	case Flag::NotAdmin: return ktr("ktg_filters_exclude_admin");
+	case Flag::Recent: return ktr("ktg_filters_exclude_not_recent");
+	case Flag::NoFilter: return ktr("ktg_filters_exclude_filtered");
 	}
 	Unexpected("Flag in TypeName.");
 }

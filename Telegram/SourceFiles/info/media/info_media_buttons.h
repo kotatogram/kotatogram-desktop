@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <rpl/mappers.h>
 #include <rpl/map.h>
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "storage/storage_shared_media.h"
 #include "info/info_memento.h"
@@ -31,7 +32,6 @@ inline tr::phrase<lngtag_count> MediaTextPhrase(Type type) {
 	switch (type) {
 	case Type::Photo: return tr::lng_profile_photos;
 	case Type::Video: return tr::lng_profile_videos;
-	case Type::GIF: return tr::ktg_profile_gif;
 	case Type::File: return tr::lng_profile_files;
 	case Type::MusicFile: return tr::lng_profile_songs;
 	case Type::Link: return tr::lng_profile_shared_links;
@@ -41,8 +41,12 @@ inline tr::phrase<lngtag_count> MediaTextPhrase(Type type) {
 };
 
 inline auto MediaText(Type type) {
-	return [phrase = MediaTextPhrase(type)](int count) {
-		return phrase(tr::now, lt_count, count);
+	return [type](int count) {
+		if (type == Type::GIF) {
+			return ktr("ktg_profile_gif", count, { "count", QString::number(count) });
+		} else {
+			return MediaTextPhrase(type)(tr::now, lt_count, count);
+		}
 	};
 }
 

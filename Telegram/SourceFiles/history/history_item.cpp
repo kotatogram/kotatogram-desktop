@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "mainwidget.h"
 #include "layout.h"
@@ -68,7 +69,7 @@ not_null<HistoryItem*> CreateUnsupportedMessage(
 		PeerId from) {
 	const auto siteLink = qsl("https://kotatogram.github.io");
 	auto text = TextWithEntities{
-		tr::ktg_message_unsupported(tr::now, lt_link, siteLink)
+		ktr("ktg_message_unsupported", { "link", siteLink })
 	};
 	TextUtilities::ParseEntities(text, Ui::ItemTextNoMonoOptions().flags);
 	text.entities.push_front(

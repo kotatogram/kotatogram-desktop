@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_main_menu.h"
 
+#include "kotato/kotato_lang.h"
 #include "window/themes/window_theme.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
@@ -875,8 +876,8 @@ not_null<Ui::SlideWrap<Ui::RippleButton>*> MainMenu::setupAddAccount(
 		if (_accountsCount >= Main::Domain::kMaxAccountsWarn) {
 			Ui::show(
 				Box<ConfirmBox>(
-					tr::ktg_too_many_accounts_warning(tr::now),
-					tr::ktg_account_add_anyway(tr::now),
+					ktr("ktg_too_many_accounts_warning"),
+					ktr("ktg_account_add_anyway"),
 					sure),
 				Ui::LayerOption::KeepOther);
 		} else {

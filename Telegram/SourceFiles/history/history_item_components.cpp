@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item_components.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/image/image.h"
@@ -428,7 +429,7 @@ QString ReplyMarkupClickHandler::copyToClipboardContextItemText() const {
 	return button
 		? ((button->type == Type::Url || button->type == Type::Auth) 
 			? tr::lng_context_copy_link(tr::now)
-			: tr::ktg_copy_btn_callback(tr::now))
+			: ktr("ktg_copy_btn_callback"))
 		: QString();
 }
 

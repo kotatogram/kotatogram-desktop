@@ -7,6 +7,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #include "kotato/settings_menu.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/platform/base_platform_info.h"
 #include "settings/settings_common.h"
 #include "settings/settings_chat.h"
@@ -46,7 +47,7 @@ QString FileDialogTypeLabel(int value) {
 	const auto typedValue = Platform::FileDialog::ImplementationType(value);
 	switch (typedValue) {
 	case Platform::FileDialog::ImplementationType::Default:
-		return tr::ktg_file_dialog_type_default(tr::now);
+		return ktr("ktg_file_dialog_type_default");
 	}
 	return Platform::FileDialog::ImplementationTypeLabel(typedValue);
 }
@@ -59,16 +60,16 @@ QString FileDialogTypeDescription(int value) {
 QString NetBoostLabel(int boost) {
 	switch (boost) {
 		case 0:
-			return tr::ktg_net_speed_boost_default(tr::now);
+			return ktr("ktg_net_speed_boost_default");
 
 		case 1:
-			return tr::ktg_net_speed_boost_slight(tr::now);
+			return ktr("ktg_net_speed_boost_slight");
 
 		case 2:
-			return tr::ktg_net_speed_boost_medium(tr::now);
+			return ktr("ktg_net_speed_boost_medium");
 
 		case 3:
-			return tr::ktg_net_speed_boost_big(tr::now);
+			return ktr("ktg_net_speed_boost_big");
 
 		default:
 			Unexpected("Boost in Settings::NetBoostLabel.");
@@ -79,16 +80,16 @@ QString NetBoostLabel(int boost) {
 QString UserpicRoundingLabel(int rounding) {
 	switch (rounding) {
 		case 0:
-			return tr::ktg_settings_userpic_rounding_none(tr::now);
+			return ktr("ktg_settings_userpic_rounding_none");
 
 		case 1:
-			return tr::ktg_settings_userpic_rounding_small(tr::now);
+			return ktr("ktg_settings_userpic_rounding_small");
 
 		case 2:
-			return tr::ktg_settings_userpic_rounding_big(tr::now);
+			return ktr("ktg_settings_userpic_rounding_big");
 
 		case 3:
-			return tr::ktg_settings_userpic_rounding_full(tr::now);
+			return ktr("ktg_settings_userpic_rounding_full");
 
 		default:
 			Unexpected("Rounding in Settings::UserpicRoundingLabel.");
@@ -99,22 +100,22 @@ QString UserpicRoundingLabel(int rounding) {
 QString TrayIconLabel(int icon) {
 	switch (icon) {
 		case 0:
-			return tr::ktg_settings_tray_icon_default(tr::now);
+			return ktr("ktg_settings_tray_icon_default");
 
 		case 1:
-			return tr::ktg_settings_tray_icon_blue(tr::now);
+			return ktr("ktg_settings_tray_icon_blue");
 
 		case 2:
-			return tr::ktg_settings_tray_icon_green(tr::now);
+			return ktr("ktg_settings_tray_icon_green");
 
 		case 3:
-			return tr::ktg_settings_tray_icon_orange(tr::now);
+			return ktr("ktg_settings_tray_icon_orange");
 
 		case 4:
-			return tr::ktg_settings_tray_icon_red(tr::now);
+			return ktr("ktg_settings_tray_icon_red");
 
 		case 5:
-			return tr::ktg_settings_tray_icon_legacy(tr::now);
+			return ktr("ktg_settings_tray_icon_legacy");
 
 		default:
 			Unexpected("Icon in Settings::TrayIconLabel.");
@@ -125,13 +126,13 @@ QString TrayIconLabel(int icon) {
 QString ChatIdLabel(int option) {
 	switch (option) {
 		case 0:
-			return tr::ktg_settings_chat_id_disable(tr::now);
+			return ktr("ktg_settings_chat_id_disable");
 
 		case 1:
-			return tr::ktg_settings_chat_id_telegram(tr::now);
+			return ktr("ktg_settings_chat_id_telegram");
 
 		case 2:
-			return tr::ktg_settings_chat_id_bot(tr::now);
+			return ktr("ktg_settings_chat_id_bot");
 
 		default:
 			Unexpected("Option in Settings::ChatIdLabel.");
@@ -143,7 +144,7 @@ QString ChatIdLabel(int option) {
 
 #define SettingsMenuCSwitch(LangKey, Option) AddButton( \
 	container, \
-	tr::LangKey(), \
+	rktr(#LangKey), \
 	st::settingsButton \
 )->toggleOn( \
 	rpl::single(c##Option()) \
@@ -157,7 +158,7 @@ QString ChatIdLabel(int option) {
 
 #define SettingsMenuCFilterSwitch(LangKey, Option) AddButton( \
 	container, \
-	tr::LangKey(), \
+	rktr(#LangKey), \
 	st::settingsButton \
 )->toggleOn( \
 	rpl::single(c##Option()) \
@@ -173,7 +174,7 @@ QString ChatIdLabel(int option) {
 
 #define SettingsMenuSwitch(LangKey, Option) AddButton( \
 	container, \
-	tr::LangKey(), \
+	rktr(#LangKey), \
 	st::settingsButton \
 )->toggleOn( \
 	rpl::single(Option()) \
@@ -189,7 +190,7 @@ void SetupKotatoChats(
 	not_null<Window::SessionController*> controller,
 	not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
-	AddSubsectionTitle(container, tr::ktg_settings_chats());
+	AddSubsectionTitle(container, rktr("ktg_settings_chats"));
 
 	const auto recentStickersLimitLabel = container->add(
 		object_ptr<Ui::LabelSimple>(
@@ -204,10 +205,10 @@ void SetupKotatoChats(
 	const auto updateRecentStickersLimitLabel = [=](int value) {
 		if (value == 0) {
 			recentStickersLimitLabel->setText(
-				tr::ktg_settings_recent_stickers_limit_none(tr::now));
+				ktr("ktg_settings_recent_stickers_limit_none"));
 		} else {
 			recentStickersLimitLabel->setText(
-				tr::ktg_settings_recent_stickers_limit(tr::now, lt_count_decimal, value));
+				ktr("ktg_settings_recent_stickers_limit", value, { "count", QString::number(value) }));
 		}
 	};
 	const auto updateRecentStickersLimitHeight = [=](int value) {
@@ -229,7 +230,7 @@ void SetupKotatoChats(
 
 	AddButton(
 		container,
-		tr::ktg_settings_chat_list_compact(),
+		rktr("ktg_settings_chat_list_compact"),
 		st::settingsButton
 	)->toggleOn(
 		rpl::single(DialogListLines() == 1)
@@ -243,7 +244,7 @@ void SetupKotatoChats(
 
 	AddButton(
 		container,
-		tr::ktg_settings_always_show_scheduled(),
+		rktr("ktg_settings_always_show_scheduled"),
 		st::settingsButton
 	)->toggleOn(
 		rpl::single(cAlwaysShowScheduled())
@@ -260,7 +261,7 @@ void SetupKotatoChats(
 
 	AddButton(
 		container,
-		tr::ktg_settings_fonts(),
+		rktr("ktg_settings_fonts"),
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<FontsBox>());
@@ -268,13 +269,13 @@ void SetupKotatoChats(
 
 	AddButtonWithLabel(
 		container,
-		tr::ktg_settings_userpic_rounding(),
+		rktr("ktg_settings_userpic_rounding"),
 		rpl::single(UserpicRoundingLabel(cUserpicCornersType())),
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
-			tr::ktg_settings_userpic_rounding(tr::now),
-			tr::ktg_settings_userpic_rounding_desc(tr::now),
+			ktr("ktg_settings_userpic_rounding"),
+			ktr("ktg_settings_userpic_rounding_desc"),
 			cUserpicCornersType(),
 			4,
 			UserpicRoundingLabel,
@@ -290,7 +291,7 @@ void SetupKotatoChats(
 void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
-	AddSubsectionTitle(container, tr::ktg_settings_messages());
+	AddSubsectionTitle(container, rktr("ktg_settings_messages"));
 
 	const auto stickerHeightLabel = container->add(
 		object_ptr<Ui::LabelSimple>(
@@ -305,7 +306,7 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	const auto updateStickerHeightLabel = [=](int value) {
 		const auto pixels = QString::number(value);
 		stickerHeightLabel->setText(
-			tr::ktg_settings_sticker_height(tr::now, lt_pixels, pixels));
+			ktr("ktg_settings_sticker_height", { "pixels", pixels }));
 	};
 	const auto updateStickerHeight = [=](int value) {
 		updateStickerHeightLabel(value);
@@ -323,7 +324,7 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	container->add(
 		object_ptr<Ui::Checkbox>(
 			container,
-			tr::ktg_settings_sticker_scale_both(tr::now),
+			ktr("ktg_settings_sticker_scale_both"),
 			StickerScaleBoth(),
 			st::settingsCheckbox),
 		st::settingsCheckboxPadding
@@ -336,12 +337,12 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	}, container->lifetime());
 
 	AddSkip(container);
-	AddDividerText(container, tr::ktg_settings_sticker_scale_both_about());
+	AddDividerText(container, rktr("ktg_settings_sticker_scale_both_about"));
 	AddSkip(container);
 
 	auto adaptiveBubblesButton = AddButton(
 		container,
-		tr::ktg_settings_adaptive_bubbles(),
+		rktr("ktg_settings_adaptive_bubbles"),
 		st::settingsButton
 	);
 
@@ -350,7 +351,7 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 			container,
 			CreateButton(
 				container,
-				tr::ktg_settings_monospace_large_bubbles(),
+				rktr("ktg_settings_monospace_large_bubbles"),
 				st::settingsButton)));
 
 	adaptiveBubblesButton->toggleOn(
@@ -386,28 +387,28 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 void SetupKotatoForward(not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
-	AddSubsectionTitle(container, tr::ktg_settings_forward());
+	AddSubsectionTitle(container, rktr("ktg_settings_forward"));
 
 	SettingsMenuCSwitch(ktg_settings_forward_retain_selection, ForwardRetainSelection);
 	SettingsMenuCSwitch(ktg_settings_forward_chat_on_click, ForwardChatOnClick);
 
 	AddSkip(container);
-	AddDividerText(container, tr::ktg_settings_forward_chat_on_click_description());
+	AddDividerText(container, rktr("ktg_settings_forward_chat_on_click_description"));
 }
 
 void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
-	AddSubsectionTitle(container, tr::ktg_settings_network());
+	AddSubsectionTitle(container, rktr("ktg_settings_network"));
 
 	AddButtonWithLabel(
 		container,
-		tr::ktg_settings_net_speed_boost(),
+		rktr("ktg_settings_net_speed_boost"),
 		rpl::single(NetBoostLabel(cNetSpeedBoost())),
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
-			tr::ktg_net_speed_boost_title(tr::now),
-			tr::ktg_net_speed_boost_desc(tr::now),
+			ktr("ktg_net_speed_boost_title"),
+			ktr("ktg_net_speed_boost_desc"),
 			cNetSpeedBoost(),
 			4,
 			NetBoostLabel,
@@ -427,7 +428,7 @@ void SetupKotatoFolders(
 	not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
-	AddSubsectionTitle(container, tr::ktg_settings_filters());
+	AddSubsectionTitle(container, rktr("ktg_settings_filters"));
 
 	SettingsMenuCFilterSwitch(ktg_settings_filters_only_unmuted_counter, UnmutedFilterCounterOnly);
 	SettingsMenuCFilterSwitch(ktg_settings_filters_hide_all, HideFilterAllChats);
@@ -442,13 +443,13 @@ void SetupKotatoSystem(
 	not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
-	AddSubsectionTitle(container, tr::ktg_settings_system());
+	AddSubsectionTitle(container, rktr("ktg_settings_system"));
 
 	const auto qtScaleToggled = Ui::CreateChild<rpl::event_stream<bool>>(
 		container.get());
 	AddButton(
 		container,
-		tr::ktg_settings_qt_scale(),
+		rktr("ktg_settings_qt_scale"),
 		st::settingsButton
 	)->toggleOn(
 		qtScaleToggled->events_starting_with_copy(cQtScale())
@@ -477,7 +478,7 @@ void SetupKotatoSystem(
 			container.get());
 		AddButton(
 			container,
-			tr::ktg_settings_gtk_integration(),
+			rktr("ktg_settings_gtk_integration"),
 			st::settingsButton
 		)->toggleOn(
 			gtkIntegrationToggled->events_starting_with_copy(cGtkIntegration())
@@ -513,12 +514,12 @@ void SetupKotatoSystem(
 
 		AddButtonWithLabel(
 			container,
-			tr::ktg_settings_file_dialog_type(),
+			rktr("ktg_settings_file_dialog_type"),
 			fileDialogTypeText,
 			st::settingsButton
 		)->addClickHandler([=] {
 			Ui::show(Box<::Kotato::RadioBox>(
-				tr::ktg_settings_file_dialog_type(tr::now),
+				ktr("ktg_settings_file_dialog_type"),
 				int(FileDialogType()),
 				int(Platform::FileDialog::ImplementationType::Count),
 				FileDialogTypeLabel,
@@ -561,7 +562,7 @@ void SetupKotatoSystem(
 
 	AddButton(
 		container,
-		tr::ktg_settings_disable_tray_counter(),
+		rktr("ktg_settings_disable_tray_counter"),
 		st::settingsButton
 	)->toggleOn(
 		rpl::single(cDisableTrayCounter())
@@ -577,7 +578,7 @@ void SetupKotatoSystem(
 	if (Platform::IsLinux()) {
 		AddButton(
 			container,
-			tr::ktg_settings_use_telegram_panel_icon(),
+			rktr("ktg_settings_use_telegram_panel_icon"),
 			st::settingsButton
 		)->toggleOn(
 			rpl::single(cUseTelegramPanelIcon())
@@ -601,13 +602,13 @@ void SetupKotatoSystem(
 
 	AddButtonWithLabel(
 		container,
-		tr::ktg_settings_tray_icon(),
+		rktr("ktg_settings_tray_icon"),
 		trayIconText,
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
-			tr::ktg_settings_tray_icon(tr::now),
-			tr::ktg_settings_tray_icon_desc(tr::now),
+			ktr("ktg_settings_tray_icon"),
+			ktr("ktg_settings_tray_icon_desc"),
 			cCustomAppIcon(),
 			6,
 			TrayIconLabel,
@@ -624,14 +625,14 @@ void SetupKotatoSystem(
 void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
-	AddSubsectionTitle(container, tr::ktg_settings_other());
+	AddSubsectionTitle(container, rktr("ktg_settings_other"));
 
 	SettingsMenuCSwitch(ktg_settings_show_phone_number, ShowPhoneInDrawer);
 
 	const auto chatIdButton = container->add(
 		object_ptr<Button>(
 			container,
-			tr::ktg_settings_chat_id(),
+			rktr("ktg_settings_chat_id"),
 			st::settingsButton));
 	auto chatIdText = rpl::single(
 		ChatIdLabel(ShowChatId())
@@ -645,11 +646,11 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 		chatIdButton,
 		std::move(chatIdText),
 		st::settingsButton,
-		tr::ktg_settings_chat_id());
+		rktr("ktg_settings_chat_id"));
 	chatIdButton->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
-			tr::ktg_settings_chat_id(tr::now),
-			tr::ktg_settings_chat_id_desc(tr::now),
+			ktr("ktg_settings_chat_id"),
+			ktr("ktg_settings_chat_id_desc"),
 			ShowChatId(),
 			3,
 			ChatIdLabel,
@@ -663,12 +664,12 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	SettingsMenuCSwitch(ktg_settings_ffmpeg_multithread, FFmpegMultithread);
 
 	AddSkip(container);
-	AddDividerText(container, tr::ktg_settings_ffmpeg_multithread_about());
+	AddDividerText(container, rktr("ktg_settings_ffmpeg_multithread_about"));
 	AddSkip(container);
 
 	AddButton(
 		container,
-		tr::ktg_settings_external_video_player(),
+		rktr("ktg_settings_external_video_player"),
 		st::settingsButton
 	)->toggleOn(
 		rpl::single(cUseExternalVideoPlayer())
@@ -681,7 +682,7 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	}, container->lifetime());
 
 	AddSkip(container);
-	AddDividerText(container, tr::ktg_settings_external_video_player_about());
+	AddDividerText(container, rktr("ktg_settings_external_video_player_about"));
 }
 
 Kotato::Kotato(
