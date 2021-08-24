@@ -17,7 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/add_participants_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/share_box.h"
-#include "kotato/customboxes/unpin_box.h"
+#include "kotato/boxes/kotato_unpin_box.h"
 #include "ui/boxes/report_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h"

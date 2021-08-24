@@ -5,7 +5,7 @@ the unofficial app based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
-#include "kotato/customboxes/fonts_box.h"
+#include "kotato/boxes/kotato_fonts_box.h"
 
 #include "kotato/kotato_lang.h"
 #include "base/platform/base_platform_info.h"

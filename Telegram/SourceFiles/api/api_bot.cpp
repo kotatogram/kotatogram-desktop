@@ -14,7 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/share_box.h"
 #include "boxes/passcode_box.h"
 #include "lang/lang_keys.h"
-#include "kotato/customboxes/confirm_box.h"
+#include "kotato/boxes/kotato_confirm_box.h"
 #include "core/click_handler_types.h"
 #include "data/data_changes.h"
 #include "data/data_peer.h"
