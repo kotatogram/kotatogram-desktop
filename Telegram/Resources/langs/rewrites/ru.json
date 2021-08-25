@@ -228,5 +228,37 @@
 	"ktg_reminder_preview": "Напомнить с помощью превью",
 	"ktg_schedule_preview": "Отправить превью позже",
 	"ktg_language_reloaded": "Языковые строки Kotatogram были перезагружены.",
+	"ktg_notifications_mute_seconds": {
+		"zero": "секунд",
+		"one": "секунда",
+		"two": "секунды",
+		"few": "секунды",
+		"many": "секунд",
+		"other": "секунды"
+	},
+	"ktg_notifications_mute_minutes": {
+		"zero": "минут",
+		"one": "минута",
+		"two": "минуты",
+		"few": "минуты",
+		"many": "минут",
+		"other": "минуты"
+	},
+	"ktg_notifications_mute_hours": {
+		"zero": "часов",
+		"one": "час",
+		"two": "часа",
+		"few": "часа",
+		"many": "часов",
+		"other": "часа"
+	},
+	"ktg_notifications_mute_days": {
+		"zero": "дней",
+		"one": "день",
+		"two": "дня",
+		"few": "дня",
+		"many": "дней",
+		"other": "дня"
+	},
 	"dummy_last_string": ""
 }

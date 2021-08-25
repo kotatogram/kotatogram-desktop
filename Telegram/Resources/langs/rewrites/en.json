@@ -228,5 +228,37 @@
 	"ktg_reminder_preview": "Remind with preview",
 	"ktg_schedule_preview": "Send preview scheduled",
 	"ktg_language_reloaded": "Kotatogram-specific language strings were reloaded.",
+	"ktg_notifications_mute_seconds": {
+		"zero": "seconds",
+		"one": "second",
+		"two": "seconds",
+		"few": "seconds",
+		"many": "seconds",
+		"other": "seconds"
+	},
+	"ktg_notifications_mute_minutes": {
+		"zero": "minutes",
+		"one": "minute",
+		"two": "minutes",
+		"few": "minutes",
+		"many": "minutes",
+		"other": "minutes"
+	},
+	"ktg_notifications_mute_hours": {
+		"zero": "hours",
+		"one": "hour",
+		"two": "hours",
+		"few": "hours",
+		"many": "hours",
+		"other": "hours"
+	},
+	"ktg_notifications_mute_days": {
+		"zero": "days",
+		"one": "day",
+		"two": "days",
+		"few": "days",
+		"many": "days",
+		"other": "days"
+	},
 	"dummy_last_string": ""
 }

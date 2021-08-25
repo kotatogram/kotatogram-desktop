@@ -65,25 +65,13 @@ void MuteSettingsBox::prepare() {
 	const auto group = std::make_shared<Ui::RadiobuttonGroup>(kForeverHours);
 	y += st::boxOptionListPadding.top();
 
-	const auto trimLangStr = [] (const QString &numberStr, const QString &langStr) {
-		return langStr.mid(numberStr.length()).trimmed();
-	};
-
 	const auto makePeriodText = [=, this] (Period period) {
 		const auto currentValue = _forNumberInput->getLastText().toInt();
-		const auto currentStrValue = QString::number(currentValue); // re-converting to get rid of the invalid symbols
 		switch (period) {
-			case Period::Second:
-				return trimLangStr(currentStrValue, tr::lng_group_call_duration_seconds(tr::now, lt_count, currentValue));
-
-			case Period::Minute:
-				return trimLangStr(currentStrValue, tr::lng_group_call_duration_minutes(tr::now, lt_count, currentValue));
-
-			case Period::Hour:
-				return trimLangStr(currentStrValue, tr::lng_group_call_duration_hours(tr::now, lt_count, currentValue));
-
-			case Period::Day:
-				return trimLangStr(currentStrValue, tr::lng_group_call_duration_days(tr::now, lt_count, currentValue));
+			case Period::Second: return ktr("ktg_notifications_mute_seconds", currentValue);
+			case Period::Minute: return ktr("ktg_notifications_mute_minutes", currentValue);
+			case Period::Hour: return ktr("ktg_notifications_mute_hours", currentValue);
+			case Period::Day: return ktr("ktg_notifications_mute_days", currentValue);
 
 			default:
 				return QString();
