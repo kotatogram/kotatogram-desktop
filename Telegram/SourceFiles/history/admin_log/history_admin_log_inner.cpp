@@ -1393,7 +1393,7 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 					if (weak) {
 						weak->restrictUser(user,
 							currentRights,
-							ChatRestrictionsInfo());
+							ChannelData::KickedRestrictedRights(user));
 					}
 					if (*weakBox) {
 						(*weakBox)->closeBox();
