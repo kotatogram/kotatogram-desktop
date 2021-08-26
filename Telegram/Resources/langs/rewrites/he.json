@@ -40,6 +40,7 @@
 	"ktg_settings_sticker_scale_both_about": "כאשר תכונה זאת מופעלת, הרוחב המקסימלי של הסטיקר ישתנה יחד עם גובה הסטיקר.",
 	"ktg_settings_emoji_outline": "קו מתאר על אימוג'ים",
 	"ktg_settings_disable_up_edit": "השבת עריכה על ידי לחיצה על החץ העליון",
+	"ktg_settings_auto_scroll_unfocused": "גלילה אוטומטית ללא פוקוס",
 	"ktg_settings_always_show_scheduled": "הצג הודעות מתוזמנות",
 	"ktg_settings_chat_list_compact": "רשימת צ'אטים קומפקטית",
 	"ktg_fonts_title": "גופנים",
@@ -78,6 +79,10 @@
 	"ktg_settings_call_confirm": "אשר לפני חיוג",
 	"ktg_call_sure": "האם אתה בטוח שברצונך להתקשר למשתמש זה?",
 	"ktg_call_button": "שיחה",
+	"ktg_settings_ffmpeg_multithread": "פיענוח וידאו Multithread",
+	"ktg_settings_ffmpeg_multithread_about": "כאשר מופעל, צריכת המעבד והזיכרון ראם גבוהה יותר, הווידאו מפוענח מהר יותר. כאשר מושבת, צריכת המעבד והזיכרון ראם נמוכה יותר, הווידאו מפוענח לאט יותר. ככל שיש לך יותר ליבות במעבד, כך יש לך יותר צריכת זיכרון ראם כאשר אפשרות זו מופעלת. אתה יכול להגדיר את מספר threads המדויק בקובץ הקונפיגורציה של JSON.",
+	"ktg_settings_external_video_player": "נגן וידאו חיצוני",
+	"ktg_settings_external_video_player_about": "כאשר אפשרות זו מופעלת, הפעלה אוטומטית מושבתת בכוח ונגן הווידיאו מערכת משמש להפעלת סרטונים.",
 	"ktg_settings_adaptive_bubbles": "בועות מסתגלות",
 	"ktg_settings_disable_sound_from_tray": "השבת קול",
 	"ktg_settings_enable_sound_from_tray": "אפשר קול",
@@ -216,5 +221,44 @@
 	"ktg_filters_hide_button": "הסתר כפתור",
 	"ktg_filters_hide_all_chats_toast": "תיקיית \"כל הצ'אטים\" מוסתרת.\nאתה יכול לשנות את זה בהגדרות Kotatogram.",
 	"ktg_filters_hide_edit_toast": "כפתור העריכה מוסתר.\nאתה יכול לשנות את זה בהגדרות Kotatogram.",
+	"ktg_settings_telegram_sites_autologin": "כניסה אוטומטית לאתרים של טלגרם",
+	"ktg_mute_for_selected_time": "לזמן הנבחר",
+	"ktg_send_preview": "שלח תצוגה מקדימה",
+	"ktg_send_silent_preview": "שלח תצוגה מקדימה שקטה",
+	"ktg_reminder_preview": "תזכורת עם תצוגה מקדימה",
+	"ktg_schedule_preview": "תזמון תצוגה מקדימה",
+	"ktg_language_reloaded": "מחרוזות חדשות נטענו בKotatogram.",
+	"ktg_notifications_mute_seconds": {
+		"zero": "שניות",
+		"one": "שנייה",
+		"two": "שניות",
+		"few": "שניות",
+		"many": "שניות",
+		"other": "שניות"
+	},
+	"ktg_notifications_mute_minutes": {
+		"zero": "דקות",
+		"one": "דקה",
+		"two": "דקות",
+		"few": "דקות",
+		"many": "דקות",
+		"other": "דקות"
+	},
+	"ktg_notifications_mute_hours": {
+		"zero": "שעות",
+		"one": "שעה",
+		"two": "שעות",
+		"few": "שעות",
+		"many": "שעות",
+		"other": "שעות"
+	},
+	"ktg_notifications_mute_days": {
+		"zero": "ימים",
+		"one": "יום",
+		"two": "ימים",
+		"few": "ימים",
+		"many": "ימים",
+		"other": "ימים"
+	},
 	"dummy_last_string": ""
 }

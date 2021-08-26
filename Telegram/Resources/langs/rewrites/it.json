@@ -40,6 +40,7 @@
 	"ktg_settings_sticker_scale_both_about": "Quando attivato, la larghezza massima degli sticker verrà modificata insieme all'altezza degli sticker.",
 	"ktg_settings_emoji_outline": "Contorno emoji grande",
 	"ktg_settings_disable_up_edit": "Disattiva modifica messaggio col tasto freccia su",
+	"ktg_settings_auto_scroll_unfocused": "Scorrimento automatico senza focus",
 	"ktg_settings_always_show_scheduled": "Mostra sempre messaggi programmati",
 	"ktg_settings_chat_list_compact": "Lista chat compatta",
 	"ktg_fonts_title": "Caratteri",
@@ -78,6 +79,10 @@
 	"ktg_settings_call_confirm": "Conferma prima di chimare",
 	"ktg_call_sure": "Sei sicuro di voler chiamare questo utente?",
 	"ktg_call_button": "Chiama",
+	"ktg_settings_ffmpeg_multithread": "Decodifica video multi-thread",
+	"ktg_settings_ffmpeg_multithread_about": "Se abilitato, il consumo di CPU e RAM è più elevato, e decodifica i video più velocemente. Quando disabilitato, il consumo di CPU e RAM è inferiore, e decodifica i video più lentamente. Più core della CPU hai, più consumo di RAM hai quando questa opzione è abilitata. È possibile impostare il numero esatto di processi nel file di configurazione JSON.",
+	"ktg_settings_external_video_player": "Lettore video esterno",
+	"ktg_settings_external_video_player_about": "Quando questa opzione è abilitata, la riproduzione automatica è forzatamente disabilitata e il lettore video di sistema viene utilizzato per riprodurre video.",
 	"ktg_settings_adaptive_bubbles": "Bolle adattive",
 	"ktg_settings_disable_sound_from_tray": "Disattiva suono",
 	"ktg_settings_enable_sound_from_tray": "Attiva suono",
@@ -216,5 +221,44 @@
 	"ktg_filters_hide_button": "Nascondi bottone",
 	"ktg_filters_hide_all_chats_toast": "La cartella \"Tutte le chat\" è nascosta.\nPuoi riattivarla nelle Impostazioni di Kotatogram.",
 	"ktg_filters_hide_edit_toast": "Il pulsante Modifica è nascosto.\nPuoi riattivarlo nelle Impostazioni di Kotatogram.",
+	"ktg_settings_telegram_sites_autologin": "Accesso automatico sui siti di Telegram",
+	"ktg_mute_for_selected_time": "Per il tempo selezionato",
+	"ktg_send_preview": "Invia anteprima",
+	"ktg_send_silent_preview": "Invia anteprima silenziosa",
+	"ktg_reminder_preview": "Ricorda con anteprima",
+	"ktg_schedule_preview": "Invia anteprima programmata",
+	"ktg_language_reloaded": "Le stringhe di lingua specifiche per Kotatogram sono state ricaricate.",
+	"ktg_notifications_mute_seconds": {
+		"zero": "secondi",
+		"one": "secondo",
+		"two": "secondi",
+		"few": "secondi",
+		"many": "secondi",
+		"other": "secondi"
+	},
+	"ktg_notifications_mute_minutes": {
+		"zero": "minuti",
+		"one": "minuto",
+		"two": "minuti",
+		"few": "minuti",
+		"many": "minuti",
+		"other": "minuti"
+	},
+	"ktg_notifications_mute_hours": {
+		"zero": "ore",
+		"one": "ora",
+		"two": "ore",
+		"few": "ore",
+		"many": "ore",
+		"other": "ore"
+	},
+	"ktg_notifications_mute_days": {
+		"zero": "giorni",
+		"one": "giorno",
+		"two": "giorni",
+		"few": "giorni",
+		"many": "giorni",
+		"other": "giorni"
+	},
 	"dummy_last_string": ""
 }

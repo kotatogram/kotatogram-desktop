@@ -40,6 +40,7 @@
 	"ktg_settings_sticker_scale_both_about": "Якщо ввімкнено, максимальна ширина наліпки буде змінюватися разом з висотою.",
 	"ktg_settings_emoji_outline": "Обведення у великих емодзі",
 	"ktg_settings_disable_up_edit": "Не редагувати клавішею вгору",
+	"ktg_settings_auto_scroll_unfocused": "Авто-прокрутка при неактивному вікні",
 	"ktg_settings_always_show_scheduled": "Завжди показувати відкладені",
 	"ktg_settings_chat_list_compact": "Компактний список чатів",
 	"ktg_fonts_title": "Шрифти",
@@ -78,6 +79,10 @@
 	"ktg_settings_call_confirm": "Підтвердження перед дзвінком",
 	"ktg_call_sure": "Ви впевнені, що хочете зателефонувати цьому користувачу?",
 	"ktg_call_button": "Зателефонувати",
+	"ktg_settings_ffmpeg_multithread": "Декодувати відео в декілька потоків",
+	"ktg_settings_ffmpeg_multithread_about": "Декодування відео буде швидше, але навантаження на ЦП і витрата ОЗУ стане вище. Чим більше ядер, тим більше витрата ОЗУ, конкретну кількість потоків можна вказати в JSON.",
+	"ktg_settings_external_video_player": "Зовнішній відеоплеєр",
+	"ktg_settings_external_video_player_about": "Примусове відключення автоматичного програвання. Для відео використовується системний відеоплеєр.",
 	"ktg_settings_adaptive_bubbles": "Адаптивна ширина",
 	"ktg_settings_disable_sound_from_tray": "Виключити звук",
 	"ktg_settings_enable_sound_from_tray": "Включити звук",
@@ -216,5 +221,44 @@
 	"ktg_filters_hide_button": "Приховати кнопку",
 	"ktg_filters_hide_all_chats_toast": "Папка «Усі чати» прихована.\nВи можете увімкути її в опціях Kotatogram.",
 	"ktg_filters_hide_edit_toast": "Кнопка «Змінити» прихована.\nВи можете увімкути її в опціях Kotatogram.",
+	"ktg_settings_telegram_sites_autologin": "Авто-логін на сайти Telegram",
+	"ktg_mute_for_selected_time": "Вибраний час",
+	"ktg_send_preview": "Надіслати прев'ю",
+	"ktg_send_silent_preview": "Надіслати прев'ю без звуку",
+	"ktg_reminder_preview": "Нагадати про це прев'ю",
+	"ktg_schedule_preview": "Надіслати це прев'ю пізніше",
+	"ktg_language_reloaded": "Мовні компоненти Kotatogram перезавантажились.",
+	"ktg_notifications_mute_seconds": {
+		"zero": "секунд",
+		"one": "секунда",
+		"two": "секунди",
+		"few": "секунд",
+		"many": "секунд",
+		"other": "секунд"
+	},
+	"ktg_notifications_mute_minutes": {
+		"zero": "хвилин",
+		"one": "хвилина",
+		"two": "хвилини",
+		"few": "хвилин",
+		"many": "хвилин",
+		"other": "хвилин"
+	},
+	"ktg_notifications_mute_hours": {
+		"zero": "годин",
+		"one": "година",
+		"two": "години",
+		"few": "годин",
+		"many": "годин",
+		"other": "годин"
+	},
+	"ktg_notifications_mute_days": {
+		"zero": "днів",
+		"one": "день",
+		"two": "дні",
+		"few": "днів",
+		"many": "днів",
+		"other": "днів"
+	},
 	"dummy_last_string": ""
 }
