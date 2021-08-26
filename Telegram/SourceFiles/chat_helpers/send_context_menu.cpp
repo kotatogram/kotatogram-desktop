@@ -80,7 +80,7 @@ FillMenuResult FillSendPreviewMenu(
 		return FillMenuResult::None;
 	}
 
-	if (defaultSend && now != Type::Scheduled && now != Type::ScheduledToUser) {
+	if (defaultSend) {
 		menu->addAction(ktr("ktg_send_preview"), defaultSend);
 	}
 	if (silent && now != Type::Reminder) {
