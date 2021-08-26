@@ -1100,7 +1100,7 @@ void ComposeControls::initKeyHandler() {
 			_attachRequests.fire({});
 			return;
 		}
-		if (key == Qt::Key_Up && !hasModifiers) {
+		if (key == Qt::Key_Up && !hasModifiers && !cDisableUpEdit()) {
 			if (!isEditingMessage()) {
 				_editLastMessageRequests.fire(std::move(keyEvent));
 				return;
