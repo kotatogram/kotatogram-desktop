@@ -25,6 +25,7 @@ enum class Type {
 	Scheduled,
 	ScheduledToUser, // For "Send when online".
 	Reminder,
+	PreviewOnly,
 };
 
 enum class FillMenuResult {

@@ -49,6 +49,7 @@ FillMenuResult FillSendMenu(
 	}
 	const auto now = type;
 	if (now == Type::Disabled
+		|| now == Type::PreviewOnly
 		|| (!silent && now == Type::SilentOnly)) {
 		return FillMenuResult::None;
 	}
@@ -83,15 +84,17 @@ FillMenuResult FillSendPreviewMenu(
 	if (defaultSend) {
 		menu->addAction(ktr("ktg_send_preview"), defaultSend);
 	}
-	if (silent && now != Type::Reminder) {
-		menu->addAction(ktr("ktg_send_silent_preview"), silent);
-	}
-	if (schedule && now != Type::SilentOnly) {
-		menu->addAction(
-			(now == Type::Reminder
-				? ktr("ktg_reminder_preview")
-				: ktr("ktg_schedule_preview")),
-			schedule);
+	if (type != Type::PreviewOnly) {
+		if (silent && now != Type::Reminder) {
+			menu->addAction(ktr("ktg_send_silent_preview"), silent);
+		}
+		if (schedule && now != Type::SilentOnly) {
+			menu->addAction(
+				(now == Type::Reminder
+					? ktr("ktg_reminder_preview")
+					: ktr("ktg_schedule_preview")),
+				schedule);
+		}
 	}
 	return FillMenuResult::Success;
 }
@@ -127,6 +130,7 @@ void SetupMenuAndShortcuts(
 
 		const auto now = type();
 		if (now == Type::Disabled
+			|| now == Type::PreviewOnly
 			|| (!silent && now == Type::SilentOnly)) {
 			return;
 		}

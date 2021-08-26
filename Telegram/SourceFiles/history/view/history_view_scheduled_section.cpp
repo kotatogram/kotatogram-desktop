@@ -99,7 +99,7 @@ ScheduledWidget::ScheduledWidget(
 	this,
 	controller,
 	ComposeControls::Mode::Scheduled,
-	SendMenu::Type::Disabled))
+	SendMenu::Type::PreviewOnly))
 , _scrollDown(_scroll, st::historyToDown) {
 	const auto state = Dialogs::EntryState{
 		.key = _history,
