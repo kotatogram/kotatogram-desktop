@@ -1,3 +1,10 @@
+1.4.3(26.08.2021)
+- Reworked sending without "via @bot" tag.
+- Optional hotkeys to restart application and to reload Kotatogram translation.
+- Fixed blocking user in "Recent Actions".
+- Updated translations, including phrases from previous version.
+- Fixed errors and crashes in AppImage related to gdk-pixbuf.
+
 1.4.2(21.08.2021)
 - Updated TDesktop sources to 2.8.11.
 - Manually choose notification mute time.

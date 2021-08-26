@@ -35,6 +35,18 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4.3" date="2021-08-26">
+            <description>
+                <p>In this update:</p>
+                <ul>
+                    <li>Reworked sending without "via @bot" tag.</li>
+                    <li>Optional hotkeys to restart application and to reload Kotatogram translation.</li>
+                    <li>Fixed blocking user in "Recent Actions".</li>
+                    <li>Updated translations, including phrases from previous version.</li>
+                    <li>Fixed errors and crashes in AppImage related to gdk-pixbuf.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.4.2" date="2021-08-21">
             <description>
                 <p>TDesktop sources were updated to 2.8.11.</p>
