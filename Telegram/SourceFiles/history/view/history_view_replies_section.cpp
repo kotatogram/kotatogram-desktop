@@ -47,6 +47,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/file_utilities.h"
 #include "main/main_session.h"
 #include "data/data_session.h"
+#include "data/data_document.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
 #include "data/data_channel.h"
@@ -486,7 +487,20 @@ void RepliesWidget::setupComposeControls() {
 
 	_composeControls->inlineResultChosen(
 	) | rpl::start_with_next([=](Selector::InlineChosen chosen) {
-		sendInlineResult(chosen.result, chosen.bot, chosen.options);
+		if (chosen.sendPreview) {
+			const auto request = chosen.result->openRequest();
+			if (const auto photo = request.photo()) {
+				sendExistingPhoto(photo, chosen.options);
+			} else if (const auto document = request.document()) {
+				sendExistingDocument(document, chosen.options);
+			}
+
+			addRecentBot(chosen.bot);
+			_composeControls->clear();
+			finishSending();
+		} else {
+			sendInlineResult(chosen.result, chosen.bot, chosen.options);
+		}
 	}, lifetime());
 
 	_composeControls->scrollRequests(
@@ -855,6 +869,20 @@ bool RepliesWidget::showSendingFilesError(
 	return true;
 }
 
+void RepliesWidget::addRecentBot(not_null<UserData*> bot) {
+	auto &bots = cRefRecentInlineBots();
+	const auto index = bots.indexOf(bot);
+	if (index) {
+		if (index > 0) {
+			bots.removeAt(index);
+		} else if (bots.size() >= RecentInlineBotsLimit) {
+			bots.resize(RecentInlineBotsLimit - 1);
+		}
+		bots.push_front(bot);
+		bot->session().local().writeRecentHashtagsAndBots();
+	}
+}
+
 void RepliesWidget::send() {
 	if (_composeControls->getTextWithAppliedMarkdown().text.isEmpty()) {
 		return;
@@ -1025,7 +1053,12 @@ bool RepliesWidget::sendExistingDocument(
 	auto message = Api::MessageToSend(_history);
 	message.action.replyTo = replyToId();
 	message.action.options = options;
-	Api::SendExistingDocument(std::move(message), document);
+
+	if (document->hasRemoteLocation()) {
+		Api::SendExistingDocument(std::move(message), document);
+	} else {
+		Api::SendWebDocument(std::move(message), document);
+	}
 
 	_composeControls->cancelReplyMessage();
 	finishSending();
@@ -1100,17 +1133,7 @@ void RepliesWidget::sendInlineResult(
 	//_saveDraftStart = crl::now();
 	//onDraftSave();
 
-	auto &bots = cRefRecentInlineBots();
-	const auto index = bots.indexOf(bot);
-	if (index) {
-		if (index > 0) {
-			bots.removeAt(index);
-		} else if (bots.size() >= RecentInlineBotsLimit) {
-			bots.resize(RecentInlineBotsLimit - 1);
-		}
-		bots.push_front(bot);
-		bot->session().local().writeRecentHashtagsAndBots();
-	}
+	addRecentBot(bot);
 	finishSending();
 }
 

@@ -183,6 +183,8 @@ private:
 	void clearSelected();
 	void setPinnedVisibility(bool shown);
 
+	void addRecentBot(not_null<UserData*> bot);
+
 	void send();
 	void send(Api::SendOptions options);
 	void sendVoice(Controls::VoiceToSend &&data);

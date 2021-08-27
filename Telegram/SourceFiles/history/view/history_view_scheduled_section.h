@@ -149,6 +149,8 @@ private:
 	void confirmDeleteSelected();
 	void clearSelected();
 
+	void addRecentBot(not_null<UserData*> bot);
+
 	void send();
 	void send(Api::SendOptions options);
 	void sendVoice(QByteArray bytes, VoiceWaveform waveform, int duration);
