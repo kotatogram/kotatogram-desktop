@@ -82,50 +82,6 @@ PRIVATE
     desktop-app::external_xxhash
 )
 
-if (LINUX)
-    target_link_libraries(Telegram
-    PRIVATE
-        desktop-app::external_glibmm
-        desktop-app::external_glib
-    )
-
-    if (NOT DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
-        target_link_libraries(Telegram
-        PRIVATE
-            desktop-app::external_statusnotifieritem
-            desktop-app::external_dbusmenu_qt
-        )
-    endif()
-
-    if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
-        target_link_libraries(Telegram
-        PRIVATE
-            desktop-app::external_xcb
-        )
-    endif()
-
-    if (NOT DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION)
-        target_link_libraries(Telegram
-        PRIVATE
-            desktop-app::lib_waylandshells
-            desktop-app::external_kwayland
-        )
-    endif()
-
-    if (NOT DESKTOP_APP_DISABLE_GTK_INTEGRATION)
-        find_package(PkgConfig REQUIRED)
-
-        pkg_check_modules(GTK REQUIRED gtk+-3.0)
-        target_include_directories(Telegram SYSTEM PRIVATE ${GTK_INCLUDE_DIRS})
-
-        if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
-            target_link_libraries(Telegram PRIVATE X11)
-        endif()
-
-        target_link_libraries(Telegram PRIVATE rt)
-    endif()
-endif()
-
 target_precompile_headers(Telegram PRIVATE ${src_loc}/stdafx.h)
 nice_target_sources(Telegram ${src_loc}
 PRIVATE
@@ -135,12 +91,16 @@ PRIVATE
     api/api_attached_stickers.h
     api/api_authorizations.cpp
     api/api_authorizations.h
+    api/api_blocked_peers.cpp
+    api/api_blocked_peers.h
     api/api_bot.cpp
     api/api_bot.h
     api/api_chat_filters.cpp
     api/api_chat_filters.h
     api/api_chat_invite.cpp
     api/api_chat_invite.h
+    api/api_cloud_password.cpp
+    api/api_cloud_password.h
     api/api_common.h
     api/api_editing.cpp
     api/api_editing.h
@@ -168,6 +128,8 @@ PRIVATE
     api/api_toggling_media.h
     api/api_updates.cpp
     api/api_updates.h
+    api/api_user_privacy.cpp
+    api/api_user_privacy.h
     boxes/filters/edit_filter_box.cpp
     boxes/filters/edit_filter_box.h
     boxes/filters/edit_filter_chats_list.cpp
@@ -264,6 +226,7 @@ PRIVATE
     calls/group/calls_choose_join_as.h
     calls/group/calls_group_call.cpp
     calls/group/calls_group_call.h
+    calls/group/calls_group_common.cpp
     calls/group/calls_group_common.h
     calls/group/calls_group_invite_controller.cpp
     calls/group/calls_group_invite_controller.h
@@ -309,6 +272,8 @@ PRIVATE
     calls/calls_video_bubble.h
     calls/calls_video_incoming.cpp
     calls/calls_video_incoming.h
+    chat_helpers/bot_command.cpp
+    chat_helpers/bot_command.h
     chat_helpers/bot_keyboard.cpp
     chat_helpers/bot_keyboard.h
     chat_helpers/emoji_keywords.cpp
@@ -608,6 +573,8 @@ PRIVATE
     history/view/history_view_cursor_state.h
     history/view/history_view_element.cpp
     history/view/history_view_element.h
+    history/view/history_view_empty_list_bubble.cpp
+    history/view/history_view_empty_list_bubble.h
     history/view/history_view_group_call_tracker.cpp
     history/view/history_view_group_call_tracker.h
     history/view/history_view_list_widget.cpp
@@ -761,6 +728,10 @@ PRIVATE
     lang/lang_numbers_animation.h
     lang/lang_translator.cpp
     lang/lang_translator.h
+    layout/layout_document_generic_preview.cpp
+    layout/layout_document_generic_preview.h
+    layout/layout_item_base.cpp
+    layout/layout_item_base.h
     main/main_account.cpp
     main/main_account.h
     main/main_app_config.cpp
@@ -926,7 +897,6 @@ PRIVATE
     platform/linux/notifications_manager_linux.h
     platform/linux/specific_linux.cpp
     platform/linux/specific_linux.h
-    platform/linux/window_title_linux.h
     platform/mac/file_utilities_mac.mm
     platform/mac/file_utilities_mac.h
     platform/mac/launcher_mac.mm
@@ -941,7 +911,6 @@ PRIVATE
     platform/mac/specific_mac_p.mm
     platform/mac/specific_mac_p.h
     platform/mac/window_title_mac.mm
-    platform/mac/window_title_mac.h
     platform/mac/touchbar/items/mac_formatter_item.h
     platform/mac/touchbar/items/mac_formatter_item.mm
     platform/mac/touchbar/items/mac_pinned_chats_item.h
@@ -972,8 +941,6 @@ PRIVATE
     platform/win/notifications_manager_win.h
     platform/win/specific_win.cpp
     platform/win/specific_win.h
-    platform/win/window_title_win.cpp
-    platform/win/window_title_win.h
     platform/win/windows_app_user_model_id.cpp
     platform/win/windows_app_user_model_id.h
     platform/win/windows_dlls.cpp
@@ -1147,13 +1114,11 @@ PRIVATE
     window/window_outdated_bar.h
     window/window_peer_menu.cpp
     window/window_peer_menu.h
+    window/window_section_common.h
     window/window_session_controller.cpp
     window/window_session_controller.h
     window/window_slide_animation.cpp
     window/window_slide_animation.h
-    window/window_title_qt.cpp
-    window/window_title_qt.h
-    window/window_title.h
     window/window_top_bar_wrap.h
     window/themes/window_theme.cpp
     window/themes/window_theme.h
@@ -1180,8 +1145,6 @@ PRIVATE
     config.h
     facades.cpp
     facades.h
-    layout.cpp
-    layout.h
     logs.cpp
     logs.h
     main.cpp
@@ -1193,13 +1156,6 @@ PRIVATE
     settings.h
     stdafx.h
 )
-
-if (NOT LINUX)
-    remove_target_sources(Telegram ${src_loc}
-        window/window_title_qt.cpp
-        window/window_title_qt.h
-    )
-endif()
 
 if (DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
     remove_target_sources(Telegram ${src_loc}
@@ -1330,6 +1286,48 @@ elseif (APPLE)
                 COMMAND cp ${libs_loc}/crashpad/out/$<IF:$<CONFIG:Debug>,Debug,Release>/crashpad_handler $<TARGET_FILE_DIR:Telegram>/../Helpers/
             )
         endif()
+    endif()
+else()
+    target_link_libraries(Telegram
+    PRIVATE
+        desktop-app::external_glibmm
+        desktop-app::external_glib
+    )
+
+    if (NOT DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
+        target_link_libraries(Telegram
+        PRIVATE
+            desktop-app::external_statusnotifieritem
+            desktop-app::external_dbusmenu_qt
+        )
+    endif()
+
+    if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
+        target_link_libraries(Telegram
+        PRIVATE
+            desktop-app::external_xcb
+        )
+    endif()
+
+    if (NOT DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION)
+        target_link_libraries(Telegram
+        PRIVATE
+            desktop-app::lib_waylandshells
+            desktop-app::external_kwayland
+        )
+    endif()
+
+    if (NOT DESKTOP_APP_DISABLE_GTK_INTEGRATION)
+        find_package(PkgConfig REQUIRED)
+
+        pkg_check_modules(GTK REQUIRED gtk+-3.0)
+        target_include_directories(Telegram SYSTEM PRIVATE ${GTK_INCLUDE_DIRS})
+
+        if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
+            target_link_libraries(Telegram PRIVATE X11)
+        endif()
+
+        target_link_libraries(Telegram PRIVATE rt)
     endif()
 endif()
 
@@ -1481,7 +1479,7 @@ if ((NOT DESKTOP_APP_DISABLE_AUTOUPDATE OR APPLE) AND NOT build_macstore AND NOT
     endif()
 
     if (DESKTOP_APP_SPECIAL_TARGET OR KTGDESKTOP_ENABLE_PACKER)
-        add_executable(Packer WIN32)
+        add_executable(Packer)
         init_target(Packer)
 
         add_dependencies(Telegram Packer)

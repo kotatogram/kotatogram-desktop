@@ -256,6 +256,9 @@ public:
 	void elementHandleViaClick(not_null<UserData*> bot) override;
 	bool elementIsChatWide() override;
 	not_null<Ui::PathShiftGradient*> elementPathShiftGradient() override;
+	void elementReplyTo(const FullMsgId &to) override;
+
+	void setEmptyInfoWidget(base::unique_qptr<Ui::RpWidget> &&w);
 
 	~ListWidget();
 
@@ -524,6 +527,8 @@ private:
 
 	const std::unique_ptr<Ui::PathShiftGradient> _pathGradient;
 
+	base::unique_qptr<Ui::RpWidget> _emptyInfo = nullptr;
+
 	int _minHeight = 0;
 	int _visibleTop = 0;
 	int _visibleBottom = 0;
@@ -593,14 +598,5 @@ private:
 void ConfirmDeleteSelectedItems(not_null<ListWidget*> widget);
 void ConfirmForwardSelectedItems(not_null<ListWidget*> widget);
 void ConfirmSendNowSelectedItems(not_null<ListWidget*> widget);
-
-[[nodiscard]] QString WrapBotCommandInChat(
-	not_null<PeerData*> peer,
-	const QString &command,
-	const FullMsgId &context);
-[[nodiscard]] QString WrapBotCommandInChat(
-	not_null<PeerData*> peer,
-	const QString &command,
-	not_null<UserData*> bot);
 
 } // namespace HistoryView

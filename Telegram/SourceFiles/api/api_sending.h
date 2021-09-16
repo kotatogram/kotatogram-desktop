@@ -51,7 +51,7 @@ bool SendDice(
 void FillMessagePostFlags(
 	const SendAction &action,
 	not_null<PeerData*> peer,
-	MTPDmessage::Flags &flags);
+	MessageFlags &flags);
 
 void SendConfirmedFile(
 	not_null<Main::Session*> session,

@@ -484,16 +484,10 @@ bool TopBar::computeCanDelete() const {
 
 Ui::StringWithNumbers TopBar::generateSelectedText() const {
 	using Type = Storage::SharedMediaType;
-	if (_selectedItems.type == Type::GIF) {
-		return Ui::StringWithNumbers::FromString(
-			ktr("ktg_media_selected_gif",
-				_selectedItems.list.size(),
-				{ "count", QString::number(_selectedItems.list.size()) }));
-	}
-
 	const auto phrase = [&] {
 		switch (_selectedItems.type) {
 		case Type::Photo: return tr::lng_media_selected_photo;
+		case Type::GIF: return tr::lng_media_selected_gif;
 		case Type::Video: return tr::lng_media_selected_video;
 		case Type::File: return tr::lng_media_selected_file;
 		case Type::MusicFile: return tr::lng_media_selected_song;
@@ -588,10 +582,10 @@ rpl::producer<QString> TitleValue(
 		switch (section.mediaType()) {
 		case Section::MediaType::Photo:
 			return tr::lng_media_type_photos();
+		case Section::MediaType::GIF:
+			return tr::lng_media_type_gifs();
 		case Section::MediaType::Video:
 			return tr::lng_media_type_videos();
-		case Section::MediaType::GIF:
-			return rktr("ktg_media_type_gif");
 		case Section::MediaType::MusicFile:
 			return tr::lng_media_type_songs();
 		case Section::MediaType::File:

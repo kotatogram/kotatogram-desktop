@@ -268,7 +268,9 @@ bool ResolveUsername(
 	} else if (!valid(domain)) {
 		const auto searchParam = params.value(qsl("query"));
 		if (!searchParam.isEmpty()) {
-			App::searchByHashtag(searchParam, nullptr);
+			controller->content()->searchMessages(
+				searchParam + ' ',
+				Dialogs::Key());
 		}
 		return false;
 	}

@@ -1472,9 +1472,27 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 			crl::guard(this, [=] {
 				_navigation->showPeerInfo(participant); }));
 	}
-	result->addAction(
-		ktr("ktg_context_show_messages_from"),
-		crl::guard(this, [=] { App::searchByHashtag(QString(), _peer, user); }));
+	if (const auto window = App::wnd()) {
+		if (const auto mainwidget = window->sessionContent()) {
+			result->addAction(
+				ktr("ktg_context_show_messages_from"),
+				crl::guard(this, [=] {
+					mainwidget->searchMessages(
+						" ",
+						(_peer && !_peer->isUser())
+							? _peer->owner().history(_peer).get()
+							: Dialogs::Key(),
+							user);
+				}));
+			if (const auto openedPeer = mainwidget->peer()) {
+				if (openedPeer->canWrite()) {
+					result->addAction(
+						ktr("ktg_profile_mention_user"),
+						crl::guard(this, [=] { mainwidget->mentionUser(user); }));
+				}
+			}
+		}
+	}
 	if (_role == Role::Kicked) {
 		if (_peer->isMegagroup()
 			&& _additional.canRestrictParticipant(participant)) {
@@ -1488,17 +1506,6 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				crl::guard(this, [=] { removeKickedWithRow(participant); }));
 		}
 		return result;
-	}
-	if (const auto window = App::wnd()) {
-		if (const auto mainwidget = window->sessionContent()) {
-			if (const auto openedPeer = mainwidget->peer()) {
-				if (openedPeer->canWrite()) {
-					result->addAction(
-						ktr("ktg_profile_mention_user"),
-						crl::guard(this, [=] { mainwidget->mentionUser(user); }));
-				}
-			}
-		}
 	}
 	if (user && _additional.canAddOrEditAdmin(user)) {
 		const auto isAdmin = _additional.isCreator(user)

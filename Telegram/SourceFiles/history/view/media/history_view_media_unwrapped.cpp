@@ -16,7 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lottie/lottie_single_player.h"
 #include "data/data_session.h"
 #include "ui/cached_round_corners.h"
-#include "layout.h"
+#include "layout/layout_selection.h"
 #include "styles/style_chat.h"
 
 namespace HistoryView {

@@ -7,7 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/group/ui/desktop_capture_choose_source.h"
 
-#include "ui/widgets/window.h"
+#include "ui/widgets/rp_window.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/buttons.h"
@@ -63,7 +63,6 @@ public:
 
 	[[nodiscard]] rpl::producer<> activations() const;
 	void setActive(bool active);
-	[[nodiscard]] bool isWindow() const;
 	[[nodiscard]] QString deviceIdKey() const;
 	[[nodiscard]] rpl::lifetime &lifetime();
 
@@ -105,7 +104,7 @@ private:
 		std::unique_ptr<ChooseSourceProcess>> &Map();
 
 	const not_null<ChooseSourceDelegate*> _delegate;
-	const std::unique_ptr<Ui::Window> _window;
+	const std::unique_ptr<RpWindow> _window;
 	const std::unique_ptr<ScrollArea> _scroll;
 	const not_null<RpWidget*> _inner;
 	const not_null<RpWidget*> _bottom;
@@ -169,10 +168,6 @@ Source::Source(
 
 rpl::producer<> Source::activations() const {
 	return _activations.events();
-}
-
-bool Source::isWindow() const {
-	return _source.isWindow();
 }
 
 QString Source::deviceIdKey() const {
@@ -255,7 +250,7 @@ rpl::lifetime &Source::lifetime() {
 ChooseSourceProcess::ChooseSourceProcess(
 	not_null<ChooseSourceDelegate*> delegate)
 : _delegate(delegate)
-, _window(std::make_unique<Ui::Window>())
+, _window(std::make_unique<RpWindow>())
 , _scroll(std::make_unique<ScrollArea>(_window->body()))
 , _inner(_scroll->setOwnedWidget(object_ptr<RpWidget>(_scroll.get())))
 , _bottom(CreateChild<RpWidget>(_window->body().get()))
@@ -428,7 +423,7 @@ void ChooseSourceProcess::setupPanel() {
 			+ rows * st::desktopCaptureSourceSize.height()
 			+ (rows - 1) * skips.height()
 			+ margins.bottom();
-		_inner->resize(width, std::max(height, innerHeight));
+		_inner->resize(width, innerHeight);
 	}, _inner->lifetime());
 
 	if (const auto parent = _delegate->chooseSourceParent()) {

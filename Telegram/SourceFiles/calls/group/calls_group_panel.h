@@ -63,6 +63,7 @@ class Members;
 class Viewport;
 enum class PanelMode;
 enum class StickedTooltip;
+class MicLevelTester;
 
 class Panel final : private Ui::DesktopCapture::ChooseSourceDelegate {
 public:
@@ -94,9 +95,8 @@ private:
 		Activated,
 		Discarded,
 	};
-	class MicLevelTester;
 
-	[[nodiscard]] not_null<Ui::Window*> window() const;
+	[[nodiscard]] not_null<Ui::RpWindow*> window() const;
 	[[nodiscard]] not_null<Ui::RpWidget*> widget() const;
 
 	[[nodiscard]] PanelMode mode() const;

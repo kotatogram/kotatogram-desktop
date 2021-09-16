@@ -47,7 +47,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "mainwindow.h"
 #include "mainwidget.h"
-#include "layout.h"
+#include "layout/layout_selection.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "core/application.h"
@@ -1596,7 +1596,12 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		const auto peer = item->history()->peer;
 		if (peer->isChat() || peer->isMegagroup()) {
 			_menu->addAction(ktr("ktg_context_show_messages_from"), [=] {
-				App::searchByHashtag(QString(), peer, item->from()->asUser());
+				controller->content()->searchMessages(
+					" ",
+					(peer && !peer->isUser())
+						? peer->owner().history(peer).get()
+						: Dialogs::Key(),
+						item->from()->asUser());
 			});
 		}
 	};
@@ -2627,19 +2632,7 @@ bool HistoryInner::elementIsGifPaused() {
 void HistoryInner::elementSendBotCommand(
 		const QString &command,
 		const FullMsgId &context) {
-	if (auto peer = Ui::getPeerForMouseAction()) { // old way
-		auto bot = peer->isUser() ? peer->asUser() : nullptr;
-		if (!bot) {
-			if (const auto view = App::hoveredLinkItem()) {
-				// may return nullptr
-				bot = view->data()->fromOriginal()->asUser();
-			}
-		}
-		Ui::showPeerHistory(peer, ShowAtTheEndMsgId);
-		App::sendBotCommand(peer, bot, command);
-	} else {
-		App::insertBotCommand(command);
-	}
+	_widget->sendBotCommand({ _history->peer, command, context });
 }
 
 void HistoryInner::elementHandleViaClick(not_null<UserData*> bot) {
@@ -2652,6 +2645,10 @@ bool HistoryInner::elementIsChatWide() {
 
 not_null<Ui::PathShiftGradient*> HistoryInner::elementPathShiftGradient() {
 	return _pathGradient.get();
+}
+
+void HistoryInner::elementReplyTo(const FullMsgId &to) {
+	return _widget->replyToMessage(to);
 }
 
 auto HistoryInner::getSelectionState() const
@@ -3556,6 +3553,11 @@ not_null<HistoryView::ElementDelegate*> HistoryInner::ElementDelegate() {
 			Expects(Instance != nullptr);
 
 			return Instance->elementPathShiftGradient();
+		}
+		void elementReplyTo(const FullMsgId &to) override {
+			if (Instance) {
+				Instance->elementReplyTo(to);
+			}
 		}
 	};
 

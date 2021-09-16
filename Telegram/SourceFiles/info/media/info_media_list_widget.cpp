@@ -9,6 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "info/info_controller.h"
 #include "overview/overview_layout.h"
+#include "layout/layout_mosaic.h"
+#include "layout/layout_selection.h"
 #include "data/data_media_types.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
@@ -32,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_overview.h"
 #include "styles/style_info.h"
 #include "base/platform/base_platform_info.h"
+#include "base/weak_ptr.h"
 #include "media/player/media_player_instance.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/confirm_box.h"
@@ -40,8 +43,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QClipboard>
-
-namespace Layout = Overview::Layout;
 
 namespace Info {
 namespace Media {
@@ -71,8 +72,8 @@ UniversalMsgId GetUniversalId(not_null<const BaseLayout*> layout) {
 bool HasFloatingHeader(Type type) {
 	switch (type) {
 	case Type::Photo:
-	case Type::Video:
 	case Type::GIF:
+	case Type::Video:
 	case Type::RoundFile:
 	case Type::RoundVoiceFile:
 	case Type::MusicFile:
@@ -87,7 +88,7 @@ bool HasFloatingHeader(Type type) {
 } // namespace
 
 struct ListWidget::Context {
-	Layout::PaintContext layoutContext;
+	Overview::Layout::PaintContext layoutContext;
 	not_null<SelectedMap*> selected;
 	not_null<SelectedMap*> dragSelected;
 	DragSelectAction dragSelectAction;
@@ -97,10 +98,13 @@ class ListWidget::Section {
 public:
 	Section(Type type)
 	: _type(type)
-	, _hasFloatingHeader(HasFloatingHeader(type)) {
+	, _hasFloatingHeader(HasFloatingHeader(type))
+	, _mosaic(st::emojiPanWidth - st::inlineResultsLeft) {
 	}
 
 	bool addItem(not_null<BaseLayout*> item);
+	void finishSection();
+
 	bool empty() const {
 		return _items.empty();
 	}
@@ -168,7 +172,7 @@ private:
 		not_null<const BaseLayout*> item,
 		const Context &context) const;
 
-	int recountHeight() const;
+	int recountHeight();
 	void refreshHeight();
 
 	Type _type = Type::Photo;
@@ -182,6 +186,8 @@ private:
 	mutable int _rowsCount = 0;
 	int _top = 0;
 	int _height = 0;
+
+	Mosaic::Layout::MosaicLayout<BaseLayout> _mosaic;
 
 };
 
@@ -231,13 +237,22 @@ bool ListWidget::Section::addItem(not_null<BaseLayout*> item) {
 	return false;
 }
 
+void ListWidget::Section::finishSection() {
+	if (_type == Type::GIF) {
+		_mosaic.setOffset(st::infoMediaSkip, headerHeight());
+		_mosaic.setRightSkip(st::infoMediaSkip);
+		const auto items = ranges::views::values(_items) | ranges::to_vector;
+		_mosaic.addItems(items);
+	}
+}
+
 void ListWidget::Section::setHeader(not_null<BaseLayout*> item) {
 	auto text = [&] {
 		auto date = item->dateTime().date();
 		switch (_type) {
 		case Type::Photo:
-		case Type::Video:
 		case Type::GIF:
+		case Type::Video:
 		case Type::RoundFile:
 		case Type::RoundVoiceFile:
 		case Type::File:
@@ -263,8 +278,8 @@ bool ListWidget::Section::belongsHere(
 
 	switch (_type) {
 	case Type::Photo:
-	case Type::Video:
 	case Type::GIF:
+	case Type::Video:
 	case Type::RoundFile:
 	case Type::RoundVoiceFile:
 	case Type::File:
@@ -298,6 +313,9 @@ bool ListWidget::Section::removeItem(UniversalMsgId universalId) {
 QRect ListWidget::Section::findItemRect(
 		not_null<const BaseLayout*> item) const {
 	auto position = item->position();
+	if (!_mosaic.empty()) {
+		return _mosaic.findRect(position);
+	}
 	auto top = position / _itemsInRow;
 	auto indexInRow = position % _itemsInRow;
 	auto left = _itemsLeft
@@ -314,6 +332,13 @@ auto ListWidget::Section::completeResult(
 auto ListWidget::Section::findItemByPoint(
 		QPoint point) const -> FoundItem {
 	Expects(!_items.empty());
+	if (!_mosaic.empty()) {
+		const auto found = _mosaic.findByPoint(point);
+		Assert(found.index != -1);
+		const auto item = _mosaic.itemAt(found.index);
+		const auto rect = findItemRect(item);
+		return { item, rect, found.exact };
+	}
 	auto itemIt = findItemAfterTop(point.y());
 	if (itemIt == _items.end()) {
 		--itemIt;
@@ -362,6 +387,7 @@ auto ListWidget::Section::findItemDetails(not_null<BaseLayout*> item) const
 
 auto ListWidget::Section::findItemAfterTop(
 		int top) -> Items::iterator {
+	Expects(_mosaic.empty());
 	return ranges::lower_bound(
 		_items,
 		top,
@@ -374,6 +400,7 @@ auto ListWidget::Section::findItemAfterTop(
 
 auto ListWidget::Section::findItemAfterTop(
 		int top) const -> Items::const_iterator {
+	Expects(_mosaic.empty());
 	return ranges::lower_bound(
 		_items,
 		top,
@@ -387,6 +414,7 @@ auto ListWidget::Section::findItemAfterTop(
 auto ListWidget::Section::findItemAfterBottom(
 		Items::const_iterator from,
 		int bottom) const -> Items::const_iterator {
+	Expects(_mosaic.empty());
 	return ranges::lower_bound(
 		from,
 		_items.end(),
@@ -415,6 +443,20 @@ void ListWidget::Section::paint(
 	}
 	auto localContext = context.layoutContext;
 	localContext.isAfterDate = (header > 0);
+
+	if (!_mosaic.empty()) {
+		auto paintItem = [&](not_null<BaseLayout*> item, QPoint point) {
+			p.translate(point.x(), point.y());
+			item->paint(
+				p,
+				clip.translated(-point),
+				itemSelection(item, context),
+				&localContext);
+			p.translate(-point.x(), -point.y());
+		};
+		_mosaic.paint(std::move(paintItem), clip);
+		return;
+	}
 
 	auto fromIt = findItemAfterTop(clip.y());
 	auto tillIt = findItemAfterBottom(
@@ -509,7 +551,6 @@ void ListWidget::Section::resizeToWidth(int newWidth) {
 	switch (_type) {
 	case Type::Photo:
 	case Type::Video:
-	case Type::GIF:
 	case Type::RoundFile: {
 		_itemsLeft = st::infoMediaSkip;
 		_itemsTop = st::infoMediaSkip;
@@ -520,6 +561,10 @@ void ListWidget::Section::resizeToWidth(int newWidth) {
 		for (auto &item : _items) {
 			item.second->resizeGetHeight(_itemWidth);
 		}
+	} break;
+
+	case Type::GIF: {
+		_mosaic.setFullWidth(newWidth - st::infoMediaSkip);
 	} break;
 
 	case Type::RoundVoiceFile:
@@ -541,8 +586,8 @@ int ListWidget::Section::MinItemHeight(Type type, int width) {
 	auto &songSt = st::overviewFileLayout;
 	switch (type) {
 	case Type::Photo:
-	case Type::Video:
 	case Type::GIF:
+	case Type::Video:
 	case Type::RoundFile: {
 		auto itemsLeft = st::infoMediaSkip;
 		auto itemsInRow = (width - itemsLeft)
@@ -562,13 +607,12 @@ int ListWidget::Section::MinItemHeight(Type type, int width) {
 	Unexpected("Type in ListWidget::Section::MinItemHeight()");
 }
 
-int ListWidget::Section::recountHeight() const {
+int ListWidget::Section::recountHeight() {
 	auto result = headerHeight();
 
 	switch (_type) {
 	case Type::Photo:
 	case Type::Video:
-	case Type::GIF:
 	case Type::RoundFile: {
 		auto itemHeight = _itemWidth + st::infoMediaSkip;
 		auto index = 0;
@@ -586,6 +630,10 @@ int ListWidget::Section::recountHeight() const {
 		} else {
 			_rowsCount = int(_items.size()) / _itemsInRow;
 		}
+	} break;
+
+	case Type::GIF: {
+		return _mosaic.countDesiredHeight(0) + result;
 	} break;
 
 	case Type::RoundVoiceFile:
@@ -619,7 +667,9 @@ ListWidget::ListWidget(
 , _dateBadge(DateBadge{
 	.check = SingleQueuedInvokation([=] { scrollDateCheck(); }),
 	.hideTimer = base::Timer([=] { scrollDateHide(); }),
-	.goodType = (_type == Type::Photo || _type == Type::Video),
+	.goodType = (_type == Type::Photo
+		|| _type == Type::Video
+		|| _type == Type::GIF),
 }) {
 	setMouseTracking(true);
 	start();
@@ -835,6 +885,10 @@ void ListWidget::repaintItem(const BaseLayout *item) {
 	}
 }
 
+void ListWidget::repaintItem(not_null<const BaseLayout*> item) {
+	repaintItem(GetUniversalId(item));
+}
+
 void ListWidget::repaintItem(QRect itemGeometry) {
 	rtlupdate(itemGeometry);
 }
@@ -877,14 +931,27 @@ void ListWidget::unregisterHeavyItem(not_null<const BaseLayout*> item) {
 	}
 }
 
+bool ListWidget::itemVisible(not_null<const BaseLayout*> item) {
+	if (const auto &found = findItemById(GetUniversalId(item))) {
+		const auto geometry = found->geometry;
+		return (geometry.top() < _visibleBottom)
+			&& (geometry.top() + geometry.height() > _visibleTop);
+	}
+	return true;
+}
+
 void ListWidget::openPhoto(not_null<PhotoData*> photo, FullMsgId id) {
 	_controller->parentController()->openPhoto(photo, id);
 }
 
 void ListWidget::openDocument(
 		not_null<DocumentData*> document,
-		FullMsgId id) {
-	_controller->parentController()->openDocument(document, id);
+		FullMsgId id,
+		bool showInMediaView) {
+	_controller->parentController()->openDocument(
+		document,
+		id,
+		showInMediaView);
 }
 
 SparseIdsMergedSlice::Key ListWidget::sliceKey(
@@ -965,15 +1032,19 @@ std::unique_ptr<BaseLayout> ListWidget::createLayout(
 	};
 
 	auto &songSt = st::overviewFileLayout;
-	using namespace Layout;
+	using namespace Overview::Layout;
 	switch (type) {
 	case Type::Photo:
 		if (const auto photo = getPhoto()) {
 			return std::make_unique<Photo>(this, item, photo);
 		}
 		return nullptr;
-	case Type::Video:
 	case Type::GIF:
+		if (const auto file = getFile()) {
+			return std::make_unique<Gif>(this, item, file);
+		}
+		return nullptr;
+	case Type::Video:
 		if (const auto file = getFile()) {
 			return std::make_unique<Video>(this, item, file);
 		}
@@ -1006,6 +1077,7 @@ void ListWidget::refreshRows() {
 
 	markLayoutsStale();
 
+
 	_sections.clear();
 	auto section = Section(_type);
 	auto count = _slice.size();
@@ -1013,6 +1085,7 @@ void ListWidget::refreshRows() {
 		auto universalId = GetUniversalId(_slice[--i]);
 		if (auto layout = getLayout(universalId)) {
 			if (!section.addItem(layout)) {
+				section.finishSection();
 				_sections.push_back(std::move(section));
 				section = Section(_type);
 				section.addItem(layout);
@@ -1020,6 +1093,7 @@ void ListWidget::refreshRows() {
 		}
 	}
 	if (!section.empty()) {
+		section.finishSection();
 		_sections.push_back(std::move(section));
 	}
 
@@ -1189,8 +1263,8 @@ void ListWidget::checkMoveToOtherViewer() {
 		return;
 	}
 
-	auto topItem = findItemByPoint({ 0, _visibleTop });
-	auto bottomItem = findItemByPoint({ 0, _visibleBottom });
+	auto topItem = findItemByPoint({ st::infoMediaSkip, _visibleTop });
+	auto bottomItem = findItemByPoint({ st::infoMediaSkip, _visibleBottom });
 
 	auto preloadedHeight = kPreloadedScreensCountFull * visibleHeight;
 	auto minItemHeight = Section::MinItemHeight(_type, width());
@@ -1268,7 +1342,7 @@ auto ListWidget::countScrollState() const -> ScrollTopState {
 	if (_sections.empty()) {
 		return { 0, 0 };
 	}
-	auto topItem = findItemByPoint({ 0, _visibleTop });
+	auto topItem = findItemByPoint({ st::infoMediaSkip, _visibleTop });
 	return {
 		GetUniversalId(topItem.layout),
 		_visibleTop - topItem.geometry.y()
@@ -1314,7 +1388,7 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 		fromSectionIt,
 		clip.y() + clip.height());
 	auto context = Context {
-		Layout::PaintContext(ms, hasSelectedItems()),
+		Overview::Layout::PaintContext(ms, hasSelectedItems()),
 		&_selected,
 		&_dragSelected,
 		_dragSelectAction
@@ -2217,7 +2291,18 @@ void ListWidget::mouseActionFinish(
 	_wasSelectedText = false;
 	if (activated) {
 		mouseActionCancel();
-		ActivateClickHandler(window(), activated, button);
+		const auto found = findItemById(pressState.itemId);
+		const auto fullId = found
+			? found->layout->getItem()->fullId()
+			: FullMsgId();
+		ActivateClickHandler(window(), activated, {
+			button,
+			QVariant::fromValue(ClickHandlerContext{
+				.itemId = fullId,
+				.sessionWindow = base::make_weak(
+					_controller->parentController().get()),
+			})
+		});
 		return;
 	}
 

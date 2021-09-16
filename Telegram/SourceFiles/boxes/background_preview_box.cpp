@@ -286,24 +286,25 @@ AdminLog::OwnedItem GenerateTextItem(
 		bool out) {
 	Expects(history->peer->isUser());
 
-	using Flag = MTPDmessage::Flag;
 	static auto id = ServerMaxMsgId + (ServerMaxMsgId / 3);
-	const auto flags = Flag::f_entities
-		| Flag::f_from_id
-		| (out ? Flag::f_out : Flag(0));
-	const auto clientFlags = MTPDmessage_ClientFlag::f_fake_history_item;
-	const auto replyTo = 0;
-	const auto viaBotId = UserId(0);
+	const auto flags = MessageFlag::FakeHistoryItem
+		| MessageFlag::HasFromId
+		| (out ? MessageFlag::Outgoing : MessageFlag(0));
+	const auto replyTo = MsgId();
+	const auto viaBotId = UserId();
+	const auto groupedId = uint64();
 	const auto item = history->makeMessage(
 		++id,
 		flags,
-		clientFlags,
 		replyTo,
 		viaBotId,
 		base::unixtime::now(),
 		out ? history->session().userId() : peerToUser(history->peer->id),
 		QString(),
-		TextWithEntities{ TextUtilities::Clean(text) });
+		TextWithEntities{ TextUtilities::Clean(text) },
+		MTP_messageMediaEmpty(),
+		MTPReplyMarkup(),
+		groupedId);
 	return AdminLog::OwnedItem(delegate, item);
 }
 
@@ -622,6 +623,7 @@ void BackgroundPreviewBox::paintDate(Painter &p) {
 	if (!date || !_serviceBg) {
 		return;
 	}
+	auto hq = PainterHighQualityEnabler(p);
 	const auto text = date->text;
 	const auto bubbleHeight = st::msgServicePadding.top() + st::msgServiceFont->height + st::msgServicePadding.bottom();
 	const auto bubbleTop = st::msgServiceMargin.top();
@@ -758,7 +760,7 @@ void BackgroundPreviewBox::checkLoadedDocument() {
 	};
 	_generating = Data::ReadImageAsync(
 		_media.get(),
-		Window::Theme::ProcessBackgroundImage,
+		Window::Theme::PreprocessBackgroundImage,
 		generateCallback);
 }
 

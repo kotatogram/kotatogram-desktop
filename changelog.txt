@@ -1,3 +1,39 @@
+2.9.3 (11.08.21)
+
+- Fix requesting screencast rights on macOS (again).
+
+2.9.2 (10.08.21)
+
+- Fix crashes and bugs in scheduled messages.
+- Fix file sending after a call or voice chat on Windows.
+- Fix main window title glitches on Windows 7.
+
+2.9.1 (30.07.21)
+
+- Fix requesting screencast rights on macOS.
+
+2.9 (30.07.21)
+
+- Enable auto-delete in your chats to remove messages after 1 month (also 1 day or 1 week).
+- Quickly find all GIFs from a chat using the new GIF section in Shared Media.
+- Reset your Two-Step Verification password even if you forgot your old password and don't have a recovery email.
+- To do this, you must be logged into your account. The reset takes 7 days and can be cancelled from any of your devices.
+- Enjoy a new app icon and default background.
+
+2.8.13 beta (23.07.21)
+
+- Fix crash in messages animation.
+- Save GIFs from context menu in channel comments.
+
+2.8.12 beta (20.07.21)
+
+- Change the default chat background.
+- Add GIFs overview section in chats.
+- Add a simple new messages animation.
+- Use modern Telegram application icon.
+- Use Direct3D 11 by default on Windows.
+- Fix Direct3D acceleration on basic Windows 7 setup.
+
 2.8.11 (17.07.21)
 
 - Check shader compilation / linking before using ANGLE.

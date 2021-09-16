@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/shadow.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
+#include "ui/text/format_values.h" // Ui::FormatPhone
 #include "ui/text/text_utilities.h"
 #include "ui/text/text_options.h"
 #include "ui/special_buttons.h"
@@ -1108,7 +1109,7 @@ void MainMenu::updateInnerControlsGeometry() {
 }
 
 void MainMenu::updatePhone() {
-	_phoneText = App::formatPhone(_controller->session().user()->phone());
+	_phoneText = Ui::FormatPhone(_controller->session().user()->phone());
 	update();
 }
 

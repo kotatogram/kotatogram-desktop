@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_service_message.h"
 #include "history/view/media/history_view_document.h"
 #include "core/click_handler_types.h"
+#include "layout/layout_position.h"
 #include "mainwindow.h"
 #include "media/audio/media_audio.h"
 #include "media/player/media_player_instance.h"
@@ -455,9 +456,13 @@ auto ReplyMarkupClickHandler::getUrlButton() const
 	return nullptr;
 }
 
-void ReplyMarkupClickHandler::onClickImpl() const {
+void ReplyMarkupClickHandler::onClick(ClickContext context) const {
+	if (context.button != Qt::LeftButton) {
+		return;
+	}
 	if (const auto item = _owner->message(_itemId)) {
-		App::activateBotCommand(item, _row, _column);
+		const auto my = context.other.value<ClickHandlerContext>();
+		App::activateBotCommand(my.sessionWindow.get(), item, _row, _column);
 	}
 }
 
@@ -732,7 +737,7 @@ void ReplyKeyboard::clickHandlerPressedChanged(
 void ReplyKeyboard::startAnimation(int i, int j, int direction) {
 	auto notStarted = _animations.empty();
 
-	int indexForAnimation = (i * MatrixRowShift + j + 1) * direction;
+	int indexForAnimation = Layout::PositionToIndex(i, j + 1) * direction;
 
 	_animations.remove(-indexForAnimation);
 	if (!_animations.contains(indexForAnimation)) {
@@ -750,8 +755,7 @@ bool ReplyKeyboard::selectedAnimationCallback(crl::time now) {
 	}
 	for (auto i = _animations.begin(); i != _animations.end();) {
 		const auto index = std::abs(i->first) - 1;
-		const auto row = (index / MatrixRowShift);
-		const auto col = index % MatrixRowShift;
+		const auto &[row, col] = Layout::IndexToPosition(index);
 		const auto dt = float64(now - i->second) / st::botKbDuration;
 		if (dt >= 1) {
 			_rows[row][col].howMuchOver = (i->first > 0) ? 1 : 0;
@@ -768,8 +772,7 @@ bool ReplyKeyboard::selectedAnimationCallback(crl::time now) {
 void ReplyKeyboard::clearSelection() {
 	for (const auto &[relativeIndex, time] : _animations) {
 		const auto index = std::abs(relativeIndex) - 1;
-		const auto row = (index / MatrixRowShift);
-		const auto col = index % MatrixRowShift;
+		const auto &[row, col] = Layout::IndexToPosition(index);
 		_rows[row][col].howMuchOver = 0;
 	}
 	_animations.clear();
@@ -893,7 +896,7 @@ void HistoryMessageReplyMarkup::createFromButtonRows(
 					if (type == Type::SwitchInline) {
 						// Optimization flag.
 						// Fast check on all new messages if there is a switch button to auto-click it.
-						flags |= MTPDreplyKeyboardMarkup_ClientFlag::f_has_switch_inline_button;
+						flags |= ReplyMarkupFlag::HasSwitchInlineButton;
 					}
 				}, [&](const MTPDkeyboardButtonGame &data) {
 					row.emplace_back(Type::Game, qs(data.vtext()));
@@ -938,35 +941,26 @@ void HistoryMessageReplyMarkup::create(const MTPReplyMarkup &markup) {
 	rows.clear();
 	inlineKeyboard = nullptr;
 
-	switch (markup.type()) {
-	case mtpc_replyKeyboardMarkup: {
-		auto &d = markup.c_replyKeyboardMarkup();
-		flags = d.vflags().v;
-		placeholder = d.vplaceholder() ? qs(*d.vplaceholder()) : QString();
-
-		createFromButtonRows(d.vrows().v);
-	} break;
-
-	case mtpc_replyInlineMarkup: {
-		auto &d = markup.c_replyInlineMarkup();
-		flags = MTPDreplyKeyboardMarkup::Flags(0) | MTPDreplyKeyboardMarkup_ClientFlag::f_inline;
+	using Flag = ReplyMarkupFlag;
+	markup.match([&](const MTPDreplyKeyboardMarkup &data) {
+		flags = (data.is_resize() ? Flag::Resize : Flag())
+			| (data.is_selective() ? Flag::Selective : Flag())
+			| (data.is_single_use() ? Flag::SingleUse : Flag());
+		placeholder = qs(data.vplaceholder().value_or_empty());
+		createFromButtonRows(data.vrows().v);
+	}, [&](const MTPDreplyInlineMarkup &data) {
+		flags = Flag::Inline;
 		placeholder = QString();
-
-		createFromButtonRows(d.vrows().v);
-	} break;
-
-	case mtpc_replyKeyboardHide: {
-		auto &d = markup.c_replyKeyboardHide();
-		flags = mtpCastFlags(d.vflags()) | MTPDreplyKeyboardMarkup_ClientFlag::f_zero;
+		createFromButtonRows(data.vrows().v);
+	}, [&](const MTPDreplyKeyboardHide &data) {
+		flags = Flag::None | (data.is_selective() ? Flag::Selective : Flag());
 		placeholder = QString();
-	} break;
-
-	case mtpc_replyKeyboardForceReply: {
-		auto &d = markup.c_replyKeyboardForceReply();
-		flags = mtpCastFlags(d.vflags()) | MTPDreplyKeyboardMarkup_ClientFlag::f_force_reply;
-		placeholder = d.vplaceholder() ? qs(*d.vplaceholder()) : QString();
-	} break;
-	}
+	}, [&](const MTPDreplyKeyboardForceReply &data) {
+		flags = Flag::ForceReply
+			| (data.is_selective() ? Flag::Selective : Flag())
+			| (data.is_single_use() ? Flag::SingleUse : Flag());
+		placeholder = qs(data.vplaceholder().value_or_empty());
+	});
 }
 
 void HistoryMessageReplyMarkup::create(

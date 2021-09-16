@@ -281,13 +281,21 @@ void SessionNavigation::showPeerByLinkResolved(
 			crl::on_main(this, [=] {
 				showPeerHistory(peer->id, params);
 				if (!searchQuery.isEmpty()) {
-					App::searchByHashtag(searchQuery, peer);
+					parentController()->content()->searchMessages(
+						searchQuery + ' ',
+						(peer && !peer->isUser())
+							? peer->owner().history(peer).get()
+							: Dialogs::Key());
 				}
 			});
 		} else {
 			showPeerInfo(peer, params);
 			if (!searchQuery.isEmpty()) {
-				App::searchByHashtag(searchQuery, peer);
+				parentController()->content()->searchMessages(
+					searchQuery + ' ',
+					(peer && !peer->isUser())
+						? peer->owner().history(peer).get()
+						: Dialogs::Key());
 			}
 		}
 	} else {
@@ -306,7 +314,11 @@ void SessionNavigation::showPeerByLinkResolved(
 		crl::on_main(this, [=] {
 			showPeerHistory(peer->id, params, msgId);
 			if (!searchQuery.isEmpty()) {
-				App::searchByHashtag(searchQuery, peer);
+				parentController()->content()->searchMessages(
+					searchQuery + ' ',
+					(peer && !peer->isUser())
+						? peer->owner().history(peer).get()
+						: Dialogs::Key());
 			}
 		});
 	}

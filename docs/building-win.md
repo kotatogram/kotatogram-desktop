@@ -35,12 +35,15 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
     git clone https://github.com/desktop-app/patches.git
     cd patches
     git checkout 87a2e9ee07
-    cd ../
+    cd ..
+
     git clone https://chromium.googlesource.com/external/gyp
     cd gyp
     git checkout 9f2a7bb1
     git apply ../patches/gyp.diff
-    cd ..\..
+    cd ..
+
+    python -m pip install pywin32
 
 ## Clone source code and prepare libraries
 
@@ -148,7 +151,7 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
 
     git clone https://github.com/desktop-app/tg_angle.git
     cd tg_angle
-    git checkout f7b17cd
+    git checkout ec51cc6
     mkdir out
     cd out
     mkdir Debug
@@ -188,12 +191,11 @@ Open **x86 Native Tools Command Prompt for VS 2019.bat**, go to ***BuildPath*** 
         -static-runtime ^
         -opengl es2 -no-angle ^
         -I "%LibrariesPath%\tg_angle\include" ^
-        -D "GL_APICALL=" ^
+        -D "KHRONOS_STATIC=" ^
+        -D "DESKTOP_APP_QT_STATIC_ANGLE=" ^
         QMAKE_LIBS_OPENGL_ES2_DEBUG="%LibrariesPath%\tg_angle\out\Debug\tg_angle.lib %LibrariesPath%\zlib\contrib\vstudio\vc14\x86\ZlibStatDebug\zlibstat.lib d3d9.lib dxgi.lib dxguid.lib" ^
         QMAKE_LIBS_OPENGL_ES2_RELEASE="%LibrariesPath%\tg_angle\out\Release\tg_angle.lib %LibrariesPath%\zlib\contrib\vstudio\vc14\x86\ZlibStatReleaseWithoutAsm\zlibstat.lib d3d9.lib dxgi.lib dxguid.lib" ^
         -egl ^
-        -D "EGLAPI=" ^
-        -D "DESKTOP_APP_QT_STATIC_ANGLE=" ^
         QMAKE_LIBS_EGL_DEBUG="%LibrariesPath%\tg_angle\out\Debug\tg_angle.lib %LibrariesPath%\zlib\contrib\vstudio\vc14\x86\ZlibStatDebug\zlibstat.lib d3d9.lib dxgi.lib dxguid.lib Gdi32.lib User32.lib" ^
         QMAKE_LIBS_EGL_RELEASE="%LibrariesPath%\tg_angle\out\Release\tg_angle.lib %LibrariesPath%\zlib\contrib\vstudio\vc14\x86\ZlibStatReleaseWithoutAsm\zlibstat.lib d3d9.lib dxgi.lib dxguid.lib Gdi32.lib User32.lib" ^
         -openssl-linked ^

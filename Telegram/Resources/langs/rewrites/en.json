@@ -159,24 +159,6 @@
 	"ktg_group_status_admin": "is admin",
 	"ktg_too_many_accounts_warning": "Warning! Using too many accounts at the same time is not recommended due to higher memory comsumption and possible crashes because of it.\n\nYou sure you want to add a new account?",
 	"ktg_account_add_anyway": "Add anyway",
-	"ktg_media_selected_gif": {
-		"zero": "{count} GIFs",
-		"one": "{count} GIF",
-		"two": "{count} GIFs",
-		"few": "{count} GIFs",
-		"many": "{count} GIFs",
-		"other": "{count} GIFs"
-	},
-	"ktg_media_type_gif": "GIFs",
-	"ktg_profile_gif": {
-		"zero": "{count} GIFs",
-		"one": "{count} GIF",
-		"two": "{count} GIFs",
-		"few": "{count} GIFs",
-		"many": "{count} GIFs",
-		"other": "{count} GIFs"
-	},
-	"ktg_media_gif_empty": "No GIFs here yet",
 	"ktg_rights_chat_send_stickers": "Send stickers",
 	"ktg_rights_chat_send_gif": "Send GIFs",
 	"ktg_rights_chat_send_games": "Send games",

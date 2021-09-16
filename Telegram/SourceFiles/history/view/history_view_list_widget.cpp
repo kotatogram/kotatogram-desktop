@@ -23,7 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "core/click_handler_types.h"
 #include "apiwrap.h"
-#include "layout.h"
+#include "layout/layout_selection.h"
 #include "window/window_adaptive.h"
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
@@ -381,6 +381,9 @@ void ListWidget::refreshRows(const Data::MessagesSlice &old) {
 	restoreScrollState();
 	if (!_itemsRevealHeight) {
 		mouseActionUpdate(QCursor::pos());
+	}
+	if (_emptyInfo) {
+		_emptyInfo->setVisible(isEmpty());
 	}
 	_delegate->listContentRefreshed();
 }
@@ -1376,6 +1379,10 @@ not_null<Ui::PathShiftGradient*> ListWidget::elementPathShiftGradient() {
 	return _pathGradient.get();
 }
 
+void ListWidget::elementReplyTo(const FullMsgId &to) {
+	replyToMessageRequestNotify(to);
+}
+
 void ListWidget::saveState(not_null<ListMemento*> memento) {
 	memento->setAroundPosition(_aroundPosition);
 	auto state = countScrollState();
@@ -1470,7 +1477,9 @@ void ListWidget::revealItemsCallback() {
 			? (_minHeight - _itemsHeight - st::historyPaddingBottom)
 			: 0;
 		const auto wasHeight = height();
-		const auto nowHeight = std::max(_minHeight, wasHeight + delta);
+		const auto nowHeight = _itemsTop
+			+ _itemsHeight
+			+ st::historyPaddingBottom;
 		if (wasHeight != nowHeight) {
 			resize(width(), nowHeight);
 		}
@@ -2938,6 +2947,10 @@ void ListWidget::replyNextMessage(FullMsgId fullId, bool next) {
 	}
 }
 
+void ListWidget::setEmptyInfoWidget(base::unique_qptr<Ui::RpWidget> &&w) {
+	_emptyInfo = std::move(w);
+}
+
 ListWidget::~ListWidget() = default;
 
 void ConfirmDeleteSelectedItems(not_null<ListWidget*> widget) {
@@ -3004,41 +3017,16 @@ void ConfirmSendNowSelectedItems(not_null<ListWidget*> widget) {
 	if (!history) {
 		return;
 	}
+	const auto clearSelection = [weak = Ui::MakeWeak(widget)] {
+		if (const auto strong = weak.data()) {
+			strong->cancelSelection();
+		}
+	};
 	Window::ShowSendNowMessagesBox(
 		navigation,
 		history,
 		widget->getSelectedIds(),
-		[=] { navigation->showBackFromStack(); });
-}
-
-QString WrapBotCommandInChat(
-		not_null<PeerData*> peer,
-		const QString &command,
-		const FullMsgId &context) {
-	auto result = command;
-	if (const auto item = peer->owner().message(context)) {
-		if (const auto user = item->fromOriginal()->asUser()) {
-			return WrapBotCommandInChat(peer, command, user);
-		}
-	}
-	return result;
-}
-
-QString WrapBotCommandInChat(
-		not_null<PeerData*> peer,
-		const QString &command,
-		not_null<UserData*> bot) {
-	if (!bot->isBot() || bot->username.isEmpty()) {
-		return command;
-	}
-	const auto botStatus = peer->isChat()
-		? peer->asChat()->botStatus
-		: peer->isMegagroup()
-		? peer->asChannel()->mgInfo->botStatus
-		: -1;
-	return ((command.indexOf('@') < 2) && (botStatus == 0 || botStatus == 2))
-		? command + '@' + bot->username
-		: command;
+		clearSelection);
 }
 
 } // namespace HistoryView

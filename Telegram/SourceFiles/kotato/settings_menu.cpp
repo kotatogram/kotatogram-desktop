@@ -33,7 +33,6 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "storage/localstorage.h"
 #include "data/data_session.h"
 #include "main/main_session.h"
-#include "layout.h"
 #include "mainwindow.h"
 #include "facades.h"
 #include "app.h"

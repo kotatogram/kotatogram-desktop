@@ -1417,15 +1417,17 @@ bool RepliesWidget::showMessage(
 	return true;
 }
 
-bool RepliesWidget::replyToMessage(not_null<HistoryItem*> item) {
-	if (item->history() != _history || item->replyToTop() != _rootId) {
-		return false;
+Window::SectionActionResult RepliesWidget::sendBotCommand(
+		Bot::SendCommandRequest request) {
+	if (request.peer != _history->peer) {
+		return Window::SectionActionResult::Ignore;
 	}
-	replyToMessage(item->fullId());
-	return true;
+	listSendBotCommand(request.command, request.context);
+	return Window::SectionActionResult::Handle;
 }
 
 void RepliesWidget::replyToMessage(FullMsgId itemId) {
+	// if (item->history() != _history || item->replyToTop() != _rootId) {
 	_composeControls->replyToMessage(itemId);
 	refreshTopBarActiveChat();
 }
@@ -1796,7 +1798,10 @@ bool RepliesWidget::listIsGoodForAroundPosition(
 void RepliesWidget::listSendBotCommand(
 		const QString &command,
 		const FullMsgId &context) {
-	const auto text = WrapBotCommandInChat(_history->peer, command, context);
+	const auto text = Bot::WrapCommandInChat(
+		_history->peer,
+		command,
+		context);
 	auto message = ApiWrap::MessageToSend(_history);
 	message.textWithTags = { text };
 	message.action.replyTo = replyToId();

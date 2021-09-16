@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "api/api_authorizations.h"
 #include "api/api_text_entities.h"
+#include "api/api_user_privacy.h"
 #include "main/main_session.h"
 #include "main/main_account.h"
 #include "mtproto/mtp_instance.h"
@@ -41,7 +42,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "boxes/confirm_box.h"
 #include "apiwrap.h"
-#include "app.h" // App::formatPhone
+#include "ui/text/format_values.h" // Ui::FormatPhone
+#include "app.h" // App::quitting
 
 namespace Api {
 namespace {
@@ -1054,7 +1056,7 @@ void Updates::applyUpdatesNoPtsCheck(const MTPUpdates &updates) {
 				//MTPMessageReactions(),
 				MTPVector<MTPRestrictionReason>(),
 				MTP_int(d.vttl_period().value_or_empty())),
-			MTPDmessage_ClientFlags(),
+			MessageFlags(),
 			NewMessageType::Unread);
 	} break;
 
@@ -1085,7 +1087,7 @@ void Updates::applyUpdatesNoPtsCheck(const MTPUpdates &updates) {
 				//MTPMessageReactions(),
 				MTPVector<MTPRestrictionReason>(),
 				MTP_int(d.vttl_period().value_or_empty())),
-			MTPDmessage_ClientFlags(),
+			MessageFlags(),
 			NewMessageType::Unread);
 	} break;
 
@@ -1114,7 +1116,7 @@ void Updates::applyUpdateNoPtsCheck(const MTPUpdate &update) {
 		if (needToAdd) {
 			_session->data().addNewMessage(
 				d.vmessage(),
-				MTPDmessage_ClientFlags(),
+				MessageFlags(),
 				NewMessageType::Unread);
 		}
 	} break;
@@ -1208,7 +1210,7 @@ void Updates::applyUpdateNoPtsCheck(const MTPUpdate &update) {
 		if (needToAdd) {
 			_session->data().addNewMessage(
 				d.vmessage(),
-				MTPDmessage_ClientFlags(),
+				MessageFlags(),
 				NewMessageType::Unread);
 		}
 	} break;
@@ -1844,7 +1846,7 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 						|| user->isSelf()
 						|| user->phone().isEmpty())
 						? QString()
-						: App::formatPhone(user->phone())),
+						: Ui::FormatPhone(user->phone())),
 					user->username);
 
 				session().changes().peerUpdated(
@@ -1953,13 +1955,10 @@ void Updates::feedUpdate(const MTPUpdate &update) {
 			}
 			return true;
 		};
-		if (const auto key = ApiWrap::Privacy::KeyFromMTP(d.vkey().type())) {
-			if (allLoaded()) {
-				session().api().handlePrivacyChange(*key, d.vrules());
-			} else {
-				session().api().reloadPrivacy(*key);
-			}
-		}
+		session().api().userPrivacy().apply(
+			d.vkey().type(),
+			d.vrules(),
+			allLoaded());
 	} break;
 
 	case mtpc_updatePinnedDialogs: {

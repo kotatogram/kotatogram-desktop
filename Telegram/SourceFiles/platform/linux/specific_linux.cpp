@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/base_platform_info.h"
 #include "base/platform/linux/base_linux_glibmm_helper.h"
 #include "base/platform/linux/base_linux_gtk_integration.h"
+#include "ui/platform/linux/ui_linux_wayland_integration.h"
 #include "platform/linux/linux_desktop_environment.h"
 #include "platform/linux/linux_gtk_integration.h"
 #include "platform/linux/linux_wayland_integration.h"
@@ -60,6 +61,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 using namespace Platform;
 using BaseGtkIntegration = base::Platform::GtkIntegration;
+using UiWaylandIntegration = Ui::Platform::WaylandIntegration;
 using Platform::internal::WaylandIntegration;
 using Platform::internal::GtkIntegration;
 
@@ -715,7 +717,7 @@ void InstallLauncher(bool force) {
 
 	const auto icon = icons + kIconName.utf16() + qsl(".png");
 	auto iconExists = QFile::exists(icon);
-	if (Local::oldSettingsVersion() < 10021 && iconExists) {
+	if (Local::oldSettingsVersion() < 2008012 && iconExists) {
 		// Icon was changed.
 		if (QFile::remove(icon)) {
 			iconExists = false;
@@ -800,7 +802,7 @@ void start() {
 	}
 
 	// wait for interface announce to know if native window frame is supported
-	if (const auto integration = WaylandIntegration::Instance()) {
+	if (const auto integration = UiWaylandIntegration::Instance()) {
 		integration->waitForInterfaceAnnounce();
 	}
 

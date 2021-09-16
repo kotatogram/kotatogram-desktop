@@ -118,23 +118,33 @@ public:
 
 	HistoryItem *addNewMessage(
 		const MTPMessage &msg,
-		MTPDmessage_ClientFlags clientFlags,
+		MessageFlags localFlags,
 		NewMessageType type);
 	HistoryItem *addToHistory(
 		const MTPMessage &msg,
-		MTPDmessage_ClientFlags clientFlags);
+		MessageFlags localFlags);
 	not_null<HistoryItem*> addNewLocalMessage(
 		MsgId id,
-		MTPDmessage::Flags flags,
-		MTPDmessage_ClientFlags clientFlags,
+		MessageFlags flags,
+		UserId viaBotId,
+		MsgId replyTo,
+		TimeId date,
+		PeerId from,
+		const QString &postAuthor,
+		const TextWithEntities &text,
+		const MTPMessageMedia &media,
+		const MTPReplyMarkup &markup,
+		uint64 groupedId = 0);
+	not_null<HistoryItem*> addNewLocalMessage(
+		MsgId id,
+		MessageFlags flags,
 		TimeId date,
 		PeerId from,
 		const QString &postAuthor,
 		not_null<HistoryMessage*> forwardOriginal);
 	not_null<HistoryItem*> addNewLocalMessage(
 		MsgId id,
-		MTPDmessage::Flags flags,
-		MTPDmessage_ClientFlags clientFlags,
+		MessageFlags flags,
 		UserId viaBotId,
 		MsgId replyTo,
 		TimeId date,
@@ -146,8 +156,7 @@ public:
 		uint64 newGroupId = 0);
 	not_null<HistoryItem*> addNewLocalMessage(
 		MsgId id,
-		MTPDmessage::Flags flags,
-		MTPDmessage_ClientFlags clientFlags,
+		MessageFlags flags,
 		UserId viaBotId,
 		MsgId replyTo,
 		TimeId date,
@@ -159,8 +168,7 @@ public:
 		uint64 newGroupId = 0);
 	not_null<HistoryItem*> addNewLocalMessage(
 		MsgId id,
-		MTPDmessage::Flags flags,
-		MTPDmessage_ClientFlags clientFlags,
+		MessageFlags flags,
 		UserId viaBotId,
 		MsgId replyTo,
 		TimeId date,
@@ -172,7 +180,7 @@ public:
 	// Used only internally and for channel admin log.
 	HistoryItem *createItem(
 		const MTPMessage &message,
-		MTPDmessage_ClientFlags clientFlags,
+		MessageFlags localFlags,
 		bool detachExistingItem);
 	std::vector<not_null<HistoryItem*>> createItems(
 		const QVector<MTPMessage> &data);
