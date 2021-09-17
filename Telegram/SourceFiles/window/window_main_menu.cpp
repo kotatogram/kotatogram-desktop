@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/menu/menu.h"
@@ -91,7 +92,7 @@ constexpr auto kMinDiffIntensity = 0.25;
 	const auto background = Window::Theme::Background();
 	return background->tile()
 		|| background->colorForFill().has_value()
-		|| background->isMonoColorImage()
+		|| !background->gradientForFill().isNull()
 		|| background->paper().isPattern()
 		|| Data::IsLegacy1DefaultWallPaper(background->paper());
 }
@@ -1008,12 +1009,26 @@ void MainMenu::refreshMenu() {
 }
 
 void MainMenu::refreshBackground() {
-	const auto fill = QRect(0, 0, width(), st::mainMenuCoverHeight);
+	const auto fill = QSize(st::mainMenuWidth, st::mainMenuCoverHeight);
 	const auto intensityText = IntensityOfColor(st::mainMenuCoverFg->c);
-	QImage backgroundImage(
-		st::mainMenuWidth * cIntRetinaFactor(),
-		st::mainMenuCoverHeight * cIntRetinaFactor(),
-		QImage::Format_ARGB32_Premultiplied);
+	const auto background = Window::Theme::Background();
+	const auto &paper = background->paper();
+	const auto &prepared = background->prepared();
+
+	const auto rects = Ui::ComputeChatBackgroundRects(
+		fill,
+		prepared.size());
+
+	auto backgroundImage = paper.isPattern()
+		? Ui::GenerateBackgroundImage(
+			fill * cIntRetinaFactor(),
+			paper.backgroundColors(),
+			paper.gradientRotation(),
+			paper.patternOpacity(),
+			[&](QPainter &p) { p.drawImage(rects.to, prepared, rects.from); })
+		: QImage(
+			fill * cIntRetinaFactor(),
+			QImage::Format_ARGB32_Premultiplied);
 	QPainter p(&backgroundImage);
 
 	const auto drawShadow = [](QPainter &p) {
@@ -1028,9 +1043,9 @@ void MainMenu::refreshBackground() {
 	};
 
 	// Solid color.
-	if (const auto color = Window::Theme::Background()->colorForFill()) {
+	if (const auto color = background->colorForFill()) {
 		const auto intensity = IntensityOfColor(*color);
-		p.fillRect(fill, *color);
+		p.fillRect(QRect(QPoint(), fill), *color);
 		if (std::abs(intensity - intensityText) < kMinDiffIntensity) {
 			drawShadow(p);
 		}
@@ -1039,9 +1054,9 @@ void MainMenu::refreshBackground() {
 	}
 
 	// Background image.
-	const auto &pixmap = Window::Theme::Background()->pixmap();
-	QRect to, from;
-	Window::Theme::ComputeBackgroundRects(fill, pixmap.size(), to, from);
+	if (!paper.isPattern()) {
+		p.drawImage(rects.to, prepared, rects.from);
+	}
 
 	// Cut off the part of the background that is under text.
 	const QRect underText(
@@ -1052,8 +1067,6 @@ void MainMenu::refreshBackground() {
 				_controller->session().user()->nameText().toString()),
 			st::normalFont->width(_phoneText)),
 		st::semiboldFont->height * 2);
-
-	p.drawPixmap(to, pixmap, from);
 	if (IsShadowShown(backgroundImage, underText, intensityText)) {
 		drawShadow(p);
 	}
@@ -1206,11 +1219,7 @@ void MainMenu::initResetScaleButton() {
 		return rpl::single(
 			screen->availableGeometry()
 		) | rpl::then(
-#ifdef OS_MAC_OLD
-			base::qt_signal_producer(screen, &QScreen::virtualGeometryChanged)
-#else // OS_MAC_OLD
 			base::qt_signal_producer(screen, &QScreen::availableGeometryChanged)
-#endif // OS_MAC_OLD
 		);
 	}) | rpl::flatten_latest(
 	) | rpl::map([](QRect available) {

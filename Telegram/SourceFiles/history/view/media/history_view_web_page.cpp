@@ -16,12 +16,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_cursor_state.h"
 #include "history/view/media/history_view_media_common.h"
+#include "history/view/media/history_view_theme_document.h"
 #include "ui/image/image.h"
 #include "ui/text/text_options.h"
 #include "ui/text/format_values.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/cached_round_corners.h"
 #include "layout/layout_selection.h" // FullSelection
 #include "data/data_session.h"
+#include "data/data_wall_paper.h"
 #include "data/data_media_types.h"
 #include "data/data_web_page.h"
 #include "data/data_photo.h"
@@ -454,12 +457,12 @@ void WebPage::unloadHeavyPart() {
 	_photoMedia = nullptr;
 }
 
-void WebPage::draw(Painter &p, const QRect &r, TextSelection selection, crl::time ms) const {
+void WebPage::draw(Painter &p, const PaintContext &context) const {
 	if (width() < st::msgPadding.left() + st::msgPadding.right() + 1) return;
 	auto paintw = width();
 
 	auto outbg = _parent->hasOutLayout();
-	bool selected = (selection == FullSelection);
+	bool selected = (context.selection == FullSelection);
 
 	auto &barfg = selected ? (outbg ? st::msgOutReplyBarSelColor : st::msgInReplyBarSelColor) : (outbg ? st::msgOutReplyBarColor : st::msgInReplyBarColor);
 	auto &semibold = selected ? (outbg ? st::msgOutServiceFgSelected : st::msgInServiceFgSelected) : (outbg ? st::msgOutServiceFg : st::msgInServiceFg);
@@ -518,7 +521,7 @@ void WebPage::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 		if (_siteName.hasSkipBlock()) {
 			endskip = _parent->skipBlockWidth();
 		}
-		_siteName.drawLeftElided(p, padding.left(), tshift, paintw, width(), _siteNameLines, style::al_left, 0, -1, endskip, false, selection);
+		_siteName.drawLeftElided(p, padding.left(), tshift, paintw, width(), _siteNameLines, style::al_left, 0, -1, endskip, false, context.selection);
 		tshift += lineHeight;
 	}
 	if (_titleLines) {
@@ -527,7 +530,7 @@ void WebPage::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 		if (_title.hasSkipBlock()) {
 			endskip = _parent->skipBlockWidth();
 		}
-		_title.drawLeftElided(p, padding.left(), tshift, paintw, width(), _titleLines, style::al_left, 0, -1, endskip, false, toTitleSelection(selection));
+		_title.drawLeftElided(p, padding.left(), tshift, paintw, width(), _titleLines, style::al_left, 0, -1, endskip, false, toTitleSelection(context.selection));
 		tshift += _titleLines * lineHeight;
 	}
 	if (_descriptionLines) {
@@ -537,10 +540,10 @@ void WebPage::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 			endskip = _parent->skipBlockWidth();
 		}
 		if (_descriptionLines > 0) {
-			_description.drawLeftElided(p, padding.left(), tshift, paintw, width(), _descriptionLines, style::al_left, 0, -1, endskip, false, toDescriptionSelection(selection));
+			_description.drawLeftElided(p, padding.left(), tshift, paintw, width(), _descriptionLines, style::al_left, 0, -1, endskip, false, toDescriptionSelection(context.selection));
 			tshift += _descriptionLines * lineHeight;
 		} else {
-			_description.drawLeft(p, padding.left(), tshift, paintw, width(), style::al_left, 0, -1, toDescriptionSelection(selection));
+			_description.drawLeft(p, padding.left(), tshift, paintw, width(), style::al_left, 0, -1, toDescriptionSelection(context.selection));
 			tshift += _description.countHeight(paintw);
 		}
 	}
@@ -554,8 +557,9 @@ void WebPage::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 
 		p.translate(attachLeft, attachTop);
 
-		auto attachSelection = selected ? FullSelection : TextSelection { 0, 0 };
-		_attach->draw(p, r.translated(-attachLeft, -attachTop), attachSelection, ms);
+		auto attachContext = context.translated(-attachLeft, -attachTop);
+		attachContext.selection = selected ? FullSelection : TextSelection { 0, 0 };
+		_attach->draw(p, attachContext);
 		auto pixwidth = _attach->width();
 		auto pixheight = _attach->height();
 
@@ -715,6 +719,8 @@ ClickHandlerPtr WebPage::replaceAttachLink(
 		} else {
 			return _openl;
 		}
+	} else if (ThemeDocument::ParamsFromUrl(_data->url).has_value()) {
+		return _openl;
 	}
 	return link;
 }

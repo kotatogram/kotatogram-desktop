@@ -7,13 +7,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
-#include <rpl/variable.h>
 #include "base/flags.h"
 #include "base/object_ptr.h"
 #include "base/weak_ptr.h"
 #include "base/timer.h"
 #include "dialogs/dialogs_key.h"
-#include "ui/effects/animation_value.h"
 #include "ui/layers/layer_widget.h"
 #include "window/window_adaptive.h"
 
@@ -47,7 +45,15 @@ class FormController;
 namespace Ui {
 class LayerWidget;
 enum class ReportReason;
+class ChatStyle;
+class ChatTheme;
+struct ChatPaintContext;
+struct ChatThemeBackground;
 } // namespace Ui
+
+namespace Data {
+struct CloudTheme;
+} // namespace Data
 
 namespace Window {
 
@@ -226,7 +232,6 @@ private:
 	MsgId _showingRepliesRootId = 0;
 	mtpRequestId _showingRepliesRequestId = 0;
 
-
 };
 
 class SessionController : public SessionNavigation {
@@ -290,11 +295,11 @@ public:
 	void floatPlayerAreaUpdated();
 
 	struct ColumnLayout {
-		int bodyWidth;
-		int dialogsWidth;
-		int chatWidth;
-		int thirdWidth;
-		Adaptive::WindowLayout windowLayout;
+		int bodyWidth = 0;
+		int dialogsWidth = 0;
+		int chatWidth = 0;
+		int thirdWidth = 0;
+		Adaptive::WindowLayout windowLayout = Adaptive::WindowLayout();
 	};
 	[[nodiscard]] ColumnLayout computeColumnLayout() const;
 	int dialogsSmallColumnWidth() const;
@@ -395,11 +400,32 @@ public:
 	void reloadFiltersMenu();
 	[[nodiscard]] rpl::producer<> filtersMenuChanged() const;
 
+	[[nodiscard]] auto defaultChatTheme() const
+	-> const std::shared_ptr<Ui::ChatTheme> & {
+		return _defaultChatTheme;
+	}
+	[[nodiscard]] auto cachedChatThemeValue(
+		const Data::CloudTheme &data)
+	-> rpl::producer<std::shared_ptr<Ui::ChatTheme>>;
+	void setChatStyleTheme(const std::shared_ptr<Ui::ChatTheme> &theme);
+
+	struct PaintContextArgs {
+		not_null<Ui::ChatTheme*> theme;
+		int visibleAreaTop = 0;
+		int visibleAreaTopGlobal = 0;
+		int visibleAreaWidth = 0;
+		QRect clip;
+	};
+	[[nodiscard]] Ui::ChatPaintContext preparePaintContext(
+		PaintContextArgs &&args);
+
 	rpl::lifetime &lifetime() {
 		return _lifetime;
 	}
 
 private:
+	struct CachedTheme;
+
 	void init();
 	void initSupportMode();
 	void refreshFiltersMenu();
@@ -423,6 +449,14 @@ private:
 	void resetFakeUnreadWhileOpened();
 
 	void checkInvitePeek();
+
+	void pushDefaultChatBackground();
+	void cacheChatTheme(const Data::CloudTheme &data);
+	void cacheChatThemeDone(std::shared_ptr<Ui::ChatTheme> result);
+	void updateCustomThemeBackground(CachedTheme &theme);
+	[[nodiscard]] Fn<Ui::ChatThemeBackground()> backgroundGenerator(
+		CachedTheme &theme,
+		bool generateGradient = true);
 
 	const not_null<Controller*> _window;
 
@@ -450,6 +484,12 @@ private:
 	rpl::variable<Data::Folder*> _openedFolder;
 
 	rpl::event_stream<> _filtersMenuChanged;
+
+	std::shared_ptr<Ui::ChatTheme> _defaultChatTheme;
+	base::flat_map<uint64, CachedTheme> _customChatThemes;
+	rpl::event_stream<std::shared_ptr<Ui::ChatTheme>> _cachedThemesStream;
+	std::unique_ptr<Ui::ChatStyle> _chatStyle;
+	std::weak_ptr<Ui::ChatTheme> _chatStyleTheme;
 
 	rpl::lifetime _lifetime;
 

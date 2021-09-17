@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toasts/common_toasts.h"
 #include "lang/lang_keys.h"
 #include "boxes/share_box.h"
+#include "history/history.h"
 #include "history/history_message.h" // GetErrorTextForSending.
 #include "data/data_histories.h"
 #include "data/data_session.h"
@@ -129,7 +130,8 @@ object_ptr<ShareBox> ShareInviteLinkBox(
 	auto submitCallback = [=](
 			std::vector<not_null<PeerData*>> &&result,
 			TextWithTags &&comment,
-			Api::SendOptions options) {
+			Api::SendOptions options,
+			Data::ForwardDraft&&) {
 		if (*sending || result.empty()) {
 			return;
 		}

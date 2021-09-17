@@ -13,6 +13,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_cursor_state.h"
 #include "calls/calls_instance.h"
+#include "ui/chat/message_bubble.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
 #include "ui/text/format_values.h"
@@ -720,15 +722,15 @@ void Poll::updateAnswerVotes() {
 	}
 }
 
-void Poll::draw(Painter &p, const QRect &r, TextSelection selection, crl::time ms) const {
+void Poll::draw(Painter &p, const PaintContext &context) const {
 	if (width() < st::msgPadding.left() + st::msgPadding.right() + 1) return;
 	auto paintw = width();
 
 	checkSendingAnimation();
-	_poll->checkResultsReload(_parent->data(), ms);
+	_poll->checkResultsReload(_parent->data(), context.now);
 
 	const auto outbg = _parent->hasOutLayout();
-	const auto selected = (selection == FullSelection);
+	const auto selected = (context.selection == FullSelection);
 	const auto &regular = selected ? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected) : (outbg ? st::msgOutDateFg : st::msgInDateFg);
 
 	const auto padding = st::msgPadding;
@@ -739,14 +741,14 @@ void Poll::draw(Painter &p, const QRect &r, TextSelection selection, crl::time m
 	paintw -= padding.left() + padding.right();
 
 	p.setPen(outbg ? st::webPageTitleOutFg : st::webPageTitleInFg);
-	_question.drawLeft(p, padding.left(), tshift, paintw, width(), style::al_left, 0, -1, selection);
+	_question.drawLeft(p, padding.left(), tshift, paintw, width(), style::al_left, 0, -1, context.selection);
 	tshift += _question.countHeight(paintw) + st::historyPollSubtitleSkip;
 
 	p.setPen(regular);
 	_subtitle.drawLeftElided(p, padding.left(), tshift, paintw, width());
-	paintRecentVoters(p, padding.left() + _subtitle.maxWidth(), tshift, selection);
-	paintCloseByTimer(p, padding.left() + paintw, tshift, selection);
-	paintShowSolution(p, padding.left() + paintw, tshift, selection);
+	paintRecentVoters(p, padding.left() + _subtitle.maxWidth(), tshift, context);
+	paintCloseByTimer(p, padding.left() + paintw, tshift, context.selection);
+	paintShowSolution(p, padding.left() + paintw, tshift, context.selection);
 	tshift += st::msgDateFont->height + st::historyPollAnswersSkip;
 
 	const auto progress = _answersAnimation
@@ -778,14 +780,14 @@ void Poll::draw(Painter &p, const QRect &r, TextSelection selection, crl::time m
 			tshift,
 			paintw,
 			width(),
-			selection);
+			context.selection);
 		tshift += height;
 	}
 	if (!inlineFooter()) {
-		paintBottom(p, padding.left(), tshift, paintw, selection);
+		paintBottom(p, padding.left(), tshift, paintw, context.selection);
 	} else if (!_totalVotesLabel.isEmpty()) {
 		tshift += st::msgPadding.bottom();
-		paintInlineFooter(p, padding.left(), tshift, paintw, selection);
+		paintInlineFooter(p, padding.left(), tshift, paintw, context.selection);
 	}
 }
 
@@ -869,7 +871,7 @@ void Poll::paintRecentVoters(
 		Painter &p,
 		int left,
 		int top,
-		TextSelection selection) const {
+		const PaintContext &context) const {
 	const auto count = int(_recentVoters.size());
 	if (!count) {
 		return;
@@ -880,7 +882,7 @@ void Poll::paintRecentVoters(
 	auto y = top;
 	const auto size = st::historyPollRecentVoterSize;
 	const auto outbg = _parent->hasOutLayout();
-	const auto selected = (selection == FullSelection);
+	const auto selected = (context.selection == FullSelection);
 	auto pen = (selected
 		? (outbg ? st::msgOutBgSelected : st::msgInBgSelected)
 		: (outbg ? st::msgOutBg : st::msgInBg))->p;
@@ -893,30 +895,46 @@ void Poll::paintRecentVoters(
 		if (!was && recent.userpic) {
 			created = true;
 		}
-		p.setPen(pen);
-		p.setBrush(Qt::NoBrush);
-		PainterHighQualityEnabler hq(p);
-		switch (cUserpicCornersType()) {
-			case 0:
-				p.drawRoundedRect(
-					QRect{ x, y, size, size },
-					0, 0);
-				break;
+		const auto paintContent = [&](Painter &p) {
+			p.setPen(pen);
+			p.setBrush(Qt::NoBrush);
+			PainterHighQualityEnabler hq(p);
+			switch (cUserpicCornersType()) {
+				case 0:
+					p.drawRoundedRect(
+						QRect{ x, y, size, size },
+						0, 0);
+					break;
 
-			case 1:
-				p.drawRoundedRect(
-					QRect{ x, y, size, size },
-					st::buttonRadius, st::buttonRadius);
-				break;
+				case 1:
+					p.drawRoundedRect(
+						QRect{ x, y, size, size },
+						st::buttonRadius, st::buttonRadius);
+					break;
 
-			case 2:
-				p.drawRoundedRect(
-					QRect{ x, y, size, size },
-					st::dateRadius, st::dateRadius);
-				break;
+				case 2:
+					p.drawRoundedRect(
+						QRect{ x, y, size, size },
+						st::dateRadius, st::dateRadius);
+					break;
 
-			default:
-				p.drawEllipse(x, y, size, size);
+				default:
+					p.drawEllipse(x, y, size, size);
+			}
+		};
+		if (usesBubblePattern(context)) {
+			const auto add = st::lineWidth * 2;
+			const auto target = QRect(x, y, size, size).marginsAdded(
+				{ add, add, add, add });
+			Ui::PaintPatternBubblePart(
+				p,
+				context.viewport,
+				context.bubblesPattern->pixmap,
+				target,
+				paintContent,
+				_userpicCircleCache);
+		} else {
+			paintContent(p);
 		}
 		x -= st::historyPollRecentVoterSkip;
 	}

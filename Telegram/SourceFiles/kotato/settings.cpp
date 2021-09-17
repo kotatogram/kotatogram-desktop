@@ -257,11 +257,6 @@ QString gApiHash;
 bool gUseEnvApi = true;
 bool gApiFromStartParams = false;
 
-bool gForwardQuoted = true;
-bool gForwardCaptioned = true;
-bool gForwardAlbumsAsIs = true;
-bool gForwardGrouped = false;
-
 bool gAutoScrollUnfocused = false;
 
 LocalFolderVector gLocalFolders;

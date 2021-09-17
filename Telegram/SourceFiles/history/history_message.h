@@ -135,7 +135,10 @@ public:
 	void setForwardsCount(int count) override;
 	void setReplies(const MTPMessageReplies &data) override;
 	void clearReplies() override;
-	void changeRepliesCount(int delta, PeerId replier) override;
+	void changeRepliesCount(
+		int delta,
+		PeerId replier,
+		std::optional<bool> unread) override;
 	void setReplyToTop(MsgId replyToTop) override;
 	void setPostAuthor(const QString &author) override;
 	void setRealId(MsgId newId) override;
@@ -183,7 +186,9 @@ public:
 	[[nodiscard]] bool externalReply() const override;
 
 	[[nodiscard]] MsgId repliesInboxReadTill() const override;
-	void setRepliesInboxReadTill(MsgId readTillId) override;
+	void setRepliesInboxReadTill(
+		MsgId readTillId,
+		std::optional<int> unreadCount) override;
 	[[nodiscard]] MsgId computeRepliesInboxReadTillFull() const override;
 	[[nodiscard]] MsgId repliesOutboxReadTill() const override;
 	void setRepliesOutboxReadTill(MsgId readTillId) override;
@@ -252,6 +257,9 @@ private:
 	void refreshRepliesText(
 		not_null<HistoryMessageViews*> views,
 		bool forceResize = false);
+	void setUnreadRepliesCount(
+		not_null<HistoryMessageViews*> views,
+		int count);
 
 	static void FillForwardedInfo(
 		CreateConfig &config,

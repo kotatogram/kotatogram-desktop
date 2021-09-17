@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_service_message.h"
 #include "history/view/history_view_cursor_state.h"
 #include "history/view/history_view_context_menu.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/image/image.h"
 #include "ui/toast/toast.h"
@@ -162,6 +163,14 @@ HistoryInner::HistoryInner(
 , _scrollDateCheck([this] { scrollDateCheck(); })
 , _scrollDateHideTimer([this] { scrollDateHideByTimer(); }) {
 	Instance = this;
+
+	Window::ChatThemeValueFromPeer(
+		controller,
+		_peer
+	) | rpl::start_with_next([=](std::shared_ptr<Ui::ChatTheme> &&theme) {
+		_theme = std::move(theme);
+		controller->setChatStyleTheme(_theme);
+	}, lifetime());
 
 	_touchSelectTimer.setSingleShot(true);
 	connect(&_touchSelectTimer, SIGNAL(timeout()), this, SLOT(onTouchSelect()));
@@ -561,7 +570,6 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 
 	Painter p(this);
 	auto clip = e->rect();
-	auto ms = crl::now();
 
 	const auto historyDisplayedEmpty = _history->isDisplayedEmpty()
 		&& (!_migrated || _migrated->isDisplayedEmpty());
@@ -603,6 +611,8 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 		} else {
 			seltoy += _dragSelTo->height();
 		}
+		const auto visibleAreaTopGlobal = mapToGlobal(
+			QPoint(0, _visibleAreaTop)).y();
 
 		auto mtop = migratedTop();
 		auto htop = historyTop();
@@ -614,15 +624,20 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 			auto view = block->messages[iItem].get();
 			auto item = view->data();
 
-			auto y = mtop + block->y() + view->y();
-			p.save();
-			p.translate(0, y);
-			if (clip.y() < y + view->height()) while (y < drawToY) {
-				const auto selection = itemRenderSelection(
+			auto top = mtop + block->y() + view->y();
+			auto context = _controller->preparePaintContext({
+				.theme = _theme.get(),
+				.visibleAreaTop = _visibleAreaTop,
+				.visibleAreaTopGlobal = visibleAreaTopGlobal,
+				.clip = clip,
+			}).translated(0, -top);
+			p.translate(0, top);
+			if (context.clip.y() < view->height()) while (top < drawToY) {
+				context.selection = itemRenderSelection(
 					view,
 					selfromy - mtop,
 					seltoy - mtop);
-				view->draw(p, clip.translated(0, -y), selection, ms);
+				view->draw(p, context);
 
 				if (item->hasViews()) {
 					_controller->content()->scheduleViewIncrement(item);
@@ -632,9 +647,10 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 					_widget->enqueueMessageHighlight(view);
 				}
 
-				int32 h = view->height();
-				p.translate(0, h);
-				y += h;
+				const auto height = view->height();
+				top += height;
+				context.translate(0, -height);
+				p.translate(0, height);
 
 				++iItem;
 				if (iItem == block->messages.size()) {
@@ -648,7 +664,7 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 				view = block->messages[iItem].get();
 				item = view->data();
 			}
-			p.restore();
+			p.translate(0, -top);
 		}
 		if (htop >= 0) {
 			auto iBlock = (_curHistory == _history ? _curBlock : 0);
@@ -657,21 +673,28 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 			auto view = block->messages[iItem].get();
 			auto item = view->data();
 			auto readTill = (HistoryItem*)nullptr;
-			auto hclip = clip.intersected(QRect(0, hdrawtop, width(), clip.top() + clip.height()));
-			auto y = htop + block->y() + view->y();
-			p.save();
-			p.translate(0, y);
-			while (y < drawToY) {
-				const auto h = view->height();
-				if (hclip.y() < y + h && hdrawtop < y + h) {
-					const auto selection = itemRenderSelection(
+			auto top = htop + block->y() + view->y();
+			auto context = _controller->preparePaintContext({
+				.theme = _theme.get(),
+				.visibleAreaTop = _visibleAreaTop,
+				.visibleAreaTopGlobal = visibleAreaTopGlobal,
+				.visibleAreaWidth = width(),
+				.clip = clip.intersected(
+					QRect(0, hdrawtop, width(), clip.top() + clip.height())
+				),
+			}).translated(0, -top);
+			p.translate(0, top);
+			while (top < drawToY) {
+				const auto height = view->height();
+				if (context.clip.y() < height && hdrawtop < top + height) {
+					context.selection = itemRenderSelection(
 						view,
 						selfromy - htop,
 						seltoy - htop);
-					view->draw(p, hclip.translated(0, -y), selection, ms);
+					view->draw(p, context);
 
-					const auto middle = y + h / 2;
-					const auto bottom = y + h;
+					const auto middle = top + height / 2;
+					const auto bottom = top + height;
 					if (_visibleAreaBottom >= bottom) {
 						const auto item = view->data();
 						if (!item->out() && item->unread()) {
@@ -689,8 +712,9 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 						}
 					}
 				}
-				p.translate(0, h);
-				y += h;
+				top += height;
+				context.translate(0, -height);
+				p.translate(0, height);
 
 				++iItem;
 				if (iItem == block->messages.size()) {
@@ -704,7 +728,7 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 				view = block->messages[iItem].get();
 				item = view->data();
 			}
-			p.restore();
+			p.translate(0, -top);
 
 			if (readTill && _widget->doWeReadServerHistory()) {
 				session().data().histories().readInboxTill(readTill);
@@ -3180,6 +3204,10 @@ void HistoryInner::addToSelection(
 		not_null<HistoryItem*> item) const {
 	const auto i = toItems->find(item);
 	if (i == toItems->cend()) {
+		if (toItems->size() == 1
+			&& toItems->begin()->second != FullSelection) {
+			toItems->clear();
+		}
 		toItems->emplace(item, FullSelection);
 	} else if (i->second != FullSelection) {
 		i->second = FullSelection;

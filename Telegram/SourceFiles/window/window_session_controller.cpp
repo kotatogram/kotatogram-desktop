@@ -18,7 +18,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/info_controller.h"
 #include "history/history.h"
 #include "history/history_item.h"
-#include "history/view/history_view_element.h"
 #include "history/view/history_view_replies_section.h"
 #include "media/player/media_player_instance.h"
 #include "media/view/media_view_open_common.h"
@@ -29,6 +28,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_channel.h"
 #include "data/data_chat.h"
 #include "data/data_user.h"
+#include "data/data_document.h"
+#include "data/data_document_media.h"
+#include "data/data_document_resolver.h"
 #include "data/data_changes.h"
 #include "data/data_group_call.h"
 #include "data/data_chat_filters.h"
@@ -42,6 +44,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/delayed_activation.h"
+#include "ui/chat/message_bubble.h"
+#include "ui/chat/chat_style.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/toast/toast.h"
 #include "ui/toasts/common_toasts.h"
 #include "calls/calls_instance.h" // Core::App().calls().inCall().
@@ -60,14 +65,45 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "support/support_helper.h"
 #include "storage/file_upload.h"
 #include "facades.h"
+#include "window/themes/window_theme.h"
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h" // st::boxLabel
+#include "styles/style_chat.h" // st::historyMessageRadius
 
 namespace Window {
 namespace {
 
 constexpr auto kMaxChatEntryHistorySize = 50;
+
+[[nodiscard]] Fn<void(style::palette&)> PreparePaletteCallback(
+		bool dark,
+		std::optional<QColor> accent) {
+	return [=](style::palette &palette) {
+		using namespace Theme;
+		palette.finalize();
+		if (dark) {
+			const auto &embedded = EmbeddedThemes();
+			const auto i = ranges::find(
+				embedded,
+				EmbeddedType::Night,
+				&EmbeddedScheme::type);
+			Assert(i != end(embedded));
+
+			auto instance = Instance();
+			const auto loaded = LoadFromFile(
+				i->path,
+				&instance,
+				nullptr,
+				nullptr,
+				accent ? ColorizerFrom(*i, *accent) : Colorizer());
+			Assert(loaded);
+			palette = instance.palette;
+		} else {
+			// #TODO themes apply accent color to classic theme
+		}
+	};
+}
 
 } // namespace
 
@@ -226,8 +262,9 @@ void SessionNavigation::showPeerByLinkResolved(
 				return;
 			}
 			const auto id = call->id();
+			const auto limit = 3;
 			_resolveRequestId = _session->api().request(
-				MTPphone_GetGroupCall(call->input())
+				MTPphone_GetGroupCall(call->input(), MTP_int(limit))
 			).done([=](const MTPphone_GroupCall &result) {
 				if (const auto now = peer->groupCall()
 					; now && now->id() == id) {
@@ -385,7 +422,8 @@ void SessionNavigation::showRepliesForMessage(
 					item->setRepliesMaxId(maxId->v);
 				}
 				item->setRepliesInboxReadTill(
-					data.vread_inbox_max_id().value_or_empty());
+					data.vread_inbox_max_id().value_or_empty(),
+					data.vunread_count().v);
 				item->setRepliesOutboxReadTill(
 					data.vread_outbox_max_id().value_or_empty());
 				const auto post = _session->data().message(channelId, rootId);
@@ -395,7 +433,8 @@ void SessionNavigation::showRepliesForMessage(
 						post->setRepliesMaxId(maxId->v);
 					}
 					post->setRepliesInboxReadTill(
-						data.vread_inbox_max_id().value_or_empty());
+						data.vread_inbox_max_id().value_or_empty(),
+						data.vunread_count().v);
 					post->setRepliesOutboxReadTill(
 						data.vread_outbox_max_id().value_or_empty());
 				}
@@ -477,6 +516,13 @@ void SessionNavigation::showPollResults(
 	showSection(std::make_shared<Info::Memento>(poll, contextId), params);
 }
 
+struct SessionController::CachedTheme {
+	std::shared_ptr<Ui::ChatTheme> theme;
+	std::shared_ptr<Data::DocumentMedia> media;
+	Data::WallPaper paper;
+	rpl::lifetime lifetime;
+};
+
 SessionController::SessionController(
 	not_null<Main::Session*> session,
 	not_null<Controller*> window)
@@ -486,8 +532,22 @@ SessionController::SessionController(
 	std::make_unique<ChatHelpers::TabbedSelector>(
 		_window->widget(),
 		this))
-, _invitePeekTimer([=] { checkInvitePeek(); }) {
+, _invitePeekTimer([=] { checkInvitePeek(); })
+, _defaultChatTheme(std::make_shared<Ui::ChatTheme>())
+, _chatStyle(std::make_unique<Ui::ChatStyle>()) {
 	init();
+
+	_chatStyleTheme = _defaultChatTheme;
+	_chatStyle->apply(_defaultChatTheme.get());
+
+	pushDefaultChatBackground();
+	Theme::Background()->updates(
+	) | rpl::start_with_next([=](const Theme::BackgroundUpdate &update) {
+		if (update.type == Theme::BackgroundUpdate::Type::New
+			|| update.type == Theme::BackgroundUpdate::Type::Changed) {
+			pushDefaultChatBackground();
+		}
+	}, _lifetime);
 
 	if (Media::Player::instance()->pauseGifByRoundVideo()) {
 		enableGifPauseReason(GifPauseReason::RoundPlaying);
@@ -1066,17 +1126,26 @@ void SessionController::startOrJoinGroupCall(
 		// Do you want to leave your active voice chat
 		// to join a voice chat in this group?
 		askConfirmation(
-			tr::lng_call_leave_to_other_sure(tr::now),
+			(peer->isBroadcast()
+				? tr::lng_call_leave_to_other_sure_channel
+				: tr::lng_call_leave_to_other_sure)(tr::now),
 			tr::lng_call_bar_hangup(tr::now));
 	} else if (confirm != GroupCallJoinConfirm::None
 		&& calls.inGroupCall()) {
-		if (calls.currentGroupCall()->peer() == peer) {
+		const auto now = calls.currentGroupCall()->peer();
+		if (now == peer) {
 			calls.activateCurrentCall(joinHash);
 		} else if (calls.currentGroupCall()->scheduleDate()) {
 			calls.startOrJoinGroupCall(peer, joinHash);
 		} else {
 			askConfirmation(
-				tr::lng_group_call_leave_to_other_sure(tr::now),
+				((peer->isBroadcast() && now->isBroadcast())
+					? tr::lng_group_call_leave_channel_to_other_sure_channel
+					: now->isBroadcast()
+					? tr::lng_group_call_leave_channel_to_other_sure
+					: peer->isBroadcast()
+					? tr::lng_group_call_leave_to_other_sure_channel
+					: tr::lng_group_call_leave_to_other_sure)(tr::now),
 				tr::lng_group_call_leave(tr::now));
 		}
 	} else {
@@ -1361,6 +1430,186 @@ void SessionController::openDocument(
 		this,
 		document,
 		session().data().message(contextId));
+}
+
+auto SessionController::cachedChatThemeValue(
+	const Data::CloudTheme &data)
+-> rpl::producer<std::shared_ptr<Ui::ChatTheme>> {
+	const auto key = data.id;
+	if (!key || !data.paper || data.paper->backgroundColors().empty()) {
+		return rpl::single(_defaultChatTheme);
+	}
+	const auto i = _customChatThemes.find(key);
+	if (i != end(_customChatThemes) && i->second.theme) {
+		return rpl::single(i->second.theme);
+	}
+	if (i == end(_customChatThemes)) {
+		cacheChatTheme(data);
+	}
+	using namespace rpl::mappers;
+	return rpl::single(
+		_defaultChatTheme
+	) | rpl::then(_cachedThemesStream.events(
+	) | rpl::filter([=](const std::shared_ptr<Ui::ChatTheme> &theme) {
+		return (theme->key() == key);
+	}) | rpl::take(1));
+}
+
+void SessionController::setChatStyleTheme(
+		const std::shared_ptr<Ui::ChatTheme> &theme) {
+	if (_chatStyleTheme.lock() == theme) {
+		return;
+	}
+	_chatStyleTheme = theme;
+	_chatStyle->apply(theme.get());
+}
+
+void SessionController::pushDefaultChatBackground() {
+	const auto background = Theme::Background();
+	const auto &paper = background->paper();
+	_defaultChatTheme->setBackground({
+		.prepared = background->prepared(),
+		.preparedForTiled = background->preparedForTiled(),
+		.gradientForFill = background->gradientForFill(),
+		.colorForFill = background->colorForFill(),
+		.colors = paper.backgroundColors(),
+		.patternOpacity = paper.patternOpacity(),
+		.gradientRotation = paper.gradientRotation(),
+		.isPattern = paper.isPattern(),
+		.tile = background->tile(),
+	});
+}
+
+void SessionController::cacheChatTheme(const Data::CloudTheme &data) {
+	Expects(data.id != 0);
+	Expects(data.paper.has_value());
+	Expects(!data.paper->backgroundColors().empty());
+
+	const auto key = data.id;
+	const auto document = data.paper->document();
+	const auto media = document ? document->createMediaView() : nullptr;
+	data.paper->loadDocument();
+	auto &theme = _customChatThemes.emplace(
+		key,
+		CachedTheme{ .media = media, .paper = *data.paper }).first->second;
+	auto descriptor = Ui::ChatThemeDescriptor{
+		.id = key,
+		.preparePalette = PreparePaletteCallback(
+			data.basedOnDark,
+			data.accentColor),
+		.prepareBackground = backgroundGenerator(theme),
+	};
+	crl::async([
+		this,
+		descriptor = std::move(descriptor),
+		weak = base::make_weak(this)
+	]() mutable {
+		crl::on_main(weak,[
+			this,
+			result = std::make_shared<Ui::ChatTheme>(std::move(descriptor))
+		]() mutable {
+			cacheChatThemeDone(std::move(result));
+		});
+	});
+	if (media && media->loaded(true)) {
+		theme.media = nullptr;
+	}
+}
+
+void SessionController::cacheChatThemeDone(
+		std::shared_ptr<Ui::ChatTheme> result) {
+	Expects(result != nullptr);
+
+	const auto key = result->key();
+	const auto i = _customChatThemes.find(key);
+	if (i == end(_customChatThemes)) {
+		return;
+	}
+	i->second.theme = result;
+	if (i->second.media) {
+		if (i->second.media->loaded(true)) {
+			updateCustomThemeBackground(i->second);
+		} else {
+			session().downloaderTaskFinished(
+			) | rpl::filter([=] {
+				const auto i = _customChatThemes.find(key);
+				Assert(i != end(_customChatThemes));
+				return !i->second.media || i->second.media->loaded(true);
+			}) | rpl::start_with_next([=] {
+				const auto i = _customChatThemes.find(key);
+				Assert(i != end(_customChatThemes));
+				updateCustomThemeBackground(i->second);
+			}, i->second.lifetime);
+		}
+	}
+	_cachedThemesStream.fire(std::move(result));
+}
+
+void SessionController::updateCustomThemeBackground(CachedTheme &theme) {
+	const auto guard = gsl::finally([&] {
+		theme.lifetime.destroy();
+		theme.media = nullptr;
+	});
+	if (!theme.media || !theme.theme || !theme.media->loaded(true)) {
+		return;
+	}
+	const auto key = theme.theme->key();
+	const auto weak = base::make_weak(this);
+	crl::async([=, generator = backgroundGenerator(theme, false)] {
+		crl::on_main(weak, [=, result = generator()]() mutable {
+			const auto i = _customChatThemes.find(key);
+			if (i != end(_customChatThemes)) {
+				i->second.theme->updateBackgroundImageFrom(std::move(result));
+			}
+		});
+	});
+}
+
+Fn<Ui::ChatThemeBackground()> SessionController::backgroundGenerator(
+		CachedTheme &theme,
+		bool generateGradient) {
+	const auto &paper = theme.paper;
+	const auto &media = theme.media;
+	const auto paperPath = media ? media->owner()->filepath() : QString();
+	const auto paperBytes = media ? media->bytes() : QByteArray();
+	const auto gzipSvg = media && media->owner()->isPatternWallPaperSVG();
+	const auto &colors = paper.backgroundColors();
+	const auto isPattern = paper.isPattern();
+	const auto patternOpacity = paper.patternOpacity();
+	const auto isBlurred = paper.isBlurred();
+	const auto gradientRotation = paper.gradientRotation();
+	return [=] {
+		auto result = Ui::PrepareBackgroundImage(
+			paperPath,
+			paperBytes,
+			gzipSvg,
+			colors,
+			isPattern,
+			patternOpacity,
+			isBlurred);
+		if (generateGradient) {
+			result.gradientForFill = (colors.size() > 1)
+				? Ui::GenerateDitheredGradient(colors, gradientRotation)
+				: QImage();
+			result.gradientRotation = gradientRotation;
+		}
+		return result;
+	};
+}
+
+HistoryView::PaintContext SessionController::preparePaintContext(
+		PaintContextArgs &&args) {
+	const auto visibleAreaTopLocal = content()->mapFromGlobal(
+		QPoint(0, args.visibleAreaTopGlobal)).y();
+	const auto viewport = QRect(
+		0,
+		args.visibleAreaTop - visibleAreaTopLocal,
+		args.visibleAreaWidth,
+		content()->height());
+	return args.theme->preparePaintContext(
+		_chatStyle.get(),
+		viewport,
+		args.clip);
 }
 
 SessionController::~SessionController() {

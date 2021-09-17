@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 
 #include "kotato/kotato_lang.h"
+#include "data/data_abstract_structure.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
@@ -35,6 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "api/api_updates.h"
 #include "calls/calls_instance.h"
+#include "countries/countries_manager.h"
 #include "lang/lang_file_parser.h"
 #include "lang/lang_translator.h"
 #include "lang/lang_cloud_manager.h"
@@ -42,6 +44,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_instance.h"
 #include "mainwidget.h"
 #include "core/file_utilities.h"
+#include "core/crash_reports.h"
 #include "main/main_account.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
@@ -66,6 +69,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/emoji_config.h"
 #include "ui/effects/animations.h"
+#include "ui/cached_round_corners.h"
 #include "storage/serialize_common.h"
 #include "storage/storage_domain.h"
 #include "storage/storage_databases.h"
@@ -93,6 +97,27 @@ namespace {
 constexpr auto kQuitPreventTimeoutMs = crl::time(1500);
 constexpr auto kAutoLockTimeoutLateMs = crl::time(3000);
 constexpr auto kClearEmojiImageSourceTimeout = 10 * crl::time(1000);
+
+void SetCrashAnnotationsGL() {
+#ifdef Q_OS_WIN
+	CrashReports::SetAnnotation("OpenGL ANGLE", [] {
+		if (Core::App().settings().disableOpenGL()) {
+			return "Disabled";
+		} else switch (Ui::GL::CurrentANGLE()) {
+		case Ui::GL::ANGLE::Auto: return "Auto";
+		case Ui::GL::ANGLE::D3D11: return "Direct3D 11";
+		case Ui::GL::ANGLE::D3D9: return "Direct3D 9";
+		case Ui::GL::ANGLE::D3D11on12: return "D3D11on12";
+		case Ui::GL::ANGLE::OpenGL: return "OpenGL";
+		}
+		Unexpected("Ui::GL::CurrentANGLE value in SetupANGLE.");
+	}());
+#else // Q_OS_WIN
+	CrashReports::SetAnnotation(
+		"OpenGL",
+		Core::App().settings().disableOpenGL() ? "Disabled" : "Enabled");
+#endif // Q_OS_WIN
+}
 
 } // namespace
 
@@ -194,7 +219,8 @@ Application::~Application() {
 	Ui::Emoji::Clear();
 	Media::Clip::Finish();
 
-	App::deinitMedia();
+	Ui::FinishCachedCorners();
+	Data::clearGlobalStructures();
 
 	Window::Theme::Uninitialize();
 
@@ -243,6 +269,7 @@ void Application::run() {
 
 	style::startManager(cScale());
 	Ui::InitTextOptions();
+	Ui::StartCachedCorners();
 	Ui::Emoji::Init();
 	startEmojiImageLoader();
 	startSystemDarkModeViewer();
@@ -288,7 +315,6 @@ void Application::run() {
 
 	// Depend on activeWindow() for now :(
 	startShortcuts();
-	App::initMedia();
 	startDomain();
 
 	_window->widget()->show();
@@ -310,6 +336,7 @@ void Application::run() {
 		LOG(("Shortcuts Error: %1").arg(error));
 	}
 
+	SetCrashAnnotationsGL();
 	if (!Platform::IsMac() && Ui::GL::LastCrashCheckFailed()) {
 		showOpenGLCrashNotification();
 	}
@@ -320,6 +347,14 @@ void Application::run() {
 			_mediaView->show(std::move(request));
 		}
 	}, _window->lifetime());
+
+	{
+		const auto countries = std::make_shared<Countries::Manager>(
+			_domain.get());
+		countries->lifetime().add([=] {
+			[[maybe_unused]] const auto countriesCopy = countries;
+		});
+	}
 }
 
 void Application::showOpenGLCrashNotification() {

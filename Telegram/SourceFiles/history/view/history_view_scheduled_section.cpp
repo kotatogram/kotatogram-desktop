@@ -42,16 +42,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/file_utilities.h"
 #include "main/main_session.h"
 #include "data/data_session.h"
-#include "data/data_user.h"
 #include "data/data_scheduled_messages.h"
 #include "data/data_user.h"
 #include "storage/storage_media_prepare.h"
 #include "storage/storage_account.h"
 #include "inline_bots/inline_bot_result.h"
-#include "platform/platform_specific.h"
 #include "lang/lang_keys.h"
 #include "facades.h"
-#include "app.h"
 #include "styles/style_chat.h"
 #include "styles/style_window.h"
 #include "styles/style_info.h"
@@ -92,7 +89,7 @@ ScheduledWidget::ScheduledWidget(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller,
 	not_null<History*> history)
-: Window::SectionWidget(parent, controller)
+: Window::SectionWidget(parent, controller, history->peer)
 , _history(history)
 , _scroll(this, st::historyScroll, false)
 , _topBar(this, controller)
@@ -103,6 +100,14 @@ ScheduledWidget::ScheduledWidget(
 	ComposeControls::Mode::Scheduled,
 	SendMenu::Type::PreviewOnly))
 , _scrollDown(_scroll, st::historyToDown) {
+	Window::ChatThemeValueFromPeer(
+		controller,
+		history->peer
+	) | rpl::start_with_next([=](std::shared_ptr<Ui::ChatTheme> &&theme) {
+		_theme = std::move(theme);
+		controller->setChatStyleTheme(_theme);
+	}, lifetime());
+
 	const auto state = Dialogs::EntryState{
 		.key = _history,
 		.section = Dialogs::EntryState::Section::Scheduled,
@@ -315,15 +320,12 @@ void ScheduledWidget::chooseAttach() {
 		}
 
 		if (!result.remoteContent.isEmpty()) {
-			auto animated = false;
-			auto image = App::readImage(
-				result.remoteContent,
-				nullptr,
-				false,
-				&animated);
-			if (!image.isNull() && !animated) {
+			auto read = Images::Read({
+				.content = result.remoteContent,
+			});
+			if (!read.image.isNull() && !read.animated) {
 				confirmSendingFiles(
-					std::move(image),
+					std::move(read.image),
 					std::move(result.remoteContent));
 			} else {
 				uploadFile(result.remoteContent, SendMediaType::File);
@@ -359,10 +361,7 @@ bool ScheduledWidget::confirmSendingFiles(
 	}
 
 	if (hasImage) {
-		auto image = Platform::GetImageFromClipboard();
-		if (image.isNull()) {
-			image = qvariant_cast<QImage>(data->imageData());
-		}
+		auto image = qvariant_cast<QImage>(data->imageData());
 		if (!image.isNull()) {
 			confirmSendingFiles(
 				std::move(image),
@@ -1025,7 +1024,8 @@ void ScheduledWidget::paintEvent(QPaintEvent *e) {
 	//auto ms = crl::now();
 	//_historyDownShown.step(ms);
 
-	SectionWidget::PaintBackground(controller(), this, e->rect());
+	const auto clip = e->rect();
+	SectionWidget::PaintBackground(controller(), _theme.get(), this, clip);
 }
 
 void ScheduledWidget::onScroll() {
@@ -1227,6 +1227,10 @@ void ScheduledWidget::listSendBotCommand(
 
 void ScheduledWidget::listHandleViaClick(not_null<UserData*> bot) {
 	_composeControls->setText({ '@' + bot->username + ' ' });
+}
+
+not_null<Ui::ChatTheme*> ScheduledWidget::listChatTheme() {
+	return _theme.get();
 }
 
 void ScheduledWidget::confirmSendNowSelected() {

@@ -41,7 +41,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "mtproto/mtproto_config.h"
 #include "facades.h" // Ui::showChatsList
-#include "app.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 
@@ -282,7 +281,8 @@ void ConfirmBox::confirmed() {
 			}
 		} else if (const auto callbackPtr = std::get_if<2>(confirmed)) {
 			if (auto callback = base::take(*callbackPtr)) {
-				callback([=] { closeBox(); });
+				const auto weak = Ui::MakeWeak(this);
+				callback(crl::guard(weak, [=] { closeBox(); }));
 			}
 		}
 	}

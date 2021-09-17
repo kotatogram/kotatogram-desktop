@@ -260,5 +260,6 @@
 		"many": "дней",
 		"other": "дня"
 	},
+	"ktg_forward_sender_names_and_captions_removed": "Имена отправителей и подписи скрыты",
 	"dummy_last_string": ""
 }

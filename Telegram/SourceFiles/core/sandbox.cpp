@@ -620,11 +620,3 @@ rpl::producer<> on_main_update_requests() {
 }
 
 } // namespace crl
-
-namespace base {
-
-void EnterFromEventLoop(FnMut<void()> &&method) {
-	Core::Sandbox::Instance().customEnterFromEventLoop(std::move(method));
-}
-
-} // namespace base

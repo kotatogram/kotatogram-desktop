@@ -27,6 +27,7 @@ namespace HistoryView {
 enum class Context : char;
 class Element;
 class Media;
+enum class DrawInDialog;
 } // namespace HistoryView
 
 namespace Data {
@@ -72,6 +73,8 @@ public:
 
 	not_null<HistoryItem*> parent() const;
 
+	using DrawInDialog = HistoryView::DrawInDialog;
+
 	virtual std::unique_ptr<Media> clone(not_null<HistoryItem*> parent) = 0;
 
 	virtual DocumentData *document() const;
@@ -93,7 +96,7 @@ public:
 	virtual bool replyPreviewLoaded() const;
 	// Returns text with link-start and link-end commands for service-color highlighting.
 	// Example: "[link1-start]You:[link1-end] [link1-start]Photo,[link1-end] caption text"
-	virtual QString chatListText() const;
+	virtual QString chatListText(DrawInDialog way) const;
 	virtual QString notificationText() const = 0;
 	virtual QString pinnedTextSubstring() const = 0;
 	virtual TextForMimeData clipboardText() const = 0;
@@ -103,6 +106,8 @@ public:
 	virtual bool allowsEditMedia() const;
 	virtual bool allowsRevoke(TimeId now) const;
 	virtual bool forwardedBecomesUnread() const;
+	virtual bool dropForwardedInfo() const;
+	virtual bool forceForwardedInfo() const;
 	virtual QString errorTextForForward(not_null<PeerData*> peer) const;
 
 	[[nodiscard]] virtual bool consumeMessageText(
@@ -147,7 +152,7 @@ public:
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
 	bool replyPreviewLoaded() const override;
-	QString chatListText() const override;
+	QString chatListText(DrawInDialog way) const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
@@ -185,13 +190,14 @@ public:
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
 	bool replyPreviewLoaded() const override;
-	QString chatListText() const override;
+	QString chatListText(DrawInDialog way) const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	bool allowsEditCaption() const override;
 	bool allowsEditMedia() const override;
 	bool forwardedBecomesUnread() const override;
+	bool dropForwardedInfo() const override;
 	QString errorTextForForward(not_null<PeerData*> peer) const override;
 
 	bool updateInlineResultMedia(const MTPMessageMedia &media) override;
@@ -251,7 +257,7 @@ public:
 
 	Data::CloudImage *location() const override;
 	const LocationPoint *geoPoint() const override;
-	QString chatListText() const override;
+	QString chatListText(DrawInDialog way) const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
@@ -319,7 +325,7 @@ public:
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
 	bool replyPreviewLoaded() const override;
-	QString chatListText() const override;
+	QString chatListText(DrawInDialog way) const override;
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
@@ -354,6 +360,7 @@ public:
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	QString errorTextForForward(not_null<PeerData*> peer) const override;
+	bool dropForwardedInfo() const override;
 
 	bool consumeMessageText(const TextWithEntities &text) override;
 	TextWithEntities consumedMessageText() const override;
@@ -444,6 +451,8 @@ public:
 	QString notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
+	bool forceForwardedInfo() const override;
+
 	bool updateInlineResultMedia(const MTPMessageMedia &media) override;
 	bool updateSentMedia(const MTPMessageMedia &media) override;
 	std::unique_ptr<HistoryView::Media> createView(

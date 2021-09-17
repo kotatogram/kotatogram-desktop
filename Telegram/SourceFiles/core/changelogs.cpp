@@ -92,6 +92,26 @@ std::map<int, const char*> BetaLogs() {
 
 		"- Fix Direct3D acceleration on basic Windows 7 setup.\n"
 	},
+	{
+		2009004,
+		"- Choose one from dozens of new gorgeous animated backgrounds"
+		" in Chat Settings > Chat background.\n"
+	},
+	{
+		2009005,
+		"- Tile chat background patterns horizontally.\n"
+
+		"- Fix a rare crash in spellchecker on Windows.\n"
+
+		"- Fix animated chat backgrounds in Saved Messages.\n"
+
+		"- Fix \"Sorry, group is inaccessible\" message "
+		"in scheduled voice chats.\n",
+	},
+	{
+		2009013,
+		"- See unread comments count when scrolling discussions in channels."
+	},
 	};
 };
 

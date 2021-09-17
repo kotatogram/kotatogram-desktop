@@ -7,14 +7,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "mainwidget.h"
 
-#include <rpl/combine.h>
-#include <rpl/merge.h>
-#include <rpl/flatten_latest.h>
 #include "api/api_updates.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
 #include "data/data_document_media.h"
 #include "data/data_document_resolver.h"
+#include "data/data_wall_paper.h"
 #include "data/data_web_page.h"
 #include "data/data_game.h"
 #include "data/data_peer_values.h"
@@ -32,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_histories.h"
 #include "data/stickers/data_stickers.h"
 #include "api/api_text_entities.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/special_buttons.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/shadow.h"
@@ -122,9 +121,6 @@ namespace {
 
 // Send channel views each second.
 constexpr auto kSendViewsTimeout = crl::time(1000);
-
-// Cache background scaled image after 3s.
-constexpr auto kCacheBackgroundTimeout = 3000;
 
 } // namespace
 
@@ -240,7 +236,6 @@ MainWidget::MainWidget(
 , _dialogs(this, _controller)
 , _history(this, _controller)
 , _playerPlaylist(this, _controller)
-, _cacheBackgroundTimer([=] { cacheBackground(); })
 , _viewsIncrementTimer([=] { viewsIncrement(); })
 , _changelogs(Core::Changelogs::Create(&controller->session())) {
 	setupConnectingWidget();
@@ -345,15 +340,6 @@ MainWidget::MainWidget(
 	}, lifetime());
 
 	QCoreApplication::instance()->installEventFilter(this);
-
-	using Update = Window::Theme::BackgroundUpdate;
-	Window::Theme::Background()->updates(
-	) | rpl::start_with_next([=](const Update &update) {
-		if (update.type == Update::Type::New
-			|| update.type == Update::Type::Changed) {
-			clearCachedBackground();
-		}
-	}, lifetime());
 
 	subscribe(Media::Player::instance()->playerWidgetOver(), [this](bool over) {
 		if (over) {
@@ -517,20 +503,20 @@ void MainWidget::floatPlayerDoubleClickEvent(
 	_controller->showPeerHistoryAtItem(item);
 }
 
-bool MainWidget::setForwardDraft(PeerId peerId, MessageIdsList &&items) {
+bool MainWidget::setForwardDraft(PeerId peerId, Data::ForwardDraft &&draft) {
 	Expects(peerId != 0);
 
 	const auto peer = session().data().peer(peerId);
 	const auto error = GetErrorTextForSending(
 		peer,
-		session().data().idsToItems(items),
+		session().data().idsToItems(draft.ids),
 		true);
 	if (!error.isEmpty()) {
 		Ui::show(Box<InformBox>(error), Ui::LayerOption::KeepOther);
 		return false;
 	}
 
-	peer->owner().history(peer)->setForwardDraft(std::move(items));
+	peer->owner().history(peer)->setForwardDraft(std::move(draft));
 	_controller->showPeerHistory(
 		peer,
 		SectionShow::Way::Forward,
@@ -618,7 +604,10 @@ void MainWidget::onFilesOrForwardDrop(
 	Expects(peerId != 0);
 
 	if (data->hasFormat(qsl("application/x-td-forward"))) {
-		if (!setForwardDraft(peerId, session().data().takeMimeForwardIds())) {
+		auto draft = Data::ForwardDraft{
+			.ids = session().data().takeMimeForwardIds(),
+		};
+		if (!setForwardDraft(peerId, std::move(draft))) {
 			// We've already released the mouse button, so the forwarding is cancelled.
 			if (_hider) {
 				_hider->startHide();
@@ -723,9 +712,9 @@ void MainWidget::hiderLayer(base::unique_qptr<Window::HistoryHider> hider) {
 	floatPlayerCheckVisibility();
 }
 
-void MainWidget::showForwardLayer(MessageIdsList &&items) {
-	auto callback = [=, items = std::move(items)](PeerId peer) mutable {
-		return setForwardDraft(peer, std::move(items));
+void MainWidget::showForwardLayer(Data::ForwardDraft &&draft) {
+	auto callback = [=, draft = std::move(draft)](PeerId peer) mutable {
+		return setForwardDraft(peer, std::move(draft));
 	};
 	hiderLayer(base::make_unique_q<Window::HistoryHider>(
 		this,
@@ -783,49 +772,6 @@ void MainWidget::inlineSwitchLayer(const QString &botAndQuery) {
 
 bool MainWidget::selectingPeer() const {
 	return _hider ? true : false;
-}
-
-void MainWidget::cacheBackground() {
-	if (Window::Theme::Background()->colorForFill()) {
-		return;
-	} else if (Window::Theme::Background()->tile()) {
-		auto &bg = Window::Theme::Background()->pixmapForTiled();
-
-		auto result = QImage(_willCacheFor.width() * cIntRetinaFactor(), _willCacheFor.height() * cIntRetinaFactor(), QImage::Format_RGB32);
-		result.setDevicePixelRatio(cRetinaFactor());
-		{
-			QPainter p(&result);
-			auto w = bg.width() / cRetinaFactor();
-			auto h = bg.height() / cRetinaFactor();
-			auto sx = 0;
-			auto sy = 0;
-			auto cx = qCeil(_willCacheFor.width() / w);
-			auto cy = qCeil(_willCacheFor.height() / h);
-			for (int i = sx; i < cx; ++i) {
-				for (int j = sy; j < cy; ++j) {
-					p.drawPixmap(QPointF(i * w, j * h), bg);
-				}
-			}
-		}
-		_cachedX = 0;
-		_cachedY = 0;
-		_cachedBackground = Ui::PixmapFromImage(std::move(result));
-	} else {
-		auto &bg = Window::Theme::Background()->pixmap();
-
-		QRect to, from;
-		Window::Theme::ComputeBackgroundRects(_willCacheFor, bg.size(), to, from);
-		_cachedX = to.x();
-		_cachedY = to.y();
-		_cachedBackground = Ui::PixmapFromImage(
-			bg.toImage().copy(from).scaled(
-				to.width() * cIntRetinaFactor(),
-				to.height() * cIntRetinaFactor(),
-				Qt::IgnoreAspectRatio,
-				Qt::SmoothTransformation));
-		_cachedBackground.setDevicePixelRatio(cRetinaFactor());
-	}
-	_cachedFor = _willCacheFor;
 }
 
 crl::time MainWidget::highlightStartTime(not_null<const HistoryItem*> item) const {
@@ -1157,25 +1103,6 @@ void MainWidget::dialogsCancelled() {
 	_history->activate();
 }
 
-void MainWidget::clearCachedBackground() {
-	_cachedBackground = QPixmap();
-	_cacheBackgroundTimer.cancel();
-	update();
-}
-
-QPixmap MainWidget::cachedBackground(const QRect &forRect, int &x, int &y) {
-	if (!_cachedBackground.isNull() && forRect == _cachedFor) {
-		x = _cachedX;
-		y = _cachedY;
-		return _cachedBackground;
-	}
-	if (_willCacheFor != forRect || !_cacheBackgroundTimer.isActive()) {
-		_willCacheFor = forRect;
-		_cacheBackgroundTimer.callOnce(kCacheBackgroundTimeout);
-	}
-	return QPixmap();
-}
-
 void MainWidget::setChatBackground(
 		const Data::WallPaper &background,
 		QImage &&image) {
@@ -1218,7 +1145,7 @@ void MainWidget::setReadyChatBackground(
 
 	const auto resetToDefault = image.isNull()
 		&& !background.document()
-		&& !background.backgroundColor()
+		&& background.backgroundColors().empty()
 		&& !Data::IsLegacy1DefaultWallPaper(background);
 	const auto ready = resetToDefault
 		? Data::DefaultWallPaper()
@@ -1265,9 +1192,9 @@ void MainWidget::checkChatBackground() {
 			: background->data;
 		setReadyChatBackground(ready, std::move(image));
 	};
-	_background->generating = Data::ReadImageAsync(
+	_background->generating = Data::ReadBackgroundImageAsync(
 		media.get(),
-		Window::Theme::PreprocessBackgroundImage,
+		Ui::PreprocessBackgroundImage,
 		generateCallback);
 }
 
@@ -2173,7 +2100,7 @@ void MainWidget::hideAll() {
 void MainWidget::showAll() {
 	if (cPasswordRecovered()) {
 		cSetPasswordRecovered(false);
-		Ui::show(Box<InformBox>(tr::lng_signin_password_removed(tr::now)));
+		Ui::show(Box<InformBox>(tr::lng_cloud_password_updated(tr::now)));
 	}
 	if (isOneColumn()) {
 		_sideShadow->hide();

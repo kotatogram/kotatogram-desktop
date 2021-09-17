@@ -688,12 +688,13 @@ bool readBackground() {
 	const auto isOldEmptyImage = (bg.stream.status() != QDataStream::Ok);
 	if (isOldEmptyImage
 		|| Data::IsLegacy1DefaultWallPaper(*paper)
-		|| (Data::IsLegacy2DefaultWallPaper(*paper) && bg.version < 2008012)
+		|| (Data::IsLegacy2DefaultWallPaper(*paper) && bg.version < 3000000)
+		|| (Data::IsLegacy3DefaultWallPaper(*paper) && bg.version < 3000000)
+		|| (Data::IsLegacy4DefaultWallPaper(*paper) && bg.version < 3000000)
 		|| Data::IsDefaultWallPaper(*paper)) {
 		_backgroundCanWrite = false;
-		if (isOldEmptyImage || bg.version < 2008012) {
+		if (isOldEmptyImage || bg.version < 3000000) {
 			Window::Theme::Background()->set(Data::DefaultWallPaper());
-			Window::Theme::Background()->setTile(false);
 		} else {
 			Window::Theme::Background()->set(*paper);
 		}
@@ -741,14 +742,12 @@ bool readBackground() {
 	} else {
 		auto buffer = QBuffer(&imageData);
 		auto reader = QImageReader(&buffer);
-#ifndef OS_MAC_OLD
 		reader.setAutoTransform(true);
-#endif // OS_MAC_OLD
 		if (!reader.read(&image)) {
 			image = QImage();
 		}
 	}
-	if (!image.isNull() || paper->backgroundColor()) {
+	if (!image.isNull() || !paper->backgroundColors().empty()) {
 		_backgroundCanWrite = false;
 		Window::Theme::Background()->set(*paper, std::move(image));
 		_backgroundCanWrite = true;

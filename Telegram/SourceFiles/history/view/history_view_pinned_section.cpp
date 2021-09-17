@@ -44,7 +44,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/platform_specific.h"
 #include "lang/lang_keys.h"
 #include "facades.h"
-#include "app.h"
 #include "styles/style_chat.h"
 #include "styles/style_window.h"
 #include "styles/style_info.h"
@@ -91,7 +90,7 @@ PinnedWidget::PinnedWidget(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller,
 	not_null<History*> history)
-: Window::SectionWidget(parent, controller)
+: Window::SectionWidget(parent, controller, history->peer)
 , _history(history->migrateToOrMe())
 , _migratedPeer(_history->peer->migrateFrom())
 , _topBar(this, controller)
@@ -102,6 +101,14 @@ PinnedWidget::PinnedWidget(
 	QString(),
 	st::historyComposeButton))
 , _scrollDown(_scroll.get(), st::historyToDown) {
+	Window::ChatThemeValueFromPeer(
+		controller,
+		history->peer
+	) | rpl::start_with_next([=](std::shared_ptr<Ui::ChatTheme> &&theme) {
+		_theme = std::move(theme);
+		controller->setChatStyleTheme(_theme);
+	}, lifetime());
+
 	_topBar->setActiveChat(
 		TopBarWidget::ActiveChat{
 			.key = _history,
@@ -458,7 +465,7 @@ void PinnedWidget::paintEvent(QPaintEvent *e) {
 	const auto aboveHeight = _topBar->height();
 	const auto bg = e->rect().intersected(
 		QRect(0, aboveHeight, width(), height() - aboveHeight));
-	SectionWidget::PaintBackground(controller(), this, bg);
+	SectionWidget::PaintBackground(controller(), _theme.get(), this, bg);
 }
 
 void PinnedWidget::onScroll() {
@@ -649,6 +656,10 @@ void PinnedWidget::listSendBotCommand(
 }
 
 void PinnedWidget::listHandleViaClick(not_null<UserData*> bot) {
+}
+
+not_null<Ui::ChatTheme*> PinnedWidget::listChatTheme() {
+	return _theme.get();
 }
 
 void PinnedWidget::confirmDeleteSelected() {

@@ -90,6 +90,12 @@ public:
 		Api::SendOptions options;
 		ChooseMethod method;
 	};
+	enum class Type {
+		Mentions,
+		Hashtags,
+		BotCommands,
+		Stickers,
+	};
 
 	bool chooseSelected(ChooseMethod method) const;
 
@@ -114,6 +120,7 @@ public:
 	rpl::producer<HashtagChosen> hashtagChosen() const;
 	rpl::producer<BotCommandChosen> botCommandChosen() const;
 	rpl::producer<StickerChosen> stickerChosen() const;
+	rpl::producer<Type> choosingProcesses() const;
 
 public Q_SLOTS:
 	void showAnimated();
@@ -179,12 +186,6 @@ private:
 	ChannelData *_channel = nullptr;
 	EmojiPtr _emoji;
 	uint64 _stickersSeed = 0;
-	enum class Type {
-		Mentions,
-		Hashtags,
-		BotCommands,
-		Stickers,
-	};
 	Type _type = Type::Mentions;
 	QString _filter;
 	QRect _boundings;

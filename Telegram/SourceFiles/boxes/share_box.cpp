@@ -191,6 +191,9 @@ ShareBox::ShareBox(QWidget*, Descriptor &&descriptor)
 		_bottomWidget->resizeToWidth(st::boxWideWidth);
 		_bottomWidget->show();
 	}
+	if (!_descriptor.draft) {
+		_descriptor.draft = std::make_unique<Data::ForwardDraft>();
+	}
 }
 
 void ShareBox::prepareCommentField() {
@@ -524,48 +527,34 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 	});
 	button->installEventFilter(_menu);
 
-	if (!cForwardQuoted()) {
-		_menu->addAction(ktr("ktg_forward_menu_quoted"), [=] {
-			cSetForwardQuoted(true);
-			updateAdditionalTitle();
-		});
-	}
-	if (cForwardQuoted() || !cForwardCaptioned()) {
-		_menu->addAction(ktr("ktg_forward_menu_unquoted"), [=] {
-			cSetForwardQuoted(false);
-			cSetForwardCaptioned(true);
-			updateAdditionalTitle();
-		});
-	}
-	if (cForwardQuoted() || cForwardCaptioned()) {
-		_menu->addAction(ktr("ktg_forward_menu_uncaptioned"), [=] {
-			cSetForwardQuoted(false);
-			cSetForwardCaptioned(false);
-			updateAdditionalTitle();
-		});
-	}
+	const auto addForwardOption = [this] (Data::ForwardOptions option, const QString &langKey) {
+		if (_descriptor.draft->options != option) {
+			_menu->addAction(ktr(langKey), [this, option] {
+				_descriptor.draft->options = option;
+				updateAdditionalTitle();
+			});
+		}
+	};
+
+	addForwardOption(Data::ForwardOptions::PreserveInfo, "ktg_forward_menu_quoted");
+	addForwardOption(Data::ForwardOptions::NoSenderNames, "ktg_forward_menu_unquoted");
+	addForwardOption(Data::ForwardOptions::NoNamesAndCaptions, "ktg_forward_menu_uncaptioned");
+
 	if (_descriptor.hasMedia) {
 		_menu->addSeparator();
-		if (!cForwardAlbumsAsIs()) {
-			_menu->addAction(ktr("ktg_forward_menu_default_albums"), [=] {
-				cSetForwardAlbumsAsIs(true);
-				updateAdditionalTitle();
-			});
-		}
-		if (cForwardAlbumsAsIs() || !cForwardGrouped()) {
-			_menu->addAction(ktr("ktg_forward_menu_group_all_media"), [=] {
-				cSetForwardAlbumsAsIs(false);
-				cSetForwardGrouped(true);
-				updateAdditionalTitle();
-			});
-		}
-		if (cForwardAlbumsAsIs() || cForwardGrouped()) {
-			_menu->addAction(ktr("ktg_forward_menu_separate_messages"), [=] {
-				cSetForwardAlbumsAsIs(false);
-				cSetForwardGrouped(false);
-				updateAdditionalTitle();
-			});
-		}
+
+		const auto addGroupingOption = [this] (Data::GroupingOptions option, const QString &langKey) {
+			if (_descriptor.draft->groupOptions != option) {
+				_menu->addAction(ktr(langKey), [this, option] {
+					_descriptor.draft->groupOptions = option;
+					updateAdditionalTitle();
+				});
+			}
+		};
+
+		addGroupingOption(Data::GroupingOptions::GroupAsIs, "ktg_forward_menu_default_albums");
+		addGroupingOption(Data::GroupingOptions::RegroupAll, "ktg_forward_menu_group_all_media");
+		addGroupingOption(Data::GroupingOptions::Separate, "ktg_forward_menu_separate_messages");
 	}
 
 	const auto parentTopLeft = window()->mapToGlobal({ 0, 0 });
@@ -583,19 +572,31 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 void ShareBox::updateAdditionalTitle() {
 	QString result;
 
-	if (!cForwardQuoted()) {
-		result += (cForwardCaptioned()
-			? ktr("ktg_forward_subtitle_unquoted")
-			: ktr("ktg_forward_subtitle_uncaptioned"));
+	switch (_descriptor.draft->options) {
+		case Data::ForwardOptions::NoSenderNames:
+			result += ktr("ktg_forward_subtitle_unquoted");
+			break;
+
+		case Data::ForwardOptions::NoNamesAndCaptions:
+			result += ktr("ktg_forward_subtitle_uncaptioned");
+			break;
 	}
 
-	if (_descriptor.hasMedia && !cForwardAlbumsAsIs()) {
+	if (_descriptor.hasMedia
+		&& _descriptor.draft->groupOptions != Data::GroupingOptions::GroupAsIs) {
 		if (!result.isEmpty()) {
 			result += ", ";
 		}
-		result += (cForwardGrouped()
-			? ktr("ktg_forward_subtitle_group_all_media")
-			: ktr("ktg_forward_subtitle_separate_messages"));
+
+		switch (_descriptor.draft->groupOptions) {
+			case Data::GroupingOptions::RegroupAll:
+				result += ktr("ktg_forward_subtitle_group_all_media");
+				break;
+
+			case Data::GroupingOptions::Separate:
+				result += ktr("ktg_forward_subtitle_separate_messages");
+				break;
+		}
 	}
 
 	setAdditionalTitle(rpl::single(result));
@@ -633,7 +634,11 @@ void ShareBox::submit(Api::SendOptions options) {
 		onstack(
 			_inner->selected(),
 			_comment->entity()->getTextWithAppliedMarkdown(),
-			options);
+			options,
+			{
+				.options = _descriptor.draft->options,
+				.groupOptions = _descriptor.draft->groupOptions,
+			});
 	}
 }
 
@@ -658,7 +663,10 @@ void ShareBox::copyLink() {
 
 void ShareBox::goToChat(not_null<PeerData*> peer) {
 	if (_descriptor.goToChatCallback) {
-		_descriptor.goToChatCallback(peer);
+		_descriptor.goToChatCallback(peer, {
+			.options = _descriptor.draft->options,
+			.groupOptions = _descriptor.draft->groupOptions,
+		});
 	}
 }
 

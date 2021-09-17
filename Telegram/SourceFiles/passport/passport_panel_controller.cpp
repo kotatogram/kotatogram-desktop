@@ -24,7 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/countryinput.h"
 #include "ui/text/format_values.h"
 #include "core/update_checker.h"
-#include "data/data_countries.h"
+#include "countries/countries_instance.h"
 #include "styles/style_layers.h"
 
 namespace Passport {
@@ -41,40 +41,44 @@ const auto kLanguageNamePrefix = "cloud_lng_passport_in_";
 ScanInfo CollectScanInfo(const EditFile &file) {
 	const auto status = [&] {
 		if (file.fields.accessHash) {
-			if (file.fields.downloadOffset < 0) {
+			switch (file.fields.downloadStatus.status()) {
+			case LoadStatus::Status::Failed:
 				return tr::lng_attach_failed(tr::now);
-			} else if (file.fields.downloadOffset < file.fields.size) {
+			case LoadStatus::Status::InProgress:
 				return Ui::FormatDownloadText(
-					file.fields.downloadOffset,
+					file.fields.downloadStatus.offset(),
 					file.fields.size);
-			} else {
+			case LoadStatus::Status::Done:
 				return tr::lng_passport_scan_uploaded(
 					tr::now,
 					lt_date,
 					langDateTimeFull(
 						base::unixtime::parse(file.fields.date)));
 			}
+			Unexpected("LoadStatus value in CollectScanInfo.");
 		} else if (file.uploadData) {
-			if (file.uploadData->offset < 0) {
+			switch (file.uploadData->status.status()) {
+			case LoadStatus::Status::Failed:
 				return tr::lng_attach_failed(tr::now);
-			} else if (file.uploadData->fullId) {
+			case LoadStatus::Status::InProgress:
 				return Ui::FormatDownloadText(
-					file.uploadData->offset,
+					file.uploadData->status.offset(),
 					file.uploadData->bytes.size());
-			} else {
+			case LoadStatus::Status::Done:
 				return tr::lng_passport_scan_uploaded(
 					tr::now,
 					lt_date,
 					langDateTimeFull(
 						base::unixtime::parse(file.fields.date)));
 			}
+			Unexpected("LoadStatus value in CollectScanInfo.");
 		} else {
 			return Ui::FormatDownloadText(0, file.fields.size);
 		}
 	}();
 	return {
 		file.type,
-		FileKey{ file.fields.id, file.fields.dcId },
+		FileKey{ file.fields.id },
 		!file.fields.error.isEmpty() ? file.fields.error : status,
 		file.fields.image,
 		file.deleted,
@@ -120,7 +124,7 @@ EditDocumentScheme GetDocumentScheme(
 	using ValueClass = Scheme::ValueClass;
 	const auto DontFormat = nullptr;
 	const auto CountryFormat = [](const QString &value) {
-		const auto result = Data::CountryNameByISO2(value);
+		const auto result = Countries::Instance().countryNameByISO2(value);
 		return result.isEmpty() ? value : result;
 	};
 	const auto GenderFormat = [](const QString &value) {
@@ -319,7 +323,8 @@ EditDocumentScheme GetDocumentScheme(
 				if (!language.isEmpty()) {
 					return tr::lng_passport_native_name_language_about(tr::now);
 				}
-				const auto name = Data::CountryNameByISO2(countryCode);
+				const auto name = Countries::Instance().countryNameByISO2(
+					countryCode);
 				Assert(!name.isEmpty());
 				return tr::lng_passport_native_name_about(
 					tr::now,
@@ -685,23 +690,23 @@ void PanelController::setupPassword() {
 		return;
 	}
 
-	auto fields = PasscodeBox::CloudFields();
-	fields.newAlgo = settings.newAlgo;
-	fields.newSecureSecretAlgo = settings.newSecureAlgo;
+	auto fields = PasscodeBox::CloudFields{
+		.newAlgo = settings.newAlgo,
+		.hasRecovery = settings.hasRecovery,
+		.newSecureSecretAlgo = settings.newSecureAlgo,
+		.pendingResetDate = settings.pendingResetDate,
+	};
 	auto box = show(Box<PasscodeBox>(&_form->window()->session(), fields));
 	box->newPasswordSet(
-	) | rpl::filter([=](const QByteArray &password) {
-		return !password.isEmpty();
-	}) | rpl::start_with_next([=](const QByteArray &password) {
-		_form->reloadAndSubmitPassword(password);
+	) | rpl::start_with_next([=](const QByteArray &password) {
+		if (password.isEmpty()) {
+			_form->reloadPassword();
+		} else {
+			_form->reloadAndSubmitPassword(password);
+		}
 	}, box->lifetime());
 
-	rpl::merge(
-		box->passwordReloadNeeded(),
-		box->newPasswordSet(
-		) | rpl::filter([=](const QByteArray &password) {
-			return password.isEmpty();
-		}) | rpl::to_empty
+	box->passwordReloadNeeded(
 	) | rpl::start_with_next([=] {
 		_form->reloadPassword();
 	}, box->lifetime());

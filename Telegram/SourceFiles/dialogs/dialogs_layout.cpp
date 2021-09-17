@@ -1190,11 +1190,24 @@ void RowPainter::paint(
 	}
 }
 
-QRect RowPainter::sendActionAnimationRect(int animationWidth, int animationHeight, int fullWidth, bool textUpdated) {
-	auto nameleft = st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) + st::dialogsPhotoPadding;
-	auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
-	auto texttop = st::dialogsPadding.y() + st::msgNameFont->height + st::dialogsSkip;
-	return QRect(nameleft, texttop, textUpdated ? namewidth : animationWidth, animationHeight);
+QRect RowPainter::sendActionAnimationRect(
+		int animationLeft,
+		int animationWidth,
+		int animationHeight,
+		int fullWidth,
+		bool textUpdated) {
+	const auto nameleft = st::dialogsPadding.x()
+		+ (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize)
+		+ st::dialogsPhotoPadding;
+	const auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
+	const auto texttop = st::dialogsPadding.y()
+		+ st::msgNameFont->height
+		+ st::dialogsSkip;
+	return QRect(
+		nameleft + (textUpdated ? 0 : animationLeft),
+		texttop,
+		textUpdated ? namewidth : animationWidth,
+		animationHeight);
 }
 
 void PaintCollapsedRow(

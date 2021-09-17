@@ -29,7 +29,7 @@ Go to ***BuildPath*** and run
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 87a2e9ee07
+    git checkout d58ce6b2b0
     cd ../
     git clone https://chromium.googlesource.com/external/gyp
     git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
@@ -58,7 +58,7 @@ Go to ***BuildPath*** and run
 
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 87a2e9ee07
+    git checkout d58ce6b2b0
     cd ..
 
     git clone https://git.tukaani.org/xz.git
@@ -274,9 +274,9 @@ Go to ***BuildPath*** and run
 
     git clone git://code.qt.io/qt/qt5.git qt_5_15_2
     cd qt_5_15_2
-    perl init-repository --module-subset=qtbase,qtimageformats
+    perl init-repository --module-subset=qtbase,qtimageformats,qtsvg
     git checkout v5.15.2
-    git submodule update qtbase qtimageformats
+    git submodule update qtbase qtimageformats qtsvg
     cd qtbase
     find ../../patches/qtbase_5_15_2 -type f -print0 | sort -z | xargs -0 git apply
     cd ..

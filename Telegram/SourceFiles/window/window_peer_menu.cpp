@@ -175,7 +175,7 @@ void AddChatMembers(
 }
 
 bool PinnedLimitReached(Dialogs::Key key, FilterId filterId) {
-	Expects(key.entry()->folderKnown());
+	Expects(filterId != 0 || key.entry()->folderKnown());
 
 	const auto entry = key.entry();
 	const auto owner = &entry->owner();
@@ -473,7 +473,7 @@ void Filler::addUserActions(not_null<UserData*> user) {
 				user->session().supportHelper().editInfo(controller, user);
 			});
 		}
-		if (user->hasPinnedMessages()) {
+		if (user->owner().history(user)->hasPinnedMessages()) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(user);
 			if (hasHidden) {
 				_addAction(
@@ -541,7 +541,7 @@ void Filler::addChatActions(not_null<ChatData*> chat) {
 				navigation->showEditPeerBox(chat);
 			});
 		}
-		if (chat->hasPinnedMessages()) {
+		if (chat->owner().history(chat)->hasPinnedMessages()) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(chat);
 			if (hasHidden) {
 				_addAction(
@@ -606,7 +606,7 @@ void Filler::addChannelActions(not_null<ChannelData*> channel) {
 				navigation->showEditPeerBox(channel);
 			});
 		}
-		if (channel->hasPinnedMessages()) {
+		if (channel->owner().history(channel)->hasPinnedMessages()) {
 			auto hasHidden = HistoryWidget::hasHiddenPinnedMessage(channel);
 			if (hasHidden) {
 				_addAction(
@@ -771,18 +771,18 @@ void Filler::addTogglesForArchive() {
 void PeerMenuHidePinnedMessage(not_null<PeerData*> peer) {
 	auto hidden = HistoryWidget::switchPinnedHidden(peer, true);
 	if (hidden) {
-		peer->session().changes().peerUpdated(
-			peer,
-			Data::PeerUpdate::Flag::PinnedMessages);
+		peer->session().changes().historyUpdated(
+			peer->owner().history(peer),
+			Data::HistoryUpdate::Flag::PinnedMessages);
 	}
 }
 
 void PeerMenuUnhidePinnedMessage(not_null<PeerData*> peer) {
 	auto unhidden = HistoryWidget::switchPinnedHidden(peer, false);
 	if (unhidden) {
-		peer->session().changes().peerUpdated(
-			peer,
-			Data::PeerUpdate::Flag::PinnedMessages);
+		peer->session().changes().historyUpdated(
+			peer->owner().history(peer),
+			Data::HistoryUpdate::Flag::PinnedMessages);
 	}
 }
 
@@ -1033,27 +1033,29 @@ void BlockSenderFromRepliesBox(
 /*
 QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		not_null<Window::SessionNavigation*> navigation,
-		MessageIdsList &&items,
+		Data::ForwardDraft &&draft,
 		FnMut<void()> &&successCallback) {
 	const auto weak = std::make_shared<QPointer<PeerListBox>>();
 	auto callback = [
-		ids = std::move(items),
+		draft = std::move(draft),
 		callback = std::move(successCallback),
 		weak,
 		navigation
 	](not_null<PeerData*> peer) mutable {
+		const auto content = navigation->parentController()->content();
 		if (peer->isSelf()) {
-			auto items = peer->owner().idsToItems(ids);
-			if (!items.empty()) {
+			const auto history = peer->owner().history(peer);
+			auto resolved = history->resolveForwardDraft(draft);
+			if (!resolved.items.empty()) {
 				const auto api = &peer->session().api();
 				auto action = Api::SendAction(peer->owner().history(peer));
 				action.clearDraft = false;
 				action.generateLocal = false;
-				api->forwardMessages(std::move(items), action, [] {
+				api->forwardMessages(std::move(resolved), action, [] {
 					Ui::Toast::Show(tr::lng_share_done(tr::now));
 				});
 			}
-		} else if (!navigation->parentController()->content()->setForwardDraft(peer->id, std::move(ids))) {
+		} else if (!content->setForwardDraft(peer->id, std::move(draft))) {
 			return;
 		}
 		if (const auto strong = *weak) {
@@ -1079,21 +1081,21 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 
 QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		not_null<Window::SessionNavigation*> navigation,
-		MessageIdsList &&items,
+		Data::ForwardDraft &&draft,
 		FnMut<void()> &&successCallback) {
 	struct ShareData {
-		ShareData(not_null<PeerData*> peer, MessageIdsList &&ids, FnMut<void()> &&callback)
+		ShareData(not_null<PeerData*> peer, Data::ForwardDraft &&fwdDraft, FnMut<void()> &&callback)
 		: peer(peer)
-		, msgIds(std::move(ids))
+		, draft(std::move(fwdDraft))
 		, submitCallback(std::move(callback)) {
 		}
 		not_null<PeerData*> peer;
-		MessageIdsList msgIds;
+		Data::ForwardDraft draft;
 		int requestsLeft = 0;
 		FnMut<void()> submitCallback;
 	};
 	const auto weak = std::make_shared<QPointer<ShareBox>>();
-	const auto firstItem = navigation->session().data().message(items[0]);
+	const auto firstItem = navigation->session().data().message(draft.ids[0]);
 	const auto history = firstItem->history();
 	const auto owner = &history->owner();
 	const auto session = &history->session();
@@ -1101,13 +1103,13 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		&& firstItem->media()
 		&& (firstItem->media()->game() != nullptr);
 	const auto canCopyLink = [=] {
-		if (items.size() > 10) {
+		if (draft.ids.size() > 10) {
 			return false;
 		}
 
 		const auto groupId = firstItem->groupId();
 
-		for (const auto item : history->owner().idsToItems(items)) {
+		for (const auto item : history->owner().idsToItems(draft.ids)) {
 			if (groupId != item->groupId()) {
 				return false;
 			}
@@ -1116,27 +1118,27 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		return (firstItem->hasDirectLink() || isGame);
 	}();
 
-	auto hasMediaForGrouping = false;
-
-	if (items.size() > 1) {
-		auto grouppableMediaCount = 0;
-		for (const auto item : history->owner().idsToItems(items)) {
-			if (item->media() && item->media()->canBeGrouped()) {
-				grouppableMediaCount++;
-			} else {
-				grouppableMediaCount = 0;
-			}
-			if (grouppableMediaCount > 1) {
-				hasMediaForGrouping = true;
-				break;
+	const auto hasMediaForGrouping = [=] {
+		if (draft.ids.size() > 1) {
+			auto grouppableMediaCount = 0;
+			for (const auto item : history->owner().idsToItems(draft.ids)) {
+				if (item->media() && item->media()->canBeGrouped()) {
+					grouppableMediaCount++;
+				} else {
+					grouppableMediaCount = 0;
+				}
+				if (grouppableMediaCount > 1) {
+					return true;
+				}
 			}
 		}
-	}
+		return false;
+	}();
 
-	const auto data = std::make_shared<ShareData>(history->peer, std::move(items), std::move(successCallback));
+	const auto data = std::make_shared<ShareData>(history->peer, std::move(draft), std::move(successCallback));
 
 	auto copyCallback = [=]() {
-		if (const auto item = owner->message(data->msgIds[0])) {
+		if (const auto item = owner->message(data->draft.ids[0])) {
 			if (item->hasDirectLink()) {
 				HistoryView::CopyPostLink(
 					session,
@@ -1161,11 +1163,12 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	auto submitCallback = [=](
 			std::vector<not_null<PeerData*>> &&result,
 			TextWithTags &&comment,
-			Api::SendOptions options) {
+			Api::SendOptions options,
+			Data::ForwardDraft &&newDraft) {
 		if (data->requestsLeft > 0) {
 			return; // Share clicked already.
 		}
-		auto items = history->owner().idsToItems(data->msgIds);
+		auto items = history->owner().idsToItems(data->draft.ids);
 		if (items.empty() || result.empty()) {
 			return;
 		}
@@ -1205,6 +1208,9 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		};
 		auto &api = owner->session().api();
 
+		data->draft.options = newDraft.options;
+		data->draft.groupOptions = newDraft.groupOptions;
+
 		for (const auto peer : result) {
 			const auto history = owner->history(peer);
 			if (!comment.text.isEmpty()) {
@@ -1219,16 +1225,11 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 			auto action = Api::SendAction(history);
 			action.options = options;
 			action.clearDraft = false;
+			auto resolved = history->resolveForwardDraft(data->draft);
 
-			if (cForwardQuoted()) {
-				api.forwardMessages(history->owner().idsToItems(data->msgIds), action, [=] {
-					checkAndClose();
-				});
-			} else {
-				api.forwardMessagesUnquoted(history->owner().idsToItems(data->msgIds), action, [=] {
-					checkAndClose();
-				});
-			}
+			api.forwardMessages(std::move(resolved), action, [=] {
+				checkAndClose();
+			});
 		}
 		if (data->submitCallback && !cForwardRetainSelection()) {
 			data->submitCallback();
@@ -1240,11 +1241,13 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	auto copyLinkCallback = canCopyLink
 		? Fn<void()>(std::move(copyCallback))
 		: Fn<void()>();
-	auto goToChatCallback = [navigation, data](PeerData *peer) {
+	auto goToChatCallback = [navigation, data](PeerData *peer, Data::ForwardDraft &&newDraft) {
 		if (data->submitCallback && !cForwardRetainSelection()) {
 			data->submitCallback();
 		}
-		navigation->parentController()->content()->setForwardDraft(peer->id, std::move(data->msgIds));
+		data->draft.options = newDraft.options;
+		data->draft.groupOptions = newDraft.groupOptions;
+		navigation->parentController()->content()->setForwardDraft(peer->id, std::move(data->draft));
 	};
 	*weak = Ui::show(
 		Box<ShareBox>(ShareBox::Descriptor{
@@ -1255,9 +1258,24 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 			.goToChatCallback = std::move(goToChatCallback),
 			.navigation = navigation,
 			.hasMedia = hasMediaForGrouping,
-			.isShare = false }),
+			.isShare = false,
+			.draft = std::make_unique<Data::ForwardDraft>(Data::ForwardDraft{
+				.options = data->draft.options,
+				.groupOptions = data->draft.groupOptions,
+			}),
+		}),
 		Ui::LayerOption::KeepOther);
 	return weak->data();
+}
+
+QPointer<Ui::RpWidget> ShowForwardMessagesBox(
+		not_null<Window::SessionNavigation*> navigation,
+		MessageIdsList &&items,
+		FnMut<void()> &&successCallback) {
+	return ShowForwardMessagesBox(
+		navigation,
+		Data::ForwardDraft{ .ids = std::move(items) },
+		std::move(successCallback));
 }
 
 QPointer<Ui::RpWidget> ShowSendNowMessagesBox(

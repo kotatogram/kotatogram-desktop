@@ -154,6 +154,12 @@ void Account::createSession(
 	const auto flags = MTPDuser::Flag::f_self | (phone.isEmpty()
 		? MTPDuser::Flag()
 		: MTPDuser::Flag::f_phone);
+
+	using ServerUserIdType = decltype(std::declval<MTPDuser>().vid().v);
+	if (ServerUserIdType(id.bare) <= 0) { // #TODO ids remove
+		return;
+	}
+
 	createSession(
 		MTP_user(
 			MTP_flags(flags),
@@ -249,6 +255,12 @@ rpl::producer<not_null<MTP::Instance*>> Account::mtpValue() const {
 	return _mtpValue.value() | rpl::map([](MTP::Instance *instance) {
 		return not_null{ instance };
 	});
+}
+
+rpl::producer<not_null<MTP::Instance*>> Account::mtpMainSessionValue() const {
+	return mtpValue() | rpl::map([=](not_null<MTP::Instance*> instance) {
+		return instance->mainDcIdValue() | rpl::map_to(instance);
+	}) | rpl::flatten_latest();
 }
 
 rpl::producer<MTPUpdates> Account::mtpUpdates() const {

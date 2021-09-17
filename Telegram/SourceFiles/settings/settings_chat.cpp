@@ -55,9 +55,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "facades.h"
-#include "app.h"
 #include "styles/style_settings.h"
 #include "styles/style_layers.h"
+#include "styles/style_window.h"
 
 namespace Settings {
 namespace {
@@ -552,43 +552,64 @@ void BackgroundRow::radialAnimationCallback(crl::time now) {
 }
 
 void BackgroundRow::updateImage() {
-	int32 size = st::settingsBackgroundThumb * cIntRetinaFactor();
-	QImage back(size, size, QImage::Format_ARGB32_Premultiplied);
+	const auto size = st::settingsBackgroundThumb;
+	const auto fullsize = size * cIntRetinaFactor();
+
+	// We use Format_RGB32 so that DestinationIn shows black, not transparent.
+	// Then we'll convert to Format_ARGB32_Premultiplied for round corners.
+	auto back = QImage(fullsize, fullsize, QImage::Format_RGB32);
 	back.setDevicePixelRatio(cRetinaFactor());
 	{
 		Painter p(&back);
 		PainterHighQualityEnabler hq(p);
 
-		if (const auto color = Window::Theme::Background()->colorForFill()) {
-			p.fillRect(
-				0,
-				0,
-				st::settingsBackgroundThumb,
-				st::settingsBackgroundThumb,
-				*color);
+		const auto background = Window::Theme::Background();
+		if (const auto color = background->colorForFill()) {
+			p.fillRect(0, 0, size, size, *color);
 		} else {
-			const auto &pix = Window::Theme::Background()->pixmap();
-			const auto sx = (pix.width() > pix.height())
-				? ((pix.width() - pix.height()) / 2)
-				: 0;
-			const auto sy = (pix.height() > pix.width())
-				? ((pix.height() - pix.width()) / 2)
-				: 0;
-			const auto s = (pix.width() > pix.height())
-				? pix.height()
-				: pix.width();
-			p.drawPixmap(
-				0,
-				0,
-				st::settingsBackgroundThumb,
-				st::settingsBackgroundThumb,
-				pix,
-				sx,
-				sy,
-				s,
-				s);
+			const auto gradient = background->gradientForFill();
+			const auto patternOpacity = background->paper().patternOpacity();
+			if (!gradient.isNull()) {
+				auto hq = PainterHighQualityEnabler(p);
+				p.drawImage(QRect(0, 0, size, size), gradient);
+				if (patternOpacity >= 0.) {
+					p.setCompositionMode(QPainter::CompositionMode_SoftLight);
+					p.setOpacity(patternOpacity);
+				} else {
+					p.setCompositionMode(
+						QPainter::CompositionMode_DestinationIn);
+				}
+			}
+			const auto &prepared = background->prepared();
+			if (!prepared.isNull()) {
+				const auto pattern = background->paper().isPattern();
+				const auto w = prepared.width();
+				const auto h = prepared.height();
+				const auto use = [&] {
+					if (!pattern) {
+						return std::min(w, h);
+					}
+					const auto scaledw = w * st::windowMinHeight / h;
+					const auto result = (w * size) / scaledw;
+					return std::min({ result, w, h });
+				}();
+				p.drawImage(
+					QRect(0, 0, size, size),
+					prepared,
+					QRect((w - use) / 2, (h - use) / 2, use, use));
+			}
+			if (!gradient.isNull()
+				&& !prepared.isNull()
+				&& patternOpacity < 0.
+				&& patternOpacity > -1.) {
+				p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+				p.setOpacity(1. + patternOpacity);
+				p.fillRect(QRect(0, 0, size, size), Qt::black);
+			}
 		}
 	}
+	back = std::move(back).convertToFormat(
+		QImage::Format_ARGB32_Premultiplied);
 	Images::prepareRound(back, ImageRoundRadius::Small);
 	_background = Ui::PixmapFromImage(std::move(back));
 	_background.setDevicePixelRatio(cRetinaFactor());
@@ -626,9 +647,11 @@ void ChooseFromFile(
 			}
 		}
 
-		auto image = result.remoteContent.isEmpty()
-			? App::readImage(result.paths.front())
-			: App::readImage(result.remoteContent);
+		auto image = Images::Read({
+			.path = result.paths.isEmpty() ? QString() : result.paths.front(),
+			.content = result.remoteContent,
+			.forceOpaque = true,
+		}).image;
 		if (image.isNull() || image.width() <= 0 || image.height() <= 0) {
 			return;
 		}
@@ -934,13 +957,16 @@ void SetupChatBackground(
 
 	AddSkip(container, st::settingsTileSkip);
 
+	const auto background = Window::Theme::Background();
 	const auto tile = inner->add(
-		object_ptr<Ui::Checkbox>(
+		object_ptr<Ui::SlideWrap<Ui::Checkbox>>(
 			inner,
-			tr::lng_settings_bg_tile(tr::now),
-			Window::Theme::Background()->tile(),
-			st::settingsCheckbox),
-		st::settingsSendTypePadding);
+			object_ptr<Ui::Checkbox>(
+				inner,
+				tr::lng_settings_bg_tile(tr::now),
+				background->tile(),
+				st::settingsCheckbox),
+			st::settingsSendTypePadding));
 	const auto adaptive = inner->add(
 		object_ptr<Ui::SlideWrap<Ui::Checkbox>>(
 			inner,
@@ -951,19 +977,25 @@ void SetupChatBackground(
 				st::settingsCheckbox),
 			st::settingsSendTypePadding));
 
-	tile->checkedChanges(
-	) | rpl::start_with_next([](bool checked) {
-		Window::Theme::Background()->setTile(checked);
+	tile->entity()->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		background->setTile(checked);
 	}, tile->lifetime());
 
+	const auto shown = [=] {
+		return !background->paper().isPattern()
+			&& !background->colorForFill();
+	};
+	tile->toggle(shown(), anim::type::instant);
+
 	using Update = const Window::Theme::BackgroundUpdate;
-	Window::Theme::Background()->updates(
+	background->updates(
 	) | rpl::filter([](const Update &update) {
-		return (update.type == Update::Type::Changed);
-	}) | rpl::map([] {
-		return Window::Theme::Background()->tile();
-	}) | rpl::start_with_next([=](bool tiled) {
-		tile->setChecked(tiled);
+		return (update.type == Update::Type::Changed)
+			|| (update.type == Update::Type::New);
+	}) | rpl::start_with_next([=] {
+		tile->entity()->setChecked(background->tile());
+		tile->toggle(shown(), anim::type::instant);
 	}, tile->lifetime());
 
 	adaptive->toggleOn(controller->adaptive().chatLayoutValue(

@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_document_resolver.h"
 
-#include "app.h"
 #include "facades.h"
 #include "base/platform/base_platform_info.h"
 #include "boxes/confirm_box.h"
@@ -24,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "media/player/media_player_instance.h"
 #include "platform/platform_file_utilities.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/text/text_utilities.h"
 #include "window/window_session_controller.h"
 
@@ -174,29 +174,21 @@ bool IsIpRevealingName(const QString &filepath) {
 	);
 }
 
-base::binary_guard ReadImageAsync(
+base::binary_guard ReadBackgroundImageAsync(
 		not_null<Data::DocumentMedia*> media,
 		FnMut<QImage(QImage)> postprocess,
 		FnMut<void(QImage&&)> done) {
 	auto result = base::binary_guard();
+	const auto gzipSvg = media->owner()->isPatternWallPaperSVG();
 	crl::async([
+		gzipSvg,
 		bytes = media->bytes(),
 		path = media->owner()->filepath(),
 		postprocess = std::move(postprocess),
 		guard = result.make_guard(),
 		callback = std::move(done)
 	]() mutable {
-		auto format = QByteArray();
-		if (bytes.isEmpty()) {
-			QFile f(path);
-			if (f.size() <= App::kImageSizeLimit
-				&& f.open(QIODevice::ReadOnly)) {
-				bytes = f.readAll();
-			}
-		}
-		auto image = bytes.isEmpty()
-			? QImage()
-			: App::readImage(bytes, &format, false, nullptr);
+		auto image = Ui::ReadBackgroundImage(path, bytes, gzipSvg);
 		if (postprocess) {
 			image = postprocess(std::move(image));
 		}
@@ -231,7 +223,7 @@ void ResolveDocument(
 
 	const auto media = document->createMediaView();
 	const auto openImageInApp = [&] {
-		if (document->size >= App::kImageSizeLimit) {
+		if (document->size >= Images::kReadBytesLimit) {
 			return false;
 		}
 		const auto &location = document->location(true);

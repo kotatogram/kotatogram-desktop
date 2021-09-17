@@ -186,10 +186,14 @@ TextWithEntities GenerateAdminChangeText(
 
 	auto result = tr::lng_admin_log_promoted(tr::now, lt_user, user, Ui::Text::WithEntities);
 
-	auto useInviteLinkPhrase = channel->isMegagroup() && channel->anyoneCanAddMembers();
-	auto invitePhrase = useInviteLinkPhrase
+	const auto useInviteLinkPhrase = channel->isMegagroup()
+		&& channel->anyoneCanAddMembers();
+	const auto invitePhrase = useInviteLinkPhrase
 		? tr::lng_admin_log_admin_invite_link
 		: tr::lng_admin_log_admin_invite_users;
+	const auto callPhrase = channel->isBroadcast()
+		? tr::lng_admin_log_admin_manage_calls_channel
+		: tr::lng_admin_log_admin_manage_calls;
 	static auto phraseMap = std::map<Flags, tr::phrase<>> {
 		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info },
 		{ Flag::PostMessages, tr::lng_admin_log_admin_post_messages },
@@ -202,6 +206,7 @@ TextWithEntities GenerateAdminChangeText(
 		{ Flag::AddAdmins, tr::lng_admin_log_admin_add_admins },
 	};
 	phraseMap[Flag::InviteUsers] = invitePhrase;
+	phraseMap[Flag::ManageCall] = callPhrase;
 
 	if (!channel->isMegagroup()) {
 		// Don't display "Ban users" changes in channels.
@@ -525,6 +530,7 @@ void GenerateItems(
 	const auto id = event.vid().v;
 	const auto from = history->owner().user(event.vuser_id().v);
 	const auto channel = history->peer->asChannel();
+	const auto broadcast = channel->isBroadcast();
 	const auto &action = event.vaction();
 	const auto date = event.vdate().v;
 	const auto addPart = [&](
@@ -849,7 +855,6 @@ void GenerateItems(
 	};
 
 	auto createChangeLinkedChat = [&](const MTPDchannelAdminLogEventActionChangeLinkedChat &action) {
-		const auto broadcast = channel->isBroadcast();
 		const auto now = history->owner().channelLoaded(action.vnew_value().v);
 		if (!now) {
 			auto text = (broadcast
@@ -925,12 +930,16 @@ void GenerateItems(
 	};
 
 	auto createStartGroupCall = [&](const MTPDchannelAdminLogEventActionStartGroupCall &data) {
-		const auto text = tr::lng_admin_log_started_group_call(tr::now, lt_from, fromLinkText);
+		const auto text = (broadcast
+			? tr::lng_admin_log_started_group_call_channel
+			: tr::lng_admin_log_started_group_call)(tr::now, lt_from, fromLinkText);
 		addSimpleServiceMessage(text);
 	};
 
 	auto createDiscardGroupCall = [&](const MTPDchannelAdminLogEventActionDiscardGroupCall &data) {
-		const auto text = tr::lng_admin_log_discarded_group_call(tr::now, lt_from, fromLinkText);
+		const auto text = (broadcast
+			? tr::lng_admin_log_discarded_group_call_channel
+			: tr::lng_admin_log_discarded_group_call)(tr::now, lt_from, fromLinkText);
 		addSimpleServiceMessage(text);
 	};
 
@@ -956,7 +965,9 @@ void GenerateItems(
 		const auto participantPeer = groupCallParticipantPeer(data.vparticipant());
 		const auto participantPeerLink = participantPeer->createOpenLink();
 		const auto participantPeerLinkText = textcmdLink(2, participantPeer->name);
-		auto text = tr::lng_admin_log_muted_participant(
+		auto text = (broadcast
+			? tr::lng_admin_log_muted_participant_channel
+			: tr::lng_admin_log_muted_participant)(
 			tr::now,
 			lt_from,
 			fromLinkText,
@@ -969,7 +980,9 @@ void GenerateItems(
 		const auto participantPeer = groupCallParticipantPeer(data.vparticipant());
 		const auto participantPeerLink = participantPeer->createOpenLink();
 		const auto participantPeerLinkText = textcmdLink(2, participantPeer->name);
-		auto text = tr::lng_admin_log_unmuted_participant(
+		auto text = (broadcast
+			? tr::lng_admin_log_unmuted_participant_channel
+			: tr::lng_admin_log_unmuted_participant)(
 			tr::now,
 			lt_from,
 			fromLinkText,
@@ -979,9 +992,13 @@ void GenerateItems(
 	};
 
 	auto createToggleGroupCallSetting = [&](const MTPDchannelAdminLogEventActionToggleGroupCallSetting &data) {
-		const auto text = mtpIsTrue(data.vjoin_muted())
-			? tr::lng_admin_log_disallowed_unmute_self(tr::now, lt_from, fromLinkText)
-			: tr::lng_admin_log_allowed_unmute_self(tr::now, lt_from, fromLinkText);
+		const auto text = (mtpIsTrue(data.vjoin_muted())
+			? (broadcast
+				? tr::lng_admin_log_disallowed_unmute_self_channel
+				: tr::lng_admin_log_disallowed_unmute_self)
+			: (broadcast
+				? tr::lng_admin_log_allowed_unmute_self_channel
+				: tr::lng_admin_log_allowed_unmute_self))(tr::now, lt_from, fromLinkText);
 		addSimpleServiceMessage(text);
 	};
 
@@ -1050,7 +1067,9 @@ void GenerateItems(
 			return data.vvolume().value_or(10000);
 		});
 		const auto volumeText = QString::number(volume / 100) + '%';
-		auto text = tr::lng_admin_log_participant_volume(
+		auto text = (broadcast
+			? tr::lng_admin_log_participant_volume_channel
+			: tr::lng_admin_log_participant_volume)(
 			tr::now,
 			lt_from,
 			fromLinkText,

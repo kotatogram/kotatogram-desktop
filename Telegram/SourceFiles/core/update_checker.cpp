@@ -243,9 +243,7 @@ QString FindUpdateFile() {
 			"tupdate|"
 			"tx64upd|"
 			"tmacupd|"
-			"tosxupd|"
 			"tlinuxupd|"
-			"tlinux32upd"
 			")\\d+(_[a-z\\d]+)?$",
 			QRegularExpression::CaseInsensitiveOption
 		).match(info.fileName()).hasMatch()) {

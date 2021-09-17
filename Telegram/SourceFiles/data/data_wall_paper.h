@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/flags.h"
+
 class Image;
 
 namespace Main {
@@ -17,6 +19,15 @@ namespace Data {
 
 struct FileOrigin;
 
+enum class WallPaperFlag {
+	Pattern = (1 << 0),
+	Default = (1 << 1),
+	Creator = (1 << 2),
+	Dark = (1 << 3),
+};
+inline constexpr bool is_flag_type(WallPaperFlag) { return true; };
+using WallPaperFlags = base::flags<WallPaperFlag>;
+
 class WallPaper {
 public:
 	explicit WallPaper(WallPaperId id);
@@ -24,7 +35,7 @@ public:
 	void setLocalImageAsThumbnail(std::shared_ptr<Image> image);
 
 	[[nodiscard]] WallPaperId id() const;
-	[[nodiscard]] std::optional<QColor> backgroundColor() const;
+	[[nodiscard]] const std::vector<QColor> backgroundColors() const;
 	[[nodiscard]] DocumentData *document() const;
 	[[nodiscard]] Image *localThumbnail() const;
 	[[nodiscard]] bool isPattern() const;
@@ -34,6 +45,8 @@ public:
 	[[nodiscard]] bool isLocal() const;
 	[[nodiscard]] bool isBlurred() const;
 	[[nodiscard]] int patternIntensity() const;
+	[[nodiscard]] float64 patternOpacity() const;
+	[[nodiscard]] int gradientRotation() const;
 	[[nodiscard]] bool hasShareUrl() const;
 	[[nodiscard]] QString shareUrl(not_null<Main::Session*> session) const;
 
@@ -50,7 +63,9 @@ public:
 		const QMap<QString, QString> &params) const;
 	[[nodiscard]] WallPaper withBlurred(bool blurred) const;
 	[[nodiscard]] WallPaper withPatternIntensity(int intensity) const;
-	[[nodiscard]] WallPaper withBackgroundColor(QColor color) const;
+	[[nodiscard]] WallPaper withGradientRotation(int rotation) const;
+	[[nodiscard]] WallPaper withBackgroundColors(
+		std::vector<QColor> colors) const;
 	[[nodiscard]] WallPaper withParamsFrom(const WallPaper &other) const;
 	[[nodiscard]] WallPaper withoutImageData() const;
 
@@ -60,6 +75,8 @@ public:
 	[[nodiscard]] static std::optional<WallPaper> Create(
 		not_null<Main::Session*> session,
 		const MTPDwallPaper &data);
+	[[nodiscard]] static std::optional<WallPaper> Create(
+		const MTPDwallPaperNoFile &data);
 
 	[[nodiscard]] QByteArray serialize() const;
 	[[nodiscard]] static std::optional<WallPaper> FromSerialized(
@@ -71,21 +88,23 @@ public:
 		QString slug);
 	[[nodiscard]] static std::optional<WallPaper> FromLegacyId(
 		qint32 legacyId);
-	[[nodiscard]] static std::optional<WallPaper> FromColorSlug(
+	[[nodiscard]] static std::optional<WallPaper> FromColorsSlug(
 		const QString &slug);
+	[[nodiscard]] static WallPaper ConstructDefault();
 
 private:
-	static constexpr auto kDefaultIntensity = 40;
+	static constexpr auto kDefaultIntensity = 50;
 
 	WallPaperId _id = WallPaperId();
 	uint64 _accessHash = 0;
 	UserId _ownerId = 0;
-	MTPDwallPaper::Flags _flags;
+	WallPaperFlags _flags;
 	QString _slug;
 
-	MTPDwallPaperSettings::Flags _settings;
-	std::optional<QColor> _backgroundColor;
+	std::vector<QColor> _backgroundColors;
+	int _rotation = 0;
 	int _intensity = kDefaultIntensity;
+	bool _blurred = false;
 
 	DocumentData *_document = nullptr;
 	std::shared_ptr<Image> _thumbnail;
@@ -99,17 +118,20 @@ private:
 [[nodiscard]] WallPaper Legacy1DefaultWallPaper();
 [[nodiscard]] bool IsLegacy1DefaultWallPaper(const WallPaper &paper);
 [[nodiscard]] bool IsLegacy2DefaultWallPaper(const WallPaper &paper);
+[[nodiscard]] bool IsLegacy3DefaultWallPaper(const WallPaper &paper);
+[[nodiscard]] bool IsLegacy4DefaultWallPaper(const WallPaper &paper);
 [[nodiscard]] WallPaper DefaultWallPaper();
 [[nodiscard]] bool IsDefaultWallPaper(const WallPaper &paper);
 [[nodiscard]] bool IsCloudWallPaper(const WallPaper &paper);
 
-QColor PatternColor(QColor background);
-QImage PreparePatternImage(
-	QImage image,
-	QColor bg,
-	QColor fg,
-	int intensity);
-QImage PrepareBlurredBackground(QImage image);
+[[nodiscard]] QImage GenerateDitheredGradient(const WallPaper &paper);
+
+[[nodiscard]] QColor ColorFromSerialized(quint32 serialized);
+[[nodiscard]] QColor ColorFromSerialized(MTPint serialized);
+[[nodiscard]] std::optional<QColor> MaybeColorFromSerialized(
+	quint32 serialized);
+[[nodiscard]] std::optional<QColor> MaybeColorFromSerialized(
+	const tl::conditional<MTPint> &mtp);
 
 namespace details {
 

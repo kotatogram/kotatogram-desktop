@@ -24,6 +24,8 @@ class SessionController;
 
 namespace Ui {
 class PathShiftGradient;
+struct BubblePattern;
+struct ChatPaintContext;
 } // namespace Ui
 
 namespace HistoryView {
@@ -141,6 +143,11 @@ public:
 	not_null<Ui::PathShiftGradient*> elementPathShiftGradient() override;
 	void elementReplyTo(const FullMsgId &to) override;
 
+protected:
+	[[nodiscard]] not_null<Window::SessionController*> controller() const {
+		return _controller;
+	}
+
 private:
 	const not_null<Window::SessionController*> _controller;
 	const std::unique_ptr<Ui::PathShiftGradient> _pathGradient;
@@ -190,6 +197,8 @@ struct DateBadge : public RuntimeComponent<DateBadge, Element> {
 	int width = 0;
 
 };
+
+using PaintContext = Ui::ChatPaintContext;
 
 class Element
 	: public Object
@@ -262,11 +271,7 @@ public:
 	bool displayDate() const;
 	bool isInOneDayWithPrevious() const;
 
-	virtual void draw(
-		Painter &p,
-		QRect clip,
-		TextSelection selection,
-		crl::time ms) const = 0;
+	virtual void draw(Painter &p, const PaintContext &context) const = 0;
 	[[nodiscard]] virtual PointState pointState(QPoint point) const = 0;
 	[[nodiscard]] virtual TextState textState(
 		QPoint point,

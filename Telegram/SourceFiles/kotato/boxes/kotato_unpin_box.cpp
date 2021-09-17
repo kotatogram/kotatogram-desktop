@@ -16,6 +16,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "data/data_chat.h"
 #include "data/data_changes.h"
 #include "data/data_user.h"
+#include "data/data_session.h"
 #include "main/main_session.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
@@ -76,7 +77,9 @@ void UnpinMessageBox::hideMessage() {
 
 	auto hidden = HistoryWidget::switchPinnedHidden(_peer, true);
 	if (hidden) {
-		_peer->session().changes().peerUpdated(_peer, Data::PeerUpdate::Flag::PinnedMessages);
+		_peer->session().changes().historyUpdated(
+			_peer->owner().history(_peer),
+			Data::HistoryUpdate::Flag::PinnedMessages);
 	}
 	Ui::hideLayer();
 }

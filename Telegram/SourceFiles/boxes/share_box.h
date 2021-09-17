@@ -32,6 +32,10 @@ namespace Api {
 struct SendOptions;
 } // namespace Api
 
+namespace Data {
+struct ForwardDraft;
+} // namespace Data
+
 namespace Main {
 class Session;
 } // namespace Main
@@ -64,9 +68,10 @@ public:
 	using SubmitCallback = Fn<void(
 		std::vector<not_null<PeerData*>>&&,
 		TextWithTags&&,
-		Api::SendOptions)>;
+		Api::SendOptions,
+		Data::ForwardDraft&&)>;
 	using FilterCallback = Fn<bool(PeerData*)>;
-	using GoToChatCallback = Fn<void(PeerData *peer)>;
+	using GoToChatCallback = Fn<void(PeerData *peer, Data::ForwardDraft&&)>;
 
 	struct Descriptor {
 		not_null<Main::Session*> session;
@@ -84,6 +89,7 @@ public:
 		const style::PeerList *st = nullptr;
 		bool hasMedia = false;
 		bool isShare = true;
+		std::unique_ptr<Data::ForwardDraft> draft;
 	};
 	ShareBox(QWidget*, Descriptor &&descriptor);
 
@@ -154,5 +160,4 @@ private:
 	Ui::Animations::Simple _scrollAnimation;
 
 	base::unique_qptr<Ui::DropdownMenu> _menu;
-
 };

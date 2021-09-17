@@ -34,7 +34,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "apiwrap.h" // ApiWrap::acceptTerms.
 #include "facades.h"
-#include "app.h"
 #include "styles/style_layers.h"
 
 #include <QtGui/QWindow>
@@ -241,17 +240,9 @@ void Controller::clearPasscodeLock() {
 }
 
 void Controller::setupIntro() {
-	const auto parent = Core::App().domain().maybeLastOrSomeAuthedAccount();
-	if (!parent) {
-		_widget.setupIntro(Intro::EnterPoint::Start);
-		return;
-	}
-	const auto qrLogin = parent->appConfig().get<QString>(
-		"qr_login_code",
-		"[not-set]");
-	DEBUG_LOG(("qr_login_code in setup: %1").arg(qrLogin));
-	const auto qr = (qrLogin == "primary");
-	_widget.setupIntro(qr ? Intro::EnterPoint::Qr : Intro::EnterPoint::Phone);
+	_widget.setupIntro(Core::App().domain().maybeLastOrSomeAuthedAccount()
+		? Intro::EnterPoint::Qr
+		: Intro::EnterPoint::Start);
 }
 
 void Controller::setupMain() {

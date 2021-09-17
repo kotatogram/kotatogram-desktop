@@ -18,7 +18,6 @@ Copyright (C) 2017, Nicholas Guriev <guriev-ns@ya.ru>
 #include "ui/widgets/input_fields.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
-#include "app.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 

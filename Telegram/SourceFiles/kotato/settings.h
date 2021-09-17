@@ -155,11 +155,6 @@ DeclareSetting(QString, ApiHash);
 DeclareSetting(bool, UseEnvApi);
 DeclareSetting(bool, ApiFromStartParams);
 
-DeclareSetting(bool, ForwardQuoted);
-DeclareSetting(bool, ForwardCaptioned);
-DeclareSetting(bool, ForwardAlbumsAsIs);
-DeclareSetting(bool, ForwardGrouped);
-
 DeclareSetting(bool, AutoScrollUnfocused);
 
 struct LocalFolder {

@@ -60,7 +60,7 @@ WrapWidget::WrapWidget(
 	not_null<Window::SessionController*> window,
 	Wrap wrap,
 	not_null<Memento*> memento)
-: SectionWidget(parent, window)
+: SectionWidget(parent, window, rpl::producer<PeerData*>())
 , _wrap(wrap)
 , _controller(createController(window, memento->content()))
 , _topShadow(this) {

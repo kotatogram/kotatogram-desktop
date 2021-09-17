@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/file_utilities.h"
 #include "core/mime_type.h"
 #include "core/ui_integration.h"
+#include "core/crash_reports.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/buttons.h"
 #include "ui/image/image.h"
@@ -70,7 +71,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_account.h"
 #include "calls/calls_instance.h"
 #include "facades.h"
-#include "app.h"
 #include "styles/style_media_view.h"
 #include "styles/style_chat.h"
 
@@ -149,24 +149,16 @@ QWidget *PipDelegate::pipParentWidget() {
 		: result;
 }
 
-[[nodiscard]] QImage PrepareStaticImage(QImage image) {
-	if (image.width() > kMaxDisplayImageSize
-		|| image.height() > kMaxDisplayImageSize) {
-		image = image.scaled(
+[[nodiscard]] QImage PrepareStaticImage(Images::ReadArgs &&args) {
+	auto read = Images::Read(std::move(args));
+	return (read.image.width() > kMaxDisplayImageSize
+		|| read.image.height() > kMaxDisplayImageSize)
+		? read.image.scaled(
 			kMaxDisplayImageSize,
 			kMaxDisplayImageSize,
 			Qt::KeepAspectRatio,
-			Qt::SmoothTransformation);
-	}
-	return image;
-}
-
-[[nodiscard]] QImage PrepareStaticImage(const QString &path) {
-	return PrepareStaticImage(App::readImage(path, nullptr, false));
-}
-
-[[nodiscard]] QImage PrepareStaticImage(const QByteArray &bytes) {
-	return PrepareStaticImage(App::readImage(bytes, nullptr, false));
+			Qt::SmoothTransformation)
+		: read.image;
 }
 
 [[nodiscard]] bool IsSemitransparent(const QImage &image) {
@@ -303,6 +295,8 @@ OverlayWidget::OverlayWidget()
 , _lastAction(-st::mediaviewDeltaFromLastAction, -st::mediaviewDeltaFromLastAction)
 , _stateAnimation([=](crl::time now) { return stateAnimationCallback(now); })
 , _dropdown(_widget, st::mediaviewDropdownMenu) {
+	CrashReports::SetAnnotation("OpenGL Renderer", "[not-initialized]");
+
 	Lang::Updated(
 	) | rpl::start_with_next([=] {
 		refreshLang();
@@ -434,14 +428,14 @@ OverlayWidget::OverlayWidget()
 	updateGeometry();
 	updateControlsGeometry();
 
-#if defined Q_OS_MAC && !defined OS_OSX
+#ifdef Q_OS_MAC
 	TouchBar::SetupMediaViewTouchBar(
 		_widget->winId(),
 		static_cast<PlaybackControls::Delegate*>(this),
 		_touchbarTrackState.events(),
 		_touchbarDisplay.events(),
 		_touchbarFullscreenToggled.events());
-#endif // Q_OS_MAC && !OS_OSX
+#endif // Q_OS_MAC
 
 	using namespace rpl::mappers;
 	rpl::combine(
@@ -1181,7 +1175,8 @@ bool OverlayWidget::radialAnimationCallback(crl::time now) {
 	}
 	const auto ready = _document && _documentMedia->loaded();
 	const auto streamVideo = ready && _documentMedia->canBePlayed();
-	const auto tryOpenImage = ready && (_document->size < App::kImageSizeLimit);
+	const auto tryOpenImage = ready
+		&& (_document->size < Images::kReadBytesLimit);
 	if (ready && ((tryOpenImage && !_radial.animating()) || streamVideo)) {
 		_streamingStartPaused = false;
 		if (streamVideo) {
@@ -2415,14 +2410,16 @@ void OverlayWidget::displayDocument(
 				_document->saveFromDataSilent();
 				auto &location = _document->location(true);
 				if (location.accessEnable()) {
-					const auto &path = location.name();
-					if (QImageReader(path).canRead()) {
-						setStaticContent(PrepareStaticImage(path));
+					setStaticContent(PrepareStaticImage({
+						.path = location.name(),
+					}));
+					if (!_staticContent.isNull()) {
 						_touchbarDisplay.fire(TouchBarItemType::Photo);
 					}
-				} else if (!_documentMedia->bytes().isEmpty()) {
-					setStaticContent(
-						PrepareStaticImage(_documentMedia->bytes()));
+				} else {
+					setStaticContent(PrepareStaticImage({
+						.content = _documentMedia->bytes(),
+					}));
 					if (!_staticContent.isNull()) {
 						_touchbarDisplay.fire(TouchBarItemType::Photo);
 					}
@@ -4524,16 +4521,20 @@ void OverlayWidget::applyHideWindowWorkaround() {
 	// So on next paint we force full backing store repaint.
 	if (_opengl && !isHidden() && !_hideWorkaround) {
 		_hideWorkaround = std::make_unique<Ui::RpWidget>(_widget);
-		_hideWorkaround->setGeometry(_widget->rect());
-		_hideWorkaround->show();
-		_hideWorkaround->paintRequest(
+		const auto raw = _hideWorkaround.get();
+		raw->setGeometry(_widget->rect());
+		raw->show();
+		raw->paintRequest(
 		) | rpl::start_with_next([=] {
-			QPainter(_hideWorkaround.get()).fillRect(_hideWorkaround->rect(), QColor(0, 1, 0, 1));
-			crl::on_main(_hideWorkaround.get(), [=] {
-				_hideWorkaround.reset();
+			if (_hideWorkaround.get() == raw) {
+				_hideWorkaround.release();
+			}
+			QPainter(raw).fillRect(raw->rect(), QColor(0, 1, 0, 1));
+			crl::on_main(raw, [=] {
+				delete raw;
 			});
-		}, _hideWorkaround->lifetime());
-		_hideWorkaround->update();
+		}, raw->lifetime());
+		raw->update();
 
 		if (Platform::IsWindows()) {
 			Ui::Platform::UpdateOverlayed(_widget);

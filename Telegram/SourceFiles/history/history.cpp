@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_changes.h"
 #include "data/data_chat_filters.h"
 #include "data/data_scheduled_messages.h"
+#include "data/data_send_action.h"
 #include "data/data_folder.h"
 #include "data/data_photo.h"
 #include "data/data_channel.h"
@@ -335,16 +336,29 @@ void History::draftSavedToCloud() {
 	session().local().writeDrafts(this);
 }
 
-HistoryItemsList History::validateForwardDraft() {
-	auto result = owner().idsToItems(_forwardDraft);
-	if (result.size() != _forwardDraft.size()) {
-		setForwardDraft(owner().itemsToIds(result));
+Data::ResolvedForwardDraft History::resolveForwardDraft(
+		const Data::ForwardDraft &draft) const {
+	return Data::ResolvedForwardDraft{
+		.items = owner().idsToItems(draft.ids),
+		.options = draft.options,
+		.groupOptions = draft.groupOptions,
+	};
+}
+
+Data::ResolvedForwardDraft History::resolveForwardDraft() {
+	auto result = resolveForwardDraft(_forwardDraft);
+	if (result.items.size() != _forwardDraft.ids.size()) {
+		setForwardDraft({
+			.ids = owner().itemsToIds(result.items),
+			.options = result.options,
+			.groupOptions = result.groupOptions,
+		});
 	}
 	return result;
 }
 
-void History::setForwardDraft(MessageIdsList &&items) {
-	_forwardDraft = std::move(items);
+void History::setForwardDraft(Data::ForwardDraft &&draft) {
+	_forwardDraft = std::move(draft);
 }
 
 HistoryItem *History::createItem(
@@ -458,7 +472,7 @@ void History::unpinAllMessages() {
 		Storage::SharedMediaRemoveAll(
 			peer->id,
 			Storage::SharedMediaType::Pinned));
-	peer->setHasPinnedMessages(false);
+	setHasPinnedMessages(false);
 	for (const auto &message : _messages) {
 		if (message->isPinned()) {
 			message->setIsPinned(false);
@@ -755,7 +769,7 @@ not_null<HistoryItem*> History::addNewToBack(
 				item->id,
 				{ from, till }));
 			if (sharedMediaTypes.test(Storage::SharedMediaType::Pinned)) {
-				peer->setHasPinnedMessages(true);
+				setHasPinnedMessages(true);
 			}
 		}
 	}
@@ -1027,7 +1041,7 @@ void History::applyServiceChanges(
 						Storage::SharedMediaType::Pinned,
 						{ id },
 						{ id, ServerMaxMsgId }));
-					peer->setHasPinnedMessages(true);
+					setHasPinnedMessages(true);
 				}
 			});
 		}
@@ -1065,6 +1079,8 @@ void History::applyServiceChanges(
 				}
 			}
 		}
+	}, [&](const MTPDmessageActionSetChatTheme &data) {
+		peer->setThemeEmoji(qs(data.vemoticon()));
 	}, [](const auto &) {
 	});
 }
@@ -1090,7 +1106,7 @@ void History::newItemAdded(not_null<HistoryItem*> item) {
 	if (const auto from = item->from() ? item->from()->asUser() : nullptr) {
 		if (from == item->author()) {
 			_sendActionPainter.clear(from);
-			owner().repliesSendActionPaintersClear(this, from);
+			owner().sendActionManager().repliesPaintersClear(this, from);
 		}
 		from->madeAction(item->date());
 	}
@@ -1403,7 +1419,7 @@ void History::addToSharedMedia(
 				std::move(medias[i]),
 				{ from, till }));
 			if (type == Storage::SharedMediaType::Pinned) {
-				peer->setHasPinnedMessages(true);
+				setHasPinnedMessages(true);
 			}
 		}
 	}
@@ -1635,7 +1651,16 @@ void History::setUnreadCount(int newUnreadCount) {
 	const auto notifier = unreadStateChangeNotifier(true);
 	_unreadCount = newUnreadCount;
 
-	if (newUnreadCount == 1) {
+	const auto lastOutgoing = [&] {
+		const auto last = lastMessage();
+		return last
+			&& IsServerMsgId(last->id)
+			&& loadedAtBottom()
+			&& !isEmpty()
+			&& blocks.back()->messages.back()->data() == last
+			&& last->out();
+	}();
+	if (newUnreadCount == 1 && !lastOutgoing) {
 		if (loadedAtBottom()) {
 			_firstUnreadView = !isEmpty()
 				? blocks.back()->messages.back().get()
@@ -3114,6 +3139,15 @@ void History::removeBlock(not_null<HistoryBlock*> block) {
 	} else if (!blocks.empty() && !blocks.back()->messages.empty()) {
 		blocks.back()->messages.back()->nextInBlocksRemoved();
 	}
+}
+
+bool History::hasPinnedMessages() const {
+	return _hasPinnedMessages;
+}
+
+void History::setHasPinnedMessages(bool has) {
+	_hasPinnedMessages = has;
+	session().changes().historyUpdated(this, UpdateFlag::PinnedMessages);
 }
 
 History::~History() = default;

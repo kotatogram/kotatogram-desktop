@@ -345,6 +345,8 @@ PRIVATE
     core/utils.cpp
     core/utils.h
     core/version.h
+    countries/countries_manager.cpp
+    countries/countries_manager.h
     data/stickers/data_stickers_set.cpp
     data/stickers/data_stickers_set.h
     data/stickers/data_stickers.cpp
@@ -352,6 +354,8 @@ PRIVATE
     data/data_abstract_sparse_ids.h
     data/data_abstract_structure.cpp
     data/data_abstract_structure.h
+    data/data_audio_msg_id.cpp
+    data/data_audio_msg_id.h
     data/data_auto_download.cpp
     data/data_auto_download.h
     data/data_chat.cpp
@@ -420,6 +424,8 @@ PRIVATE
     data/data_reply_preview.h
     data/data_search_controller.cpp
     data/data_search_controller.h
+    data/data_send_action.cpp
+    data/data_send_action.h
     data/data_session.cpp
     data/data_session.h
     data/data_scheduled_messages.cpp
@@ -871,14 +877,9 @@ PRIVATE
     payments/payments_form.h
     platform/linux/linux_desktop_environment.cpp
     platform/linux/linux_desktop_environment.h
-    platform/linux/linux_gdk_helper.cpp
-    platform/linux/linux_gdk_helper.h
     platform/linux/linux_gtk_integration_dummy.cpp
-    platform/linux/linux_gtk_integration_p.h
     platform/linux/linux_gtk_integration.cpp
     platform/linux/linux_gtk_integration.h
-    platform/linux/linux_gtk_open_with_dialog.cpp
-    platform/linux/linux_gtk_open_with_dialog.h
     platform/linux/linux_wayland_integration_dummy.cpp
     platform/linux/linux_wayland_integration.cpp
     platform/linux/linux_wayland_integration.h
@@ -1183,12 +1184,7 @@ endif()
 
 if (DESKTOP_APP_DISABLE_GTK_INTEGRATION)
     remove_target_sources(Telegram ${src_loc}
-        platform/linux/linux_gdk_helper.cpp
-        platform/linux/linux_gdk_helper.h
-        platform/linux/linux_gtk_integration_p.h
         platform/linux/linux_gtk_integration.cpp
-        platform/linux/linux_gtk_open_with_dialog.cpp
-        platform/linux/linux_gtk_open_with_dialog.h
     )
 else()
     remove_target_sources(Telegram ${src_loc}
@@ -1315,19 +1311,6 @@ else()
             desktop-app::lib_waylandshells
             desktop-app::external_kwayland
         )
-    endif()
-
-    if (NOT DESKTOP_APP_DISABLE_GTK_INTEGRATION)
-        find_package(PkgConfig REQUIRED)
-
-        pkg_check_modules(GTK REQUIRED gtk+-3.0)
-        target_include_directories(Telegram SYSTEM PRIVATE ${GTK_INCLUDE_DIRS})
-
-        if (NOT DESKTOP_APP_DISABLE_X11_INTEGRATION)
-            target_link_libraries(Telegram PRIVATE X11)
-        endif()
-
-        target_link_libraries(Telegram PRIVATE rt)
     endif()
 endif()
 
@@ -1472,10 +1455,6 @@ if ((NOT DESKTOP_APP_DISABLE_AUTOUPDATE OR APPLE) AND NOT build_macstore AND NOT
         else()
             target_link_options(Updater PRIVATE -municode)
         endif()
-    endif()
-
-    if (LINUX)
-        target_link_options(Updater PRIVATE -static-libstdc++)
     endif()
 
     if (DESKTOP_APP_SPECIAL_TARGET OR KTGDESKTOP_ENABLE_PACKER)

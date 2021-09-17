@@ -39,6 +39,7 @@ class Session;
 
 namespace Data {
 class WallPaper;
+struct ForwardDraft;
 } // namespace Data
 
 namespace Dialogs {
@@ -159,12 +160,12 @@ public:
 
 	int32 dlgsWidth() const;
 
-	void showForwardLayer(MessageIdsList &&items);
+	void showForwardLayer(Data::ForwardDraft &&draft);
 	void showSendPathsLayer();
 	void shareUrlLayer(const QString &url, const QString &text);
 	void inlineSwitchLayer(const QString &botAndQuery);
 	void hiderLayer(base::unique_qptr<Window::HistoryHider> h);
-	bool setForwardDraft(PeerId peer, MessageIdsList &&items);
+	bool setForwardDraft(PeerId peer, Data::ForwardDraft &&draft);
 	bool shareUrl(
 		PeerId peerId,
 		const QString &url,
@@ -184,8 +185,6 @@ public:
 	bool insertBotCommand(const QString &cmd);
 
 	void searchMessages(const QString &query, Dialogs::Key inChat, UserData *from = nullptr);
-
-	QPixmap cachedBackground(const QRect &forRect, int &x, int &y);
 
 	void setChatBackground(
 		const Data::WallPaper &background,
@@ -304,9 +303,6 @@ private:
 	void showAll();
 	void clearHider(not_null<Window::HistoryHider*> instance);
 
-	void cacheBackground();
-	void clearCachedBackground();
-
 	[[nodiscard]] auto floatPlayerDelegate()
 		-> not_null<Media::Player::FloatDelegate*>;
 	not_null<Ui::RpWidget*> floatPlayerWidget() override;
@@ -393,12 +389,6 @@ private:
 	int _callTopBarHeight = 0;
 	int _exportTopBarHeight = 0;
 	int _contentScrollAddToY = 0;
-
-	QPixmap _cachedBackground;
-	QRect _cachedFor, _willCacheFor;
-	int _cachedX = 0;
-	int _cachedY = 0;
-	base::Timer _cacheBackgroundTimer;
 
 	PhotoData *_deletingPhoto = nullptr;
 

@@ -842,7 +842,8 @@ void ShareInviteLinkBox(not_null<PeerData*> peer, const QString &link) {
 	auto submitCallback = [=](
 			std::vector<not_null<PeerData*>> &&result,
 			TextWithTags &&comment,
-			Api::SendOptions options) {
+			Api::SendOptions options,
+			Data::ForwardDraft&&) {
 		if (*sending || result.empty()) {
 			return;
 		}

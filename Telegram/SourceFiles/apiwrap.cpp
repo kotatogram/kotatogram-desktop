@@ -80,7 +80,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_media_prepare.h"
 #include "storage/storage_account.h"
 #include "facades.h"
-#include "app.h"
+#include "app.h" // App::quitting
 
 namespace {
 
@@ -3505,7 +3505,7 @@ void ApiWrap::sharedMediaDone(
 		parsed.fullCount
 	));
 	if (type == SharedMediaType::Pinned && !parsed.messageIds.empty()) {
-		peer->setHasPinnedMessages(true);
+		peer->owner().history(peer)->setHasPinnedMessages(true);
 	}
 }
 
@@ -3580,18 +3580,16 @@ void ApiWrap::sendAction(const SendAction &action) {
 
 void ApiWrap::finishForwarding(const SendAction &action) {
 	const auto history = action.history;
-	auto toForward = history->validateForwardDraft();
-	if (!toForward.empty()) {
-		const auto error = GetErrorTextForSending(history->peer, toForward);
+	auto toForward = history->resolveForwardDraft();
+	if (!toForward.items.empty()) {
+		const auto error = GetErrorTextForSending(
+			history->peer,
+			toForward.items);
 		if (!error.isEmpty()) {
 			return;
 		}
 
-		if (cForwardQuoted()) {
-			forwardMessages(std::move(toForward), action);
-		} else {
-			forwardMessagesUnquoted(std::move(toForward), action);
-		}
+		forwardMessages(std::move(toForward), action);
 		_session->data().cancelForwarding(history);
 	}
 
@@ -3604,10 +3602,15 @@ void ApiWrap::finishForwarding(const SendAction &action) {
 }
 
 void ApiWrap::forwardMessages(
-		HistoryItemsList &&items,
+		Data::ResolvedForwardDraft &&draft,
 		const SendAction &action,
 		FnMut<void()> &&successCallback) {
-	Expects(!items.empty());
+	if (draft.options != Data::ForwardOptions::PreserveInfo
+		&& draft.groupOptions == Data::GroupingOptions::RegroupAll) {
+		forwardMessagesUnquoted(std::move(draft), action, std::move(successCallback));
+		return;
+	}
+	Expects(!draft.items.empty());
 
 	auto &histories = _session->data().histories();
 
@@ -3622,8 +3625,10 @@ void ApiWrap::forwardMessages(
 		shared->callback = std::move(successCallback);
 	}
 
-	const auto count = int(items.size());
-	const auto genClientSideMessage = action.generateLocal && (count < 2);
+	const auto count = int(draft.items.size());
+	const auto genClientSideMessage = action.generateLocal
+		&& (count < 2)
+		&& (draft.options == Data::ForwardOptions::PreserveInfo);
 	const auto history = action.history;
 	const auto peer = history->peer;
 
@@ -3644,9 +3649,15 @@ void ApiWrap::forwardMessages(
 	} else {
 		flags |= MessageFlag::LocalHistoryEntry;
 	}
+	if (draft.options != Data::ForwardOptions::PreserveInfo) {
+		sendFlags |= MTPmessages_ForwardMessages::Flag::f_drop_author;
+	}
+	if (draft.options == Data::ForwardOptions::NoNamesAndCaptions) {
+		sendFlags |= MTPmessages_ForwardMessages::Flag::f_drop_media_captions;
+	}
 
-	auto forwardFrom = items.front()->history()->peer;
-	auto forwardGroupId = items.front()->groupId();
+	auto forwardFrom = draft.items.front()->history()->peer;
+	auto forwardGroupId = draft.items.front()->groupId();
 	auto ids = QVector<MTPint>();
 	auto randomIds = QVector<MTPlong>();
 	auto localIds = std::shared_ptr<base::flat_map<uint64, FullMsgId>>();
@@ -3693,7 +3704,7 @@ void ApiWrap::forwardMessages(
 
 	ids.reserve(count);
 	randomIds.reserve(count);
-	for (const auto item : items) {
+	for (const auto item : draft.items) {
 		const auto randomId = openssl::RandomValue<uint64>();
 		if (genClientSideMessage) {
 			if (const auto message = item->toHistoryMessage()) {
@@ -3723,10 +3734,10 @@ void ApiWrap::forwardMessages(
 		}
 		const auto newFrom = item->history()->peer;
 		const auto newGroupId = item->groupId();
-		if (item != items.front() &&
-			(forwardFrom != newFrom
-			|| (!cForwardAlbumsAsIs() && !cForwardGrouped())
-			|| (cForwardAlbumsAsIs() && forwardGroupId != newGroupId))) {
+		if (item != draft.items.front() &&
+			((draft.groupOptions == Data::GroupingOptions::GroupAsIs
+				&& (forwardGroupId != newGroupId || forwardFrom != newFrom)
+			|| draft.groupOptions == Data::GroupingOptions::Separate))) {
 			sendAccumulated();
 			forwardFrom = newFrom;
 			forwardGroupId = newGroupId;
@@ -3739,10 +3750,10 @@ void ApiWrap::forwardMessages(
 }
 
 void ApiWrap::forwardMessagesUnquoted(
-		HistoryItemsList &&items,
+		Data::ResolvedForwardDraft &&draft,
 		const SendAction &action,
 		FnMut<void()> &&successCallback) {
-	Expects(!items.empty());
+	Expects(!draft.items.empty());
 
 	auto &histories = _session->data().histories();
 
@@ -3764,7 +3775,7 @@ void ApiWrap::forwardMessagesUnquoted(
 		shared->callback = std::move(successCallback);
 	}
 
-	const auto count = int(items.size());
+	const auto count = int(draft.items.size());
 	const auto history = action.history;
 	const auto peer = history->peer;
 
@@ -3786,13 +3797,13 @@ void ApiWrap::forwardMessagesUnquoted(
 		flags |= MessageFlag::LocalHistoryEntry;
 	}
 
-	auto forwardFrom = items.front()->history()->peer;
-	auto currentGroupId = items.front()->groupId();
+	auto forwardFrom = draft.items.front()->history()->peer;
+	auto currentGroupId = draft.items.front()->groupId();
 	auto lastGroup = LastGroupType::None;
 	auto ids = QVector<MTPint>();
 	auto randomIds = QVector<uint64>();
-	auto fromIter = items.begin();
-	auto toIter = items.begin();
+	auto fromIter = draft.items.begin();
+	auto toIter = draft.items.begin();
 	auto messageGroupCount = 0;
 	auto messageFromId = anonymousPost ? 0 : _session->userPeerId();
 	auto messagePostAuthor = peer->isBroadcast() ? _session->user()->name : QString();
@@ -3812,20 +3823,26 @@ void ApiWrap::forwardMessagesUnquoted(
 			lastGroupCheck = lastGroup != LastGroupType::None;
 		}
 
-		if (cForwardAlbumsAsIs()) {
-			const auto newFrom = item->history()->peer;
-			const auto newGroupId = item->groupId();
-			return forwardFrom != newFrom
-					|| !currentGroupId
-					|| currentGroupId != newGroupId
-					|| lastGroupCheck
+		switch (draft.groupOptions) {
+			case Data::GroupingOptions::GroupAsIs:
+				return forwardFrom != item->history()->peer
+						|| !currentGroupId
+						|| currentGroupId != item->groupId()
+						|| lastGroupCheck
+						|| messageGroupCount >= 10;
+
+			case Data::GroupingOptions::RegroupAll:
+				return lastGroupCheck
 					|| messageGroupCount >= 10;
-		} else if (cForwardGrouped()) {
-			return lastGroupCheck
-				|| messageGroupCount >= 10;
-		} else {
-			return true;
+
+			case Data::GroupingOptions::Separate:
+				return true;
+
+			default:
+				Unexpected("draft.groupOptions in ApiWrap::forwardMessagesUnquoted::needNextGroup.");
 		}
+
+		return false;
 	};
 
 	const auto isGrouped = [&] {
@@ -3904,9 +3921,9 @@ void ApiWrap::forwardMessagesUnquoted(
 			const auto inputMedia = media->photo()
 				? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
 				: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint(), MTPstring());
-			auto caption = cForwardCaptioned()
-					? item->originalText()
-					: TextWithEntities();
+			auto caption = (draft.options == Data::ForwardOptions::NoNamesAndCaptions)
+					? TextWithEntities()
+					: item->originalText();
 			auto sentEntities = Api::EntitiesToMTP(
 				_session,
 				caption.entities,
@@ -4044,7 +4061,7 @@ void ApiWrap::forwardMessagesUnquoted(
 		const auto media = item->media();
 
 		auto message = ApiWrap::MessageToSend(history);
-		const auto caption = (cForwardCaptioned()
+		const auto caption = (draft.options == Data::ForwardOptions::NoNamesAndCaptions
 			&& !media->geoPoint()
 			&& !media->sharedContact())
 				? item->originalText()
@@ -4182,7 +4199,7 @@ void ApiWrap::forwardMessagesUnquoted(
 
 	ids.reserve(count);
 	randomIds.reserve(count);
-	for (auto i = items.begin(), e = items.end(); i != e; /* ++i is in the end */) {
+	for (auto i = draft.items.begin(), e = draft.items.end(); i != e; /* ++i is in the end */) {
 		const auto item = *i;
 		const auto randomId = openssl::RandomValue<uint64>();
 		if (needNextGroup(item)) {

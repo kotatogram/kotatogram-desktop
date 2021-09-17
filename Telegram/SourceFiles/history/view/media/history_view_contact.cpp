@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_cursor_state.h"
 #include "window/window_session_controller.h"
 #include "ui/empty_userpic.h"
+#include "ui/chat/chat_theme.h"
 #include "ui/text/format_values.h" // Ui::FormatPhone
 #include "ui/text/text_options.h"
 #include "data/data_session.h"
@@ -147,27 +148,18 @@ QSize Contact::countOptimalSize() {
 	accumulate_max(maxWidth, tleft + _name.maxWidth() + tright);
 	accumulate_min(maxWidth, st::msgMaxWidth);
 	auto minHeight = st.padding.top() + st.thumbSize + st.padding.bottom();
-	if (_userId) {
-		const auto msgsigned = item->Get<HistoryMessageSigned>();
-		const auto views = item->Get<HistoryMessageViews>();
-		if ((msgsigned && !msgsigned->isAnonymousRank)
-			|| (views
-				&& (views->views.count >= 0 || views->replies.count > 0))) {
-			minHeight += st::msgDateFont->height - st::msgDateDelta.y();
-		}
-	}
 	if (!isBubbleTop()) {
 		minHeight -= st::msgFileTopMinus;
 	}
 	return { maxWidth, minHeight };
 }
 
-void Contact::draw(Painter &p, const QRect &r, TextSelection selection, crl::time ms) const {
+void Contact::draw(Painter &p, const PaintContext &context) const {
 	if (width() < st::msgPadding.left() + st::msgPadding.right() + 1) return;
 	auto paintw = width();
 
 	auto outbg = _parent->hasOutLayout();
-	bool selected = (selection == FullSelection);
+	bool selected = (context.selection == FullSelection);
 
 	accumulate_min(paintw, maxWidth());
 
@@ -177,7 +169,8 @@ void Contact::draw(Painter &p, const QRect &r, TextSelection selection, crl::tim
 	const auto nametop = st.nameTop - topMinus;
 	const auto nameright = st.padding.left();
 	const auto statustop = st.statusTop - topMinus;
-	const auto linktop = st.linkTop - topMinus;
+	const auto linkshift = st::msgDateFont->height / 2;
+	const auto linktop = st.linkTop - topMinus - linkshift;
 	if (_userId) {
 		QRect rthumb(style::rtlrect(st.padding.left(), st.padding.top() - topMinus, st.thumbSize, st.thumbSize, paintw));
 		if (_contact) {
@@ -243,7 +236,8 @@ TextState Contact::textState(QPoint point, StateRequest request) const {
 		const auto &st = _userId ? st::msgFileThumbLayout : st::msgFileLayout;
 		const auto topMinus = isBubbleTop() ? 0 : st::msgFileTopMinus;
 		const auto nameleft = st.padding.left() + st.thumbSize + st.padding.right();
-		const auto linktop = st.linkTop - topMinus;
+		const auto linkshift = st::msgDateFont->height / 2;
+		const auto linktop = st.linkTop - topMinus - linkshift;
 		if (style::rtlrect(nameleft, linktop, _linkw, st::semiboldFont->height, width()).contains(point)) {
 			result.link = _linkl;
 			return result;
