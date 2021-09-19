@@ -69,7 +69,7 @@ inline int DialogsPhotoSize() {
 
 int FixedOnTopDialogsCount(not_null<Dialogs::IndexedList*> list) {
 	auto result = 0;
-	for (const auto row : *list) {
+	for (const auto &row : *list) {
 		if (!row->entry()->fixedOnTopIndex()) {
 			break;
 		}
@@ -82,7 +82,7 @@ int PinnedDialogsCount(
 		FilterId filterId,
 		not_null<Dialogs::IndexedList*> list) {
 	auto result = 0;
-	for (const auto row : *list) {
+	for (const auto &row : *list) {
 		if (row->entry()->fixedOnTopIndex()) {
 			continue;
 		} else if (!row->entry()->isPinnedDialog(filterId)) {
@@ -354,7 +354,7 @@ int InnerWidget::dialogsOffset() const {
 
 int InnerWidget::fixedOnTopCount() const {
 	auto result = 0;
-	for (const auto row : *shownDialogs()) {
+	for (const auto &row : *shownDialogs()) {
 		if (row->entry()->fixedOnTopIndex()) {
 			++result;
 		} else {
@@ -1134,7 +1134,7 @@ int InnerWidget::countPinnedIndex(Row *ofRow) {
 		return -1;
 	}
 	auto result = 0;
-	for (const auto row : *shownDialogs()) {
+	for (const auto &row : *shownDialogs()) {
 		if (row->entry()->fixedOnTopIndex()) {
 			continue;
 		} else if (!row->entry()->isPinnedDialog(_filterId)) {

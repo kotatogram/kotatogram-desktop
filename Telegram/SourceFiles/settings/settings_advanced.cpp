@@ -347,6 +347,7 @@ void SetupSystemIntegrationContent(
 				checkbox(std::move(label), checked),
 				st::settingsCheckboxPadding));
 	};
+
 	if (Platform::TrayIconSupported()) {
 		const auto trayEnabled = [] {
 			const auto workMode = Core::App().settings().workMode();
@@ -407,6 +408,29 @@ void SetupSystemIntegrationContent(
 			}, taskbar->lifetime());
 		}
 	}
+
+	if (!Platform::IsMac()) {
+		const auto closeToTaskbar = addSlidingCheckbox(
+			tr::lng_settings_close_to_taskbar(),
+			Core::App().settings().closeToTaskbar());
+
+		const auto closeToTaskbarShown = std::make_shared<rpl::variable<bool>>(false);
+		Core::App().settings().workModeValue(
+		) | rpl::start_with_next([=](WorkMode workMode) {
+			*closeToTaskbarShown = (workMode == WorkMode::WindowOnly)
+				|| !Platform::TrayIconSupported();
+		}, closeToTaskbar->lifetime());
+
+		closeToTaskbar->toggleOn(closeToTaskbarShown->value());
+		closeToTaskbar->entity()->checkedChanges(
+		) | rpl::filter([=](bool checked) {
+			return (checked != Core::App().settings().closeToTaskbar());
+		}) | rpl::start_with_next([=](bool checked) {
+			Core::App().settings().setCloseToTaskbar(checked);
+			Local::writeSettings();
+		}, closeToTaskbar->lifetime());
+	}
+
 	if (Ui::Platform::NativeWindowFrameSupported()) {
 		const auto nativeFrame = addCheckbox(
 			tr::lng_settings_native_frame(),
@@ -420,6 +444,7 @@ void SetupSystemIntegrationContent(
 			Core::App().saveSettingsDelayed();
 		}, nativeFrame->lifetime());
 	}
+
 	if (Platform::AutostartSupported() && controller) {
 		const auto minimizedToggled = [=] {
 			return cStartMinimized()

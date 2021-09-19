@@ -133,7 +133,7 @@ MTPVector<MTPMessageEntity> EntitiesToMTP(
 					if (uid == session->userId()) {
 						return MTP_inputUserSelf();
 					} else if (const auto user = session->data().userLoaded(uid)) {
-						return MTP_inputUser(MTP_int(uid.bare), MTP_long(user->accessHash()));
+						return MTP_inputUser(MTP_long(uid.bare), MTP_long(user->accessHash()));
 					}
 				}
 				return MTP_inputUserEmpty();
@@ -154,7 +154,7 @@ MTPVector<MTPMessageEntity> EntitiesToMTP(
 				if (session && fields.userId == session->userId().bare) {
 					return MTP_inputUserSelf();
 				} else if (fields.userId) {
-					return MTP_inputUser(MTP_int(fields.userId), MTP_long(fields.accessHash));
+					return MTP_inputUser(MTP_long(fields.userId), MTP_long(fields.accessHash));
 				}
 				return MTP_inputUserEmpty();
 			}(entity.data());

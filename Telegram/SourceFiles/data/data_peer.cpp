@@ -435,14 +435,17 @@ void PeerData::saveUserpic(
 		std::shared_ptr<Data::CloudImageView> &view,
 		const QString &path,
 		int size) const {
-	genUserpic(view, size).save(path, "PNG");
+	generateUserpicImage(view, size * cIntRetinaFactor()).save(path, "PNG");
 }
 
 void PeerData::saveUserpicRounded(
 		std::shared_ptr<Data::CloudImageView> &view,
 		const QString &path,
 		int size) const {
-	genUserpicRounded(view, size).save(path, "PNG");
+	generateUserpicImage(
+		view,
+		size * cIntRetinaFactor(),
+		ImageRoundRadius::Small).save(path, "PNG");
 }
 
 QPixmap PeerData::genUserpic(
@@ -466,20 +469,56 @@ QPixmap PeerData::genUserpic(
 	return Ui::PixmapFromImage(std::move(result));
 }
 
-QPixmap PeerData::genUserpicRounded(
+QImage PeerData::generateUserpicImage(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const {
+	const auto rounding = [] {
+		switch (cUserpicCornersType()) {
+			case 0: return ImageRoundRadius::None;
+			case 1: return ImageRoundRadius::Small;
+			case 2: return ImageRoundRadius::Large;
+			default: return ImageRoundRadius::Ellipse;
+		}
+	}();
+	
+	return generateUserpicImage(view, size, rounding);
+}
+
+QImage PeerData::generateUserpicImage(
+		std::shared_ptr<Data::CloudImageView> &view,
+		int size,
+		ImageRoundRadius radius) const {
 	if (const auto userpic = currentUserpic(view)) {
-		return userpic->pixRounded(size, size, ImageRoundRadius::Small);
+		const auto options = (radius == ImageRoundRadius::Ellipse)
+			? (Images::Option::RoundedAll | Images::Option::Circled)
+			: (radius == ImageRoundRadius::Large)
+			? (Images::Option::RoundedAll | Images::Option::RoundedLarge)
+			: (radius == ImageRoundRadius::None)
+			? Images::Options()
+			: (Images::Option::RoundedAll | Images::Option::RoundedSmall);
+		return userpic->pixNoCache(
+			size,
+			size,
+			Images::Option::Smooth | options
+		).toImage();
 	}
-	auto result = QImage(QSize(size, size) * cIntRetinaFactor(), QImage::Format_ARGB32_Premultiplied);
-	result.setDevicePixelRatio(cRetinaFactor());
+	auto result = QImage(
+		QSize(size, size),
+		QImage::Format_ARGB32_Premultiplied);
 	result.fill(Qt::transparent);
 	{
 		Painter p(&result);
-		paintUserpicRounded(p, view, 0, 0, size);
+		if (radius == ImageRoundRadius::Ellipse) {
+			ensureEmptyUserpic()->paint(p, 0, 0, size, size);
+		} else if (radius == ImageRoundRadius::Large) {
+			ensureEmptyUserpic()->paintRoundedLarge(p, 0, 0, size, size);
+		} else if (radius == ImageRoundRadius::None) {
+			ensureEmptyUserpic()->paintSquare(p, 0, 0, size, size);
+		} else {
+			ensureEmptyUserpic()->paintRounded(p, 0, 0, size, size);
+		}
 	}
-	return Ui::PixmapFromImage(std::move(result));
+	return result;
 }
 
 Data::FileOrigin PeerData::userpicOrigin() const {
@@ -1047,7 +1086,7 @@ PeerId PeerData::groupCallDefaultJoinAs() const {
 }
 
 void PeerData::setThemeEmoji(const QString &emoji) {
-	if (true || _themeEmoji == emoji) {
+	if (_themeEmoji == emoji) {
 		return;
 	}
 	_themeEmoji = emoji;

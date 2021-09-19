@@ -34,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/inactive_press.h"
 #include "ui/effects/path_shift_gradient.h"
 #include "ui/chat/chat_theme.h"
+#include "ui/chat/chat_style.h"
 #include "lang/lang_keys.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "data/data_session.h"
@@ -255,7 +256,10 @@ ListWidget::ListWidget(
 , _controller(controller)
 , _context(_delegate->listContext())
 , _itemAverageHeight(itemMinimalHeight())
-, _pathGradient(MakePathShiftGradient([=] { update(); }))
+, _pathGradient(
+	MakePathShiftGradient(
+		controller->chatStyle(),
+		[=] { update(); }))
 , _scrollDateCheck([this] { scrollDateCheck(); })
 , _applyUpdatedScrollState([this] { applyUpdatedScrollState(); })
 , _selectEnabled(_delegate->listAllowsMultiSelect())
@@ -880,7 +884,7 @@ bool ListWidget::overSelectedItems() const {
 bool ListWidget::isSelectedGroup(
 		const SelectedMap &applyTo,
 		not_null<const Data::Group*> group) const {
-	for (const auto other : group->items) {
+	for (const auto &other : group->items) {
 		if (!applyTo.contains(other->fullId())) {
 			return false;
 		}
@@ -966,7 +970,7 @@ void ListWidget::changeSelectionAsGroup(
 	}
 	auto already = int(applyTo.size());
 	const auto canSelect = [&] {
-		for (const auto other : group->items) {
+		for (const auto &other : group->items) {
 			if (!isGoodForSelection(applyTo, other, already)) {
 				return false;
 			}
@@ -974,11 +978,11 @@ void ListWidget::changeSelectionAsGroup(
 		return true;
 	}();
 	if (action == SelectAction::Select && canSelect) {
-		for (const auto other : group->items) {
+		for (const auto &other : group->items) {
 			addToSelection(applyTo, other);
 		}
 	} else {
-		for (const auto other : group->items) {
+		for (const auto &other : group->items) {
 			removeFromSelection(applyTo, other->fullId());
 		}
 	}
@@ -1387,6 +1391,9 @@ void ListWidget::elementReplyTo(const FullMsgId &to) {
 	replyToMessageRequestNotify(to);
 }
 
+void ListWidget::elementStartInteraction(not_null<const Element*> view) {
+}
+
 void ListWidget::saveState(not_null<ListMemento*> memento) {
 	memento->setAroundPosition(_aroundPosition);
 	auto state = countScrollState();
@@ -1436,7 +1443,7 @@ void ListWidget::resizeToWidth(int newWidth, int minHeight) {
 }
 
 void ListWidget::startItemRevealAnimations() {
-	for (const auto view : base::take(_itemRevealPending)) {
+	for (const auto &view : base::take(_itemRevealPending)) {
 		if (const auto height = view->height()) {
 			if (!_itemRevealAnimations.contains(view)) {
 				auto &animation = _itemRevealAnimations[view];
@@ -1621,11 +1628,13 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 			.theme = _delegate->listChatTheme(),
 			.visibleAreaTop = _visibleTop,
 			.visibleAreaTopGlobal = mapToGlobal(QPoint(0, _visibleTop)).y(),
+			.visibleAreaWidth = width(),
 			.clip = clip,
 		}).translated(0, -top);
 		p.translate(0, top);
 		for (auto i = from; i != to; ++i) {
 			const auto view = *i;
+			context.outbg = view->hasOutLayout();
 			context.selection = itemRenderSelection(view);
 			view->draw(p, context);
 			const auto height = view->height();
@@ -1698,11 +1707,14 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 					int dateY = /*noFloatingDate ? itemtop :*/ (dateTop - st::msgServiceMargin.top());
 					int width = view->width();
 					if (const auto date = view->Get<HistoryView::DateBadge>()) {
-						date->paint(p, dateY, width, _isChatWide);
+						date->paint(p, context.st, dateY, width, _isChatWide);
 					} else {
-						ServiceMessagePainter::paintDate(
+						ServiceMessagePainter::PaintDate(
 							p,
-							ItemDateText(view->data(), IsItemScheduledUntilOnline(view->data())),
+							context.st,
+							ItemDateText(
+								view->data(),
+								IsItemScheduledUntilOnline(view->data())),
 							dateY,
 							width,
 							_isChatWide);
@@ -1722,7 +1734,7 @@ void ListWidget::applyDragSelection() {
 
 void ListWidget::applyDragSelection(SelectedMap &applyTo) const {
 	if (_dragSelectAction == DragSelectAction::Selecting) {
-		for (const auto itemId : _dragSelected) {
+		for (const auto &itemId : _dragSelected) {
 			if (applyTo.size() >= MaxSelectedItems) {
 				break;
 			} else if (!applyTo.contains(itemId)) {
@@ -1732,7 +1744,7 @@ void ListWidget::applyDragSelection(SelectedMap &applyTo) const {
 			}
 		}
 	} else if (_dragSelectAction == DragSelectAction::Deselecting) {
-		for (const auto itemId : _dragSelected) {
+		for (const auto &itemId : _dragSelected) {
 			removeFromSelection(applyTo, itemId);
 		}
 	}
@@ -2154,12 +2166,12 @@ void ListWidget::updateDragSelection(
 	};
 	const auto changeGroup = [&](not_null<HistoryItem*> item, bool add) {
 		if (const auto group = groups.find(item)) {
-			for (const auto item : group->items) {
+			for (const auto &item : group->items) {
 				if (!_delegate->listIsItemGoodForSelection(item)) {
 					return;
 				}
 			}
-			for (const auto item : group->items) {
+			for (const auto &item : group->items) {
 				changeItem(item, add);
 			}
 		} else if (_delegate->listIsItemGoodForSelection(item)) {

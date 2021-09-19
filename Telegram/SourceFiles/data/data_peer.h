@@ -383,9 +383,13 @@ public:
 	[[nodiscard]] QPixmap genUserpic(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const;
-	[[nodiscard]] QPixmap genUserpicRounded(
+	[[nodiscard]] QImage generateUserpicImage(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const;
+	[[nodiscard]] QImage generateUserpicImage(
+		std::shared_ptr<Data::CloudImageView> &view,
+		int size,
+		ImageRoundRadius radius) const;
 	[[nodiscard]] ImageLocation userpicLocation() const {
 		return _userpic.location();
 	}

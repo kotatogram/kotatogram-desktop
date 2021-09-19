@@ -127,7 +127,7 @@ void RepliesList::appendLocalMessages(MessagesSlice &slice) {
 			return;
 		}
 		slice.ids.reserve(local.size());
-		for (const auto item : local) {
+		for (const auto &item : local) {
 			if (item->replyToTop() != _rootId) {
 				continue;
 			}
@@ -145,7 +145,7 @@ void RepliesList::appendLocalMessages(MessagesSlice &slice) {
 
 		dates.push_back(message->date());
 	}
-	for (const auto item : local) {
+	for (const auto &item : local) {
 		if (item->replyToTop() != _rootId) {
 			continue;
 		}
@@ -257,7 +257,7 @@ void RepliesList::injectRootMessage(not_null<Viewer*> viewer) {
 	injectRootDivider(root, slice);
 
 	if (const auto group = _history->owner().groups().find(root)) {
-		for (const auto item : ranges::views::reverse(group->items)) {
+		for (const auto &item : ranges::views::reverse(group->items)) {
 			slice->ids.push_back(item->fullId());
 		}
 		viewer->injectedForRoot = group->items.size();
@@ -443,7 +443,7 @@ void RepliesList::loadAround(MsgId id) {
 			MTP_int(kMessagesPerPage), // limit
 			MTP_int(0), // max_id
 			MTP_int(0), // min_id
-			MTP_int(0) // hash
+			MTP_long(0) // hash
 		)).done([=](const MTPmessages_Messages &result) {
 			_beforeId = 0;
 			_loadingAround = std::nullopt;
@@ -499,7 +499,7 @@ void RepliesList::loadBefore() {
 			MTP_int(kMessagesPerPage), // limit
 			MTP_int(0), // min_id
 			MTP_int(0), // max_id
-			MTP_int(0) // hash
+			MTP_long(0) // hash
 		)).done([=](const MTPmessages_Messages &result) {
 			_beforeId = 0;
 			finish();
@@ -543,7 +543,7 @@ void RepliesList::loadAfter() {
 			MTP_int(kMessagesPerPage), // limit
 			MTP_int(0), // min_id
 			MTP_int(0), // max_id
-			MTP_int(0) // hash
+			MTP_long(0) // hash
 		)).done([=](const MTPmessages_Messages &result) {
 			_afterId = 0;
 			finish();

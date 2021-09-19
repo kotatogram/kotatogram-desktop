@@ -42,7 +42,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_intro.h"
 #include "platform/platform_notifications_manager.h"
 #include "base/platform/base_platform_info.h"
-#include "base/call_delayed.h"
 #include "base/variant.h"
 #include "window/notifications_manager.h"
 #include "window/themes/window_theme.h"
@@ -729,7 +728,7 @@ void MainWindow::handleTrayIconActication(
 	}
 	if (reason == QSystemTrayIcon::Context) {
 		updateTrayMenu();
-		base::call_delayed(1, this, [=] {
+		InvokeQueued(this, [=] {
 			psShowTrayMenu();
 		});
 	} else if (!skipTrayClick()) {

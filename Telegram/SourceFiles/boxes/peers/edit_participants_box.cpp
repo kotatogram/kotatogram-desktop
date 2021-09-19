@@ -647,7 +647,7 @@ UserData *ParticipantsAdditionalData::applyAdmin(
 	return user;
 }
 
-UserData *ParticipantsAdditionalData::applyRegular(MTPint userId) {
+UserData *ParticipantsAdditionalData::applyRegular(MTPlong userId) {
 	const auto user = _peer->owner().userLoaded(userId);
 	if (!user) {
 		return nullptr;
@@ -705,7 +705,7 @@ void ParticipantsAdditionalData::migrate(
 	_peer = channel;
 	fillFromChannel(channel);
 
-	for (const auto user : _admins) {
+	for (const auto &user : _admins) {
 		_adminRights.emplace(user, chat->defaultAdminRights(user));
 		if (channel->amCreator()) {
 			_adminCanEdit.emplace(user);
@@ -1200,7 +1200,7 @@ void ParticipantsBoxController::rebuildChatParticipants(
 			--count;
 		}
 	}
-	for (const auto user : participants) {
+	for (const auto &user : participants) {
 		if (auto row = createRow(user)) {
 			delegate()->peerListAppendRow(std::move(row));
 		}
@@ -1312,14 +1312,14 @@ void ParticipantsBoxController::loadMoreRows() {
 	const auto perPage = (_offset > 0)
 		? kParticipantsPerPage
 		: kParticipantsFirstPageCount;
-	const auto participantsHash = 0;
+	const auto participantsHash = uint64(0);
 
 	_loadRequestId = _api.request(MTPchannels_GetParticipants(
 		channel->inputChannel,
 		filter,
 		MTP_int(_offset),
 		MTP_int(perPage),
-		MTP_int(participantsHash)
+		MTP_long(participantsHash)
 	)).done([=](const MTPchannels_ChannelParticipants &result) {
 		const auto firstLoad = !_offset;
 		_loadRequestId = 0;
@@ -1613,7 +1613,7 @@ void ParticipantsBoxController::editAdminDone(
 			MTP_flags(Flag::f_can_edit
 				| (rank.isEmpty() ? Flag(0) : Flag::f_rank)),
 			peerToBareMTPInt(user->id),
-			MTPint(), // inviter_id
+			MTPlong(), // inviter_id
 			peerToBareMTPInt(alreadyPromotedBy
 				? alreadyPromotedBy->id
 				: user->session().userPeerId()),
@@ -2023,9 +2023,9 @@ void ParticipantsBoxController::subscribeToCreatorChange(
 		api->request(MTPchannels_GetParticipants(
 			channel->inputChannel,
 			MTP_channelParticipantsRecent(),
-			MTP_int(0),
+			MTP_int(0), // offset
 			MTP_int(channel->session().serverConfig().chatSizeMax),
-			MTP_int(0)
+			MTP_long(0) // hash
 		)).done([=](const MTPchannels_ChannelParticipants &result) {
 			if (channel->amCreator()) {
 				channel->mgInfo->creator = channel->session().user().get();
@@ -2152,15 +2152,15 @@ bool ParticipantsBoxSearchController::loadMoreRows() {
 	// For search we request a lot of rows from the first query.
 	// (because we've waited for search request by timer already,
 	// so we don't expect it to be fast, but we want to fill cache).
-	auto perPage = kParticipantsPerPage;
-	auto participantsHash = 0;
+	const auto perPage = kParticipantsPerPage;
+	const auto participantsHash = uint64(0);
 
 	_requestId = _api.request(MTPchannels_GetParticipants(
 		_channel->inputChannel,
 		filter,
 		MTP_int(_offset),
 		MTP_int(perPage),
-		MTP_int(participantsHash)
+		MTP_long(participantsHash)
 	)).done([=](
 			const MTPchannels_ChannelParticipants &result,
 			mtpRequestId requestId) {

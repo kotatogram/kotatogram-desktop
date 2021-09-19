@@ -249,7 +249,8 @@ TopBar::TopBar(
 	: std::make_unique<Ui::GroupCallUserpics>(
 		st::groupCallTopBarUserpics,
 		rpl::single(true),
-		[=] { updateUserpics(); }))
+		[=] { updateUserpics(); },
+		cUserpicCornersType()))
 , _durationLabel(_call
 	? object_ptr<Ui::LabelSimple>(this, st::callBarLabel)
 	: object_ptr<Ui::LabelSimple>(nullptr))

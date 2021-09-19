@@ -14,7 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_cursor_state.h"
 #include "calls/calls_instance.h"
 #include "ui/chat/message_bubble.h"
-#include "ui/chat/chat_theme.h"
+#include "ui/chat/chat_style.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
 #include "ui/text/format_values.h"
@@ -31,7 +31,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "base/timer.h"
 #include "main/main_session.h"
-#include "layout/layout_selection.h" // FullSelection
 #include "apiwrap.h"
 #include "styles/style_chat.h"
 #include "styles/style_widgets.h"
@@ -729,10 +728,7 @@ void Poll::draw(Painter &p, const PaintContext &context) const {
 	checkSendingAnimation();
 	_poll->checkResultsReload(_parent->data(), context.now);
 
-	const auto outbg = _parent->hasOutLayout();
-	const auto selected = (context.selection == FullSelection);
-	const auto &regular = selected ? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected) : (outbg ? st::msgOutDateFg : st::msgInDateFg);
-
+	const auto stm = context.messageStyle();
 	const auto padding = st::msgPadding;
 	auto tshift = st::historyPollQuestionTop;
 	if (!isBubbleTop()) {
@@ -740,15 +736,15 @@ void Poll::draw(Painter &p, const PaintContext &context) const {
 	}
 	paintw -= padding.left() + padding.right();
 
-	p.setPen(outbg ? st::webPageTitleOutFg : st::webPageTitleInFg);
+	p.setPen(stm->historyTextFg);
 	_question.drawLeft(p, padding.left(), tshift, paintw, width(), style::al_left, 0, -1, context.selection);
 	tshift += _question.countHeight(paintw) + st::historyPollSubtitleSkip;
 
-	p.setPen(regular);
+	p.setPen(stm->msgDateFg);
 	_subtitle.drawLeftElided(p, padding.left(), tshift, paintw, width());
 	paintRecentVoters(p, padding.left() + _subtitle.maxWidth(), tshift, context);
-	paintCloseByTimer(p, padding.left() + paintw, tshift, context.selection);
-	paintShowSolution(p, padding.left() + paintw, tshift, context.selection);
+	paintCloseByTimer(p, padding.left() + paintw, tshift, context);
+	paintShowSolution(p, padding.left() + paintw, tshift, context);
 	tshift += st::msgDateFont->height + st::historyPollAnswersSkip;
 
 	const auto progress = _answersAnimation
@@ -761,7 +757,7 @@ void Poll::draw(Painter &p, const PaintContext &context) const {
 	auto &&answers = ranges::views::zip(
 		_answers,
 		ranges::views::ints(0, int(_answers.size())));
-	for (const auto &[answer, index] : answers) {
+	for (const auto [answer, index] : answers) {
 		const auto animation = _answersAnimation
 			? &_answersAnimation->data[index]
 			: nullptr;
@@ -780,14 +776,14 @@ void Poll::draw(Painter &p, const PaintContext &context) const {
 			tshift,
 			paintw,
 			width(),
-			context.selection);
+			context);
 		tshift += height;
 	}
 	if (!inlineFooter()) {
-		paintBottom(p, padding.left(), tshift, paintw, context.selection);
+		paintBottom(p, padding.left(), tshift, paintw, context);
 	} else if (!_totalVotesLabel.isEmpty()) {
 		tshift += st::msgPadding.bottom();
-		paintInlineFooter(p, padding.left(), tshift, paintw, context.selection);
+		paintInlineFooter(p, padding.left(), tshift, paintw, context);
 	}
 }
 
@@ -796,11 +792,9 @@ void Poll::paintInlineFooter(
 		int left,
 		int top,
 		int paintw,
-		TextSelection selection) const {
-	const auto selected = (selection == FullSelection);
-	const auto outbg = _parent->hasOutLayout();
-	const auto &regular = selected ? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected) : (outbg ? st::msgOutDateFg : st::msgInDateFg);
-	p.setPen(regular);
+		const PaintContext &context) const {
+	const auto stm = context.messageStyle();
+	p.setPen(stm->msgDateFg);
 	_totalVotesLabel.drawLeftElided(
 		p,
 		left,
@@ -816,13 +810,13 @@ void Poll::paintBottom(
 		int left,
 		int top,
 		int paintw,
-		TextSelection selection) const {
-	const auto stringtop = top + st::msgPadding.bottom() + st::historyPollBottomButtonTop;
-	const auto selected = (selection == FullSelection);
-	const auto outbg = _parent->hasOutLayout();
-	const auto &regular = selected ? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected) : (outbg ? st::msgOutDateFg : st::msgInDateFg);
+		const PaintContext &context) const {
+	const auto stringtop = top
+		+ st::msgPadding.bottom()
+		+ st::historyPollBottomButtonTop;
+	const auto stm = context.messageStyle();
 	if (showVotersCount()) {
-		p.setPen(regular);
+		p.setPen(stm->msgDateFg);
 		_totalVotesLabel.draw(p, left, stringtop, paintw, style::al_top);
 	} else {
 		const auto link = showVotes()
@@ -833,23 +827,29 @@ void Poll::paintBottom(
 		if (_linkRipple) {
 			const auto linkHeight = bottomButtonHeight();
 			p.setOpacity(st::historyPollRippleOpacity);
-			_linkRipple->paint(p, left - st::msgPadding.left(), height() - linkHeight, width());
+			_linkRipple->paint(
+				p,
+				left - st::msgPadding.left(),
+				height() - linkHeight,
+				width(),
+				&stm->msgWaveformInactive->c);
 			if (_linkRipple->empty()) {
 				_linkRipple.reset();
 			}
 			p.setOpacity(1.);
 		}
 		p.setFont(st::semiboldFont);
-		if (!link) {
-			p.setPen(regular);
-		} else {
-			p.setPen(outbg ? (selected ? st::msgFileThumbLinkOutFgSelected : st::msgFileThumbLinkOutFg) : (selected ? st::msgFileThumbLinkInFgSelected : st::msgFileThumbLinkInFg));
-		}
+		p.setPen(link ? stm->msgFileThumbLinkFg : stm->msgDateFg);
 		const auto string = showVotes()
 			? tr::lng_polls_view_results(tr::now, Ui::Text::Upper)
 			: tr::lng_polls_submit_votes(tr::now, Ui::Text::Upper);
 		const auto stringw = st::semiboldFont->width(string);
-		p.drawTextLeft(left + (paintw - stringw) / 2, stringtop, width(), string, stringw);
+		p.drawTextLeft(
+			left + (paintw - stringw) / 2,
+			stringtop,
+			width(),
+			string,
+			stringw);
 	}
 }
 
@@ -881,11 +881,8 @@ void Poll::paintRecentVoters(
 		+ (count - 1) * st::historyPollRecentVoterSkip;
 	auto y = top;
 	const auto size = st::historyPollRecentVoterSize;
-	const auto outbg = _parent->hasOutLayout();
-	const auto selected = (context.selection == FullSelection);
-	auto pen = (selected
-		? (outbg ? st::msgOutBgSelected : st::msgInBgSelected)
-		: (outbg ? st::msgOutBg : st::msgInBg))->p;
+	const auto stm = context.messageStyle();
+	auto pen = stm->msgBg->p;
 	pen.setWidth(st::lineWidth);
 
 	auto created = false;
@@ -947,7 +944,7 @@ void Poll::paintCloseByTimer(
 		Painter &p,
 		int right,
 		int top,
-		TextSelection selection) const {
+		const PaintContext &context) const {
 	if (!canVote() || _poll->closeDate <= 0 || _poll->closePeriod <= 0) {
 		_close = nullptr;
 		return;
@@ -974,22 +971,16 @@ void Poll::paintCloseByTimer(
 		_close->radial.stop();
 	}
 	const auto time = Ui::FormatDurationText(int(std::ceil(left / 1000.)));
-	const auto outbg = _parent->hasOutLayout();
-	const auto selected = (selection == FullSelection);
-	const auto &icon = selected
-		? (outbg
-			? st::historyQuizTimerOutSelected
-			: st::historyQuizTimerInSelected)
-		: (outbg ? st::historyQuizTimerOut : st::historyQuizTimerIn);
+	const auto st = context.st;
+	const auto stm = context.messageStyle();
+	const auto &icon = stm->historyQuizTimer;
 	const auto x = right - icon.width();
 	const auto y = top
 		+ (st::normalFont->height - icon.height()) / 2
 		- st::lineWidth;
 	const auto &regular = (left < kCriticalCloseDuration)
-		? st::boxTextFgError
-		: selected
-		? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected)
-		: (outbg ? st::msgOutDateFg : st::msgInDateFg);
+		? st->boxTextFgError()
+		: stm->msgDateFg;
 	p.setPen(regular);
 	const auto timeWidth = st::normalFont->width(time);
 	p.drawTextLeft(x - timeWidth, top, width(), time, timeWidth);
@@ -1021,7 +1012,7 @@ void Poll::paintShowSolution(
 		Painter &p,
 		int right,
 		int top,
-		TextSelection selection) const {
+		const PaintContext &context) const {
 	const auto shown = _solutionButtonAnimation.value(
 		_solutionButtonVisible ? 1. : 0.);
 	if (!shown) {
@@ -1031,12 +1022,8 @@ void Poll::paintShowSolution(
 		_showSolutionLink = std::make_shared<LambdaClickHandler>(
 			crl::guard(this, [=] { showSolution(true); }));
 	}
-	const auto outbg = _parent->hasOutLayout();
-	const auto &icon = (selection == FullSelection)
-		? (outbg
-			? st::historyQuizExplainOutSelected
-			: st::historyQuizExplainInSelected)
-		: (outbg ? st::historyQuizExplainOut : st::historyQuizExplainIn);
+	const auto stm = context.messageStyle();
+	const auto &icon = stm->historyQuizExplain;
 	const auto x = right - icon.width();
 	const auto y = top + (st::normalFont->height - icon.height()) / 2;
 	if (shown == 1.) {
@@ -1059,9 +1046,9 @@ int Poll::paintAnswer(
 		int top,
 		int width,
 		int outerWidth,
-		TextSelection selection) const {
+		const PaintContext &context) const {
 	const auto height = countAnswerHeight(answer, width);
-	const auto outbg = _parent->hasOutLayout();
+	const auto stm = context.messageStyle();
 	const auto aleft = left + st::historyPollAnswerPadding.left();
 	const auto awidth = width
 		- st::historyPollAnswerPadding.left()
@@ -1069,7 +1056,12 @@ int Poll::paintAnswer(
 
 	if (answer.ripple) {
 		p.setOpacity(st::historyPollRippleOpacity);
-		answer.ripple->paint(p, left - st::msgPadding.left(), top, outerWidth);
+		answer.ripple->paint(
+			p,
+			left - st::msgPadding.left(),
+			top,
+			outerWidth,
+			&stm->msgWaveformInactive->c);
 		if (answer.ripple->empty()) {
 			answer.ripple.reset();
 		}
@@ -1080,7 +1072,7 @@ int Poll::paintAnswer(
 		const auto opacity = animation->opacity.current();
 		if (opacity < 1.) {
 			p.setOpacity(1. - opacity);
-			paintRadio(p, answer, left, top, selection);
+			paintRadio(p, answer, left, top, context);
 		}
 		if (opacity > 0.) {
 			const auto percent = QString::number(
@@ -1095,7 +1087,7 @@ int Poll::paintAnswer(
 				left,
 				top,
 				outerWidth,
-				selection);
+				context);
 			p.setOpacity(sqrt(opacity));
 			paintFilling(
 				p,
@@ -1106,11 +1098,11 @@ int Poll::paintAnswer(
 				top,
 				width,
 				height,
-				selection);
+				context);
 			p.setOpacity(1.);
 		}
 	} else if (!showVotes()) {
-		paintRadio(p, answer, left, top, selection);
+		paintRadio(p, answer, left, top, context);
 	} else {
 		paintPercent(
 			p,
@@ -1119,7 +1111,7 @@ int Poll::paintAnswer(
 			left,
 			top,
 			outerWidth,
-			selection);
+			context);
 		paintFilling(
 			p,
 			answer.chosen,
@@ -1129,11 +1121,11 @@ int Poll::paintAnswer(
 			top,
 			width,
 			height,
-			selection);
+			context);
 	}
 
 	top += st::historyPollAnswerPadding.top();
-	p.setPen(outbg ? st::webPageDescriptionOutFg : st::webPageDescriptionInFg);
+	p.setPen(stm->historyTextFg);
 	answer.text.drawLeft(p, aleft, top, awidth, outerWidth);
 
 	return height;
@@ -1144,16 +1136,15 @@ void Poll::paintRadio(
 		const Answer &answer,
 		int left,
 		int top,
-		TextSelection selection) const {
+		const PaintContext &context) const {
 	top += st::historyPollAnswerPadding.top();
 
-	const auto outbg = _parent->hasOutLayout();
-	const auto selected = (selection == FullSelection);
+	const auto stm = context.messageStyle();
 
 	PainterHighQualityEnabler hq(p);
-	const auto &st = st::historyPollRadio;
+	const auto &radio = st::historyPollRadio;
 	const auto over = ClickHandler::showAsActive(answer.handler);
-	const auto &regular = selected ? (outbg ? st::msgOutDateFgSelected : st::msgInDateFgSelected) : (outbg ? st::msgOutDateFg : st::msgInDateFg);
+	const auto &regular = stm->msgDateFg;
 
 	const auto checkmark = answer.selectedAnimation.value(answer.selected ? 1. : 0.);
 
@@ -1163,15 +1154,15 @@ void Poll::paintRadio(
 		p.setOpacity(o * (over ? st::historyPollRadioOpacityOver : st::historyPollRadioOpacity));
 	}
 
-	const auto rect = QRectF(left, top, st.diameter, st.diameter).marginsRemoved(QMarginsF(st.thickness / 2., st.thickness / 2., st.thickness / 2., st.thickness / 2.));
+	const auto rect = QRectF(left, top, radio.diameter, radio.diameter).marginsRemoved(QMarginsF(radio.thickness / 2., radio.thickness / 2., radio.thickness / 2., radio.thickness / 2.));
 	if (_sendingAnimation && _sendingAnimation->option == answer.option) {
-		const auto &active = selected ? (outbg ? st::msgOutServiceFgSelected : st::msgInServiceFgSelected) : (outbg ? st::msgOutServiceFg : st::msgInServiceFg);
+		const auto &active = stm->msgServiceFg;
 		if (anim::Disabled()) {
-			anim::DrawStaticLoading(p, rect, st.thickness, active);
+			anim::DrawStaticLoading(p, rect, radio.thickness, active);
 		} else {
 			const auto state = _sendingAnimation->animation.computeState();
 			auto pen = anim::pen(regular, active, state.shown);
-			pen.setWidth(st.thickness);
+			pen.setWidth(radio.thickness);
 			pen.setCapStyle(Qt::RoundCap);
 			p.setPen(pen);
 			p.drawArc(
@@ -1182,7 +1173,7 @@ void Poll::paintRadio(
 	} else {
 		if (checkmark < 1.) {
 			auto pen = regular->p;
-			pen.setWidth(st.thickness);
+			pen.setWidth(radio.thickness);
 			p.setPen(pen);
 			if (_flags & PollData::Flag::MultiChoice) {
 				p.drawRoundedRect(rect,	st::buttonRadius, st::buttonRadius);
@@ -1191,11 +1182,11 @@ void Poll::paintRadio(
 			}
 		}
 		if (checkmark > 0.) {
-			const auto removeFull = (st.diameter / 2 - st.thickness);
+			const auto removeFull = (radio.diameter / 2 - radio.thickness);
 			const auto removeNow = removeFull * (1. - checkmark);
-			const auto color = outbg ? (selected ? st::msgFileThumbLinkOutFgSelected : st::msgFileThumbLinkOutFg) : (selected ? st::msgFileThumbLinkInFgSelected : st::msgFileThumbLinkInFg);
+			const auto color = stm->msgFileThumbLinkFg;
 			auto pen = color->p;
-			pen.setWidth(st.thickness);
+			pen.setWidth(radio.thickness);
 			p.setPen(pen);
 			p.setBrush(color);
 			if (_flags & PollData::Flag::MultiChoice) {
@@ -1205,8 +1196,8 @@ void Poll::paintRadio(
 			} else {
 				p.drawEllipse(rect.marginsRemoved({ removeNow, removeNow, removeNow, removeNow }));
 			}
-			const auto &icon = outbg ? (selected ? st::historyPollOutChosenSelected : st::historyPollOutChosen) : (selected ? st::historyPollInChosenSelected : st::historyPollInChosen);
-			icon.paint(p, left + (st.diameter - icon.width()) / 2, top + (st.diameter - icon.height()) / 2, width());
+			const auto &icon = stm->historyPollChosen;
+			icon.paint(p, left + (radio.diameter - icon.width()) / 2, top + (radio.diameter - icon.height()) / 2, width());
 		}
 	}
 
@@ -1220,14 +1211,14 @@ void Poll::paintPercent(
 		int left,
 		int top,
 		int outerWidth,
-		TextSelection selection) const {
-	const auto outbg = _parent->hasOutLayout();
+		const PaintContext &context) const {
+	const auto stm = context.messageStyle();
 	const auto aleft = left + st::historyPollAnswerPadding.left();
 
 	top += st::historyPollAnswerPadding.top();
 
 	p.setFont(st::historyPollPercentFont);
-	p.setPen(outbg ? st::webPageDescriptionOutFg : st::webPageDescriptionInFg);
+	p.setPen(stm->historyTextFg);
 	const auto pleft = aleft - percentWidth - st::historyPollPercentSkip;
 	p.drawTextLeft(pleft, top + st::historyPollPercentTop, outerWidth, percent, percentWidth);
 }
@@ -1241,10 +1232,10 @@ void Poll::paintFilling(
 		int top,
 		int width,
 		int height,
-		TextSelection selection) const {
+		const PaintContext &context) const {
 	const auto bottom = top + height;
-	const auto outbg = _parent->hasOutLayout();
-	const auto selected = (selection == FullSelection);
+	const auto st = context.st;
+	const auto stm = context.messageStyle();
 	const auto aleft = left + st::historyPollAnswerPadding.left();
 	const auto awidth = width
 		- st::historyPollAnswerPadding.left()
@@ -1252,28 +1243,42 @@ void Poll::paintFilling(
 
 	top += st::historyPollAnswerPadding.top();
 
-	PainterHighQualityEnabler hq(p);
-	p.setPen(Qt::NoPen);
 	const auto thickness = st::historyPollFillingHeight;
 	const auto max = awidth - st::historyPollFillingRight;
 	const auto size = anim::interpolate(st::historyPollFillingMin, max, filling);
 	const auto radius = st::historyPollFillingRadius;
 	const auto ftop = bottom - st::historyPollFillingBottom - thickness;
 
-	if (chosen && !correct) {
-		p.setBrush(st::boxTextFgError);
-	} else if (chosen && correct && _poll->quiz() && !outbg) {
-		p.setBrush(st::boxTextFgGood);
-	} else {
-		const auto bar = outbg ? (selected ? st::msgWaveformOutActiveSelected : st::msgWaveformOutActive) : (selected ? st::msgWaveformInActiveSelected : st::msgWaveformInActive);
-		p.setBrush(bar);
-	}
+	enum class Style {
+		Incorrect,
+		Correct,
+		Default,
+	};
+	const auto style = [&] {
+		if (chosen && !correct) {
+			return Style::Incorrect;
+		} else if (chosen && correct && _poll->quiz() && !context.outbg) {
+			return Style::Correct;
+		} else {
+			return Style::Default;
+		}
+	}();
 	auto barleft = aleft;
 	auto barwidth = size;
+	const auto &color = (style == Style::Incorrect)
+		? st->boxTextFgError()
+		: (style == Style::Correct)
+		? st->boxTextFgGood()
+		: stm->msgFileBg;
+	p.setPen(Qt::NoPen);
+	p.setBrush(color);
+	PainterHighQualityEnabler hq(p);
 	if (chosen || correct) {
-		const auto &icon = (chosen && !correct)
-			? st::historyPollChoiceWrong
-			: st::historyPollChoiceRight;
+		const auto &icon = (style == Style::Incorrect)
+			? st->historyPollChoiceWrong()
+			: (style == Style::Correct)
+			? st->historyPollChoiceRight()
+			: stm->historyPollChoiceRight;
 		const auto cleft = aleft - st::historyPollPercentSkip - icon.width();
 		const auto ctop = ftop - (icon.height() - thickness) / 2;
 		if (_flags & PollData::Flag::MultiChoice) {
@@ -1283,7 +1288,27 @@ void Poll::paintFilling(
 		} else {
 			p.drawEllipse(cleft, ctop, icon.width(), icon.height());
 		}
-		icon.paint(p, cleft, ctop, width);
+		const auto paintContent = [&](Painter &p) {
+			icon.paint(p, cleft, ctop, width);
+		};
+		if (style == Style::Default && usesBubblePattern(context)) {
+			const auto add = st::lineWidth * 2;
+			const auto target = QRect(
+				cleft,
+				ctop,
+				icon.width(),
+				icon.height()
+			).marginsAdded({ add, add, add, add });
+			Ui::PaintPatternBubblePart(
+				p,
+				context.viewport,
+				context.bubblesPattern->pixmap,
+				target,
+				paintContent,
+				_fillingIconCache);
+		} else {
+			paintContent(p);
+		}
 		//barleft += icon.width() - radius;
 		//barwidth -= icon.width() - radius;
 	}
@@ -1513,9 +1538,7 @@ void Poll::toggleRipple(Answer &answer, bool pressed) {
 				outerWidth,
 				countAnswerHeight(answer, innerWidth)));
 			answer.ripple = std::make_unique<Ui::RippleAnimation>(
-				(_parent->hasOutLayout()
-					? st::historyPollRippleOut
-					: st::historyPollRippleIn),
+				st::defaultRippleAnimation,
 				std::move(mask),
 				[=] { history()->owner().requestViewRepaint(_parent); });
 		}
@@ -1578,9 +1601,7 @@ void Poll::toggleLinkRipple(bool pressed) {
 					drawMask)
 				: Ui::RippleAnimation::rectMask({ linkWidth, linkHeight });
 			_linkRipple = std::make_unique<Ui::RippleAnimation>(
-				(_parent->hasOutLayout()
-					? st::historyPollRippleOut
-					: st::historyPollRippleIn),
+				st::defaultRippleAnimation,
 				std::move(mask),
 				[=] { history()->owner().requestViewRepaint(_parent); });
 		}

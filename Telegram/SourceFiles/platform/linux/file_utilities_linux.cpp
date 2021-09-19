@@ -17,13 +17,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QProcess>
 #include <QtGui/QDesktopServices>
 
+#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 #include <glibmm.h>
 #include <giomm.h>
+#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 namespace Platform {
 namespace File {
 
 void UnsafeOpenUrl(const QString &url) {
+#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 	try {
 		if (Gio::AppInfo::launch_default_for_uri(url.toStdString())) {
 			return;
@@ -31,6 +34,7 @@ void UnsafeOpenUrl(const QString &url) {
 	} catch (const Glib::Error &e) {
 		LOG(("App Error: %1").arg(QString::fromStdString(e.what())));
 	}
+#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 	if (QDesktopServices::openUrl(url)) {
 		return;
@@ -54,6 +58,7 @@ bool UnsafeShowOpenWith(const QString &filepath) {
 }
 
 void UnsafeLaunch(const QString &filepath) {
+#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 	try {
 		if (Gio::AppInfo::launch_default_for_uri(
 			Glib::filename_to_uri(filepath.toStdString()))) {
@@ -66,6 +71,7 @@ void UnsafeLaunch(const QString &filepath) {
 	if (UnsafeShowOpenWith(filepath)) {
 		return;
 	}
+#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 	const auto qUrlPath = QUrl::fromLocalFile(filepath);
 	if (QDesktopServices::openUrl(qUrlPath)) {

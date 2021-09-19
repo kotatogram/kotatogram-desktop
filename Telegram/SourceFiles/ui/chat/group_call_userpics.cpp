@@ -8,8 +8,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/group_call_userpics.h"
 
 #include "ui/paint/blobs.h"
-#include "base/openssl_help.h"
+#include "base/random.h"
 #include "styles/style_chat.h"
+#include "styles/style_widgets.h"
 
 namespace Ui {
 namespace {
@@ -81,10 +82,12 @@ struct GroupCallUserpics::Userpic {
 GroupCallUserpics::GroupCallUserpics(
 	const style::GroupCallUserpics &st,
 	rpl::producer<bool> &&hideBlobs,
-	Fn<void()> repaint)
+	Fn<void()> repaint,
+	int userpicRadius)
 : _st(st)
 , _randomSpeakingTimer([=] { sendRandomLevels(); })
-, _repaint(std::move(repaint)) {
+, _repaint(std::move(repaint))
+, _userpicRadius(userpicRadius) {
 	const auto limit = kMaxUserpics;
 	const auto single = _st.size;
 	const auto shift = _st.shift;
@@ -237,7 +240,7 @@ void GroupCallUserpics::sendRandomLevels() {
 	}
 	for (auto &userpic : _list) {
 		if (const auto blobs = userpic.blobsAnimation.get()) {
-			const auto value = 30 + (openssl::RandomValue<uint32>() % 70);
+			const auto value = 30 + base::RandomIndex(70);
 			userpic.blobsAnimation->blobs.setLevel(float64(value) / 100.);
 		}
 	}
@@ -270,7 +273,20 @@ void GroupCallUserpics::validateCache(Userpic &userpic) {
 			p.setCompositionMode(QPainter::CompositionMode_Source);
 			p.setBrush(Qt::transparent);
 			p.setPen(pen);
-			p.drawEllipse(skip - size + shift, skip, size, size);
+			switch (_userpicRadius) {
+				case 0:
+					p.drawRoundedRect(skip - size + shift, skip, size, size, 0, 0);
+					break;
+				case 1:
+					p.drawRoundedRect(skip - size + shift, skip, size, size, st::buttonRadius, st::buttonRadius);
+					break;
+				case 2:
+					p.drawRoundedRect(skip - size + shift, skip, size, size, st::dateRadius, st::dateRadius);
+					break;
+				default:
+					p.drawEllipse(skip - size + shift, skip, size, size);
+
+			}
 		}
 	}
 }

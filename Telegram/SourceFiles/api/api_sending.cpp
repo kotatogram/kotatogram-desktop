@@ -8,7 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_sending.h"
 
 #include "api/api_text_entities.h"
-#include "base/openssl_help.h"
+#include "base/random.h"
 #include "base/unixtime.h"
 #include "data/data_document.h"
 #include "data/data_photo.h"
@@ -79,7 +79,7 @@ void SendExistingMedia(
 	const auto newId = FullMsgId(
 		peerToChannel(peer->id),
 		session->data().nextLocalMessageId());
-	const auto randomId = openssl::RandomValue<uint64>();
+	const auto randomId = base::RandomValue<uint64>();
 
 	auto flags = NewMessageFlags(peer);
 	auto sendFlags = MTPmessages_SendMedia::Flags(0);
@@ -287,7 +287,7 @@ bool SendDice(
 	const auto newId = FullMsgId(
 		peerToChannel(peer->id),
 		session->data().nextLocalMessageId());
-	const auto randomId = openssl::RandomValue<uint64>();
+	const auto randomId = base::RandomValue<uint64>();
 
 	auto &histories = history->owner().histories();
 	auto flags = NewMessageFlags(peer);
@@ -441,6 +441,11 @@ void SendConfirmedFile(
 	} else {
 		flags |= MessageFlag::LocalHistoryEntry;
 	}
+	if (file->type == SendMediaType::Audio) {
+		if (!peer->isChannel() || peer->isMegagroup()) {
+			flags |= MessageFlag::MediaIsUnread;
+		}
+	}
 
 	const auto messageFromId = anonymousPost ? 0 : session->userPeerId();
 	const auto messagePostAuthor = peer->isBroadcast()
@@ -482,7 +487,7 @@ void SendConfirmedFile(
 			peerToMTP(messageFromId),
 			peerToMTP(file->to.peer),
 			MTPMessageFwdHeader(),
-			MTPint(),
+			MTPlong(), // via_bot_id
 			replyHeader,
 			MTP_int(HistoryItem::NewMessageDate(file->to.options.scheduled)),
 			MTP_string(caption.text),
@@ -571,7 +576,7 @@ void SendLocationPoint(
 					MTP_double(data.lon()),
 					MTP_int(0))),
 			MTP_string(),
-			MTP_long(openssl::RandomValue<uint64>()),
+			MTP_long(base::RandomValue<uint64>()),
 			MTPReplyMarkup(),
 			MTPVector<MTPMessageEntity>(),
 			MTP_int(action.options.scheduled)

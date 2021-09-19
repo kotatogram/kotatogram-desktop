@@ -109,6 +109,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/pinned_bar.h"
 #include "ui/chat/group_call_bar.h"
 #include "ui/chat/chat_theme.h"
+#include "ui/chat/chat_style.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/item_text_options.h"
 #include "ui/unread_badge.h"
@@ -290,10 +291,17 @@ HistoryWidget::HistoryWidget(
 , _previewTimer([=] { requestPreview(); })
 , _previewState(Data::PreviewState::Allowed)
 , _topBar(this, controller)
-, _scroll(this, st::historyScroll, false)
+, _scroll(
+	this,
+	controller->chatStyle()->value(lifetime(), st::historyScroll),
+	false)
 , _updateHistoryItems([=] { updateHistoryItemsByTimer(); })
-, _historyDown(_scroll, st::historyToDown)
-, _unreadMentions(_scroll, st::historyUnreadMentions)
+, _historyDown(
+	_scroll,
+	controller->chatStyle()->value(lifetime(), st::historyToDown))
+, _unreadMentions(
+	_scroll,
+	controller->chatStyle()->value(lifetime(), st::historyUnreadMentions))
 , _fieldAutocomplete(this, controller)
 , _supportAutocomplete(session().supportMode()
 	? object_ptr<Support::Autocomplete>(this, &session())
@@ -416,7 +424,7 @@ HistoryWidget::HistoryWidget(
 	_scroll->hide();
 	_kbScroll->hide();
 
-	style::PaletteChanged(
+	controller->chatStyle()->paletteChanged(
 	) | rpl::start_with_next([=] {
 		_scroll->updateBars();
 	}, lifetime());
@@ -781,6 +789,7 @@ HistoryWidget::HistoryWidget(
 		| PeerUpdateFlag::Slowmode
 		| PeerUpdateFlag::BotStartToken
 		| PeerUpdateFlag::MessagesTTL
+		| PeerUpdateFlag::ChatThemeEmoji
 	) | rpl::filter([=](const Data::PeerUpdate &update) {
 		return (update.peer.get() == _peer);
 	}) | rpl::map([](const Data::PeerUpdate &update) {
@@ -823,6 +832,32 @@ HistoryWidget::HistoryWidget(
 		}
 		if (flags & PeerUpdateFlag::MessagesTTL) {
 			checkMessagesTTL();
+		}
+		if ((flags & PeerUpdateFlag::ChatThemeEmoji) && _list) {
+			const auto emoji = _peer->themeEmoji();
+			if (Data::CloudThemes::TestingColors() && !emoji.isEmpty()) {
+				_peer->owner().cloudThemes().themeForEmojiValue(
+					emoji
+				) | rpl::filter_optional(
+				) | rpl::take(
+					1
+				) | rpl::start_with_next([=](const Data::ChatTheme &theme) {
+					auto text = QStringList();
+					const auto push = [&](QString label, const auto &theme) {
+						using namespace Data;
+						const auto &themes = _peer->owner().cloudThemes();
+						const auto l = themes.prepareTestingLink(theme);
+						if (!l.isEmpty()) {
+							text.push_back(label + ": " + l);
+						}
+					};
+					push("Light", theme.light);
+					push("Dark", theme.dark);
+					if (!text.isEmpty()) {
+						_field->setText(text.join("\n\n"));
+					}
+				}, _list->lifetime());
+			}
 		}
 	}, lifetime());
 
@@ -1544,9 +1579,9 @@ void HistoryWidget::orderWidgets() {
 	_attachDragAreas.photo->raise();
 }
 
-void HistoryWidget::updateStickersByEmoji() {
+bool HistoryWidget::updateStickersByEmoji() {
 	if (!_peer) {
-		return;
+		return false;
 	}
 	const auto emoji = [&] {
 		const auto errorForStickers = Data::RestrictionError(
@@ -1564,23 +1599,24 @@ void HistoryWidget::updateStickersByEmoji() {
 		return EmojiPtr(nullptr);
 	}();
 	_fieldAutocomplete->showStickers(emoji);
+	return (emoji != nullptr);
 }
 
 void HistoryWidget::fieldChanged() {
+	const auto typing = (_history
+		&& !_inlineBot
+		&& !_editMsgId
+		&& (_textUpdateEvents & TextUpdateEvent::SendTyping));
+
 	InvokeQueued(this, [=] {
 		updateInlineBotQuery();
-		updateStickersByEmoji();
-	});
-
-	if (_history) {
-		if (!_inlineBot
-			&& !_editMsgId
-			&& (_textUpdateEvents & TextUpdateEvent::SendTyping)) {
+		const auto choosingSticker = updateStickersByEmoji();
+		if (!choosingSticker && typing) {
 			session().sendProgressManager().update(
 				_history,
 				Api::SendProgressType::Typing);
 		}
-	}
+	});
 
 	updateSendButtonType();
 	if (!HasSendText(_field)) {
@@ -3019,10 +3055,10 @@ void HistoryWidget::firstLoadMessages() {
 		}
 	}
 
-	auto offsetDate = 0;
-	auto maxId = 0;
-	auto minId = 0;
-	auto historyHash = 0;
+	const auto offsetDate = 0;
+	const auto maxId = 0;
+	const auto minId = 0;
+	const auto historyHash = uint64(0);
 
 	const auto history = from;
 	const auto type = Data::Histories::RequestType::History;
@@ -3036,7 +3072,7 @@ void HistoryWidget::firstLoadMessages() {
 			MTP_int(loadCount),
 			MTP_int(maxId),
 			MTP_int(minId),
-			MTP_int(historyHash)
+			MTP_long(historyHash)
 		)).done([=](const MTPmessages_Messages &result) {
 			messagesReceived(history->peer, result, _firstLoadRequest);
 			finish();
@@ -3060,20 +3096,20 @@ void HistoryWidget::loadMessages() {
 		&& (_history->isEmpty()
 			|| _history->loadedAtTop()
 			|| (!_migrated->isEmpty() && !_migrated->loadedAtBottom()));
-	auto from = loadMigrated ? _migrated : _history;
+	const auto from = loadMigrated ? _migrated : _history;
 	if (from->loadedAtTop()) {
 		return;
 	}
 
-	auto offsetId = from->minMsgId();
-	auto addOffset = 0;
-	auto loadCount = offsetId
+	const auto offsetId = from->minMsgId();
+	const auto addOffset = 0;
+	const auto loadCount = offsetId
 		? kMessagesPerPage
 		: kMessagesPerPageFirst;
-	auto offsetDate = 0;
-	auto maxId = 0;
-	auto minId = 0;
-	auto historyHash = 0;
+	const auto offsetDate = 0;
+	const auto maxId = 0;
+	const auto minId = 0;
+	const auto historyHash = uint64(0);
 
 	const auto history = from;
 	const auto type = Data::Histories::RequestType::History;
@@ -3087,7 +3123,7 @@ void HistoryWidget::loadMessages() {
 			MTP_int(loadCount),
 			MTP_int(maxId),
 			MTP_int(minId),
-			MTP_int(historyHash)
+			MTP_long(historyHash)
 		)).done([=](const MTPmessages_Messages &result) {
 			messagesReceived(history->peer, result, _preloadRequest);
 			finish();
@@ -3113,7 +3149,7 @@ void HistoryWidget::loadMessagesDown() {
 		return;
 	}
 
-	auto loadCount = kMessagesPerPage;
+	const auto loadCount = kMessagesPerPage;
 	auto addOffset = -loadCount;
 	auto offsetId = from->maxMsgId();
 	if (!offsetId) {
@@ -3121,10 +3157,10 @@ void HistoryWidget::loadMessagesDown() {
 		++offsetId;
 		++addOffset;
 	}
-	auto offsetDate = 0;
-	auto maxId = 0;
-	auto minId = 0;
-	auto historyHash = 0;
+	const auto offsetDate = 0;
+	const auto maxId = 0;
+	const auto minId = 0;
+	const auto historyHash = uint64(0);
 
 	const auto history = from;
 	const auto type = Data::Histories::RequestType::History;
@@ -3138,7 +3174,7 @@ void HistoryWidget::loadMessagesDown() {
 			MTP_int(loadCount),
 			MTP_int(maxId),
 			MTP_int(minId),
-			MTP_int(historyHash)
+			MTP_long(historyHash)
 		)).done([=](const MTPmessages_Messages &result) {
 			messagesReceived(history->peer, result, _preloadDownRequest);
 			finish();
@@ -3185,10 +3221,10 @@ void HistoryWidget::delayedShowAt(MsgId showAtMsgId) {
 			offsetId = -_delayedShowAtMsgId;
 		}
 	}
-	auto offsetDate = 0;
-	auto maxId = 0;
-	auto minId = 0;
-	auto historyHash = 0;
+	const auto offsetDate = 0;
+	const auto maxId = 0;
+	const auto minId = 0;
+	const auto historyHash = uint64(0);
 
 	const auto history = from;
 	const auto type = Data::Histories::RequestType::History;
@@ -3202,7 +3238,7 @@ void HistoryWidget::delayedShowAt(MsgId showAtMsgId) {
 			MTP_int(loadCount),
 			MTP_int(maxId),
 			MTP_int(minId),
-			MTP_int(historyHash)
+			MTP_long(historyHash)
 		)).done([=](const MTPmessages_Messages &result) {
 			messagesReceived(history->peer, result, _delayedShowAtRequest);
 			finish();
@@ -5268,7 +5304,7 @@ void HistoryWidget::revealItemsCallback() {
 }
 
 void HistoryWidget::startItemRevealAnimations() {
-	for (const auto item : base::take(_itemRevealPending)) {
+	for (const auto &item : base::take(_itemRevealPending)) {
 		if (const auto view = item->mainView()) {
 			if (const auto top = _list->itemTop(view); top >= 0) {
 				if (const auto height = view->height()) {
@@ -5673,8 +5709,7 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 				for (const auto item : _toForward.items) {
 					if (const auto media = item->media()) {
 						if (!item->originalText().text.isEmpty()
-							&& (media->photo() || media->document())
-							&& !media->webpage()) {
+							&& media->allowsEditCaption()) {
 							return true;
 						}
 					}
@@ -6226,7 +6261,8 @@ void HistoryWidget::setupGroupCallTracker() {
 	_groupCallBar = std::make_unique<Ui::GroupCallBar>(
 		this,
 		_groupCallTracker->content(),
-		Core::App().appDeactivatedValue());
+		Core::App().appDeactivatedValue(),
+		cUserpicCornersType());
 
 	controller()->adaptive().oneColumnValue(
 	) | rpl::start_with_next([=](bool one) {
@@ -7503,9 +7539,10 @@ void HistoryWidget::paintEvent(QPaintEvent *e) {
 				- st::msgServiceMargin.bottom()) / 2,
 			w,
 			h);
-		HistoryView::ServiceMessagePainter::paintBubble(p, tr.x(), tr.y(), tr.width(), tr.height());
+		const auto st = controller()->chatStyle();
+		HistoryView::ServiceMessagePainter::PaintBubble(p, st, tr);
 
-		p.setPen(st::msgServiceFg);
+		p.setPen(st->msgServiceFg());
 		p.setFont(st::msgServiceFont);
 		p.drawTextLeft(tr.left() + st::msgPadding.left(), tr.top() + st::msgServicePadding.top(), width(), tr::lng_willbe_history(tr::now));
 

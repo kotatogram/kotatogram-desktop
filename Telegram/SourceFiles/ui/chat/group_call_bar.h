@@ -63,7 +63,8 @@ public:
 	GroupCallBar(
 		not_null<QWidget*> parent,
 		rpl::producer<GroupCallBarContent> content,
-		rpl::producer<bool> &&hideBlobs);
+		rpl::producer<bool> &&hideBlobs,
+		int userpicsRadius);
 	~GroupCallBar();
 
 	void show();

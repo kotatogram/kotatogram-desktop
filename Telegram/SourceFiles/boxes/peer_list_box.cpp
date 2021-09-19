@@ -190,7 +190,7 @@ void PeerListBox::paintEvent(QPaintEvent *e) {
 	const auto &bg = (_controller->listSt()
 		? *_controller->listSt()
 		: st::peerListBox).bg;
-	for (const auto rect : e->region()) {
+	for (const auto &rect : e->region()) {
 		p.fillRect(rect, bg);
 	}
 }
@@ -1823,7 +1823,7 @@ void PeerListContent::searchQueryChanged(QString query) {
 				};
 
 				_filterResults.reserve(minimalList->size());
-				for (const auto row : *minimalList) {
+				for (const auto &row : *minimalList) {
 					if (!row->special() && allSearchWordsInNames(row->peer())) {
 						_filterResults.push_back(row);
 					}
