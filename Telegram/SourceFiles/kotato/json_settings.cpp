@@ -395,6 +395,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("forward_mode"), ForwardMode());
 	settings.insert(qsl("forward_grouping_mode"), ForwardGroupingMode());
 	settings.insert(qsl("forward_force_old_unquoted"), cForwardForceOld());
+	settings.insert(qsl("disable_chat_themes"), cDisableChatThemes());
 
 	settingsFonts.insert(qsl("size"), cFontSize());
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
@@ -991,6 +992,9 @@ bool Manager::readCustomFile() {
 	});
 	ReadBoolOption(settings, "forward_force_old_unquoted", [&](auto v) {
 		cSetForwardForceOld(v);
+	});
+	ReadBoolOption(settings, "disable_chat_themes", [&](auto v) {
+		cSetDisableChatThemes(v);
 	});
 	return true;
 }

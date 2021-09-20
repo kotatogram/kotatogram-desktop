@@ -294,3 +294,5 @@ rpl::producer<int> ForwardGroupingModeChanges() {
 }
 
 bool gForwardForceOld = false;
+
+bool gDisableChatThemes = false;

@@ -186,3 +186,5 @@ void SetForwardGroupingMode(int mode);
 [[nodiscard]] rpl::producer<int> ForwardGroupingModeChanges();
 
 DeclareSetting(bool, ForwardForceOld);
+
+DeclareSetting(bool, DisableChatThemes);

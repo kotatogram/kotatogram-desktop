@@ -32,6 +32,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "core/application.h"
 #include "storage/localstorage.h"
 #include "data/data_session.h"
+#include "data/data_cloud_themes.h"
 #include "main/main_session.h"
 #include "mainwindow.h"
 #include "facades.h"
@@ -332,6 +333,21 @@ void SetupKotatoChats(
 				::Kotato::JsonSettings::Write();
 			}, true));
 	});
+
+	AddButton(
+		container,
+		rktr("ktg_disable_chat_themes"),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cDisableChatThemes())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cDisableChatThemes());
+	}) | rpl::start_with_next([controller](bool enabled) {
+		cSetDisableChatThemes(enabled);
+		controller->session().data().cloudThemes().refreshChatThemes();
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
 
 	AddSkip(container);
 }

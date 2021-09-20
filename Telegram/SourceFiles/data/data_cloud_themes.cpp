@@ -389,7 +389,7 @@ rpl::producer<> CloudThemes::chatThemesUpdated() const {
 
 std::optional<ChatTheme> CloudThemes::themeForEmoji(
 		const QString &emoji) const {
-	if (emoji.isEmpty()) {
+	if (emoji.isEmpty() || cDisableChatThemes()) {
 		return {};
 	}
 	const auto i = ranges::find(_chatThemes, emoji, &ChatTheme::emoji);
