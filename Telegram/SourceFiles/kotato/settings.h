@@ -184,3 +184,5 @@ void SetForwardMode(int mode);
 void SetForwardGroupingMode(int mode);
 [[nodiscard]] int ForwardGroupingMode();
 [[nodiscard]] rpl::producer<int> ForwardGroupingModeChanges();
+
+DeclareSetting(bool, ForwardForceOld);

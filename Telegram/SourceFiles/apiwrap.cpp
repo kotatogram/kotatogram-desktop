@@ -3632,7 +3632,8 @@ void ApiWrap::forwardMessages(
 		const SendAction &action,
 		FnMut<void()> &&successCallback) {
 	if (draft.options != Data::ForwardOptions::PreserveInfo
-		&& draft.groupOptions == Data::GroupingOptions::RegroupAll) {
+		&& (draft.groupOptions == Data::GroupingOptions::RegroupAll
+			|| cForwardForceOld())) {
 		forwardMessagesUnquoted(std::move(draft), action, std::move(successCallback));
 		return;
 	}

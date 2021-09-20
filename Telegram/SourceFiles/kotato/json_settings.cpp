@@ -394,6 +394,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("forward_remember_mode"), cForwardRememberMode());
 	settings.insert(qsl("forward_mode"), ForwardMode());
 	settings.insert(qsl("forward_grouping_mode"), ForwardGroupingMode());
+	settings.insert(qsl("forward_force_old_unquoted"), cForwardForceOld());
 
 	settingsFonts.insert(qsl("size"), cFontSize());
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
@@ -987,6 +988,9 @@ bool Manager::readCustomFile() {
 		if (v >= 0 && v <= 2) {
 			SetForwardGroupingMode(v);
 		}
+	});
+	ReadBoolOption(settings, "forward_force_old_unquoted", [&](auto v) {
+		cSetForwardForceOld(v);
 	});
 	return true;
 }

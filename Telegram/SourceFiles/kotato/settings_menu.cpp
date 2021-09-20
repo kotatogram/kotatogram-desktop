@@ -490,6 +490,12 @@ void SetupKotatoForward(not_null<Ui::VerticalLayout*> container) {
 			}, false));
 	});
 
+	SettingsMenuCSwitch(ktg_forward_force_old_unquoted, ForwardForceOld);
+
+	AddSkip(container);
+	AddDividerText(container, rktr("ktg_forward_force_old_unquoted_desc"));
+	AddSkip(container);
+
 	SettingsMenuCSwitch(ktg_settings_forward_retain_selection, ForwardRetainSelection);
 	SettingsMenuCSwitch(ktg_settings_forward_chat_on_click, ForwardChatOnClick);
 

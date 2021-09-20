@@ -292,3 +292,5 @@ int ForwardGroupingMode() {
 rpl::producer<int> ForwardGroupingModeChanges() {
 	return gForwardGroupingMode.changes();
 }
+
+bool gForwardForceOld = false;
