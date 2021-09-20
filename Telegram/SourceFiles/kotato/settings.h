@@ -174,3 +174,13 @@ using LocalFolderVector = std::vector<LocalFolder>;
 DeclareRefSetting(LocalFolderVector, LocalFolders);
 
 DeclareSetting(bool, TelegramSitesAutologin);
+
+DeclareSetting(bool, ForwardRememberMode);
+
+void SetForwardMode(int mode);
+[[nodiscard]] int ForwardMode();
+[[nodiscard]] rpl::producer<int> ForwardModeChanges();
+
+void SetForwardGroupingMode(int mode);
+[[nodiscard]] int ForwardGroupingMode();
+[[nodiscard]] rpl::producer<int> ForwardGroupingModeChanges();

@@ -243,5 +243,15 @@
 		"other": "days"
 	},
 	"ktg_forward_sender_names_and_captions_removed": "Sender names and captions removed",
+	"ktg_forward_remember_mode": "Remember forward mode",
+	"ktg_forward_mode": "Forward mode",
+	"ktg_forward_mode_quoted": "Quoted",
+	"ktg_forward_mode_unquoted": "Unquoted",
+	"ktg_forward_mode_uncaptioned": "Uncaptioned",
+	"ktg_forward_grouping_mode": "Grouping mode",
+	"ktg_forward_grouping_mode_preserve_albums": "Same as original",
+	"ktg_forward_grouping_mode_regroup": "Regroup media",
+	"ktg_forward_grouping_mode_regroup_desc": "Unquoted and uncaptioned only",
+	"ktg_forward_grouping_mode_separate": "Separate",
 	"dummy_last_string": ""
 }

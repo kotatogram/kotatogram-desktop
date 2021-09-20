@@ -262,3 +262,33 @@ bool gAutoScrollUnfocused = false;
 LocalFolderVector gLocalFolders;
 
 bool gTelegramSitesAutologin = true;
+
+bool gForwardRememberMode = true;
+
+// 0 - quoted
+// 1 - unquoted
+// 2 - uncaptioned
+rpl::variable<int> gForwardMode = 0;
+void SetForwardMode(int mode) {
+	gForwardMode = mode;
+}
+int ForwardMode() {
+	return gForwardMode.current();
+}
+rpl::producer<int> ForwardModeChanges() {
+	return gForwardMode.changes();
+}
+
+// 0 - preserve albums
+// 1 - group all media
+// 2 - separate messages
+rpl::variable<int> gForwardGroupingMode = 0;
+void SetForwardGroupingMode(int mode) {
+	gForwardGroupingMode = mode;
+}
+int ForwardGroupingMode() {
+	return gForwardGroupingMode.current();
+}
+rpl::producer<int> ForwardGroupingModeChanges() {
+	return gForwardGroupingMode.changes();
+}

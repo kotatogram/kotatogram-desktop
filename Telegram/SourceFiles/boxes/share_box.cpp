@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "dialogs/dialogs_indexed_list.h"
 #include "kotato/kotato_lang.h"
+#include "kotato/json_settings.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
 #include "mainwidget.h"
@@ -527,34 +528,42 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 	});
 	button->installEventFilter(_menu);
 
-	const auto addForwardOption = [this] (Data::ForwardOptions option, const QString &langKey) {
+	const auto addForwardOption = [this] (Data::ForwardOptions option, const QString &langKey, int settingsKey) {
 		if (_descriptor.draft->options != option) {
-			_menu->addAction(ktr(langKey), [this, option] {
+			_menu->addAction(ktr(langKey), [this, option, settingsKey] {
 				_descriptor.draft->options = option;
 				updateAdditionalTitle();
+				if (cForwardRememberMode()) {
+					SetForwardMode(settingsKey);
+					Kotato::JsonSettings::Write();
+				}
 			});
 		}
 	};
 
-	addForwardOption(Data::ForwardOptions::PreserveInfo, "ktg_forward_menu_quoted");
-	addForwardOption(Data::ForwardOptions::NoSenderNames, "ktg_forward_menu_unquoted");
-	addForwardOption(Data::ForwardOptions::NoNamesAndCaptions, "ktg_forward_menu_uncaptioned");
+	addForwardOption(Data::ForwardOptions::PreserveInfo, "ktg_forward_menu_quoted", 0);
+	addForwardOption(Data::ForwardOptions::NoSenderNames, "ktg_forward_menu_unquoted", 1);
+	addForwardOption(Data::ForwardOptions::NoNamesAndCaptions, "ktg_forward_menu_uncaptioned", 2);
 
 	if (_descriptor.hasMedia) {
 		_menu->addSeparator();
 
-		const auto addGroupingOption = [this] (Data::GroupingOptions option, const QString &langKey) {
+		const auto addGroupingOption = [this] (Data::GroupingOptions option, const QString &langKey, int settingsKey) {
 			if (_descriptor.draft->groupOptions != option) {
-				_menu->addAction(ktr(langKey), [this, option] {
+				_menu->addAction(ktr(langKey), [this, option, settingsKey] {
 					_descriptor.draft->groupOptions = option;
 					updateAdditionalTitle();
+					if (cForwardRememberMode()) {
+						SetForwardGroupingMode(settingsKey);
+						Kotato::JsonSettings::Write();
+					}
 				});
 			}
 		};
 
-		addGroupingOption(Data::GroupingOptions::GroupAsIs, "ktg_forward_menu_default_albums");
-		addGroupingOption(Data::GroupingOptions::RegroupAll, "ktg_forward_menu_group_all_media");
-		addGroupingOption(Data::GroupingOptions::Separate, "ktg_forward_menu_separate_messages");
+		addGroupingOption(Data::GroupingOptions::GroupAsIs, "ktg_forward_menu_default_albums", 0);
+		addGroupingOption(Data::GroupingOptions::RegroupAll, "ktg_forward_menu_group_all_media", 1);
+		addGroupingOption(Data::GroupingOptions::Separate, "ktg_forward_menu_separate_messages", 2);
 	}
 
 	const auto parentTopLeft = window()->mapToGlobal({ 0, 0 });

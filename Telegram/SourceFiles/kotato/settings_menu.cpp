@@ -56,6 +56,55 @@ QString FileDialogTypeDescription(int value) {
 	return Platform::FileDialog::ImplementationTypeDescription(typedValue);
 }
 
+QString ForwardModeLabel(int mode) {
+	switch (mode) {
+		case 0:
+			return ktr("ktg_forward_mode_quoted");
+
+		case 1:
+			return ktr("ktg_forward_mode_unquoted");
+
+		case 2:
+			return ktr("ktg_forward_mode_uncaptioned");
+
+		default:
+			Unexpected("Boost in Settings::ForwardModeLabel.");
+	}
+	return QString();
+}
+
+QString GroupingModeLabel(int mode) {
+	switch (mode) {
+		case 0:
+			return ktr("ktg_forward_grouping_mode_preserve_albums");
+
+		case 1:
+			return ktr("ktg_forward_grouping_mode_regroup");
+
+		case 2:
+			return ktr("ktg_forward_grouping_mode_separate");
+
+		default:
+			Unexpected("Boost in Settings::GroupingModeLabel.");
+	}
+	return QString();
+}
+
+QString GroupingModeDescription(int mode) {
+	switch (mode) {
+		case 0:
+		case 2:
+			return QString();
+
+		case 1:
+			return ktr("ktg_forward_grouping_mode_regroup_desc");
+
+		default:
+			Unexpected("Boost in Settings::GroupingModeLabel.");
+	}
+	return QString();
+}
+
 QString NetBoostLabel(int boost) {
 	switch (boost) {
 		case 0:
@@ -387,6 +436,59 @@ void SetupKotatoForward(not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_forward"));
+
+	SettingsMenuCSwitch(ktg_forward_remember_mode, ForwardRememberMode);
+
+	auto forwardModeText = rpl::single(
+		ForwardMode()
+	) | rpl::then(
+		ForwardModeChanges()
+	) | rpl::map([] {
+		return ForwardModeLabel(ForwardMode());
+	});
+
+	AddButtonWithLabel(
+		container,
+		rktr("ktg_forward_mode"),
+		forwardModeText,
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			ktr("ktg_forward_mode"),
+			ForwardMode(),
+			3,
+			ForwardModeLabel,
+			[=] (int value) {
+				SetForwardMode(value);
+				::Kotato::JsonSettings::Write();
+			}, false));
+	});
+
+	auto forwardGroupingModeText = rpl::single(
+		ForwardGroupingMode()
+	) | rpl::then(
+		ForwardGroupingModeChanges()
+	) | rpl::map([] {
+		return GroupingModeLabel(ForwardGroupingMode());
+	});
+
+	AddButtonWithLabel(
+		container,
+		rktr("ktg_forward_grouping_mode"),
+		forwardGroupingModeText,
+		st::settingsButton
+	)->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			ktr("ktg_forward_grouping_mode"),
+			ForwardGroupingMode(),
+			3,
+			GroupingModeLabel,
+			GroupingModeDescription,
+			[=] (int value) {
+				SetForwardGroupingMode(value);
+				::Kotato::JsonSettings::Write();
+			}, false));
+	});
 
 	SettingsMenuCSwitch(ktg_settings_forward_retain_selection, ForwardRetainSelection);
 	SettingsMenuCSwitch(ktg_settings_forward_chat_on_click, ForwardChatOnClick);

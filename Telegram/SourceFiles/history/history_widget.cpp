@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_widget.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/json_settings.h"
 #include "api/api_editing.h"
 #include "api/api_bot.h"
 #include "api/api_sending.h"
@@ -5718,7 +5719,8 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 			}();
 			const auto addForwardOption = [=](
 					Options newOptions,
-					const QString &langKey) {
+					const QString &langKey,
+					int settingsKey) {
 				if (_history && _toForward.options != newOptions) {
 					_menu->addAction(ktr(langKey), [=] {
 						_toForward.options = newOptions;
@@ -5728,22 +5730,27 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 							.groupOptions = _toForward.groupOptions,
 						});
 						updateField();
+						if (cForwardRememberMode()) {
+							SetForwardMode(settingsKey);
+							Kotato::JsonSettings::Write();
+						}
 					});
 				}
 			};
 
 			_menu = base::make_unique_q<Ui::PopupMenu>(this);
 			
-			addForwardOption(Options::PreserveInfo, "ktg_forward_menu_quoted");
-			addForwardOption(Options::NoSenderNames, "ktg_forward_menu_unquoted");
+			addForwardOption(Options::PreserveInfo, "ktg_forward_menu_quoted", 0);
+			addForwardOption(Options::NoSenderNames, "ktg_forward_menu_unquoted", 1);
 			if (hasCaptions) {
-				addForwardOption(Options::NoNamesAndCaptions, "ktg_forward_menu_uncaptioned");
+				addForwardOption(Options::NoNamesAndCaptions, "ktg_forward_menu_uncaptioned", 2);
 			}
 
 			if (hasMediaToGroup && count > 1) {
 				const auto addGroupingOption = [=](
 						GroupingOptions newOptions,
-						const QString &langKey) {
+						const QString &langKey,
+						int settingsKey) {
 					if (_history && _toForward.groupOptions != newOptions) {
 						_menu->addAction(ktr(langKey), [=] {
 							_toForward.groupOptions = newOptions;
@@ -5754,14 +5761,18 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 							});
 							updateForwardingTexts();
 							updateField();
+							if (cForwardRememberMode()) {
+								SetForwardGroupingMode(settingsKey);
+								Kotato::JsonSettings::Write();
+							}
 						});
 					}
 				};
 
 				_menu->addSeparator();
-				addGroupingOption(GroupingOptions::GroupAsIs, "ktg_forward_menu_default_albums");
-				addGroupingOption(GroupingOptions::RegroupAll, "ktg_forward_menu_group_all_media");
-				addGroupingOption(GroupingOptions::Separate, "ktg_forward_menu_separate_messages");
+				addGroupingOption(GroupingOptions::GroupAsIs, "ktg_forward_menu_default_albums", 0);
+				addGroupingOption(GroupingOptions::RegroupAll, "ktg_forward_menu_group_all_media", 1);
+				addGroupingOption(GroupingOptions::Separate, "ktg_forward_menu_separate_messages", 2);
 			}
 
 			_menu->popup(QCursor::pos());

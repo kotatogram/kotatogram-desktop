@@ -391,6 +391,9 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("forward_retain_selection"), cForwardRetainSelection());
 	settings.insert(qsl("forward_on_click"), cForwardChatOnClick());
 	settings.insert(qsl("telegram_sites_autologin"), cTelegramSitesAutologin());
+	settings.insert(qsl("forward_remember_mode"), cForwardRememberMode());
+	settings.insert(qsl("forward_mode"), ForwardMode());
+	settings.insert(qsl("forward_grouping_mode"), ForwardGroupingMode());
 
 	settingsFonts.insert(qsl("size"), cFontSize());
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
@@ -971,6 +974,19 @@ bool Manager::readCustomFile() {
 
 	ReadBoolOption(settings, "telegram_sites_autologin", [&](auto v) {
 		cSetTelegramSitesAutologin(v);
+	});
+	ReadBoolOption(settings, "forward_remember_mode", [&](auto v) {
+		cSetForwardRememberMode(v);
+	});
+	ReadIntOption(settings, "forward_mode", [&](auto v) {
+		if (v >= 0 && v <= 2) {
+			SetForwardMode(v);
+		}
+	});
+	ReadIntOption(settings, "forward_grouping_mode", [&](auto v) {
+		if (v >= 0 && v <= 2) {
+			SetForwardGroupingMode(v);
+		}
 	});
 	return true;
 }

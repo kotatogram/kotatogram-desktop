@@ -1272,10 +1272,29 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		not_null<Window::SessionNavigation*> navigation,
 		MessageIdsList &&items,
 		FnMut<void()> &&successCallback) {
+	const auto options = [] {
+		switch (ForwardMode()) {
+			case 1: return Data::ForwardOptions::NoSenderNames;
+			case 2: return Data::ForwardOptions::NoNamesAndCaptions;
+			default: return Data::ForwardOptions::PreserveInfo;
+		}
+	}();
+
+	const auto groupOptions = [] {
+		switch (ForwardGroupingMode()) {
+			case 1: return Data::GroupingOptions::RegroupAll;
+			case 2: return Data::GroupingOptions::Separate;
+			default: return Data::GroupingOptions::GroupAsIs;
+		}
+	}();
+
 	return ShowForwardMessagesBox(
 		navigation,
-		Data::ForwardDraft{ .ids = std::move(items) },
-		std::move(successCallback));
+		Data::ForwardDraft{
+			.ids = std::move(items),
+			.options = options,
+			.groupOptions = groupOptions,
+		}, std::move(successCallback));
 }
 
 QPointer<Ui::RpWidget> ShowSendNowMessagesBox(

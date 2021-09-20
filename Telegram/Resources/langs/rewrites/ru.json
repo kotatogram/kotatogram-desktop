@@ -261,5 +261,15 @@
 		"other": "дня"
 	},
 	"ktg_forward_sender_names_and_captions_removed": "Имена отправителей и подписи скрыты",
+	"ktg_forward_remember_mode": "Запоминать режим пересылки",
+	"ktg_forward_mode": "Режим пересылки",
+	"ktg_forward_mode_quoted": "С автором",
+	"ktg_forward_mode_unquoted": "Без автора",
+	"ktg_forward_mode_uncaptioned": "Без подписей",
+	"ktg_forward_grouping_mode": "Режим группировки",
+	"ktg_forward_grouping_mode_preserve_albums": "Как в оригинале",
+	"ktg_forward_grouping_mode_regroup": "Объединить медиа",
+	"ktg_forward_grouping_mode_regroup_desc": "Только без автора и без подписей",
+	"ktg_forward_grouping_mode_separate": "По отдельности",
 	"dummy_last_string": ""
 }
