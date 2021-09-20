@@ -104,7 +104,7 @@ jobs:
           apt-get install software-properties-common -y && \
           add-apt-repository ppa:git-core/ppa -y && \
           apt-get update && \
-          apt-get install libglib2.0-dev libicu-dev liblzma-dev zlib1g-dev libudev-dev \
+          apt-get install clang libglib2.0-dev libicu-dev liblzma-dev zlib1g-dev libudev-dev \
           git wget autoconf automake build-essential libtool pkg-config bison yasm \
           libasound2-dev libpulse-dev libdrm-dev libfuse2 libgtk-3-dev libgtk2.0-dev \
           libatspi2.0-dev libgl1-mesa-dev libegl1-mesa-dev libffi-dev libxcb1-dev \
