@@ -20,7 +20,6 @@ public:
 	void logMessageDebug(const QString &message) override;
 	void logMessage(const QString &message) override;
 	void logAssertionViolation(const QString &info) override;
-	[[nodiscard]] bool gtkIntegrationEnabled() const override;
 
 };
 

@@ -120,7 +120,6 @@ DeclareSetting(int, UserpicCornersType);
 DeclareSetting(bool, ShowTopBarUserpic);
 
 DeclareSetting(bool, QtScale);
-DeclareSetting(bool, GtkIntegration);
 
 void SetFileDialogType(Platform::FileDialog::ImplementationType t);
 [[nodiscard]] Platform::FileDialog::ImplementationType FileDialogType();

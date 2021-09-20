@@ -166,7 +166,6 @@ int gUserpicCornersType = 3;
 bool gShowTopBarUserpic = false;
 
 bool gQtScale = false;
-bool gGtkIntegration = false;
 
 rpl::variable<Platform::FileDialog::ImplementationType> gFileDialogType = Platform::FileDialog::ImplementationType::Default;
 void SetFileDialogType(Platform::FileDialog::ImplementationType t) {

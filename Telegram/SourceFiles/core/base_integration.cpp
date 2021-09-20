@@ -38,8 +38,4 @@ void BaseIntegration::logAssertionViolation(const QString &info) {
 	CrashReports::SetAnnotation("Assertion", info);
 }
 
-bool BaseIntegration::gtkIntegrationEnabled() const {
-	return cGtkIntegration();
-}
-
 } // namespace Core

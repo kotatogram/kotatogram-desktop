@@ -595,37 +595,6 @@ void SetupKotatoSystem(
 			cancelled));
 	}, container->lifetime());
 
-#ifndef DESKTOP_APP_DISABLE_GTK_INTEGRATION
-	if (Platform::IsLinux()) {
-		const auto gtkIntegrationToggled = Ui::CreateChild<rpl::event_stream<bool>>(
-			container.get());
-		AddButton(
-			container,
-			rktr("ktg_settings_gtk_integration"),
-			st::settingsButton
-		)->toggleOn(
-			gtkIntegrationToggled->events_starting_with_copy(cGtkIntegration())
-		)->toggledValue(
-		) | rpl::filter([](bool enabled) {
-			return (enabled != cGtkIntegration());
-		}) | rpl::start_with_next([=](bool enabled) {
-			const auto confirmed = [=] {
-				cSetGtkIntegration(enabled);
-				::Kotato::JsonSettings::Write();
-				App::restart();
-			};
-			const auto cancelled = [=] {
-				gtkIntegrationToggled->fire(cGtkIntegration() == true);
-			};
-			Ui::show(Box<ConfirmBox>(
-				tr::lng_settings_need_restart(tr::now),
-				tr::lng_settings_restart_now(tr::now),
-				confirmed,
-				cancelled));
-		}, container->lifetime());
-	}
-#endif // !DESKTOP_APP_DISABLE_GTK_INTEGRATION
-
 	if (Platform::IsLinux()) {
 		auto fileDialogTypeText = rpl::single(
 			FileDialogType()
