@@ -444,7 +444,7 @@ jobs:
           git apply ../patches/glibmm.patch
           export ACLOCAL_PATH="/usr/local/share/aclocal"
           NOCONFIGURE=1 ./autogen.sh
-          ./configure --enable-maintainer-mode --disable-documentation
+          CXXFLAGS="-g -O2 -std=c++14" ./configure --enable-maintainer-mode --disable-documentation
           make -j$(nproc)
           make install
           ldconfig
