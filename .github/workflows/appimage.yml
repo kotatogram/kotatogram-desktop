@@ -444,7 +444,7 @@ jobs:
           git apply ../patches/glibmm.patch
           export ACLOCAL_PATH="/usr/local/share/aclocal"
           NOCONFIGURE=1 ./autogen.sh
-          ./configure --enable-maintainer-mode --disable-documentation
+          CXXFLAGS="-g -O2 -std=c++14" ./configure --enable-maintainer-mode --disable-documentation
           make -j$(nproc)
           make install
           ldconfig
@@ -606,9 +606,6 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             if [ "${{ matrix.defines }}" = "DESKTOP_APP_DISABLE_DBUS_INTEGRATION" ]; then
-              DEFINE="$DEFINE -D DESKTOP_APP_DISABLE_GTK_INTEGRATION=ON -D DESKTOP_APP_DISABLE_WEBKITGTK=ON"
-            fi
-            if [ "${{ matrix.defines }}" = "DESKTOP_APP_DISABLE_GTK_INTEGRATION" ]; then
               DEFINE="$DEFINE -D DESKTOP_APP_DISABLE_WEBKITGTK=ON"
             fi
             echo Define from matrix: $DEFINE
