@@ -35,6 +35,23 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4.4" date="2021-09-22">
+            <description>
+                <p>TDesktop sources were updated to 3.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Added option to remember forward mode.</li>
+                    <li>Added ability to set default forward mode.</li>
+                    <li>Replaced unquoted forward method with option to restore the old one.</li>
+                    <li>Added option to disable per-chat themes.</li>
+                    <li>Removed GTK integration option, since it's not needed anymore.</li>
+                    <li>Fixed missing sending inline bot response preview option.</li>
+                    <li>Fixed missing sending inline bot response preview in comments and scheduled messages.</li>
+                    <li>Fixed option "Disable edit by Up key" in comments and scheduled messages.</li>
+                    <li>GIF section in shared media and forwarded sticker info are now same as in TDesktop.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.4.3" date="2021-08-26">
             <description>
                 <p>In this update:</p>

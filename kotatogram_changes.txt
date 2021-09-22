@@ -1,11 +1,23 @@
-1.4.3(26.08.2021)
+1.4.4 (22.09.2021)
+- Updated TDesktop sources to 3.1.
+- Added option to remember forward mode.
+- Added ability to set default forward mode.
+- Replaced unquoted forward method with option to restore the old one.
+- Added option to disable per-chat themes.
+- Removed GTK integration option, since it's not needed anymore.
+- Fixed missing sending inline bot response preview option.
+- Fixed missing sending inline bot response preview in comments and scheduled messages.
+- Fixed option "Disable edit by Up key" in comments and scheduled messages.
+- GIF section in shared media and forwarded sticker info are now same as in TDesktop.
+
+1.4.3 (26.08.2021)
 - Reworked sending without "via @bot" tag.
 - Optional hotkeys to restart application and to reload Kotatogram translation.
 - Fixed blocking user in "Recent Actions".
 - Updated translations, including phrases from previous version.
 - Fixed errors and crashes in AppImage related to gdk-pixbuf.
 
-1.4.2(21.08.2021)
+1.4.2 (21.08.2021)
 - Updated TDesktop sources to 2.8.11.
 - Manually choose notification mute time.
 - Auto-login option for Telegram sites.
