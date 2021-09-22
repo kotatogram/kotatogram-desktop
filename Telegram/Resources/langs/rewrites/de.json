@@ -63,7 +63,6 @@
 	"ktg_net_speed_boost_big": "Hoch",
 	"ktg_settings_system": "System",
 	"ktg_settings_qt_scale": "Qt Skalierungs-Engine",
-	"ktg_settings_gtk_integration": "GTK-Integration",
 	"ktg_settings_file_dialog_type": "Datei-Auswahldialog",
 	"ktg_file_dialog_type_default": "Standard",
 	"ktg_file_dialog_disabled_on_build": "Zur Build-Time deaktiviert",
@@ -159,24 +158,6 @@
 	"ktg_group_status_admin": "ist Admin",
 	"ktg_too_many_accounts_warning": "Achtung! Die gleichzeitige Nutzung zu vieler Konten wird wegen dem hohen Speicherbedarf und daraus resultierenden Abstürzen nicht empfohlen.\n\nDu bist sicher, dass du ein neues Konto hinzufügen möchtest?",
 	"ktg_account_add_anyway": "Trotzdem hinzufügen",
-	"ktg_media_selected_gif": {
-		"zero": "{count} GIFs",
-		"one": "{count} GIF",
-		"two": "{count} GIFs",
-		"few": "{count} GIFs",
-		"many": "{count} GIFs",
-		"other": "{count} GIFs"
-	},
-	"ktg_media_type_gif": "GIFs",
-	"ktg_profile_gif": {
-		"zero": "{count} GIFs",
-		"one": "{count} GIF",
-		"two": "{count} GIFs",
-		"few": "{count} GIFs",
-		"many": "{count} GIFs",
-		"other": "{count} GIFs"
-	},
-	"ktg_media_gif_empty": "Noch keine GIFs vorhanden",
 	"ktg_rights_chat_send_stickers": "Sticker senden",
 	"ktg_rights_chat_send_gif": "GIFs senden",
 	"ktg_rights_chat_send_games": "Spiele senden",
@@ -260,5 +241,19 @@
 		"many": "Tage",
 		"other": "Tage"
 	},
+	"ktg_forward_sender_names_and_captions_removed": "Absendernamen und Beschriftungen entfernt",
+	"ktg_forward_remember_mode": "Weiterleitungsmodus merken",
+	"ktg_forward_mode": "Weiterleitungs-Modus",
+	"ktg_forward_mode_quoted": "Zitiert",
+	"ktg_forward_mode_unquoted": "Zitat entfernen",
+	"ktg_forward_mode_uncaptioned": "Unbeschriftet",
+	"ktg_forward_grouping_mode": "Gruppierungsmodus",
+	"ktg_forward_grouping_mode_preserve_albums": "Wie Original",
+	"ktg_forward_grouping_mode_regroup": "Medien neu gruppieren",
+	"ktg_forward_grouping_mode_regroup_desc": "Nur nicht zitiert und nicht beschriftet",
+	"ktg_forward_grouping_mode_separate": "Getrennt",
+	"ktg_forward_force_old_unquoted": "Alte nicht zitierte Weiterleitungsmethode",
+	"ktg_forward_force_old_unquoted_desc": "Die alte Methode kopiert den Inhalt der Nachrichten auf dem Client statt auf dem Server. Wir aktuell nur von \"Medien neu gruppieren\" unterstützt. Wenn aus irgendeinem Grund die nicht zitierte Weiterleitung nicht richtig funktioniert, versuchen Sie diese Option zu ändern.",
+	"ktg_disable_chat_themes": "Chat-Themes deaktivieren",
 	"dummy_last_string": ""
 }

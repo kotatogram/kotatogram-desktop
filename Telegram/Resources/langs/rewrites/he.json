@@ -63,7 +63,6 @@
 	"ktg_net_speed_boost_big": "גדול",
 	"ktg_settings_system": "מערכת",
 	"ktg_settings_qt_scale": "Qt scaling engine",
-	"ktg_settings_gtk_integration": "אינטגרצייה עם GTK",
 	"ktg_settings_file_dialog_type": "דף בחירת קובץ",
 	"ktg_file_dialog_type_default": "ברירת מחדל",
 	"ktg_file_dialog_disabled_on_build": "מושבת בזמן הבנייה (build)",
@@ -159,24 +158,6 @@
 	"ktg_group_status_admin": "אני מנהל",
 	"ktg_too_many_accounts_warning": "אזהרה! לא מומלץ לעשות שימוש ביותר מידיי חשבונות בו זמנית זה מכביד על הביצועים של המחשב וזה יכול לגרום לקריסות.\n\nהאם אתה בטוח שתרצה להוסיף עוד חשבון?",
 	"ktg_account_add_anyway": "הוסף בכל זאת",
-	"ktg_media_selected_gif": {
-		"zero": "{count} גיפים",
-		"one": "{count} גיף",
-		"two": "{count} גיפים",
-		"few": "{count} גיפים",
-		"many": "{count} גיפים",
-		"other": "{count} גיפים"
-	},
-	"ktg_media_type_gif": "גיפים",
-	"ktg_profile_gif": {
-		"zero": "{count} גיפים",
-		"one": "{count} גיף",
-		"two": "{count} גיפים",
-		"few": "{count} גיפים",
-		"many": "{count} גיפים",
-		"other": "{count} גיפים"
-	},
-	"ktg_media_gif_empty": "אין כאן עדיין גיפים",
 	"ktg_rights_chat_send_stickers": "שליחת מדבקות",
 	"ktg_rights_chat_send_gif": "שליחת גיפים",
 	"ktg_rights_chat_send_games": "שליחת משחקים",
@@ -260,5 +241,19 @@
 		"many": "ימים",
 		"other": "ימים"
 	},
+	"ktg_forward_sender_names_and_captions_removed": "Sender names and captions removed",
+	"ktg_forward_remember_mode": "Remember forward mode",
+	"ktg_forward_mode": "Forward mode",
+	"ktg_forward_mode_quoted": "Quoted",
+	"ktg_forward_mode_unquoted": "Unquoted",
+	"ktg_forward_mode_uncaptioned": "Uncaptioned",
+	"ktg_forward_grouping_mode": "Grouping mode",
+	"ktg_forward_grouping_mode_preserve_albums": "Same as original",
+	"ktg_forward_grouping_mode_regroup": "Regroup media",
+	"ktg_forward_grouping_mode_regroup_desc": "Unquoted and uncaptioned only",
+	"ktg_forward_grouping_mode_separate": "Separate",
+	"ktg_forward_force_old_unquoted": "Old unquoted forward method",
+	"ktg_forward_force_old_unquoted_desc": "Old method copies messages content on client rather than server. Currently it's used only for \"Regroup media\" grouping mode, since new one doesn't support it. If for some reason unquoted forward doesn't work correctly, try switching this option.",
+	"ktg_disable_chat_themes": "Disable chat themes",
 	"dummy_last_string": ""
 }

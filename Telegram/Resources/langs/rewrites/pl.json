@@ -63,7 +63,6 @@
 	"ktg_net_speed_boost_big": "Duże",
 	"ktg_settings_system": "System",
 	"ktg_settings_qt_scale": "Silnik skalowania Qt",
-	"ktg_settings_gtk_integration": "Integracja GTK",
 	"ktg_settings_file_dialog_type": "Okno dialogowe wyboru plików",
 	"ktg_file_dialog_type_default": "Domyślna",
 	"ktg_file_dialog_disabled_on_build": "Wyłączone podczas budowania",
@@ -159,24 +158,6 @@
 	"ktg_group_status_admin": "jest administratorem",
 	"ktg_too_many_accounts_warning": "Ostrzeżenie! Używanie zbyt wielu kont w tym samym czasie nie jest zalecane ze względu na większe zużycie pamięci i możliwe z tego powodu awarie.\n\nNa pewno chcesz dodać nowe konto?",
 	"ktg_account_add_anyway": "Dodaj mimo to",
-	"ktg_media_selected_gif": {
-		"zero": "{count} GIFów",
-		"one": "{count} GIF",
-		"two": "{count} GIFy",
-		"few": "{count} GIFy",
-		"many": "{count} GIFów",
-		"other": "{count} GIFa"
-	},
-	"ktg_media_type_gif": "GIFy",
-	"ktg_profile_gif": {
-		"zero": "{count} GIFów",
-		"one": "{count} GIF",
-		"two": "{count} GIFy",
-		"few": "{count} GIFy",
-		"many": "{count} GIFów",
-		"other": "{count} GIFa"
-	},
-	"ktg_media_gif_empty": "Tu jeszcze nie ma GIFów",
 	"ktg_rights_chat_send_stickers": "Wyślij naklejki",
 	"ktg_rights_chat_send_gif": "Wyślij GIFy",
 	"ktg_rights_chat_send_games": "Wyślij gry",
@@ -260,5 +241,19 @@
 		"many": "dni",
 		"other": "dnia"
 	},
+	"ktg_forward_sender_names_and_captions_removed": "Usunięto nazwy nadawców i podpisy",
+	"ktg_forward_remember_mode": "Zapamiętaj tryb przekazywania",
+	"ktg_forward_mode": "Tryb przekazywania",
+	"ktg_forward_mode_quoted": "Cytuj",
+	"ktg_forward_mode_unquoted": "Bez cytowania",
+	"ktg_forward_mode_uncaptioned": "Bez podpisu",
+	"ktg_forward_grouping_mode": "Tryb grupowania",
+	"ktg_forward_grouping_mode_preserve_albums": "Taki sam jak oryginał",
+	"ktg_forward_grouping_mode_regroup": "Przegrupowane multimedia",
+	"ktg_forward_grouping_mode_regroup_desc": "Tylko bez cytowania i bez podpisu",
+	"ktg_forward_grouping_mode_separate": "Oddzielone",
+	"ktg_forward_force_old_unquoted": "Stara metoda przekazywania bez cytowania",
+	"ktg_forward_force_old_unquoted_desc": "Stara metoda kopiuje zawartość wiadomości na klienta, a nie na serwer. Ponieważ nowy tryb nie obsługuje tej metody, obecnie jest ona używana tylko dla trybu grupowania „Przegrupowane multimedia”. Jeśli z jakiegoś powodu metoda przekazywania bez cytowania nie działa poprawnie, spróbuj przełączyć tę opcję.",
+	"ktg_disable_chat_themes": "Wyłącz motywy czatów",
 	"dummy_last_string": ""
 }

@@ -63,7 +63,6 @@
 	"ktg_net_speed_boost_big": "Високе",
 	"ktg_settings_system": "Система",
 	"ktg_settings_qt_scale": "Масштабування Qt-двигуном",
-	"ktg_settings_gtk_integration": "Інтеграція GTK",
 	"ktg_settings_file_dialog_type": "Діалог вибору файла",
 	"ktg_file_dialog_type_default": "За замовчуванням",
 	"ktg_file_dialog_disabled_on_build": "Вимкнено під час побудови",
@@ -159,24 +158,6 @@
 	"ktg_group_status_admin": "Ви адмін",
 	"ktg_too_many_accounts_warning": "Увага! Не рекомендується використовувати велику кількість акаунтів одночасно, можливе високе споживання оперативної пам'яті, а також зависання додатку через це. \n\nВи дійсно хочете додати акаунт?",
 	"ktg_account_add_anyway": "Все одно додати",
-	"ktg_media_selected_gif": {
-		"zero": "{count} GIF",
-		"one": "{count} GIF",
-		"two": "{count} GIF",
-		"few": "{count} GIF",
-		"many": "{count} GIF",
-		"other": "{count} GIF"
-	},
-	"ktg_media_type_gif": "GIF",
-	"ktg_profile_gif": {
-		"zero": "{count} GIF",
-		"one": "{count} GIF",
-		"two": "{count} GIF",
-		"few": "{count} GIF",
-		"many": "{count} GIF",
-		"other": "{count} GIF"
-	},
-	"ktg_media_gif_empty": "Тут немає жодного GIF",
 	"ktg_rights_chat_send_stickers": "Надсилати наліпки",
 	"ktg_rights_chat_send_gif": "Надсилати GIF",
 	"ktg_rights_chat_send_games": "Надсилати ігри",
@@ -260,5 +241,19 @@
 		"many": "днів",
 		"other": "днів"
 	},
+	"ktg_forward_sender_names_and_captions_removed": "Без авторів та коментарів",
+	"ktg_forward_remember_mode": "Запам’ятовувати режим пересилання",
+	"ktg_forward_mode": "Режим пересилання",
+	"ktg_forward_mode_quoted": "З автором",
+	"ktg_forward_mode_unquoted": "Без автора",
+	"ktg_forward_mode_uncaptioned": "Без коментаря",
+	"ktg_forward_grouping_mode": "Режим групування",
+	"ktg_forward_grouping_mode_preserve_albums": "Як в оригіналі",
+	"ktg_forward_grouping_mode_regroup": "Об'єднувати медіа",
+	"ktg_forward_grouping_mode_regroup_desc": "Завжди без авторів та коментарів",
+	"ktg_forward_grouping_mode_separate": "Окремими повідомленнями",
+	"ktg_forward_force_old_unquoted": "Старий метод пересилання без автора",
+	"ktg_forward_force_old_unquoted_desc": "Старий метод копіює повідомлення на стороні клієнта, а не сервера. В даний час він використовується лише для режиму групування «Об'єднувати медіа», оскільки новий метод не підтримує його. Якщо пересилання не працює, змінить цю опцію.",
+	"ktg_disable_chat_themes": "Вимкнути теми чатів",
 	"dummy_last_string": ""
 }

@@ -63,7 +63,6 @@
 	"ktg_net_speed_boost_big": "Высокое",
 	"ktg_settings_system": "Система",
 	"ktg_settings_qt_scale": "Движок масштабирования Qt",
-	"ktg_settings_gtk_integration": "GTK-интеграция",
 	"ktg_settings_file_dialog_type": "Диалог выбора файлов",
 	"ktg_file_dialog_type_default": "По умолчанию",
 	"ktg_file_dialog_disabled_on_build": "Отключено при сборке",
@@ -159,24 +158,6 @@
 	"ktg_group_status_admin": "вы админ",
 	"ktg_too_many_accounts_warning": "Внимание! Использование слишком большого количества аккаунтов одновременно не рекомендуется из-за высокого потребления памяти, а также возможных вылетов из-за этого.\n\nВы точно хотите добавить новый аккаунт?",
 	"ktg_account_add_anyway": "Всё равно добавить",
-	"ktg_media_selected_gif": {
-		"zero": "{count} GIF",
-		"one": "{count} GIF",
-		"two": "{count} GIF",
-		"few": "{count} GIF",
-		"many": "{count} GIF",
-		"other": "{count} GIF"
-	},
-	"ktg_media_type_gif": "GIF",
-	"ktg_profile_gif": {
-		"zero": "{count} GIF",
-		"one": "{count} GIF",
-		"two": "{count} GIF",
-		"few": "{count} GIF",
-		"many": "{count} GIF",
-		"other": "{count} GIF"
-	},
-	"ktg_media_gif_empty": "Здесь пока нет GIF",
 	"ktg_rights_chat_send_stickers": "Отправка стикеров",
 	"ktg_rights_chat_send_gif": "Отправка GIF",
 	"ktg_rights_chat_send_games": "Отправка игр",

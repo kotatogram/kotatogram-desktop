@@ -63,7 +63,6 @@
 	"ktg_net_speed_boost_big": "Высокое",
 	"ktg_settings_system": "Система",
 	"ktg_settings_qt_scale": "Масштабирование Qt-движком",
-	"ktg_settings_gtk_integration": "Интеграция GTK",
 	"ktg_settings_file_dialog_type": "Диалог вибора файла",
 	"ktg_file_dialog_type_default": "По умолчанию",
 	"ktg_file_dialog_disabled_on_build": "Отключено в билде",
@@ -159,24 +158,6 @@
 	"ktg_group_status_admin": "вы админ",
 	"ktg_too_many_accounts_warning": "Не рекомендуется использовать много аккаунтов из-за высокого потребления памяти и возможных вылетов из-за этого.\n\nВы точно хотите добавить аккаунт?",
 	"ktg_account_add_anyway": "Всё равно добавить",
-	"ktg_media_selected_gif": {
-		"zero": "{count} GIF",
-		"one": "{count} GIF",
-		"two": "{count} GIF",
-		"few": "{count} GIF",
-		"many": "{count} GIF",
-		"other": "{count} GIF"
-	},
-	"ktg_media_type_gif": "GIF",
-	"ktg_profile_gif": {
-		"zero": "{count} GIF",
-		"one": "{count} GIF",
-		"two": "{count} GIF",
-		"few": "{count} GIF",
-		"many": "{count} GIF",
-		"other": "{count} GIF"
-	},
-	"ktg_media_gif_empty": "Нет GIF",
 	"ktg_rights_chat_send_stickers": "Отправка стикеров",
 	"ktg_rights_chat_send_gif": "Отправка GIF",
 	"ktg_rights_chat_send_games": "Отправка игр",
@@ -260,5 +241,19 @@
 		"many": "дней",
 		"other": "дня"
 	},
+	"ktg_forward_sender_names_and_captions_removed": "Без автора и подписей",
+	"ktg_forward_remember_mode": "Запоминать режим пересылки",
+	"ktg_forward_mode": "Режим пересылки",
+	"ktg_forward_mode_quoted": "С автором",
+	"ktg_forward_mode_unquoted": "Без автора",
+	"ktg_forward_mode_uncaptioned": "Без подписей",
+	"ktg_forward_grouping_mode": "Режим группировки",
+	"ktg_forward_grouping_mode_preserve_albums": "Как в оригинале",
+	"ktg_forward_grouping_mode_regroup": "Всегда сетом",
+	"ktg_forward_grouping_mode_regroup_desc": "Всегда без автора и подписей",
+	"ktg_forward_grouping_mode_separate": "Всегда раздельно",
+	"ktg_forward_force_old_unquoted": "Старый метод пересылки без автора",
+	"ktg_forward_force_old_unquoted_desc": "Старый метод копирует содержимое сообщений на клиенте вместо сервера. Сейчас он используется только в режиме отправки «Сетом», так как новый его не поддерживает. Если пересылка без автора не работает, смените эту настройку.",
+	"ktg_disable_chat_themes": "Отключить темы чатов",
 	"dummy_last_string": ""
 }

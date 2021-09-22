@@ -63,7 +63,6 @@
 	"ktg_net_speed_boost_big": "Gros",
 	"ktg_settings_system": "Système",
 	"ktg_settings_qt_scale": "Moteur de mise à l'échelle Qt",
-	"ktg_settings_gtk_integration": "Intégration GTK",
 	"ktg_settings_file_dialog_type": "Boîte de dialogue de sélection de fichier",
 	"ktg_file_dialog_type_default": "Défaut",
 	"ktg_file_dialog_disabled_on_build": "Désactivé lors de la compilation",
@@ -159,24 +158,6 @@
 	"ktg_group_status_admin": "est administrateur",
 	"ktg_too_many_accounts_warning": "Avertissement ! L'utilisation de trop de comptes en même temps n'est pas recommandée en raison d'une consommation de mémoire plus élevée et des pannes possibles à cause de cela.\n\nVoulez-vous vraiment ajouter un nouveau compte ?",
 	"ktg_account_add_anyway": "Ajouter quand même",
-	"ktg_media_selected_gif": {
-		"zero": "{count} GIFs",
-		"one": "{count} GIF",
-		"two": "{count} GIFs",
-		"few": "{count} GIFs",
-		"many": "{count} GIFs",
-		"other": "{count} GIFs"
-	},
-	"ktg_media_type_gif": "GIFs",
-	"ktg_profile_gif": {
-		"zero": "{count} GIFs",
-		"one": "{count} GIFs",
-		"two": "{count} GIFs",
-		"few": "{count} GIFs",
-		"many": "{count} GIFs",
-		"other": "{count} GIFs"
-	},
-	"ktg_media_gif_empty": "Pas de GIFs ici",
 	"ktg_rights_chat_send_stickers": "Envoyer des autocollants",
 	"ktg_rights_chat_send_gif": "Envoyer des GIFs",
 	"ktg_rights_chat_send_games": "Envoyer des jeux",
@@ -260,5 +241,19 @@
 		"many": "jours",
 		"other": "jours"
 	},
+	"ktg_forward_sender_names_and_captions_removed": "Noms des expéditeurs et légendes supprimés",
+	"ktg_forward_remember_mode": "Mémoriser la méthode de transfère",
+	"ktg_forward_mode": "Mode de transfert",
+	"ktg_forward_mode_quoted": "Cité",
+	"ktg_forward_mode_unquoted": "Non cité",
+	"ktg_forward_mode_uncaptioned": "Sans légende",
+	"ktg_forward_grouping_mode": "Mode de groupement",
+	"ktg_forward_grouping_mode_preserve_albums": "Identique à l'original",
+	"ktg_forward_grouping_mode_regroup": "Regrouper les médias",
+	"ktg_forward_grouping_mode_regroup_desc": "Non cité et sans légende uniquement",
+	"ktg_forward_grouping_mode_separate": "Séparer",
+	"ktg_forward_force_old_unquoted": "Ancienne méthode de transfert sans citer l'expéditeur",
+	"ktg_forward_force_old_unquoted_desc": "L'ancienne méthode copie le contenu des messages sur le client plutôt que sur le serveur. Actuellement il est uniquement utilisé pour le mode de regroupement \"Regrouper les médias\", car le nouveau ne le prend pas en charge. Si pour une raison quelconque le transfert sans la citation de l'expéditeur ne fonctionne pas correctement, essayez de changer cette option.",
+	"ktg_disable_chat_themes": "Désactiver les thèmes de discussion",
 	"dummy_last_string": ""
 }
