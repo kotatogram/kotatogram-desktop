@@ -564,6 +564,8 @@ void HistoryService::applyAction(const MTPMessageAction &action) {
 		_flags |= MessageFlag::IsGroupEssential;
 	}, [&](const MTPDmessageActionChannelMigrateFrom &) {
 		_flags |= MessageFlag::IsGroupEssential;
+	}, [&](const MTPDmessageActionContactSignUp &) {
+		_flags |= MessageFlag::IsContactSignUp;
 	}, [](const auto &) {
 	});
 }
