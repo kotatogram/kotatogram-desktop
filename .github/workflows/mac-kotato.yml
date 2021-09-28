@@ -1,4 +1,4 @@
-name: Packaged MacOS.
+name: MacOS Kotato.
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
       - 'LEGAL'
       - 'LICENSE'
       - '.github/**'
-      - '!.github/workflows/mac-packaged.yml'
+      - '!.github/workflows/mac-kotato.yml'
       - 'lib/xdg/**'
       - 'snap/**'
       - 'Telegram/build/**'
@@ -29,7 +29,7 @@ on:
       - 'LEGAL'
       - 'LICENSE'
       - '.github/**'
-      - '!.github/workflows/mac-packaged.yml'
+      - '!.github/workflows/mac-kotato.yml'
       - 'lib/xdg/**'
       - 'snap/**'
       - 'Telegram/build/**'
@@ -87,7 +87,7 @@ jobs:
           echo $MANUAL_CACHING >> CACHE_KEY.txt
           echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
           if [ "$AUTO_CACHING" == "1" ]; then
-            thisFile=$REPO_NAME/.github/workflows/mac-packaged.yml
+            thisFile=$REPO_NAME/.github/workflows/mac-kotato.yml
             echo `md5 -q $thisFile` >> CACHE_KEY.txt
           fi
           echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
