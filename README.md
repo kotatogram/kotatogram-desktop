@@ -22,7 +22,7 @@ Latest stable version can be found here: https://github.com/kotatogram/kotatogra
 * Linux (64-bit)
   * [Flathub][flatpak]
   * Other repositories:<br>[![Packaging status](https://repology.org/badge/vertical-allrepos/kotatogram-desktop.svg)][repology]
-* macOS (packaged)
+* macOS
 
 ## Features
 * Local folders
