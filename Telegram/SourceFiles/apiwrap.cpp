@@ -3949,9 +3949,9 @@ void ApiWrap::forwardMessagesUnquoted(
 			const auto inputMedia = media->photo()
 				? MTP_inputMediaPhoto(MTP_flags(0), media->photo()->mtpInput(), MTPint())
 				: MTP_inputMediaDocument(MTP_flags(0), media->document()->mtpInput(), MTPint(), MTPstring());
-			auto caption = (draft.options == Data::ForwardOptions::NoNamesAndCaptions)
-					? TextWithEntities()
-					: item->originalText();
+			auto caption = (draft.options != Data::ForwardOptions::NoNamesAndCaptions)
+					? item->originalText()
+					: TextWithEntities();
 			auto sentEntities = Api::EntitiesToMTP(
 				_session,
 				caption.entities,
@@ -4089,7 +4089,7 @@ void ApiWrap::forwardMessagesUnquoted(
 		const auto media = item->media();
 
 		auto message = ApiWrap::MessageToSend(history);
-		const auto caption = (draft.options == Data::ForwardOptions::NoNamesAndCaptions
+		const auto caption = (draft.options != Data::ForwardOptions::NoNamesAndCaptions
 			&& !media->geoPoint()
 			&& !media->sharedContact())
 				? item->originalText()
