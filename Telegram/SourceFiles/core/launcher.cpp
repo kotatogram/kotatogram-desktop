@@ -295,11 +295,7 @@ void Launcher::init() {
 	initQtMessageLogging();
 
 	QApplication::setApplicationName(qsl("KotatogramDesktop"));
-	if (cQtScale()) {
-		QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
-	} else {
-		QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, true);
-	}
+	QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, true);
 
 	// fallback session management is useless for tdesktop since it doesn't have
 	// any "are you sure you want to close this window?" dialogs
@@ -324,6 +320,11 @@ int Launcher::exec() {
 	// Must be started before Platform is started.
 	Logs::start(this);
 	Kotato::JsonSettings::Start();
+
+	if (cQtScale()) {
+		QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
+		QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
+	}
 
 	if (Logs::DebugEnabled()) {
 		const auto openalLogPath = QDir::toNativeSeparators(
