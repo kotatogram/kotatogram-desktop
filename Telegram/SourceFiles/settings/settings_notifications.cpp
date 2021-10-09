@@ -445,6 +445,7 @@ NotificationsCount::SampleWidget::SampleWidget(
 		cache.height() / cache.devicePixelRatio());
 
 	resize(size);
+	setMinimumSize(size);
 	setMaximumSize(size);
 
 	setWindowFlags(Qt::WindowFlags(Qt::FramelessWindowHint)
