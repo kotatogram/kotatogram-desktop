@@ -552,6 +552,7 @@ void PipPanel::setPositionOnScreen(Position position, QRect available) {
 	geometry += _padding;
 
 	setGeometry(geometry);
+	widget()->setMinimumSize(minimalSize);
 	widget()->setMaximumSize(
 		std::max(minimalSize.width(), maximalSize.width()),
 		std::max(minimalSize.height(), maximalSize.height()));
