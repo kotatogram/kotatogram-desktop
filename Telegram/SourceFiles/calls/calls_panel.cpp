@@ -585,7 +585,6 @@ void Panel::initGeometry() {
 	const auto center = Core::App().getPointForCallPanelCenter();
 	const auto initRect = QRect(0, 0, st::callWidth, st::callHeight);
 	window()->setGeometry(initRect.translated(center - initRect.center()));
-	window()->setMinimumSize({ st::callWidthMin, st::callHeightMin });
 	window()->show();
 	updateControlsGeometry();
 }
