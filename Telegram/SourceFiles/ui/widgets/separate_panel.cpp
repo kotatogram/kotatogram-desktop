@@ -399,6 +399,7 @@ void SeparatePanel::initGeometry(QSize size) {
 		return initRect.translated(center - initRect.center()).marginsAdded(_padding);
 	}();
 	setGeometry(rect);
+	setMinimumSize(rect.size());
 	setMaximumSize(rect.size());
 	updateControlsGeometry();
 }
