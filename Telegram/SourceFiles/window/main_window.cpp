@@ -449,8 +449,6 @@ void MainWindow::refreshTitleWidget() {
 }
 
 void MainWindow::updateMinimumSize() {
-	setMinimumWidth(computeMinWidth());
-	setMinimumHeight(computeMinHeight());
 }
 
 void MainWindow::recountGeometryConstraints() {
