@@ -553,7 +553,6 @@ void Widget::addToHeight(int add) {
 
 void Widget::updateGeometry(int x, int y, int width, int height) {
 	setGeometry(x, y, width, height);
-	setMinimumSize(QSize(width, height));
 	setMaximumSize(QSize(width, height));
 	update();
 }
