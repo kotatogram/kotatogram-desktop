@@ -707,9 +707,7 @@ void SendFilesBox::setupCaption() {
 		}
 		Unexpected("action in MimeData hook.");
 	});
-	_caption->setInstantReplaces(Ui::InstantReplaces::Default());
-	_caption->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	_caption->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	_caption->setMarkdownReplacesEnabled(rpl::single(true));
 	_caption->setEditLinkCallback(
 		DefaultEditLinkCallback(_controller, _caption));

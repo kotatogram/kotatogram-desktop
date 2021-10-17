@@ -242,9 +242,7 @@ void EditCaptionBox::setupField() {
 		_controller->session().serverConfig().captionLengthMax);
 	_field->setSubmitSettings(
 		Core::App().settings().sendSubmitWay());
-	_field->setInstantReplaces(Ui::InstantReplaces::Default());
-	_field->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	_field->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	_field->setMarkdownReplacesEnabled(rpl::single(true));
 	_field->setEditLinkCallback(
 		DefaultEditLinkCallback(_controller, _field));
