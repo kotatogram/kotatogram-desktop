@@ -395,6 +395,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	settings.insert(qsl("forward_grouping_mode"), ForwardGroupingMode());
 	settings.insert(qsl("forward_force_old_unquoted"), cForwardForceOld());
 	settings.insert(qsl("disable_chat_themes"), cDisableChatThemes());
+	settings.insert(qsl("remember_compress_images"), cRememberCompressImages());
 
 	settingsFonts.insert(qsl("size"), cFontSize());
 	settingsFonts.insert(qsl("use_system_font"), cUseSystemFont());
@@ -990,6 +991,9 @@ bool Manager::readCustomFile() {
 	});
 	ReadBoolOption(settings, "disable_chat_themes", [&](auto v) {
 		cSetDisableChatThemes(v);
+	});
+	ReadBoolOption(settings, "remember_compress_images", [&](auto v) {
+		cSetRememberCompressImages(v);
 	});
 	return true;
 }

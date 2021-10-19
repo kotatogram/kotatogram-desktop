@@ -187,3 +187,4 @@ void SetForwardGroupingMode(int mode);
 DeclareSetting(bool, ForwardForceOld);
 
 DeclareSetting(bool, DisableChatThemes);
+DeclareSetting(bool, RememberCompressImages);
