@@ -92,6 +92,7 @@
     <file alias="de.json">../../langs/rewrites/de.json</file>
     <file alias="en.json">../../langs/rewrites/en.json</file>
     <file alias="es.json">../../langs/rewrites/es.json</file>
+    <file alias="fa.json">../../langs/rewrites/fa.json</file>
     <file alias="fr.json">../../langs/rewrites/fr.json</file>
     <file alias="he.json">../../langs/rewrites/he.json</file>
     <file alias="it.json">../../langs/rewrites/it.json</file>
