@@ -1,3 +1,11 @@
+1.4.5 (04.12.2021)
+- Updated TDesktop sources to 3.1.1.
+- Fixed caption sending modes in unquoted forward.
+- Fixed "Qt scaling" option.
+- Removed duplicate of GIF button in shared media.
+- Fixed animated emoji size.
+- Fix custom font size scale.
+
 1.4.4 (22.09.2021)
 - Updated TDesktop sources to 3.1.
 - Added option to remember forward mode.

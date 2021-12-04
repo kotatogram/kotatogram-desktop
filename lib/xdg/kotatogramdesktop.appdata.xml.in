@@ -35,6 +35,19 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4.5" date="2021-12-04">
+            <description>
+                <p>TDesktop sources were updated to 3.1.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Fixed caption sending modes in unquoted forward.</li>
+                    <li>Fixed "Qt scaling" option.</li>
+                    <li>Removed duplicate of GIF button in shared media.</li>
+                    <li>Fixed animated emoji size.</li>
+                    <li>Fix custom font size scale.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.4.4" date="2021-09-22">
             <description>
                 <p>TDesktop sources were updated to 3.1.</p>
