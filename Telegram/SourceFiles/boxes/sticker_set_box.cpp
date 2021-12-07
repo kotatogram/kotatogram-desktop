@@ -403,8 +403,8 @@ bool StickerSetBox::showMenu(not_null<Ui::IconButton*> button) {
 		_menu->addAction(tr::lng_stickers_archive_pack(tr::now), archive);
 	}
 
-	const auto parentTopLeft = window()->mapToGlobal({ 0, 0 });
-	const auto buttonTopLeft = button->mapToGlobal({ 0, 0 });
+	const auto parentTopLeft = window()->mapToGlobal(QPoint());
+	const auto buttonTopLeft = button->mapToGlobal(QPoint());
 	const auto parentRect = QRect(parentTopLeft, window()->size());
 	const auto buttonRect = QRect(buttonTopLeft, button->size());
 	_menu->move(
@@ -437,10 +437,11 @@ StickerSetBox::Inner::Inner(
 , _input(set)
 , _previewTimer([=] { showPreview(); }) {
 	_api.request(MTPmessages_GetStickerSet(
-		Data::InputStickerSet(_input)
+		Data::InputStickerSet(_input),
+		MTP_int(0) // hash
 	)).done([=](const MTPmessages_StickerSet &result) {
 		gotSet(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_loaded = true;
 		_errors.fire(Error::NotFound);
 	}).send();
@@ -533,6 +534,8 @@ void StickerSetBox::Inner::gotSet(const MTPmessages_StickerSet &set) {
 				set->setThumbnail(_setThumbnail);
 			}
 		});
+	}, [&](const MTPDmessages_stickerSetNotModified &data) {
+		LOG(("API Error: Unexpected messages.stickerSetNotModified."));
 	});
 
 	if (_pack.isEmpty()) {
@@ -695,7 +698,7 @@ void StickerSetBox::Inner::mouseReleaseEvent(QMouseEvent *e) {
 	if (index < 0 || index >= _pack.size() || isMasksSet()) {
 		return;
 	}
-	send(_pack[index], Api::SendOptions());
+	send(_pack[index], {});
 }
 
 void StickerSetBox::Inner::send(
@@ -1001,7 +1004,7 @@ void StickerSetBox::Inner::install() {
 		MTP_bool(false)
 	)).done([=](const MTPmessages_StickerSetInstallResult &result) {
 		installDone(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_errors.fire(Error::NotFound);
 	}).send();
 }
@@ -1014,7 +1017,7 @@ void StickerSetBox::Inner::archiveStickers() {
 		if (result.type() == mtpc_messages_stickerSetInstallResultSuccess) {
 			_setArchived.fire_copy(_setId);
 		}
-	}).fail([](const MTP::Error &error) {
+	}).fail([] {
 		Ui::Toast::Show(Lang::Hard::ServerError());
 	}).send();
 }

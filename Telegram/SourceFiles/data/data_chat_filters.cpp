@@ -417,7 +417,7 @@ void ChatFilters::load(bool force) {
 	)).done([=](const MTPVector<MTPDialogFilter> &result) {
 		received(result.v);
 		_loadRequestId = 0;
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_loadRequestId = 0;
 	}).send();
 }
@@ -780,7 +780,7 @@ bool ChatFilters::loadNextExceptions(bool chatsListLoaded) {
 		_exceptionsLoadRequestId = 0;
 		_owner->session().data().histories().applyPeerDialogs(result);
 		_owner->session().api().requestMoreDialogsIfNeeded();
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_exceptionsLoadRequestId = 0;
 		_owner->session().api().requestMoreDialogsIfNeeded();
 	}).send();
@@ -819,7 +819,7 @@ void ChatFilters::requestSuggested() {
 		}) | ranges::to_vector;
 
 		_suggestedUpdated.fire({});
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_suggestedRequestId = 0;
 		_suggestedLastReceived = crl::now() + kRefreshSuggestedTimeout / 2;
 

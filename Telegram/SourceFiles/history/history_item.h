@@ -343,6 +343,10 @@ public:
 	[[nodiscard]] virtual TextWithEntities originalText() const {
 		return TextWithEntities();
 	}
+	[[nodiscard]] virtual auto originalTextWithLocalEntities() const
+	-> TextWithEntities {
+		return TextWithEntities();
+	}
 	[[nodiscard]] virtual TextForMimeData clipboardText() const {
 		return TextForMimeData();
 	}
@@ -375,6 +379,7 @@ public:
 	[[nodiscard]] bool canPin() const;
 	[[nodiscard]] bool canBeEdited() const;
 	[[nodiscard]] bool canStopPoll() const;
+	[[nodiscard]] bool forbidsForward() const;
 	[[nodiscard]] virtual bool allowsSendNow() const;
 	[[nodiscard]] virtual bool allowsForward() const;
 	[[nodiscard]] virtual bool allowsEdit(TimeId now) const;

@@ -36,8 +36,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace tgcalls {
 class InstanceImpl;
+class InstanceV2Impl;
 class InstanceImplLegacy;
-class InstanceImplReference;
 void SetLegacyGlobalServerConfig(const std::string &serverConfig);
 } // namespace tgcalls
 
@@ -50,8 +50,9 @@ constexpr auto kSha256Size = 32;
 constexpr auto kAuthKeySize = 256;
 const auto kDefaultVersion = "2.4.4"_q;
 
-const auto RegisterTag = tgcalls::Register<tgcalls::InstanceImpl>();
-const auto RegisterTagLegacy = tgcalls::Register<tgcalls::InstanceImplLegacy>();
+const auto Register = tgcalls::Register<tgcalls::InstanceImpl>();
+const auto RegisterV2 = tgcalls::Register<tgcalls::InstanceV2Impl>();
+const auto RegisterLegacy = tgcalls::Register<tgcalls::InstanceImplLegacy>();
 
 void AppendEndpoint(
 		std::vector<tgcalls::Endpoint> &list,
@@ -285,7 +286,7 @@ void Call::startIncoming() {
 
 	_api.request(MTPphone_ReceivedCall(
 		MTP_inputPhoneCall(MTP_long(_id), MTP_long(_accessHash))
-	)).done([=](const MTPBool &result) {
+	)).done([=] {
 		if (_state.current() == State::Starting) {
 			setState(State::WaitingIncoming);
 		}
@@ -386,12 +387,15 @@ void Call::setupOutgoingVideo() {
 					_videoCaptureIsScreencast);
 				_videoCapture->setOutput(_videoOutgoing->sink());
 			}
+			_videoCapture->setState(tgcalls::VideoState::Active);
 			if (_instance) {
 				_instance->setVideoCapture(_videoCapture);
 			}
-			_videoCapture->setState(tgcalls::VideoState::Active);
 		} else if (_videoCapture) {
 			_videoCapture->setState(tgcalls::VideoState::Inactive);
+			if (_instance) {
+				_instance->setVideoCapture(nullptr);
+			}
 		}
 	}, _lifetime);
 }
@@ -1205,7 +1209,7 @@ void Call::finish(FinishType type, const MTPPhoneCallDiscardReason &reason) {
 		// updates being handled, but in a guarded way.
 		crl::on_main(weak, [=] { setState(finalState); });
 		session->api().applyUpdates(result);
-	}).fail(crl::guard(weak, [this, finalState](const MTP::Error &error) {
+	}).fail(crl::guard(weak, [this, finalState] {
 		setState(finalState);
 	})).send();
 }

@@ -147,7 +147,7 @@ void MuteSettingsBox::prepare() {
 
 			case QEvent::ContextMenu:
 			case QEvent::MouseButtonDblClick:
-				return base::EventFilterResult::Cancel;			
+				return base::EventFilterResult::Cancel;
 
 			case QEvent::MouseButtonPress:
 				if (group->value() != kCustomFor) {
@@ -175,8 +175,8 @@ void MuteSettingsBox::prepare() {
 					});
 				}
 
-				const auto parentTopLeft = window()->mapToGlobal({ 0, 0 });
-				const auto inputTopLeft = _forPeriodInput->mapToGlobal({ 0, 0 });
+				const auto parentTopLeft = window()->mapToGlobal(QPoint());
+				const auto inputTopLeft = _forPeriodInput->mapToGlobal(QPoint());
 				const auto parentRect = QRect(parentTopLeft, window()->size());
 				const auto inputRect = QRect(inputTopLeft, _forPeriodInput->size());
 				_menu->move(

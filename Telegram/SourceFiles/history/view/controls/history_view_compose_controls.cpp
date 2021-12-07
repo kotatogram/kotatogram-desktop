@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_web_page.h"
 #include "storage/storage_account.h"
 #include "apiwrap.h"
+#include "api/api_chat_participants.h"
 #include "ui/boxes/confirm_box.h"
 #include "history/history.h"
 #include "history/history_item.h"
@@ -41,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "inline_bots/inline_bot_result.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
+#include "main/session/send_as_peers.h"
 #include "media/audio/media_audio_capture.h"
 #include "media/audio/media_audio.h"
 #include "styles/style_chat.h"
@@ -50,6 +52,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/format_values.h"
 #include "ui/controls/emoji_button.h"
 #include "ui/controls/send_button.h"
+#include "ui/controls/send_as_button.h"
+#include "ui/chat/choose_send_as.h"
 #include "ui/special_buttons.h"
 #include "window/window_adaptive.h"
 #include "window/window_session_controller.h"
@@ -101,6 +105,7 @@ class FieldHeader final : public Ui::RpWidget {
 public:
 	FieldHeader(QWidget *parent, not_null<Data::Session*> data);
 
+	void setHistory(const SetHistoryArgs &args);
 	void init();
 
 	void editMessage(FullMsgId id);
@@ -138,7 +143,7 @@ private:
 	void resolveMessageData();
 	void updateShownMessageText();
 
-	void paintWebPage(Painter &p);
+	void paintWebPage(Painter &p, not_null<PeerData*> peer);
 	void paintEditOrReplyToMessage(Painter &p);
 
 	struct Preview {
@@ -148,6 +153,7 @@ private:
 		bool cancelled = false;
 	};
 
+	History *_history = nullptr;
 	rpl::variable<QString> _title;
 	rpl::variable<QString> _description;
 
@@ -184,6 +190,10 @@ FieldHeader::FieldHeader(QWidget *parent, not_null<Data::Session*> data)
 	init();
 }
 
+void FieldHeader::setHistory(const SetHistoryArgs &args) {
+	_history = *args.history;
+}
+
 void FieldHeader::init() {
 	sizeValue(
 	) | rpl::start_with_next([=](QSize size) {
@@ -205,7 +215,9 @@ void FieldHeader::init() {
 
 		(!ShowWebPagePreview(_preview.data) || *leftIconPressed)
 			? paintEditOrReplyToMessage(p)
-			: paintWebPage(p);
+			: paintWebPage(
+				p,
+				_history ? _history->peer : _data->session().user());
 	}, lifetime());
 
 	_editMsgId.value(
@@ -411,7 +423,7 @@ void FieldHeader::previewRequested(
 
 }
 
-void FieldHeader::paintWebPage(Painter &p) {
+void FieldHeader::paintWebPage(Painter &p, not_null<PeerData*> context) {
 	Expects(ShowWebPagePreview(_preview.data));
 
 	const auto textTop = st::msgReplyPadding.top();
@@ -428,7 +440,7 @@ void FieldHeader::paintWebPage(Painter &p) {
 		textTop,
 		st::msgReplyBarSize.height(),
 		st::msgReplyBarSize.height());
-	if (HistoryView::DrawWebPageDataPreview(p, _preview.data, to)) {
+	if (HistoryView::DrawWebPageDataPreview(p, _preview.data, context, to)) {
 		previewLeft += st::msgReplyBarSize.height()
 			+ st::msgReplyBarSkip
 			- st::msgReplyBarSize.width()
@@ -570,12 +582,10 @@ MessageToEdit FieldHeader::queryToEdit() {
 		return {};
 	}
 	return {
-		item->fullId(),
-		{
-			item->isScheduled() ? item->date() : 0,
-			false,
-			false,
-			!hasPreview(),
+		.fullId = item->fullId(),
+		.options = {
+			.scheduled = item->isScheduled() ? item->date() : 0,
+			.removeWebPageId = !hasPreview(),
 		},
 	};
 }
@@ -653,6 +663,7 @@ void ComposeControls::setHistory(SetHistoryArgs &&args) {
 	//}
 	unregisterDraftSources();
 	_history = history;
+	_header->setHistory(args);
 	registerDraftSource();
 	_window->tabbedSelector()->setCurrentPeer(
 		history ? history->peer.get() : nullptr);
@@ -662,6 +673,7 @@ void ComposeControls::setHistory(SetHistoryArgs &&args) {
 	updateControlsGeometry(_wrap->size());
 	updateControlsVisibility();
 	updateFieldPlaceholder();
+	updateSendAsButton();
 	//if (!_history) {
 	//	return;
 	//}
@@ -670,7 +682,7 @@ void ComposeControls::setHistory(SetHistoryArgs &&args) {
 		session().api().requestFullPeer(peer);
 	} else if (const auto channel = peer->asMegagroup()) {
 		if (!channel->mgInfo->botStatus) {
-			session().api().requestBots(channel);
+			session().api().chatParticipants().requestBots(channel);
 		}
 	} else if (hasSilentBroadcastToggle()) {
 		_silent = std::make_unique<Ui::SilentToggle>(
@@ -686,6 +698,12 @@ void ComposeControls::setCurrentDialogsEntryState(Dialogs::EntryState state) {
 	if (_inlineResults) {
 		_inlineResults->setCurrentDialogsEntryState(state);
 	}
+}
+
+PeerData *ComposeControls::sendAsPeer() const {
+	return (_sendAs && _history)
+		? session().sendAsPeers().resolveChosen(_history->peer).get()
+		: nullptr;
 }
 
 void ComposeControls::move(int x, int y) {
@@ -977,6 +995,7 @@ void ComposeControls::init() {
 	initField();
 	initTabbedSelector();
 	initSendButton();
+	initSendAsButton();
 	initWriteRestriction();
 	initVoiceRecordBar();
 	initKeyHandler();
@@ -1002,6 +1021,10 @@ void ComposeControls::init() {
 	) | rpl::start_with_next([=](const auto &id) {
 		unregisterDraftSources();
 		updateSendButtonType();
+		if (_history && updateSendAsButton()) {
+			updateControlsVisibility();
+			updateControlsGeometry(_wrap->size());
+		}
 		registerDraftSource();
 	}, _wrap->lifetime());
 
@@ -1631,6 +1654,18 @@ void ComposeControls::initSendButton() {
 		SendMenu::DefaultScheduleCallback(_wrap.get(), sendMenuType(), send));
 }
 
+void ComposeControls::initSendAsButton() {
+	session().sendAsPeers().updated(
+	) | rpl::filter([=](not_null<PeerData*> peer) {
+		return _history && (peer == _history->peer);
+	}) | rpl::start_with_next([=] {
+		if (updateSendAsButton()) {
+			updateControlsVisibility();
+			updateControlsGeometry(_wrap->size());
+		}
+	}, _wrap->lifetime());
+}
+
 void ComposeControls::inlineBotResolveDone(
 		const MTPcontacts_ResolvedPeer &result) {
 	Expects(result.type() == mtpc_contacts_resolvedPeer);
@@ -1824,11 +1859,12 @@ void ComposeControls::finishAnimating() {
 }
 
 void ComposeControls::updateControlsGeometry(QSize size) {
-	// _attachToggle -- _inlineResults ------ _tabbedPanel -- _fieldBarCancel
+	// _attachToggle (_sendAs) -- _inlineResults ------ _tabbedPanel -- _fieldBarCancel
 	// (_attachDocument|_attachPhoto) _field (_ttlInfo) (_silent|_botCommandStart) _tabbedSelectorToggle _send
 
 	const auto fieldWidth = size.width()
 		- _attachToggle->width()
+		- (_sendAs ? _sendAs->width() : 0)
 		- st::historySendRight
 		- _send->width()
 		- _tabbedSelectorToggle->width()
@@ -1850,6 +1886,10 @@ void ComposeControls::updateControlsGeometry(QSize size) {
 	auto left = st::historySendRight;
 	_attachToggle->moveToLeft(left, buttonsTop);
 	left += _attachToggle->width();
+	if (_sendAs) {
+		_sendAs->moveToLeft(left, buttonsTop);
+		left += _sendAs->width();
+	}
 	_field->moveToLeft(
 		left,
 		size.height() - _field->height() - st::historySendPadding);
@@ -1886,6 +1926,9 @@ void ComposeControls::updateControlsVisibility() {
 	_botCommandStart->setVisible(_botCommandShown);
 	if (_ttlInfo) {
 		_ttlInfo->show();
+	}
+	if (_sendAs) {
+		_sendAs->show();
 	}
 }
 
@@ -1931,6 +1974,30 @@ void ComposeControls::updateMessagesTTLShown() {
 		updateControlsVisibility();
 		updateControlsGeometry(_wrap->size());
 	}
+}
+
+bool ComposeControls::updateSendAsButton() {
+	Expects(_history != nullptr);
+
+	const auto peer = _history->peer;
+	if (isEditingMessage() || !session().sendAsPeers().shouldChoose(peer)) {
+		if (!_sendAs) {
+			return false;
+		}
+		_sendAs = nullptr;
+		return true;
+	} else if (_sendAs) {
+		return false;
+	}
+	_sendAs = std::make_unique<Ui::SendAsButton>(
+		_wrap.get(),
+		st::sendAsButton,
+		cUserpicCornersType());
+	Ui::SetupSendAsButton(
+		_sendAs.get(),
+		rpl::single(peer.get()),
+		_window);
+	return true;
 }
 
 void ComposeControls::paintBackground(QRect clip) {

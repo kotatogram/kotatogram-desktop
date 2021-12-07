@@ -286,7 +286,7 @@ Widget::Widget(
 	}, lifetime());
 
 	_cancelSearch->setClickedCallback([this] { onCancelSearch(); });
-	_jumpToDate->entity()->setClickedCallback([this] { showJumpToDate(); });
+	_jumpToDate->entity()->setClickedCallback([this] { showCalendar(); });
 	_chooseFromUser->entity()->setClickedCallback([this] { showSearchFrom(); });
 	rpl::single(
 		rpl::empty_value()
@@ -1463,9 +1463,9 @@ void Widget::clearSearchCache() {
 	cancelSearchRequest();
 }
 
-void Widget::showJumpToDate() {
+void Widget::showCalendar() {
 	if (_searchInChat) {
-		controller()->showJumpToDate(_searchInChat, QDate());
+		controller()->showCalendar(_searchInChat, QDate());
 	}
 }
 

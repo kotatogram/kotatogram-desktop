@@ -566,8 +566,8 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 		addGroupingOption(Data::GroupingOptions::Separate, "ktg_forward_menu_separate_messages", 2);
 	}
 
-	const auto parentTopLeft = window()->mapToGlobal({ 0, 0 });
-	const auto buttonTopLeft = button->mapToGlobal({ 0, 0 });
+	const auto parentTopLeft = window()->mapToGlobal(QPoint());
+	const auto buttonTopLeft = button->mapToGlobal(QPoint());
 	const auto parentRect = QRect(parentTopLeft, window()->size());
 	const auto buttonRect = QRect(buttonTopLeft, button->size());
 	_menu->move(
@@ -652,9 +652,7 @@ void ShareBox::submit(Api::SendOptions options) {
 }
 
 void ShareBox::submitSilent() {
-	auto options = Api::SendOptions();
-	options.silent = true;
-	submit(options);
+	submit({ .silent = true });
 }
 
 void ShareBox::submitScheduled() {

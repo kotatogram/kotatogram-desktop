@@ -58,6 +58,7 @@ namespace Main {
 class Account;
 class Domain;
 class SessionSettings;
+class SendAsPeers;
 
 class Session final : public base::has_weak_ptr {
 public:
@@ -81,7 +82,7 @@ public:
 	[[nodiscard]] not_null<UserData*> user() const {
 		return _user;
 	}
-	bool validateSelf(const MTPUser &user);
+	bool validateSelf(UserId id);
 
 	[[nodiscard]] Data::Changes &changes() const {
 		return *_changes;
@@ -112,6 +113,9 @@ public:
 	}
 	[[nodiscard]] SessionSettings &settings() const {
 		return *_settings;
+	}
+	[[nodiscard]] SendAsPeers &sendAsPeers() const {
+		return *_sendAsPeers;
 	}
 
 	void saveSettings();
@@ -175,11 +179,13 @@ private:
 
 	// _data depends on _downloader / _uploader.
 	const std::unique_ptr<Data::Session> _data;
+	const UserId _userId;
 	const not_null<UserData*> _user;
 
 	// _emojiStickersPack depends on _data.
 	const std::unique_ptr<Stickers::EmojiPack> _emojiStickersPack;
 	const std::unique_ptr<Stickers::DicePacks> _diceStickersPacks;
+	const std::unique_ptr<SendAsPeers> _sendAsPeers;
 
 	const std::unique_ptr<Support::Helper> _supportHelper;
 

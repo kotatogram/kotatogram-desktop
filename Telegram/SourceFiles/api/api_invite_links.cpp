@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_invite_links.h"
 
+#include "api/api_chat_participants.h"
 #include "data/data_peer.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
@@ -127,7 +128,7 @@ void InviteLinks::performCreate(
 				callback(link);
 			}
 		}
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_createCallbacks.erase(peer);
 	}).send();
 }
@@ -312,7 +313,7 @@ void InviteLinks::performEdit(
 				prepend(peer, admin, data.vnew_invite());
 			}
 		});
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_editCallbacks.erase(key);
 	}).send();
 }
@@ -362,7 +363,7 @@ void InviteLinks::destroy(
 	_api->request(MTPmessages_DeleteExportedChatInvite(
 		peer->input,
 		MTP_string(link)
-	)).done([=](const MTPBool &result) {
+	)).done([=] {
 		const auto callbacks = _deleteCallbacks.take(key);
 		if (callbacks) {
 			for (const auto &callback : *callbacks) {
@@ -374,7 +375,7 @@ void InviteLinks::destroy(
 			.admin = admin,
 			.was = key.link,
 		});
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_deleteCallbacks.erase(key);
 	}).send();
 }
@@ -397,14 +398,13 @@ void InviteLinks::destroyAllRevoked(
 	_api->request(MTPmessages_DeleteRevokedExportedChatInvites(
 		peer->input,
 		admin->inputUser
-	)).done([=](const MTPBool &result) {
+	)).done([=] {
 		if (const auto callbacks = _deleteRevokedCallbacks.take(peer)) {
 			for (const auto &callback : *callbacks) {
 				callback();
 			}
 		}
 		_allRevokedDestroyed.fire({ peer, admin });
-	}).fail([=](const MTP::Error &error) {
 	}).send();
 }
 
@@ -445,7 +445,7 @@ void InviteLinks::requestMyLinks(not_null<PeerData*> peer) {
 			i->second.count = std::max(slice.count, int(existing.size()));
 		}
 		notify(peer);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_firstSliceRequests.remove(peer);
 	}).send();
 	_firstSliceRequests.emplace(peer, requestId);
@@ -478,7 +478,7 @@ void InviteLinks::processRequest(
 				++chat->count;
 			}
 		} else if (const auto channel = peer->asChannel()) {
-			_api->requestParticipantsCountDelayed(channel);
+			_api->chatParticipants().requestCountDelayed(channel);
 		}
 		_api->applyUpdates(result);
 		if (link.isEmpty() && approved) {
@@ -506,7 +506,7 @@ void InviteLinks::processRequest(
 				done();
 			}
 		}
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		if (const auto callbacks = _processRequests.take({ peer, user })) {
 			if (const auto &fail = callbacks->fail) {
 				fail();
@@ -607,7 +607,7 @@ void InviteLinks::requestJoinedFirstSlice(LinkKey key) {
 		_firstJoinedRequests.remove(key);
 		_firstJoined[key] = ParseJoinedByLinkSlice(key.peer, result);
 		_joinedFirstSliceLoaded.fire_copy(key);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_firstJoinedRequests.remove(key);
 	}).send();
 	_firstJoinedRequests.emplace(key, requestId);
@@ -770,7 +770,7 @@ void InviteLinks::requestMoreLinks(
 		MTP_int(kPerPage)
 	)).done([=](const MTPmessages_ExportedChatInvites &result) {
 		done(parseSlice(peer, result));
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		done(Links());
 	}).send();
 }

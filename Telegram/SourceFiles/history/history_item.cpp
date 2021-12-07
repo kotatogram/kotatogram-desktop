@@ -646,6 +646,10 @@ bool HistoryItem::canStopPoll() const {
 	return canBeEdited() && isRegular();
 }
 
+bool HistoryItem::forbidsForward() const {
+	return (_flags & MessageFlag::NoForwards);
+}
+
 bool HistoryItem::canDelete() const {
 	if (isSponsored()) {
 		return false;
@@ -724,10 +728,7 @@ bool HistoryItem::suggestReport() const {
 
 bool HistoryItem::suggestBanReport() const {
 	const auto channel = history()->peer->asChannel();
-	const auto fromUser = from()->asUser();
-	if (!channel
-		|| !fromUser
-		|| !channel->canRestrictParticipant(fromUser)) {
+	if (!channel || !channel->canRestrictParticipant(from())) {
 		return false;
 	}
 	return !isPost() && !out();
@@ -738,7 +739,7 @@ bool HistoryItem::suggestDeleteAllReport() const {
 	if (!channel || !channel->canDeleteMessages()) {
 		return false;
 	}
-	return !isPost() && !out() && from()->isUser();
+	return !isPost() && !out();
 }
 
 bool HistoryItem::hasDirectLink() const {
@@ -975,22 +976,29 @@ ItemPreview HistoryItem::toPreview(ToPreviewOptions options) const {
 		}
 		return {};
 	}();
+	const auto fromSender = [](not_null<PeerData*> sender) {
+		return sender->isSelf()
+			? tr::lng_from_you(tr::now)
+			: sender->shortName();
+	};
+	const auto fromForwarded = [&]() -> std::optional<QString> {
+		if (const auto forwarded = Get<HistoryMessageForwarded>()) {
+			return forwarded->originalSender
+				? fromSender(forwarded->originalSender)
+				: forwarded->hiddenSenderInfo->name;
+		}
+		return {};
+	};
 	const auto sender = [&]() -> std::optional<QString> {
-		const auto fromSender = [](not_null<PeerData*> sender) {
-			return sender->isSelf()
-				? tr::lng_from_you(tr::now)
-				: sender->shortName();
-		};
 		if (options.hideSender || isPost() || isEmpty()) {
 			return {};
-		} else if (!_history->peer->isUser() || _history->peer->isSelf()) {
-			if (const auto forwarded = Get<HistoryMessageForwarded>()) {
-				return forwarded->originalSender
-					? fromSender(forwarded->originalSender)
-					: forwarded->hiddenSenderInfo->name;
-			} else if (!_history->peer->isUser()) {
-				return fromSender(displayFrom());
+		} else if (!_history->peer->isUser()) {
+			if (const auto from = displayFrom()) {
+				return fromSender(from);
 			}
+			return fromForwarded();
+		} else if (_history->peer->isSelf()) {
+			return fromForwarded();
 		}
 		return {};
 	}();
@@ -1082,7 +1090,8 @@ MessageFlags FlagsFromMTP(
 		| ((flags & MTP::f_reply_to) ? Flag::HasReplyInfo : Flag())
 		| ((flags & MTP::f_reply_markup) ? Flag::HasReplyMarkup : Flag())
 		| ((flags & MTP::f_from_scheduled) ? Flag::IsOrWasScheduled : Flag())
-		| ((flags & MTP::f_views) ? Flag::HasViews : Flag());
+		| ((flags & MTP::f_views) ? Flag::HasViews : Flag())
+		| ((flags & MTP::f_noforwards) ? Flag::NoForwards : Flag());
 }
 
 MessageFlags FlagsFromMTP(

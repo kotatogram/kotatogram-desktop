@@ -383,17 +383,16 @@ bool ResolveSettings(
 	if (section.isEmpty()) {
 		controller->window().showSettings();
 		return true;
-	}
-	if (section == qstr("devices")) {
-		controller->session().api().authorizations().reload();
-		controller->show(Box<SessionsBox>(&controller->session()));
-		return true;
 	} else if (section == qstr("language")) {
 		ShowLanguagesBox();
 		return true;
+	} else if (section == qstr("devices")) {
+		controller->session().api().authorizations().reload();
 	}
 	const auto type = (section == qstr("folders"))
 		? ::Settings::Type::Folders
+		: (section == qstr("devices"))
+		? ::Settings::Type::Sessions
 		: (section == qstr("kotato"))
 		? ::Settings::Type::Kotato
 		: ::Settings::Type::Main;
@@ -481,6 +480,15 @@ bool ShowInviteLink(
 	QGuiApplication::clipboard()->setText(link);
 	Ui::Toast::Show(tr::lng_group_invite_copied(tr::now));
 	return true;
+}
+
+bool OpenExternalLink(
+		Window::SessionController *controller,
+		const Match &match,
+		const QVariant &context) {
+	return Ui::Integration::Instance().handleUrlClick(
+		match->captured(1),
+		context);
 }
 
 void ExportTestChatTheme(
@@ -706,6 +714,10 @@ const std::vector<LocalUrlHandler> &InternalUrlHandlers() {
 		{
 			qsl("^show_invite_link/?\\?link=([a-zA-Z0-9_\\+\\/\\=\\-]+)(&|$)"),
 			ShowInviteLink
+		},
+		{
+			qsl("^url:(.+)$"),
+			OpenExternalLink
 		},
 	};
 	return Result;

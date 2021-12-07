@@ -1367,13 +1367,18 @@ void SessionPrivate::handleReceived() {
 			).arg(getProtocolDcId()
 			).arg(_encryptionKey->keyId()));
 
-		if (_receivedMessageIds.registerMsgId(msgId, needAck)) {
+		const auto registered = _receivedMessageIds.registerMsgId(
+			msgId,
+			needAck);
+		if (registered == ReceivedIdsManager::Result::Success) {
 			res = handleOneReceived(from, end, msgId, {
 				.outerMsgId = msgId,
 				.serverSalt = serverSalt,
 				.serverTime = serverTime,
 				.badTime = badTime,
 			});
+		} else if (registered == ReceivedIdsManager::Result::TooOld) {
+			res = HandleResult::ResetSession;
 		}
 		_receivedMessageIds.shrink();
 
@@ -1481,9 +1486,14 @@ SessionPrivate::HandleResult SessionPrivate::handleOneReceived(
 			}
 
 			auto res = HandleResult::Success; // if no need to handle, then succeed
-			if (_receivedMessageIds.registerMsgId(inMsgId.v, needAck)) {
+			const auto registered = _receivedMessageIds.registerMsgId(
+				inMsgId.v,
+				needAck);
+			if (registered == ReceivedIdsManager::Result::Success) {
 				res = handleOneReceived(from, otherEnd, inMsgId.v, info);
 				info.badTime = false;
+			} else if (registered == ReceivedIdsManager::Result::TooOld) {
+				res = HandleResult::ResetSession;
 			}
 			if (res != HandleResult::Success) {
 				return res;

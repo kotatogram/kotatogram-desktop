@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/box_content_divider.h"
 #include "ui/widgets/buttons.h"
 #include "boxes/abstract_box.h"
+#include "boxes/sessions_box.h"
 #include "ui/boxes/confirm_box.h"
 #include "window/themes/window_theme_editor_box.h"
 #include "window/window_session_controller.h"
@@ -52,6 +53,8 @@ object_ptr<Section> CreateSection(
 		return object_ptr<Notifications>(parent, controller);
 	case Type::PrivacySecurity:
 		return object_ptr<PrivacySecurity>(parent, controller);
+	case Type::Sessions:
+		return object_ptr<Sessions>(parent, controller);
 	case Type::Advanced:
 		return object_ptr<Advanced>(parent, controller);
 	case Type::Folders:

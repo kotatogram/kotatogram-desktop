@@ -42,6 +42,7 @@ enum class Type;
 
 namespace Api {
 struct SendOptions;
+struct SendAction;
 } // namespace Api
 
 namespace InlineBots {
@@ -76,6 +77,7 @@ class GroupCallBar;
 class RequestsBar;
 struct PreparedList;
 class SendFilesWay;
+class SendAsButton;
 enum class ReportReason;
 namespace Toast {
 class Instance;
@@ -154,8 +156,6 @@ public:
 	void loadMessagesDown();
 	void firstLoadMessages();
 	void delayedShowAt(MsgId showAtMsgId);
-
-	QRect historyRect() const;
 
 	void updateFieldPlaceholder();
 	bool updateStickersByEmoji();
@@ -379,6 +379,8 @@ private:
 
 	void addRecentBot(not_null<UserData*> bot);
 
+	[[nodiscard]] Api::SendAction prepareSendAction(
+		Api::SendOptions options) const;
 	void send(Api::SendOptions options);
 	void sendWithModifiers(Qt::KeyboardModifiers modifiers);
 	void sendSilent();
@@ -620,6 +622,8 @@ private:
 
 	void setupScheduledToggle();
 	void refreshScheduledToggle();
+	void setupSendAsToggle();
+	void refreshSendAsToggle();
 
 	bool kbWasHidden() const;
 
@@ -730,6 +734,7 @@ private:
 	object_ptr<Ui::FlatButton> _discuss;
 	object_ptr<Ui::FlatButton> _reportMessages;
 	object_ptr<Ui::IconButton> _attachToggle;
+	object_ptr<Ui::SendAsButton> _sendAs = { nullptr };
 	object_ptr<Ui::EmojiButton> _tabbedSelectorToggle;
 	object_ptr<Ui::IconButton> _botKeyboardShow;
 	object_ptr<Ui::IconButton> _botKeyboardHide;

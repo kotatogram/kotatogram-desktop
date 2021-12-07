@@ -129,6 +129,23 @@ std::map<int, const char*> BetaLogs() {
 
 		"- Several crash fixes.\n"
 	},
+	{
+		3002006,
+		"- Try out the new audio player with playlist shuffle and repeat.\n"
+
+		"- Give a custom name to your desktop session "
+		"to distinguish it in the sessions list.\n"
+	},
+	{
+		3002007,
+		"- Active sessions list redesign.\n"
+
+		"- Fix disappearing emoji selector button.\n"
+
+		"- Fix a crash in archived stickers loading.\n"
+		
+		"- Fix a crash in calls to old Telegram versions.\n"
+	}
 	};
 };
 

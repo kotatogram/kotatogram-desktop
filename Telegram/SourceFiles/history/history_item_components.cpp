@@ -29,6 +29,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "data/data_file_origin.h"
 #include "data/data_document.h"
+#include "data/data_web_page.h"
 #include "data/data_file_click_handler.h"
 #include "main/main_session.h"
 #include "window/window_session_controller.h"
@@ -135,6 +136,8 @@ HiddenSenderInfo::HiddenSenderInfo(const QString &name, bool external)
 	(external
 		? Ui::EmptyUserpic::ExternalName()
 		: name)) {
+	Expects(!name.isEmpty());
+
 	nameText.setText(st::msgNameStyle, name, Ui::NameTextOptions());
 	const auto parts = name.trimmed().split(' ', Qt::SkipEmptyParts);
 	firstName = parts[0];
@@ -225,7 +228,7 @@ void HistoryMessageForwarded::create(const HistoryMessageVia *via) const {
 bool HistoryMessageReply::updateData(
 		not_null<HistoryMessage*> holder,
 		bool force) {
-	const auto guard = gsl::finally([&] { refreshReplyToDocument(); });
+	const auto guard = gsl::finally([&] { refreshReplyToMedia(); });
 	if (!force) {
 		if (replyToMsg || !replyToMsgId) {
 			return true;
@@ -292,7 +295,7 @@ void HistoryMessageReply::clearData(not_null<HistoryMessage*> holder) {
 		replyToMsg = nullptr;
 	}
 	replyToMsgId = 0;
-	refreshReplyToDocument();
+	refreshReplyToMedia();
 }
 
 bool HistoryMessageReply::isNameUpdated() const {
@@ -417,11 +420,14 @@ void HistoryMessageReply::paint(
 	}
 }
 
-void HistoryMessageReply::refreshReplyToDocument() {
+void HistoryMessageReply::refreshReplyToMedia() {
 	replyToDocumentId = 0;
+	replyToWebPageId = 0;
 	if (const auto media = replyToMsg ? replyToMsg->media() : nullptr) {
 		if (const auto document = media->document()) {
 			replyToDocumentId = document->id;
+		} else if (const auto webpage = media->webpage()) {
+			replyToWebPageId = webpage->id;
 		}
 	}
 }

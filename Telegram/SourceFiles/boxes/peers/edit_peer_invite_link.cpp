@@ -689,7 +689,7 @@ void Controller::loadMoreRows() {
 		auto slice = Api::ParseJoinedByLinkSlice(_peer, result);
 		_allLoaded = slice.users.empty();
 		appendSlice(slice);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_requestId = 0;
 		_allLoaded = true;
 	}).send();
@@ -1145,9 +1145,8 @@ void ShareInviteLinkBox(not_null<PeerData*> peer, const QString &link) {
 		auto &api = peer->session().api();
 		for (const auto peer : result) {
 			const auto history = owner->history(peer);
-			auto message = ApiWrap::MessageToSend(history);
+			auto message = Api::MessageToSend(Api::SendAction(history, options));
 			message.textWithTags = comment;
-			message.action.options = options;
 			message.action.clearDraft = false;
 			api.sendMessage(std::move(message));
 		}

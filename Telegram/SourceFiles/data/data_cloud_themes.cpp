@@ -193,7 +193,7 @@ void CloudThemes::reloadCurrent() {
 		MTP_long(fields.documentId)
 	)).done([=](const MTPTheme &result) {
 		applyUpdate(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_reloadCurrentTimer.callOnce(kReloadTimeout);
 	}).send();
 }
@@ -346,7 +346,7 @@ void CloudThemes::refresh() {
 			_updates.fire({});
 		}, [](const MTPDaccount_themesNotModified &) {
 		});
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_refreshRequestId = 0;
 	}).send();
 }
@@ -374,7 +374,7 @@ void CloudThemes::refreshChatThemes() {
 			_chatThemesUpdates.fire({});
 		}, [](const MTPDaccount_themesNotModified &) {
 		});
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_chatThemesRequestId = 0;
 	}).send();
 }

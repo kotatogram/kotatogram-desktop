@@ -38,11 +38,11 @@ namespace Api {
 namespace {
 
 void InnerFillMessagePostFlags(
-		const Api::SendOptions &options,
+		const SendOptions &options,
 		not_null<PeerData*> peer,
 		MessageFlags &flags) {
 	const auto anonymousPost = peer->amAnonymous();
-	if (!anonymousPost) {
+	if (!anonymousPost || options.sendAs) {
 		flags |= MessageFlag::HasFromId;
 		return;
 	} else if (peer->asMegagroup()) {
@@ -61,7 +61,7 @@ void InnerFillMessagePostFlags(
 
 template <typename MediaData>
 void SendExistingMedia(
-		Api::MessageToSend &&message,
+		MessageToSend &&message,
 		not_null<MediaData*> media,
 		Fn<MTPInputMedia()> inputMedia,
 		Data::FileOrigin origin,
@@ -93,8 +93,18 @@ void SendExistingMedia(
 	if (silentPost) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_silent;
 	}
-	auto messageFromId = anonymousPost ? 0 : session->userPeerId();
-	auto messagePostAuthor = peer->isBroadcast() ? session->user()->name : QString();
+	const auto sendAs = message.action.options.sendAs;
+	const auto messageFromId = sendAs
+		? sendAs->id
+		: anonymousPost
+		? 0
+		: session->userPeerId();
+	if (sendAs) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_send_as;
+	}
+	const auto messagePostAuthor = peer->isBroadcast()
+		? session->user()->name
+		: QString();
 
 	auto caption = TextWithEntities{
 		message.textWithTags.text,
@@ -144,7 +154,8 @@ void SendExistingMedia(
 				MTP_long(randomId),
 				MTPReplyMarkup(),
 				sentEntities,
-				MTP_int(message.action.options.scheduled)
+				MTP_int(message.action.options.scheduled),
+				(sendAs ? sendAs->input : MTP_inputPeerEmpty())
 			)).done([=](const MTPUpdates &result, mtpRequestId requestId) {
 				api->applyUpdates(result, randomId);
 				if (doneCallback) {
@@ -201,7 +212,7 @@ void SendWebDocument(
 }
 
 void SendExistingDocument(
-		Api::MessageToSend &&message,
+		MessageToSend &&message,
 		not_null<DocumentData*> document,
 		Fn<void()> doneCallback,
 		bool forwarding) {
@@ -226,7 +237,7 @@ void SendExistingDocument(
 }
 
 void SendExistingPhoto(
-		Api::MessageToSend &&message,
+		MessageToSend &&message,
 		not_null<PhotoData*> photo,
 		Fn<void()> doneCallback,
 		bool forwarding) {
@@ -246,7 +257,7 @@ void SendExistingPhoto(
 }
 
 bool SendDice(
-		Api::MessageToSend &message,
+		MessageToSend &message,
 		Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback,
 		bool forwarding) {
 	const auto full = QStringView(message.textWithTags.text).trimmed();
@@ -301,8 +312,18 @@ bool SendDice(
 	if (silentPost) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_silent;
 	}
-	auto messageFromId = anonymousPost ? 0 : session->userPeerId();
-	auto messagePostAuthor = peer->isBroadcast() ? session->user()->name : QString();
+	const auto sendAs = message.action.options.sendAs;
+	const auto messageFromId = sendAs
+		? sendAs->id
+		: anonymousPost
+		? 0
+		: session->userPeerId();
+	if (sendAs) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_send_as;
+	}
+	const auto messagePostAuthor = peer->isBroadcast()
+		? session->user()->name
+		: QString();
 	const auto replyTo = message.action.replyTo;
 
 	if (message.action.options.scheduled) {
@@ -336,7 +357,8 @@ bool SendDice(
 			MTP_long(randomId),
 			MTPReplyMarkup(),
 			MTP_vector<MTPMessageEntity>(),
-			MTP_int(message.action.options.scheduled)
+			MTP_int(message.action.options.scheduled),
+			(sendAs ? sendAs->input : MTP_inputPeerEmpty())
 		)).done([=](const MTPUpdates &result, mtpRequestId requestId) {
 			api->applyUpdates(result, randomId);
 			if (doneCallback) {
@@ -357,7 +379,7 @@ bool SendDice(
 }
 
 void FillMessagePostFlags(
-		const Api::SendAction &action,
+		const SendAction &action,
 		not_null<PeerData*> peer,
 		MessageFlags &flags) {
 	InnerFillMessagePostFlags(action.options, peer, flags);
@@ -394,8 +416,7 @@ void SendConfirmedFile(
 	const auto history = session->data().history(file->to.peer);
 	const auto peer = history->peer;
 
-	auto action = Api::SendAction(history);
-	action.options = file->to.options;
+	auto action = SendAction(history, file->to.options);
 	action.clearDraft = false;
 	action.replyTo = file->to.replyTo;
 	action.generateLocal = true;
@@ -434,7 +455,12 @@ void SendConfirmedFile(
 		}
 	}
 
-	const auto messageFromId = anonymousPost ? 0 : session->userPeerId();
+	const auto messageFromId =
+		file->to.options.sendAs
+		? file->to.options.sendAs->id
+		: anonymousPost
+		? PeerId()
+		: session->userPeerId();
 	const auto messagePostAuthor = peer->isBroadcast()
 		? session->user()->name
 		: QString();
@@ -523,6 +549,12 @@ void SendLocationPoint(
 		history->clearLocalDraft();
 		history->clearCloudDraft();
 	}
+	const auto anonymousPost = peer->amAnonymous();
+	const auto sendAs = action.options.sendAs;
+
+	if (sendAs) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_send_as;
+	}
 	const auto silentPost = action.options.silent
 		|| (peer->isBroadcast() && session->data().notifySilentPosts(peer));
 	if (silentPost) {
@@ -549,7 +581,8 @@ void SendLocationPoint(
 			MTP_long(base::RandomValue<uint64>()),
 			MTPReplyMarkup(),
 			MTPVector<MTPMessageEntity>(),
-			MTP_int(action.options.scheduled)
+			MTP_int(action.options.scheduled),
+			(sendAs ? sendAs->input : MTP_inputPeerEmpty())
 		)).done([=](const MTPUpdates &result) mutable {
 			api->applyUpdates(result);
 			done();

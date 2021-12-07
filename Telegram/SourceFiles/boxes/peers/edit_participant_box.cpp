@@ -469,15 +469,12 @@ void EditAdminBox::transferOwnership() {
 		MTP_inputCheckPasswordEmpty()
 	)).fail([=](const MTP::Error &error) {
 		_checkTransferRequestId = 0;
-		if (!handleTransferPasswordError(error)) {
-			const auto box = std::make_shared<QPointer<Ui::ConfirmBox>>();
-			const auto callback = crl::guard(this, [=] {
+		if (!handleTransferPasswordError(error.type())) {
+			const auto callback = crl::guard(this, [=](Fn<void()> &&close) {
 				transferOwnershipChecked();
-				if (*box) {
-					(*box)->closeBox();
-				}
+				close();
 			});
-			*box = getDelegate()->show(Box<Ui::ConfirmBox>(
+			getDelegate()->show(Box<Ui::ConfirmBox>(
 				tr::lng_rights_transfer_about(
 					tr::now,
 					lt_group,
@@ -491,7 +488,7 @@ void EditAdminBox::transferOwnership() {
 	}).send();
 }
 
-bool EditAdminBox::handleTransferPasswordError(const MTP::Error &error) {
+bool EditAdminBox::handleTransferPasswordError(const QString &error) {
 	const auto session = &user()->session();
 	auto about = tr::lng_rights_transfer_check_about(
 		tr::now,
@@ -722,20 +719,22 @@ void EditRestrictedBox::showRestrictUntil() {
 		: base::unixtime::parse(getRealUntilValue()).date();
 	auto month = highlighted;
 	_restrictUntilBox = Ui::show(
-		Box<Ui::CalendarBox>(
-			month,
-			highlighted,
-			[this](const QDate &date) {
+		Box<Ui::CalendarBox>(Ui::CalendarBoxArgs{
+			.month = month,
+			.highlighted = highlighted,
+			.callback = [=](const QDate &date) {
 				setRestrictUntil(
 					static_cast<int>(date.startOfDay().toSecsSinceEpoch()));
-			}),
+			},
+			.finalize = [=](not_null<Ui::CalendarBox*> box) {
+				box->addLeftButton(
+					tr::lng_rights_chat_banned_forever(),
+					[=] { setRestrictUntil(0); });
+			},
+			.minDate = tomorrow,
+			.maxDate = QDate::currentDate().addDays(kMaxRestrictDelayDays),
+		}),
 		Ui::LayerOption::KeepOther);
-	_restrictUntilBox->setMaxDate(
-		QDate::currentDate().addDays(kMaxRestrictDelayDays));
-	_restrictUntilBox->setMinDate(tomorrow);
-	_restrictUntilBox->addLeftButton(
-		tr::lng_rights_chat_banned_forever(),
-		[=] { setRestrictUntil(0); });
 }
 
 void EditRestrictedBox::setRestrictUntil(TimeId until) {

@@ -68,10 +68,6 @@ plugs:
     default-provider: gtk-common-themes
 
 slots:
-  tdesktop-dbus:
-    interface: dbus
-    bus: session
-    name: org.telegram.desktop
   tdesktop-mpris:
     interface: mpris
     name: tdesktop
@@ -89,11 +85,14 @@ parts:
     plugin: cmake
     source: .
     source-type: git
-    parse-info: [usr/share/metainfo/kotatogram-desktop_kotatogram-desktop.appdata.xml]
+    parse-info: [usr/share/metainfo/kotatogram-desktop_kotatogram-desktop.metainfo.xml]
     build-environment:
+      - CC: gcc-10
+      - CXX: g++-10
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$LD_LIBRARY_PATH
     build-packages:
       - clang
+      - g++-10
       - python
       - libasound2-dev
       - libglib2.0-dev
@@ -101,7 +100,6 @@ parts:
       - libopus-dev
       - libpulse-dev
       - libssl-dev
-      - libwebkit2gtk-4.0-dev
       - libxcb1-dev
       - libxcb-keysyms1-dev
       - libxcb-record0-dev
@@ -140,6 +138,8 @@ parts:
       rm -rf "$SNAPCRAFT_PART_INSTALL/usr/share/icons"
     stage:
       - -./usr/lib/$SNAPCRAFT_ARCH_TRIPLET/libjpeg.so.8.2.2
+    prime:
+      - -./lib/systemd
     after:
       - desktop-qt
       - extra-cmake-modules
@@ -465,7 +465,7 @@ parts:
   webrtc:
     source: https://github.com/desktop-app/tg_owt.git
     source-depth: 1
-    source-commit: d578c760dc6f1ae5f0f3bb5317b0b2ed04b79138
+    source-commit: b02478677baac6d563589f216800ff9cea0fd65c
     plugin: cmake
     build-packages:
       - yasm

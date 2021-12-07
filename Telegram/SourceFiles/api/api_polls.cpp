@@ -60,6 +60,10 @@ void Polls::create(
 	if (action.options.scheduled) {
 		sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_date;
 	}
+	const auto sendAs = action.options.sendAs;
+	if (sendAs) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_send_as;
+	}
 	auto &histories = history->owner().histories();
 	const auto requestType = Data::Histories::RequestType::Send;
 	histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
@@ -73,7 +77,8 @@ void Polls::create(
 			MTP_long(base::RandomValue<uint64>()),
 			MTPReplyMarkup(),
 			MTPVector<MTPMessageEntity>(),
-			MTP_int(action.options.scheduled)
+			MTP_int(action.options.scheduled),
+			(sendAs ? sendAs->input : MTP_inputPeerEmpty())
 		)).done([=](
 				const MTPUpdates &result,
 				const MTP::Response &response) mutable {
@@ -145,7 +150,7 @@ void Polls::sendVotes(
 		_pollVotesRequestIds.erase(itemId);
 		hideSending();
 		_session->updates().applyUpdates(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_pollVotesRequestIds.erase(itemId);
 		hideSending();
 	}).send();
@@ -174,7 +179,7 @@ void Polls::close(not_null<HistoryItem*> item) {
 	)).done([=](const MTPUpdates &result) {
 		_pollCloseRequestIds.erase(itemId);
 		_session->updates().applyUpdates(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_pollCloseRequestIds.erase(itemId);
 	}).send();
 	_pollCloseRequestIds.emplace(itemId, requestId);
@@ -191,7 +196,7 @@ void Polls::reloadResults(not_null<HistoryItem*> item) {
 	)).done([=](const MTPUpdates &result) {
 		_pollReloadRequestIds.erase(itemId);
 		_session->updates().applyUpdates(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_pollReloadRequestIds.erase(itemId);
 	}).send();
 	_pollReloadRequestIds.emplace(itemId, requestId);

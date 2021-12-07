@@ -533,7 +533,7 @@ void EditCaptionBox::emojiFilterForGeometry(not_null<QEvent*> event) {
 
 void EditCaptionBox::updateEmojiPanelGeometry() {
 	const auto parent = _emojiPanel->parentWidget();
-	const auto global = _emojiToggle->mapToGlobal({ 0, 0 });
+	const auto global = _emojiToggle->mapToGlobal(QPoint());
 	const auto local = parent->mapFromGlobal(global);
 	_emojiPanel->moveBottomRight(
 		local.y(),
@@ -670,8 +670,7 @@ void EditCaptionBox::save() {
 	options.scheduled = item->isScheduled() ? item->date() : 0;
 
 	if (!_preparedList.files.empty()) {
-		auto action = Api::SendAction(item->history());
-		action.options = options;
+		auto action = Api::SendAction(item->history(), options);
 		action.replaceMediaOf = item->fullId().msg;
 
 		Storage::ApplyModifications(_preparedList);

@@ -465,7 +465,7 @@ void RepliesList::loadAround(MsgId id) {
 					_skippedBefore = 0;
 				}
 			}
-		}).fail([=](const MTP::Error &error) {
+		}).fail([=] {
 			_beforeId = 0;
 			_loadingAround = std::nullopt;
 			finish();
@@ -513,7 +513,7 @@ void RepliesList::loadBefore() {
 					_fullCount = _list.size();
 				}
 			}
-		}).fail([=](const MTP::Error &error) {
+		}).fail([=] {
 			_beforeId = 0;
 			finish();
 		}).send();
@@ -557,7 +557,7 @@ void RepliesList::loadAfter() {
 					_fullCount = _list.size();
 				}
 			}
-		}).fail([=](const MTP::Error &error) {
+		}).fail([=] {
 			_afterId = 0;
 			finish();
 		}).send();

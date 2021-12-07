@@ -1,3 +1,27 @@
+3.3 (07.12.21)
+
+- Content creators can restrict the ability to save media and forward messages from their groups and channels.
+- Clear messages in one-on-one chats from a specific day or date range.
+- Comment as one of your channels in public groups and channel comments.
+- When you request to join a community and its admin or bot-admin contacts you with a message, you will see which chat they are from at the top of the chat.
+- Bot-admins can now ask users to complete tasks before they are allowed to join - like accepting community rules, passing a test, or making a donation to the content creators. 
+
+3.2.8 beta (01.12.21)
+
+- Fix crash in opening shared media with another user.
+
+3.2.7 beta (30.11.21)
+
+- Active sessions list redesign.
+- Fix disappearing emoji selector button.
+- Fix a crash in archived stickers loading.
+- Fix a crash in calls to old Telegram versions.
+
+3.2.6 beta (26.11.21)
+
+- Try out the new audio player with playlist shuffle and repeat.
+- Give a custom name to your desktop session to distinguish it in the sessions list.
+
 3.2.5 (16.11.21) [Windows, macOS]
 
 - Fix connecting in case bad characters appear in device name on Windows.

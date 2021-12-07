@@ -747,7 +747,7 @@ std::vector<not_null<const Value*>> FormController::submitGetErrors() {
 			MTP_bytes(credentialsEncryptedData.bytes),
 			MTP_bytes(credentialsEncryptedData.hash),
 			MTP_bytes(credentialsEncryptedSecret))
-	)).done([=](const MTPBool &result) {
+	)).done([=] {
 		_submitRequestId = 0;
 		_submitSuccess = true;
 
@@ -1035,10 +1035,10 @@ void FormController::cancelPassword() {
 		return;
 	}
 	_passwordRequestId = _api.request(MTPaccount_CancelPasswordEmail(
-	)).done([=](const MTPBool &result) {
+	)).done([=] {
 		_passwordRequestId = 0;
 		reloadPassword();
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_passwordRequestId = 0;
 		reloadPassword();
 	}).send();
@@ -1115,7 +1115,7 @@ void FormController::resetSecret(
 				MTP_securePasswordKdfAlgoUnknown(), // secure_algo
 				MTP_bytes(), // secure_secret
 				MTP_long(0))) // secure_secret_id
-	)).done([=](const MTPBool &result) {
+	)).done([=] {
 		_saveSecretRequestId = 0;
 		generateSecret(password);
 	}).fail([=](const MTP::Error &error) {
@@ -1259,7 +1259,7 @@ rpl::producer<EditDocumentCountry> FormController::preferredLanguage(
 			});
 			consumer.put_next({ countryCode, findLang() });
 			consumer.put_done();
-		}).fail([=](const MTP::Error &error) {
+		}).fail([=] {
 			consumer.put_next({ countryCode, QString() });
 			consumer.put_done();
 		}).send();
@@ -1581,7 +1581,7 @@ void FormController::uploadEncryptedFile(
 	auto prepared = std::make_shared<FileLoadResult>(
 		TaskId(),
 		file.uploadData->fileId,
-		FileLoadTo(PeerId(0), Api::SendOptions(), MsgId(0), MsgId(0)),
+		FileLoadTo(PeerId(), Api::SendOptions(), MsgId(), MsgId()),
 		TextWithTags(),
 		std::shared_ptr<SendingAlbum>(nullptr));
 	prepared->type = SendMediaType::Secure;
@@ -1941,7 +1941,7 @@ void FormController::deleteValueEdit(not_null<const Value*> value) {
 	const auto nonconst = findValue(value);
 	nonconst->saveRequestId = _api.request(MTPaccount_DeleteSecureValue(
 		MTP_vector<MTPSecureValueType>(1, ConvertType(nonconst->type))
-	)).done([=](const MTPBool &result) {
+	)).done([=] {
 		resetValue(*nonconst);
 		_valueSaveFinished.fire_copy(value);
 	}).fail([=](const MTP::Error &error) {
@@ -2161,54 +2161,50 @@ QString FormController::getPlainTextFromValue(
 void FormController::startPhoneVerification(not_null<Value*> value) {
 	value->verification.requestId = _api.request(MTPaccount_SendVerifyPhoneCode(
 		MTP_string(getPhoneFromValue(value)),
-		MTP_codeSettings(MTP_flags(0))
+		MTP_codeSettings(MTP_flags(0), MTP_vector<MTPbytes>())
 	)).done([=](const MTPauth_SentCode &result) {
-		Expects(result.type() == mtpc_auth_sentCode);
-
-		value->verification.requestId = 0;
-
-		const auto &data = result.c_auth_sentCode();
-		value->verification.phoneCodeHash = qs(data.vphone_code_hash());
-		switch (data.vtype().type()) {
-		case mtpc_auth_sentCodeTypeApp:
-			LOG(("API Error: sentCodeTypeApp not expected "
-				"in FormController::startPhoneVerification."));
-			return;
-		case mtpc_auth_sentCodeTypeFlashCall:
-			LOG(("API Error: sentCodeTypeFlashCall not expected "
-				"in FormController::startPhoneVerification."));
-			return;
-		case mtpc_auth_sentCodeTypeCall: {
-			const auto &type = data.vtype().c_auth_sentCodeTypeCall();
-			value->verification.codeLength = (type.vlength().v > 0)
-				? type.vlength().v
-				: -1;
-			value->verification.call = std::make_unique<Ui::SentCodeCall>(
-				[=] { requestPhoneCall(value); },
-				[=] { _verificationUpdate.fire_copy(value); });
-			value->verification.call->setStatus(
-				{ Ui::SentCodeCall::State::Called, 0 });
-			if (data.vnext_type()) {
-				LOG(("API Error: next_type is not supported for calls."));
-			}
-		} break;
-		case mtpc_auth_sentCodeTypeSms: {
-			const auto &type = data.vtype().c_auth_sentCodeTypeSms();
-			value->verification.codeLength = (type.vlength().v > 0)
-				? type.vlength().v
-				: -1;
+		result.match([&](const MTPDauth_sentCode &data) {
 			const auto next = data.vnext_type();
-			if (next && next->type() == mtpc_auth_codeTypeCall) {
+			const auto timeout = data.vtimeout();
+			value->verification.requestId = 0;
+			value->verification.phoneCodeHash = qs(data.vphone_code_hash());
+			data.vtype().match([&](const MTPDauth_sentCodeTypeApp &) {
+				LOG(("API Error: sentCodeTypeApp not expected "
+					"in FormController::startPhoneVerification."));
+			}, [&](const MTPDauth_sentCodeTypeFlashCall &) {
+				LOG(("API Error: sentCodeTypeFlashCall not expected "
+					"in FormController::startPhoneVerification."));
+			}, [&](const MTPDauth_sentCodeTypeMissedCall &data) {
+				LOG(("API Error: sentCodeTypeMissedCall not expected "
+					"in FormController::startPhoneVerification."));
+			}, [&](const MTPDauth_sentCodeTypeCall &data) {
+				value->verification.codeLength = (data.vlength().v > 0)
+					? data.vlength().v
+					: -1;
 				value->verification.call = std::make_unique<Ui::SentCodeCall>(
 					[=] { requestPhoneCall(value); },
 					[=] { _verificationUpdate.fire_copy(value); });
-				value->verification.call->setStatus({
-					Ui::SentCodeCall::State::Waiting,
-					data.vtimeout().value_or(60) });
-			}
-		} break;
-		}
-		_verificationNeeded.fire_copy(value);
+				value->verification.call->setStatus(
+					{ Ui::SentCodeCall::State::Called, 0 });
+				if (next) {
+					LOG(("API Error: next_type is not supported for calls."));
+				}
+			}, [&](const MTPDauth_sentCodeTypeSms &data) {
+				value->verification.codeLength = (data.vlength().v > 0)
+					? data.vlength().v
+					: -1;
+				if (next && next->type() == mtpc_auth_codeTypeCall) {
+					value->verification.call = std::make_unique<Ui::SentCodeCall>(
+						[=] { requestPhoneCall(value); },
+						[=] { _verificationUpdate.fire_copy(value); });
+					value->verification.call->setStatus({
+						Ui::SentCodeCall::State::Waiting,
+						timeout.value_or(60),
+					});
+				}
+			});
+			_verificationNeeded.fire_copy(value);
+		});
 	}).fail([=](const MTP::Error &error) {
 		value->verification.requestId = 0;
 		valueSaveShowError(value, error);
@@ -2301,7 +2297,7 @@ void FormController::saveSecret(
 				Core::PrepareSecureSecretAlgo(_password.newSecureAlgo),
 				MTP_bytes(encryptedSecret),
 				MTP_long(saved.secretId)))
-	)).done([=](const MTPBool &result) {
+	)).done([=] {
 		session().data().rememberPassportCredentials(
 			std::move(saved),
 			kRememberCredentialsDelay);

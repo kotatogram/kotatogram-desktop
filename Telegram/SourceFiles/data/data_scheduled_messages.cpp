@@ -195,7 +195,7 @@ void ScheduledMessages::sendNowSimpleMessage(
 		MTP_message(
 			MTP_flags(flags),
 			update.vid(),
-			peerToMTP(_session->userPeerId()),
+			peerToMTP(local->from()->id),
 			peerToMTP(history->peer->id),
 			MTPMessageFwdHeader(),
 			MTPlong(), // via_bot_id
@@ -389,7 +389,7 @@ void ScheduledMessages::request(not_null<History*> history) {
 			MTP_long(hash))
 	).done([=](const MTPmessages_Messages &result) {
 		parse(history, result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_requests.remove(history);
 	}).send();
 }

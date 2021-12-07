@@ -333,7 +333,7 @@ void Instance::refreshDhConfig() {
 		} else {
 			_delegate->callFailed(call);
 		}
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		const auto call = weak.get();
 		if (!call) {
 			return;
@@ -392,7 +392,7 @@ void Instance::refreshServerConfig(not_null<Main::Session*> session) {
 
 		const auto &json = result.c_dataJSON().vdata().v;
 		UpdateConfig(std::string(json.data(), json.size()));
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_serverConfigRequestSession = nullptr;
 	}).send();
 }
@@ -504,8 +504,6 @@ void Instance::handleCallUpdate(
 		} else if (phoneCall.vdate().v + (config.callRingTimeoutMs / 1000)
 			< base::unixtime::now()) {
 			LOG(("Ignoring too old call."));
-		} else if (Core::App().settings().disableCalls()) {
-			LOG(("Ignoring call because of 'accept calls' settings."));
 		} else {
 			createCall(user, Call::Type::Incoming, phoneCall.is_video());
 			_currentCall->handleUpdate(call);
