@@ -124,9 +124,8 @@ constexpr auto kMinAcceptableContrast = 1.14;// 4.5;
 				QImage::Format_ARGB32_Premultiplied),
 			.gradient = gradient,
 			.area = request.area,
-			.waitingForNegativePattern = (request.background.isPattern
-				&& request.background.prepared.isNull()
-				&& request.background.patternOpacity < 0.)
+			.waitingForNegativePattern
+				= request.background.waitingForNegativePattern()
 		};
 	} else {
 		const auto rects = ComputeChatBackgroundRects(
@@ -218,7 +217,7 @@ ChatTheme::ChatTheme() {
 
 // Runs from background thread.
 ChatTheme::ChatTheme(ChatThemeDescriptor &&descriptor)
-: _id(descriptor.id)
+: _key(descriptor.key)
 , _palette(std::make_unique<style::palette>()) {
 	descriptor.preparePalette(*_palette);
 	setBackground(PrepareBackgroundImage(descriptor.backgroundData));
@@ -427,11 +426,13 @@ void ChatTheme::updateBackgroundImageFrom(ChatThemeBackground &&background) {
 			_cacheBackgroundTimer->cancel();
 		}
 		cacheBackgroundNow();
+	} else {
+		_repaintBackgroundRequests.fire({});
 	}
 }
 
-uint64 ChatTheme::key() const {
-	return _id;
+ChatThemeKey ChatTheme::key() const {
+	return _key;
 }
 
 void ChatTheme::setBubblesBackground(QImage image) {
@@ -509,6 +510,11 @@ const BackgroundState &ChatTheme::backgroundState(QSize area) {
 	}
 	generateNextBackgroundRotation();
 	return _backgroundState;
+}
+
+void ChatTheme::clearBackgroundState() {
+	_backgroundState = BackgroundState();
+	_backgroundFade.stop();
 }
 
 bool ChatTheme::readyForBackgroundRotation() const {

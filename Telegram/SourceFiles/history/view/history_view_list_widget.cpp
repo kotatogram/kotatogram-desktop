@@ -28,7 +28,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
 #include "main/main_session.h"
-#include "boxes/confirm_box.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/toast/toast.h"
 #include "ui/inactive_press.h"
@@ -36,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/chat_theme.h"
 #include "ui/chat/chat_style.h"
 #include "lang/lang_keys.h"
+#include "boxes/delete_messages_box.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "data/data_session.h"
 #include "data/data_folder.h"
@@ -166,8 +166,9 @@ void ListWidget::enumerateUserpics(Method method) {
 
 	auto userpicCallback = [&](not_null<Element*> view, int itemtop, int itembottom) {
 		// Skip all service messages.
-		auto message = view->data()->toHistoryMessage();
-		if (!message) return true;
+		if (view->data()->isService()) {
+			return true;
+		}
 
 		if (lowestAttachedItemTop < 0 && view->isAttachedToNext()) {
 			lowestAttachedItemTop = itemtop + view->marginTop();
@@ -326,6 +327,11 @@ ListWidget::ListWidget(
 	) | rpl::start_with_next([=](bool wide) {
 		_isChatWide = wide;
 	}, lifetime());
+
+	_selectScroll.scrolls(
+	) | rpl::start_with_next([=](int d) {
+		delegate->listScrollTo(_visibleTop + d);
+	}, lifetime());
 }
 
 Main::Session &ListWidget::session() const {
@@ -477,7 +483,8 @@ void ListWidget::scrollToAnimationCallback(
 		int relativeTo) {
 	if (!attachToId) {
 		// Animated scroll to bottom.
-		const auto current = int(std::round(_scrollToAnimation.value(0)));
+		const auto current = int(base::SafeRound(
+			_scrollToAnimation.value(0)));
 		_delegate->listScrollTo(height()
 			- (_visibleBottom - _visibleTop)
 			+ current);
@@ -488,7 +495,7 @@ void ListWidget::scrollToAnimationCallback(
 	if (!attachToView) {
 		_scrollToAnimation.stop();
 	} else {
-		const auto current = int(std::round(_scrollToAnimation.value(
+		const auto current = int(base::SafeRound(_scrollToAnimation.value(
 			relativeTo)));
 		_delegate->listScrollTo(itemTop(attachToView) + current);
 	}
@@ -1653,10 +1660,7 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 
 			// paint the userpic if it intersects the painted rect
 			if (userpicTop + st::msgPhotoSize > clip.top()) {
-				const auto message = view->data()->toHistoryMessage();
-				Assert(message != nullptr);
-
-				if (const auto from = message->displayFrom()) {
+				if (const auto from = view->data()->displayFrom()) {
 					from->paintUserpicLeft(
 						p,
 						_userpics[from],
@@ -1664,7 +1668,7 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 						userpicTop,
 						view->width(),
 						st::msgPhotoSize);
-				} else if (const auto info = message->hiddenForwardedInfo()) {
+				} else if (const auto info = view->data()->hiddenForwardedInfo()) {
 					info->userpic.paint(
 						p,
 						st::historyPhotoLeft,
@@ -1764,7 +1768,9 @@ TextForMimeData ListWidget::getSelectedText() const {
 		return _selectedText;
 	}
 
-	const auto timeFormat = qsl(", [dd.MM.yy hh:mm]\n");
+	const auto timeFormat = QString(", [%1 %2]\n")
+		.arg(cDateFormat())
+		.arg(cTimeFormat());
 	auto groups = base::flat_set<not_null<const Data::Group*>>();
 	auto fullSize = 0;
 	auto texts = std::vector<std::pair<
@@ -1908,9 +1914,8 @@ void ListWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 		&& (_mouseCursorState == CursorState::None
 			|| _mouseCursorState == CursorState::Date)
 		&& _selected.empty()
-		&& (_mouseAction != MouseAction::Selecting)
 		&& _overElement
-		&& IsServerMsgId(_overElement->data()->id)) {
+		&& _overElement->data()->isRegular()) {
 		mouseActionCancel();
 		replyToMessageRequestNotify(_overElement->data()->fullId());
 	}
@@ -2031,7 +2036,7 @@ void ListWidget::mouseReleaseEvent(QMouseEvent *e) {
 	}
 }
 
-void ListWidget::enterEventHook(QEvent *e) {
+void ListWidget::enterEventHook(QEnterEvent *e) {
 	mouseActionUpdate(QCursor::pos());
 	return TWidget::enterEventHook(e);
 }
@@ -2324,7 +2329,7 @@ void ListWidget::mouseActionCancel() {
 	_mouseAction = MouseAction::None;
 	clearDragSelection();
 	_wasSelectedText = false;
-	//_widget->noSelectingScroll(); // #TODO select scroll
+	_selectScroll.cancel();
 }
 
 void ListWidget::mouseActionFinish(
@@ -2408,7 +2413,7 @@ void ListWidget::mouseActionFinish(
 	}
 	_mouseAction = MouseAction::None;
 	_mouseSelectType = TextSelectType::Letters;
-	//_widget->noSelectingScroll(); // #TODO select scroll
+	_selectScroll.cancel();
 
 	if (QGuiApplication::clipboard()->supportsSelection()
 		&& _selectedTextItem
@@ -2536,11 +2541,8 @@ void ListWidget::mouseActionUpdate() {
 
 						// stop enumeration if we've found a userpic under the cursor
 						if (point.y() >= userpicTop && point.y() < userpicTop + st::msgPhotoSize) {
-							const auto message = view->data()->toHistoryMessage();
-							Assert(message != nullptr);
-
 							dragState = TextState(nullptr, view->fromPhotoLink());
-							_overItemExact = session().data().message(dragState.itemId);
+							_overItemExact = nullptr;
 							lnkhost = view;
 							return false;
 						}
@@ -2603,11 +2605,14 @@ void ListWidget::mouseActionUpdate() {
 		}
 	}
 
-	//if (_mouseAction == MouseAction::Selecting) {
-	//	_widget->checkSelectingScroll(mousePos);
-	//} else {
-	//	_widget->noSelectingScroll();
-	//} // #TODO select scroll
+	if (_mouseAction == MouseAction::Selecting) {
+		_selectScroll.checkDeltaScroll(
+			mousePosition,
+			_visibleTop,
+			_visibleBottom);
+	} else {
+		_selectScroll.cancel();
+	}
 }
 
 style::cursor ListWidget::computeMouseCursor() const {
@@ -2650,7 +2655,7 @@ std::unique_ptr<QMimeData> ListWidget::prepareDrag() {
 	}();
 	if (auto mimeData = TextUtilities::MimeDataFromText(selectedText)) {
 		clearDragSelection();
-//		_widget->noSelectingScroll(); #TODO scroll
+		_selectScroll.cancel();
 
 		if (!urls.isEmpty()) {
 			mimeData->setUrls(urls);

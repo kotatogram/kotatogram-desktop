@@ -162,6 +162,12 @@ public:
 	struct NotificationId {
 		FullPeer full;
 		MsgId msgId = 0;
+
+		friend inline bool operator<(
+				const NotificationId &a,
+				const NotificationId &b) {
+			return std::tie(a.full, a.msgId) < std::tie(b.full, b.msgId);
+		}
 	};
 
 	explicit Manager(not_null<System*> system) : _system(system) {
@@ -191,12 +197,15 @@ public:
 		doClearFromSession(session);
 	}
 
-	void notificationActivated(NotificationId id);
+	void notificationActivated(
+		NotificationId id,
+		const TextWithTags &draft = {});
 	void notificationReplied(NotificationId id, const TextWithTags &reply);
 
 	struct DisplayOptions {
 		bool hideNameAndPhoto = false;
 		bool hideMessageText = false;
+		bool hideMarkAsRead = false;
 		bool hideReplyButton = false;
 	};
 	[[nodiscard]] DisplayOptions getNotificationOptions(
@@ -272,8 +281,6 @@ protected:
 	void doClearAll() override {
 		doClearAllFast();
 	}
-	void doClearFromItem(not_null<HistoryItem*> item) override {
-	}
 	void doShowNotification(
 		not_null<HistoryItem*> item,
 		int forwardedCount) override;
@@ -287,8 +294,7 @@ protected:
 		const QString &title,
 		const QString &subtitle,
 		const QString &msg,
-		bool hideNameAndPhoto,
-		bool hideReplyButton) = 0;
+		DisplayOptions options) = 0;
 
 };
 
@@ -308,10 +314,11 @@ protected:
 		const QString &title,
 		const QString &subtitle,
 		const QString &msg,
-		bool hideNameAndPhoto,
-		bool hideReplyButton) override {
+		DisplayOptions options) override {
 	}
 	void doClearAllFast() override {
+	}
+	void doClearFromItem(not_null<HistoryItem*> item) override {
 	}
 	void doClearFromHistory(not_null<History*> history) override {
 	}

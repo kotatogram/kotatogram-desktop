@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "base/object_ptr.h"
 #include "core/core_settings.h"
+#include "base/required.h"
 
 #include <QtWidgets/QSystemTrayIcon>
 
@@ -35,11 +36,20 @@ class SessionController;
 class TitleWidget;
 struct TermsLock;
 
-QString LogoVariant(int variant = 0);
-QImage LoadLogo(int variant = 0);
-QImage LoadLogoNoMargin(int variant = 0);
-QIcon CreateIcon(Main::Session *session = nullptr);
+[[nodiscard]] const QImage &Logo(int variant = 0);
+[[nodiscard]] const QImage &LogoNoMargin(int variant = 0);
+[[nodiscard]] QIcon CreateIcon(Main::Session *session = nullptr);
 void ConvertIconToBlack(QImage &image);
+
+struct CounterLayerArgs {
+	base::required<int> size = 16;
+	base::required<int> count = 1;
+	base::required<style::color> bg;
+	base::required<style::color> fg;
+};
+
+[[nodiscard]] QImage GenerateCounterLayer(CounterLayerArgs &&args);
+[[nodiscard]] QImage WithSmallCounter(QImage image, CounterLayerArgs &&args);
 
 class MainWindow : public Ui::RpWindow {
 public:
@@ -121,7 +131,6 @@ public:
 	}
 
 protected:
-	void resizeEvent(QResizeEvent *e) override;
 	void leaveEventHook(QEvent *e) override;
 
 	void savePosition(Qt::WindowState state = Qt::WindowActive);

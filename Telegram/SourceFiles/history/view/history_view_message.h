@@ -13,10 +13,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 class HistoryMessage;
 struct HistoryMessageEdited;
+struct HistoryMessageSponsored;
 struct HistoryMessageForwarded;
 
 namespace HistoryView {
 
+class ViewButton;
 class WebPage;
 
 // Special type of Component for the channel actions log.
@@ -203,12 +205,17 @@ private:
 	[[nodiscard]] ClickHandlerPtr fastReplyLink() const;
 	[[nodiscard]] const HistoryMessageEdited *displayedEditBadge() const;
 	[[nodiscard]] HistoryMessageEdited *displayedEditBadge();
+	[[nodiscard]] auto displayedSponsorBadge() const
+		-> const HistoryMessageSponsored*;
 	[[nodiscard]] bool displayPinIcon() const;
 
-	void initTime();
+	void initTime() const;
 	[[nodiscard]] int timeLeft() const;
 	//[[nodiscard]] int plainMaxWidth() const;
 	[[nodiscard]] int monospaceMaxWidth() const;
+
+	void updateViewButtonExistence();
+	[[nodiscard]] int viewButtonHeight() const;
 
 	WebPage *logEntryOriginal() const;
 
@@ -221,6 +228,7 @@ private:
 	mutable ClickHandlerPtr _rightActionLink;
 	mutable ClickHandlerPtr _fastReplyLink;
 	mutable std::unique_ptr<CommentsButton> _comments;
+	mutable std::unique_ptr<ViewButton> _viewButton;
 
 	Ui::Text::String _rightBadge;
 	int _bubbleWidthLimit = 0;

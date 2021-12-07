@@ -13,7 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/view/history_view_send_action.h"
 #include "boxes/add_contact_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "info/info_memento.h"
 #include "info/info_controller.h"
 #include "storage/storage_shared_media.h"
@@ -239,7 +239,7 @@ void TopBarWidget::call() {
 	if (const auto peer = _activeChat.key.peer()) {
 		if (const auto user = peer->asUser()) {
 			if (cConfirmBeforeCall()) {
-				Ui::show(Box<ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
+				Ui::show(Box<Ui::ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
 					Ui::hideLayer();
 					Core::App().calls().startOutgoingCall(user, false);
 				}));

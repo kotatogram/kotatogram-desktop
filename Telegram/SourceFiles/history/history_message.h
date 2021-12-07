@@ -21,9 +21,12 @@ class Message;
 struct HistoryMessageEdited;
 struct HistoryMessageReply;
 struct HistoryMessageViews;
+struct HistoryMessageMarkupData;
 
-[[nodiscard]] Fn<void(ChannelData*, MsgId)> HistoryDependentItemCallback(
-	not_null<HistoryItem*> item);
+void RequestDependentMessageData(
+	not_null<HistoryItem*> item,
+	PeerId peerId,
+	MsgId msgId);
 [[nodiscard]] MessageFlags NewMessageFlags(not_null<PeerData*> peer);
 [[nodiscard]] bool ShouldSendSilent(
 	not_null<PeerData*> peer,
@@ -48,10 +51,12 @@ class HistoryMessage final : public HistoryItem {
 public:
 	HistoryMessage(
 		not_null<History*> history,
+		MsgId id,
 		const MTPDmessage &data,
 		MessageFlags localFlags);
 	HistoryMessage(
 		not_null<History*> history,
+		MsgId id,
 		const MTPDmessageService &data,
 		MessageFlags localFlags);
 	HistoryMessage(
@@ -61,7 +66,7 @@ public:
 		TimeId date,
 		PeerId from,
 		const QString &postAuthor,
-		not_null<HistoryMessage*> original); // local forwarded
+		not_null<HistoryItem*> original); // local forwarded
 	HistoryMessage(
 		not_null<History*> history,
 		MsgId id,
@@ -73,7 +78,7 @@ public:
 		const QString &postAuthor,
 		const TextWithEntities &textWithEntities,
 		const MTPMessageMedia &media,
-		const MTPReplyMarkup &markup,
+		HistoryMessageMarkupData &&markup,
 		uint64 groupedId); // local message
 	HistoryMessage(
 		not_null<History*> history,
@@ -86,7 +91,7 @@ public:
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
-		const MTPReplyMarkup &markup,
+		HistoryMessageMarkupData &&markup,
 		uint64 newGroupId = 0); // local document
 	HistoryMessage(
 		not_null<History*> history,
@@ -99,7 +104,7 @@ public:
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
-		const MTPReplyMarkup &markup,
+		HistoryMessageMarkupData &&markup,
 		uint64 newGroupId = 0); // local photo
 	HistoryMessage(
 		not_null<History*> history,
@@ -111,7 +116,7 @@ public:
 		PeerId from,
 		const QString &postAuthor,
 		not_null<GameData*> game,
-		const MTPReplyMarkup &markup); // local game
+		HistoryMessageMarkupData &&markup); // local game
 
 	void refreshMedia(const MTPMessageMedia *media);
 	void refreshSentMedia(const MTPMessageMedia *media);
@@ -125,15 +130,10 @@ public:
 	[[nodiscard]] bool allowsForward() const override;
 	[[nodiscard]] bool allowsSendNow() const override;
 	[[nodiscard]] bool allowsEdit(TimeId now) const override;
-	[[nodiscard]] bool uploading() const;
-
-	[[nodiscard]] bool hideEditedBadge() const {
-		return (_flags & MessageFlag::HideEdited);
-	}
 
 	void setViewsCount(int count) override;
 	void setForwardsCount(int count) override;
-	void setReplies(const MTPMessageReplies &data) override;
+	void setReplies(HistoryMessageRepliesData &&data) override;
 	void clearReplies() override;
 	void changeRepliesCount(
 		int delta,
@@ -158,15 +158,13 @@ public:
 	//   f_forwards
 	//   f_replies
 	//   f_ttl_period
-	void applyEdition(const MTPDmessage &message) override;
+	void applyEdition(HistoryMessageEdition &&edition) override;
 
 	void applyEdition(const MTPDmessageService &message) override;
 	void updateSentContent(
 		const TextWithEntities &textWithEntities,
 		const MTPMessageMedia *media) override;
-	void updateReplyMarkup(const MTPReplyMarkup *markup) override {
-		setReplyMarkup(markup);
-	}
+	void updateReplyMarkup(HistoryMessageMarkupData &&markup) override;
 	void updateForwardedInfo(const MTPMessageFwdHeader *fwd) override;
 	void contributeToSlowmode(TimeId realDate = 0) override;
 
@@ -210,14 +208,6 @@ public:
 		const MTPDupdateShortSentMessage &data,
 		bool wasAlready) override;
 
-	// dynamic_cast optimization.
-	[[nodiscard]] HistoryMessage *toHistoryMessage() override {
-		return this;
-	}
-	[[nodiscard]] const HistoryMessage *toHistoryMessage() const override {
-		return this;
-	}
-
 	[[nodiscard]] std::unique_ptr<HistoryView::Element> createView(
 		not_null<HistoryView::ElementDelegate*> delegate,
 		HistoryView::Element *replacing = nullptr) override;
@@ -240,7 +230,7 @@ private:
 	// It should show the receipt for the payed invoice. Still let mobile apps do that.
 	void replaceBuyWithReceiptInMarkup();
 
-	void setReplyMarkup(const MTPReplyMarkup *markup);
+	void setReplyMarkup(HistoryMessageMarkupData &&markup);
 
 	struct CreateConfig;
 	void createComponentsHelper(
@@ -248,8 +238,8 @@ private:
 		MsgId replyTo,
 		UserId viaBotId,
 		const QString &postAuthor,
-		const MTPReplyMarkup &markup);
-	void createComponents(const CreateConfig &config);
+		HistoryMessageMarkupData &&markup);
+	void createComponents(CreateConfig &&config);
 	void setupForwardedComponent(const CreateConfig &config);
 	void changeReplyToTopCounter(
 		not_null<HistoryMessageReply*> reply,
@@ -270,7 +260,8 @@ private:
 		const TextWithEntities &textWithEntities) const;
 	void reapplyText();
 
-	[[nodiscard]] bool checkRepliesPts(const MTPMessageReplies &data) const;
+	[[nodiscard]] bool checkRepliesPts(
+		const HistoryMessageRepliesData &data) const;
 
 	QString _timeText;
 	int _timeWidth = 0;

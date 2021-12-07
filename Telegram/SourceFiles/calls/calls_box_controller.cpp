@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/checkbox.h"
@@ -24,7 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_changes.h"
 #include "data/data_media_types.h"
 #include "data/data_user.h"
-#include "boxes/confirm_box.h"
+#include "boxes/delete_messages_box.h"
 #include "base/unixtime.h"
 #include "api/api_updates.h"
 #include "apiwrap.h"
@@ -103,23 +104,25 @@ public:
 		int availableWidth,
 		int outerWidth,
 		bool selected) override;
-	void addActionRipple(QPoint point, Fn<void()> updateCallback) override;
-	void stopLastActionRipple() override;
+	void rightActionAddRipple(
+		QPoint point,
+		Fn<void()> updateCallback) override;
+	void rightActionStopLastRipple() override;
 
 	int nameIconWidth() const override {
 		return 0;
 	}
-	QSize actionSize() const override {
+	QSize rightActionSize() const override {
 		return peer()->isUser() ? QSize(_st->width, _st->height) : QSize();
 	}
-	QMargins actionMargins() const override {
+	QMargins rightActionMargins() const override {
 		return QMargins(
 			0,
 			0,
 			st::defaultPeerListItem.photoPosition.x(),
 			0);
 	}
-	void paintAction(
+	void rightActionPaint(
 		Painter &p,
 		int x,
 		int y,
@@ -142,7 +145,7 @@ private:
 };
 
 BoxController::Row::Row(not_null<HistoryItem*> item)
-: PeerListRow(item->history()->peer, item->id)
+: PeerListRow(item->history()->peer, item->id.bare)
 , _items(1, item)
 , _date(ItemDateTime(item).date())
 , _type(ComputeType(item))
@@ -169,14 +172,14 @@ void BoxController::Row::paintStatusText(Painter &p, const style::PeerListItem &
 	PeerListRow::paintStatusText(p, st, x, y, availableWidth, outerWidth, selected);
 }
 
-void BoxController::Row::paintAction(
+void BoxController::Row::rightActionPaint(
 		Painter &p,
 		int x,
 		int y,
 		int outerWidth,
 		bool selected,
 		bool actionSelected) {
-	auto size = actionSize();
+	auto size = rightActionSize();
 	if (_actionRipple) {
 		_actionRipple->paint(
 			p,
@@ -244,7 +247,7 @@ BoxController::Row::CallType BoxController::Row::ComputeCallType(
 	return CallType::Voice;
 }
 
-void BoxController::Row::addActionRipple(QPoint point, Fn<void()> updateCallback) {
+void BoxController::Row::rightActionAddRipple(QPoint point, Fn<void()> updateCallback) {
 	if (!_actionRipple) {
 		auto mask = Ui::RippleAnimation::ellipseMask(
 			QSize(_st->rippleAreaSize, _st->rippleAreaSize));
@@ -256,7 +259,7 @@ void BoxController::Row::addActionRipple(QPoint point, Fn<void()> updateCallback
 	_actionRipple->add(point - _st->rippleAreaPosition);
 }
 
-void BoxController::Row::stopLastActionRipple() {
+void BoxController::Row::rightActionStopLastRipple() {
 	if (_actionRipple) {
 		_actionRipple->lastStop();
 	}
@@ -380,12 +383,12 @@ void BoxController::rowClicked(not_null<PeerListRow*> row) {
 	});
 }
 
-void BoxController::rowActionClicked(not_null<PeerListRow*> row) {
+void BoxController::rowRightActionClicked(not_null<PeerListRow*> row) {
 	auto user = row->peer()->asUser();
 	Assert(user != nullptr);
 
 	if (cConfirmBeforeCall()) {
-		Ui::show(Box<ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
+		Ui::show(Box<Ui::ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
 			Ui::hideLayer();
 			Core::App().calls().startOutgoingCall(user, false);
 		}));

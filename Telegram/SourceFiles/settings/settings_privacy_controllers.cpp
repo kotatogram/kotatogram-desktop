@@ -38,7 +38,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/section_widget.h"
 #include "window/window_session_controller.h"
 #include "boxes/peer_list_controllers.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "settings/settings_privacy_security.h"
 #include "facades.h"
 #include "styles/style_chat.h"
@@ -134,12 +134,10 @@ AdminLog::OwnedItem GenerateForwardedItem(
 	Expects(history->peer->isUser());
 
 	using Flag = MTPDmessage::Flag;
-	// #TODO common global incrementable id for fake items, like clientMsgId.
-	static auto id = ServerMaxMsgId + (ServerMaxMsgId / 6);
 	const auto flags = Flag::f_from_id | Flag::f_fwd_from;
 	const auto item = MTP_message(
 		MTP_flags(flags),
-		MTP_int(++id),
+		MTP_int(0), // Not used (would've been trimmed to 32 bits).
 		peerToMTP(history->peer->id),
 		peerToMTP(history->peer->id),
 		MTP_messageFwdHeader(
@@ -169,7 +167,10 @@ AdminLog::OwnedItem GenerateForwardedItem(
 		MTPVector<MTPRestrictionReason>(),
 		MTPint() // ttl_period
 	).match([&](const MTPDmessage &data) {
-		return history->makeMessage(data, MessageFlag::FakeHistoryItem);
+		return history->makeMessage(
+			history->nextNonHistoryEntryId(),
+			data,
+			MessageFlag::FakeHistoryItem);
 	}, [](auto &&) -> not_null<HistoryMessage*> {
 		Unexpected("Type in GenerateForwardedItem.");
 	});
@@ -228,7 +229,7 @@ void BlockedBoxController::rowClicked(not_null<PeerListRow*> row) {
 	});
 }
 
-void BlockedBoxController::rowActionClicked(not_null<PeerListRow*> row) {
+void BlockedBoxController::rowRightActionClicked(not_null<PeerListRow*> row) {
 	session().api().blockedPeers().unblock(row->peer());
 }
 
@@ -482,7 +483,7 @@ void LastSeenPrivacyController::confirmSave(
 			Core::App().settings().setLastSeenWarningSeen(true);
 			Core::App().saveSettingsDelayed();
 		};
-		auto box = Box<ConfirmBox>(
+		auto box = Box<Ui::ConfirmBox>(
 			tr::lng_edit_privacy_lastseen_warning(tr::now),
 			tr::lng_continue(tr::now),
 			tr::lng_cancel(tr::now),

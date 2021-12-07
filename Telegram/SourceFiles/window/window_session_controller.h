@@ -18,8 +18,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 class PhotoData;
 class MainWidget;
 class MainWindow;
-class HistoryMessage;
-class HistoryService;
 
 namespace Adaptive {
 enum class WindowLayout;
@@ -48,6 +46,7 @@ class LayerWidget;
 enum class ReportReason;
 class ChatStyle;
 class ChatTheme;
+struct ChatThemeKey;
 struct ChatPaintContext;
 struct ChatThemeBackground;
 struct ChatThemeBackgroundData;
@@ -55,6 +54,7 @@ struct ChatThemeBackgroundData;
 
 namespace Data {
 struct CloudTheme;
+enum class CloudThemeType;
 } // namespace Data
 
 namespace Window {
@@ -74,6 +74,13 @@ enum class GifPauseReason {
 };
 using GifPauseReasons = base::flags<GifPauseReason>;
 inline constexpr bool is_flag_type(GifPauseReason) { return true; };
+
+struct PeerThemeOverride {
+	PeerData *peer = nullptr;
+	std::shared_ptr<Ui::ChatTheme> theme;
+};
+bool operator==(const PeerThemeOverride &a, const PeerThemeOverride &b);
+bool operator!=(const PeerThemeOverride &a, const PeerThemeOverride &b);
 
 class DateClickHandler : public ClickHandler {
 public:
@@ -316,6 +323,8 @@ public:
 	void resizeForThirdSection();
 	void closeThirdSection();
 
+	void showPeer(not_null<PeerData*> peer, MsgId msgId = ShowAtUnreadMsgId);
+
 	enum class GroupCallJoinConfirm {
 		None,
 		IfNowInAnother,
@@ -379,6 +388,8 @@ public:
 		Fn<void(MessageIdsList)> done);
 	void clearChooseReportMessages();
 
+	void toggleChooseChatTheme(not_null<PeerData*> peer);
+
 	base::Variable<bool> &dialogsListFocused() {
 		return _dialogsListFocused;
 	}
@@ -410,10 +421,21 @@ public:
 		return _defaultChatTheme;
 	}
 	[[nodiscard]] auto cachedChatThemeValue(
-		const Data::CloudTheme &data)
+		const Data::CloudTheme &data,
+		Data::CloudThemeType type)
 	-> rpl::producer<std::shared_ptr<Ui::ChatTheme>>;
 	void setChatStyleTheme(const std::shared_ptr<Ui::ChatTheme> &theme);
 	void clearCachedChatThemes();
+	void pushLastUsedChatTheme(const std::shared_ptr<Ui::ChatTheme> &theme);
+
+	void overridePeerTheme(
+		not_null<PeerData*> peer,
+		std::shared_ptr<Ui::ChatTheme> theme);
+	void clearPeerThemeOverride(not_null<PeerData*> peer);
+	[[nodiscard]] auto peerThemeOverrideValue() const
+		-> rpl::producer<PeerThemeOverride> {
+		return _peerThemeOverride.value();
+	}
 
 	struct PaintContextArgs {
 		not_null<Ui::ChatTheme*> theme;
@@ -460,13 +482,14 @@ private:
 	void checkInvitePeek();
 
 	void pushDefaultChatBackground();
-	void cacheChatTheme(const Data::CloudTheme &data);
+	void cacheChatTheme(
+		const Data::CloudTheme &data,
+		Data::CloudThemeType type);
 	void cacheChatThemeDone(std::shared_ptr<Ui::ChatTheme> result);
 	void updateCustomThemeBackground(CachedTheme &theme);
 	[[nodiscard]] Ui::ChatThemeBackgroundData backgroundData(
 		CachedTheme &theme,
 		bool generateGradient = true) const;
-	void pushToLastUsed(const std::shared_ptr<Ui::ChatTheme> &theme);
 
 	const not_null<Controller*> _window;
 	const std::unique_ptr<ChatHelpers::EmojiInteractions> _emojiInteractions;
@@ -497,11 +520,12 @@ private:
 	rpl::event_stream<> _filtersMenuChanged;
 
 	std::shared_ptr<Ui::ChatTheme> _defaultChatTheme;
-	base::flat_map<uint64, CachedTheme> _customChatThemes;
+	base::flat_map<Ui::ChatThemeKey, CachedTheme> _customChatThemes;
 	rpl::event_stream<std::shared_ptr<Ui::ChatTheme>> _cachedThemesStream;
 	const std::unique_ptr<Ui::ChatStyle> _chatStyle;
 	std::weak_ptr<Ui::ChatTheme> _chatStyleTheme;
 	std::deque<std::shared_ptr<Ui::ChatTheme>> _lastUsedCustomChatThemes;
+	rpl::variable<PeerThemeOverride> _peerThemeOverride;
 
 	rpl::lifetime _lifetime;
 

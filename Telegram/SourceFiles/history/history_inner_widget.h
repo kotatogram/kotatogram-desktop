@@ -7,9 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
-#include "base/timer.h"
 #include "ui/rp_widget.h"
 #include "ui/effects/animations.h"
+#include "ui/chat/select_scroll_manager.h" // Has base/timer.h.
 #include "ui/widgets/tooltip.h"
 #include "ui/widgets/scroll_area.h"
 #include "history/view/history_view_top_bar_widget.h"
@@ -121,7 +121,6 @@ public:
 	void updateBotInfo(bool recount = true);
 
 	bool wasSelectedText() const;
-	void setFirstLoading(bool loading);
 
 	// updates history->scrollTopItem/scrollTopOffset
 	void visibleAreaUpdated(int top, int bottom);
@@ -151,6 +150,8 @@ public:
 	QPoint tooltipPos() const override;
 	bool tooltipWindowActive() const override;
 
+	void onParentGeometryChanged();
+
 	// HistoryView::ElementDelegate interface.
 	static not_null<HistoryView::ElementDelegate*> ElementDelegate();
 
@@ -166,19 +167,16 @@ protected:
 	void mousePressEvent(QMouseEvent *e) override;
 	void mouseReleaseEvent(QMouseEvent *e) override;
 	void mouseDoubleClickEvent(QMouseEvent *e) override;
-	void enterEventHook(QEvent *e) override;
+	void enterEventHook(QEnterEvent *e) override;
 	void leaveEventHook(QEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
 	void keyPressEvent(QKeyEvent *e) override;
 	void contextMenuEvent(QContextMenuEvent *e) override;
 
-public Q_SLOTS:
-	void onParentGeometryChanged();
-
+private:
 	void onTouchSelect();
 	void onTouchScrollTimer();
 
-private:
 	class BotAbout;
 	using SelectedItems = std::map<HistoryItem*, TextSelection, std::less<>>;
 	enum class MouseAction {
@@ -378,8 +376,6 @@ private:
 	mutable int _curBlock = 0;
 	mutable int _curItem = 0;
 
-	bool _firstLoading = false;
-
 	style::cursor _cursor = style::cur_default;
 	SelectedItems _selected;
 	std::optional<Ui::ReportReason> _chooseForReportReason;
@@ -403,7 +399,7 @@ private:
 	bool _pressWasInactive = false;
 
 	QPoint _trippleClickPoint;
-	QTimer _trippleClickTimer;
+	base::Timer _trippleClickTimer;
 
 	Element *_dragSelFrom = nullptr;
 	Element *_dragSelTo = nullptr;
@@ -415,7 +411,9 @@ private:
 	bool _touchSelect = false;
 	bool _touchInProgress = false;
 	QPoint _touchStart, _touchPrevPos, _touchPos;
-	QTimer _touchSelectTimer;
+	base::Timer _touchSelectTimer;
+
+	Ui::SelectScrollManager _selectScroll;
 
 	Ui::TouchScrollState _touchScrollState = Ui::TouchScrollState::Manual;
 	bool _touchPrevPosValid = false;
@@ -424,7 +422,7 @@ private:
 	crl::time _touchSpeedTime = 0;
 	crl::time _touchAccelerationTime = 0;
 	crl::time _touchTime = 0;
-	QTimer _touchScrollTimer;
+	base::Timer _touchScrollTimer;
 
 	base::unique_qptr<Ui::PopupMenu> _menu;
 

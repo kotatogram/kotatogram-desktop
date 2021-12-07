@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
+#include "api/api_polls.h"
 #include "api/api_toggling_media.h" // Api::ToggleFavedSticker
 #include "base/unixtime.h"
 #include "history/view/history_view_list_widget.h"
@@ -27,7 +28,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/boxes/report_box.h"
 #include "ui/ui_utility.h"
 #include "chat_helpers/send_context_menu.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
+#include "boxes/delete_messages_box.h"
 #include "boxes/sticker_set_box.h"
 #include "data/data_photo.h"
 #include "data/data_photo_media.h"
@@ -59,14 +61,6 @@ namespace HistoryView {
 namespace {
 
 constexpr auto kRescheduleLimit = 20;
-
-MsgId ItemIdAcrossData(not_null<HistoryItem*> item) {
-	if (!item->isScheduled() || item->isSending() || item->hasFailed()) {
-		return item->id;
-	}
-	const auto session = &item->history()->session();
-	return session->data().scheduledMessages().lookupId(item);
-}
 
 bool HasEditMessageAction(
 		const ContextMenuRequest &request,
@@ -546,7 +540,7 @@ bool AddReplyToMessageAction(
 	const auto context = list->elementContext();
 	const auto item = request.item;
 	if (!item
-		|| !IsServerMsgId(item->id)
+		|| !item->isRegular()
 		|| !item->history()->peer->canWrite()
 		|| (context != Context::History && context != Context::Replies)) {
 		return false;
@@ -570,7 +564,7 @@ bool AddViewRepliesAction(
 	const auto context = list->elementContext();
 	const auto item = request.item;
 	if (!item
-		|| !IsServerMsgId(item->id)
+		|| !item->isRegular()
 		|| (context != Context::History && context != Context::Pinned)) {
 		return false;
 	}
@@ -624,7 +618,7 @@ bool AddPinMessageAction(
 	const auto context = list->elementContext();
 	const auto item = request.item;
 	if (!item
-		|| !IsServerMsgId(item->id)
+		|| !item->isRegular()
 		|| (context != Context::History && context != Context::Pinned)) {
 		return false;
 	}
@@ -651,7 +645,7 @@ bool AddGoToMessageAction(
 	const auto context = list->elementContext();
 	const auto view = request.view;
 	if (!view
-		|| !IsServerMsgId(view->data()->id)
+		|| !view->data()->isRegular()
 		|| context != Context::Pinned
 		|| !view->hasOutLayout()) {
 		return false;
@@ -717,8 +711,7 @@ bool AddDeleteMessageAction(
 	if (asGroup) {
 		if (const auto group = owner->groups().find(item)) {
 			if (ranges::any_of(group->items, [](auto item) {
-				const auto id = ItemIdAcrossData(item);
-				return !IsServerMsgId(id) || !item->canDelete();
+				return item->isLocal() || !item->canDelete();
 			})) {
 				return false;
 			}
@@ -736,24 +729,20 @@ bool AddDeleteMessageAction(
 					return;
 				}
 			}
-			if (const auto message = item->toHistoryMessage()) {
-				if (message->uploading()) {
-					controller->cancelUploadLayer(item);
-					return;
-				}
+			if (item->isUploading()) {
+				controller->cancelUploadLayer(item);
+				return;
 			}
 			const auto suggestModerateActions = true;
 			controller->show(
 				Box<DeleteMessagesBox>(item, suggestModerateActions));
 		}
 	});
-	if (const auto message = item->toHistoryMessage()) {
-		if (message->uploading()) {
-			menu->addAction(
-				tr::lng_context_cancel_upload(tr::now),
-				callback);
-			return true;
-		}
+	if (item->isUploading()) {
+		menu->addAction(
+			tr::lng_context_cancel_upload(tr::now),
+			callback);
+		return true;
 	}
 	menu->addAction(Ui::DeleteMessageContextAction(
 		menu->menu(),
@@ -818,11 +807,7 @@ bool AddSelectMessageAction(
 	const auto item = request.item;
 	if (request.overSelection && !request.selectedItems.empty()) {
 		return false;
-	} else if (!item
-		|| item->isSending()
-		|| item->hasFailed()
-		|| !IsServerMsgId(ItemIdAcrossData(item))
-		|| item->serviceMsg()) {
+	} else if (!item || item->isLocal() || item->isService()) {
 		return false;
 	}
 	const auto owner = &item->history()->owner();
@@ -1006,10 +991,10 @@ void StopPoll(not_null<Main::Session*> session, FullMsgId itemId) {
 	const auto stop = [=] {
 		Ui::hideLayer();
 		if (const auto item = session->data().message(itemId)) {
-			session->api().closePoll(item);
+			session->api().polls().close(item);
 		}
 	};
-	Ui::show(Box<ConfirmBox>(
+	Ui::show(Box<Ui::ConfirmBox>(
 		tr::lng_polls_stop_warning(tr::now),
 		tr::lng_polls_stop_sure(tr::now),
 		tr::lng_cancel(tr::now),
@@ -1032,7 +1017,7 @@ void AddPollActions(
 	const auto itemId = item->fullId();
 	if (poll->voted() && !poll->quiz()) {
 		menu->addAction(tr::lng_polls_retract(tr::now), [=] {
-			poll->session().api().sendPollVotes(itemId, {});
+			poll->session().api().polls().sendVotes(itemId, {});
 		});
 	}
 	if (item->canStopPoll()) {

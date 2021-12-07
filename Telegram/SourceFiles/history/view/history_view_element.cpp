@@ -237,7 +237,7 @@ QString DateTooltipText(not_null<Element*> view) {
 		}
 	}
 	if (const auto msgId = view->data()->fullId().msg) {
-		dateText += '\n' + ktr("ktg_message_id", {"id", QString::number(msgId)});
+		dateText += '\n' + ktr("ktg_message_id", {"id", QString::number(msgId.bare)});
 	}
 	return dateText;
 }
@@ -544,7 +544,7 @@ void Element::refreshDataId() {
 
 bool Element::computeIsAttachToPrevious(not_null<Element*> previous) {
 	const auto mayBeAttached = [](not_null<HistoryItem*> item) {
-		return !item->serviceMsg()
+		return !item->isService()
 			&& !item->isEmpty()
 			&& !item->isPost()
 			&& (item->from() != item->history()->peer
@@ -664,6 +664,9 @@ void Element::recountDisplayDateInBlocks() {
 	setDisplayDate([&] {
 		const auto item = data();
 		if (isHidden() || item->isEmpty()) {
+			return false;
+		}
+		if (item->isSponsored()) {
 			return false;
 		}
 

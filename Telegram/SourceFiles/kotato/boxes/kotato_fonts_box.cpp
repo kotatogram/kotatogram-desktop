@@ -14,7 +14,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/input_fields.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "kotato/json_settings.h"
 #include "lang/lang_keys.h"
 #include "app.h"
@@ -125,7 +125,7 @@ void FontsBox::save() {
 	const auto box = std::make_shared<QPointer<BoxContent>>();
 
 	*box = getDelegate()->show(
-		Box<ConfirmBox>(
+		Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
 			tr::lng_cancel(tr::now),
@@ -151,7 +151,7 @@ void FontsBox::resetToDefault() {
 	const auto box = std::make_shared<QPointer<BoxContent>>();
 
 	*box = getDelegate()->show(
-		Box<ConfirmBox>(
+		Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
 			tr::lng_cancel(tr::now),

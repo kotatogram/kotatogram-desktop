@@ -14,9 +14,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/win/windows_dlls.h"
 #include "platform/win/windows_event_filter.h"
 #include "window/notifications_manager.h"
+#include "window/window_session_controller.h"
 #include "mainwindow.h"
+#include "main/main_session.h"
 #include "base/crc32hash.h"
 #include "base/platform/win/base_windows_wrl.h"
+#include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "lang/lang_keys.h"
 #include "storage/localstorage.h"
@@ -35,6 +38,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <Shobjidl.h>
 #include <shellapi.h>
 #include <WtsApi32.h>
+#include <dwmapi.h>
 
 #include <windows.ui.viewmanagement.h>
 #include <UIViewSettingsInterop.h>
@@ -58,47 +62,79 @@ constexpr auto kKeepActiveForTrayIcon = crl::time(500);
 
 using namespace Microsoft::WRL;
 
-HICON createHIconFromQIcon(const QIcon &icon, int xSize, int ySize) {
+[[nodiscard]] HICON NativeIcon(const QIcon &icon, QSize size) {
 	if (!icon.isNull()) {
-		const QPixmap pm = icon.pixmap(icon.actualSize(QSize(xSize, ySize)));
-		if (!pm.isNull()) {
-			return qt_pixmapToWinHICON(pm);
+		const auto pixmap = icon.pixmap(icon.actualSize(size));
+		if (!pixmap.isNull()) {
+			return qt_pixmapToWinHICON(pixmap);
 		}
 	}
 	return nullptr;
 }
 
-HWND createTaskbarHider() {
-	HINSTANCE appinst = (HINSTANCE)GetModuleHandle(0);
-	HWND hWnd = 0;
+[[nodiscard]] QImage IconWithCounter(
+		Window::CounterLayerArgs &&args,
+		Main::Session *session,
+		bool smallIcon) {
+	static constexpr auto kCount = 3;
+	static constexpr auto kLogoCount = 6;
+	static constexpr auto kTotalCount = kLogoCount * kCount;
+	static auto ScaledLogo = std::array<QImage, kTotalCount>();
+	static auto ScaledLogoNoMargin = std::array<QImage, kTotalCount>();
 
-	QString cn = QString("KotatogramTaskbarHider");
-	LPCWSTR _cn = (LPCWSTR)cn.utf16();
-	WNDCLASSEX wc;
+	struct Dimensions {
+		int index = 0;
+		int size = 0;
+	};
+	const auto d = [&]() -> Dimensions {
+		switch (args.size) {
+		case 16:
+			return {
+				.index = 0,
+				.size = 16,
+			};
+		case 32:
+			return {
+				.index = 1,
+				.size = 32,
+			};
+		default:
+			return {
+				.index = 2,
+				.size = 64,
+			};
+		}
+	}();
+	Assert(d.index < kCount);
 
-	wc.cbSize = sizeof(wc);
-	wc.style = 0;
-	wc.lpfnWndProc = DefWindowProc;
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	wc.hInstance = appinst;
-	wc.hIcon = 0;
-	wc.hCursor = 0;
-	wc.hbrBackground = 0;
-	wc.lpszMenuName = NULL;
-	wc.lpszClassName = _cn;
-	wc.hIconSm = 0;
-	if (!RegisterClassEx(&wc)) {
-		DEBUG_LOG(("Application Error: could not register taskbar hider window class, error: %1").arg(GetLastError()));
-		return hWnd;
+	auto &scaled = smallIcon ? ScaledLogoNoMargin : ScaledLogo;
+	auto result = [&] {
+		auto &image = scaled[cCustomAppIcon() * kCount + d.index];
+		if (image.isNull()) {
+			image = (smallIcon
+				? Window::LogoNoMargin(cCustomAppIcon())
+				: Window::Logo(cCustomAppIcon())).scaledToWidth(
+					d.size,
+					Qt::SmoothTransformation);
+		}
+		return image;
+	}();
+	if (session && session->supportMode()) {
+		Window::ConvertIconToBlack(result);
 	}
-
-	hWnd = CreateWindowEx(WS_EX_TOOLWINDOW, _cn, 0, WS_POPUP, 0, 0, 0, 0, 0, 0, appinst, 0);
-	if (!hWnd) {
-		DEBUG_LOG(("Application Error: could not create taskbar hider window class, error: %1").arg(GetLastError()));
-		return hWnd;
+	if (!args.count) {
+		return result;
+	} else if (smallIcon) {
+		return Window::WithSmallCounter(std::move(result), std::move(args));
 	}
-	return hWnd;
+	QPainter p(&result);
+	const auto half = d.size / 2;
+	args.size = half;
+	p.drawPixmap(
+		half,
+		half,
+		Ui::PixmapFromImage(Window::GenerateCounterLayer(std::move(args))));
+	return result;
 }
 
 ComPtr<ITaskbarList3> taskbarList;
@@ -114,7 +150,7 @@ struct MainWindow::Private {
 MainWindow::MainWindow(not_null<Window::Controller*> controller)
 : Window::MainWindow(controller)
 , _private(std::make_unique<Private>())
-, ps_tbHider_hWnd(createTaskbarHider()) {
+, _taskbarHiderWindow(std::make_unique<QWindow>()) {
 	QCoreApplication::instance()->installNativeEventFilter(
 		EventFilter::CreateInstance(this));
 
@@ -202,7 +238,8 @@ void MainWindow::psSetupTrayIcon() {
 		trayIcon = new QSystemTrayIcon(this);
 		auto icon = QIcon(cWorkingDir() + "tdata/icon.png");
 		if (icon.isNull()) {
-			icon = QIcon(Ui::PixmapFromImage(Core::App().logoNoMargin(cCustomAppIcon())));
+			icon = QIcon(Ui::PixmapFromImage(
+				QImage(Window::LogoNoMargin(cCustomAppIcon()))));
 		}
 
 		trayIcon->setIcon(icon);
@@ -239,6 +276,7 @@ void MainWindow::workmodeUpdated(Core::Settings::WorkMode mode) {
 		HWND psOwner = (HWND)GetWindowLongPtr(ps_hWnd, GWLP_HWNDPARENT);
 		if (psOwner) {
 			SetWindowLongPtr(ps_hWnd, GWLP_HWNDPARENT, 0);
+			windowHandle()->setTransientParent(nullptr);
 			psRefreshTaskbarIcon();
 		}
 	} break;
@@ -247,7 +285,9 @@ void MainWindow::workmodeUpdated(Core::Settings::WorkMode mode) {
 		psSetupTrayIcon();
 		HWND psOwner = (HWND)GetWindowLongPtr(ps_hWnd, GWLP_HWNDPARENT);
 		if (!psOwner) {
-			SetWindowLongPtr(ps_hWnd, GWLP_HWNDPARENT, (LONG_PTR)ps_tbHider_hWnd);
+			const auto hwnd = _taskbarHiderWindow->winId();
+			SetWindowLongPtr(ps_hWnd, GWLP_HWNDPARENT, (LONG_PTR)hwnd);
+			windowHandle()->setTransientParent(_taskbarHiderWindow.get());
 		}
 	} break;
 
@@ -261,6 +301,7 @@ void MainWindow::workmodeUpdated(Core::Settings::WorkMode mode) {
 		HWND psOwner = (HWND)GetWindowLongPtr(ps_hWnd, GWLP_HWNDPARENT);
 		if (psOwner) {
 			SetWindowLongPtr(ps_hWnd, GWLP_HWNDPARENT, 0);
+			windowHandle()->setTransientParent(nullptr);
 			psRefreshTaskbarIcon();
 		}
 	} break;
@@ -324,52 +365,76 @@ void MainWindow::unreadCounterChangedHook() {
 void MainWindow::updateIconCounters() {
 	const auto counter = Core::App().unreadBadge();
 	const auto muted = Core::App().unreadBadgeMuted();
+	const auto controller = sessionController();
+	const auto session = controller ? &controller->session() : nullptr;
 
-	auto iconSizeSmall = QSize(GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
-	auto iconSizeBig = QSize(GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+	const auto iconSizeSmall = QSize(
+		GetSystemMetrics(SM_CXSMICON),
+		GetSystemMetrics(SM_CYSMICON));
+	const auto iconSizeBig = QSize(
+		GetSystemMetrics(SM_CXICON),
+		GetSystemMetrics(SM_CYICON));
 
-	auto &bg = (muted ? st::trayCounterBgMute : st::trayCounterBg);
-	auto &fg = st::trayCounterFg;
-	auto iconSmallPixmap16 = Ui::PixmapFromImage(
-		iconWithCounter(16, counter, bg, fg, true));
-	auto iconSmallPixmap32 = Ui::PixmapFromImage(
-		iconWithCounter(32, counter, bg, fg, true));
+	const auto &bg = muted ? st::trayCounterBgMute : st::trayCounterBg;
+	const auto &fg = st::trayCounterFg;
+	const auto counterArgs = [&](int size, int counter) {
+		return Window::CounterLayerArgs{
+			.size = size,
+			.count = counter,
+			.bg = bg,
+			.fg = fg,
+		};
+	};
+	const auto iconWithCounter = [&](int size, int counter, bool smallIcon) {
+		return Ui::PixmapFromImage(IconWithCounter(
+			counterArgs(size, counter),
+			session,
+			smallIcon));
+	};
+
+	auto iconSmallPixmap16 = iconWithCounter(16, counter, true);
+	auto iconSmallPixmap32 = iconWithCounter(32, counter, true);
 	QIcon iconSmall, iconBig;
 	iconSmall.addPixmap(iconSmallPixmap16);
 	iconSmall.addPixmap(iconSmallPixmap32);
-	iconBig.addPixmap(Ui::PixmapFromImage(
-		iconWithCounter(32, taskbarList.Get() ? 0 : counter, bg, fg, false)));
-	iconBig.addPixmap(Ui::PixmapFromImage(
-		iconWithCounter(64, taskbarList.Get() ? 0 : counter, bg, fg, false)));
+	const auto bigCounter = taskbarList.Get() ? 0 : counter;
+	iconBig.addPixmap(iconWithCounter(32, bigCounter, false));
+	iconBig.addPixmap(iconWithCounter(64, bigCounter, false));
 	if (trayIcon) {
 		// Force Qt to use right icon size, not the larger one.
 		QIcon forTrayIcon;
 		auto forTrayIcon16 = cDisableTrayCounter()
-			? Ui::PixmapFromImage(iconWithCounter(16, 0, bg, fg, true))
+			? iconWithCounter(16, 0, true)
 			: iconSmallPixmap16;
 		auto forTrayIcon32 = cDisableTrayCounter()
-			? Ui::PixmapFromImage(iconWithCounter(32, 0, bg, fg, true))
+			? iconWithCounter(32, 0, true)
 			: iconSmallPixmap32;
-		forTrayIcon.addPixmap(iconSizeSmall.width() >= 20 ? forTrayIcon32 : forTrayIcon16);
+		forTrayIcon.addPixmap(iconSizeSmall.width() >= 20
+			? forTrayIcon32
+			: forTrayIcon16);
 		trayIcon->setIcon(forTrayIcon);
 	}
 
 	psDestroyIcons();
-	ps_iconSmall = createHIconFromQIcon(iconSmall, iconSizeSmall.width(), iconSizeSmall.height());
-	ps_iconBig = createHIconFromQIcon(iconBig, iconSizeBig.width(), iconSizeBig.height());
-	SendMessage(ps_hWnd, WM_SETICON, 0, (LPARAM)ps_iconSmall);
-	SendMessage(ps_hWnd, WM_SETICON, 1, (LPARAM)(ps_iconBig ? ps_iconBig : ps_iconSmall));
-	if (taskbarList.Get()) {
+	ps_iconSmall = NativeIcon(iconSmall, iconSizeSmall);
+	ps_iconBig = NativeIcon(iconBig, iconSizeBig);
+	SendMessage(ps_hWnd, WM_SETICON, ICON_SMALL, (LPARAM)ps_iconSmall);
+	SendMessage(ps_hWnd, WM_SETICON, ICON_BIG, (LPARAM)(ps_iconBig ? ps_iconBig : ps_iconSmall));
+	if (taskbarList) {
 		if (counter > 0) {
+			const auto pixmap = [&](int size) {
+				return Ui::PixmapFromImage(Window::GenerateCounterLayer(
+					counterArgs(size, counter)));
+			};
 			QIcon iconOverlay;
-			iconOverlay.addPixmap(Ui::PixmapFromImage(
-				iconWithCounter(-16, counter, bg, fg, false)));
-			iconOverlay.addPixmap(Ui::PixmapFromImage(
-				iconWithCounter(-32, counter, bg, fg, false)));
-			ps_iconOverlay = createHIconFromQIcon(iconOverlay, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
+			iconOverlay.addPixmap(pixmap(16));
+			iconOverlay.addPixmap(pixmap(32));
+			ps_iconOverlay = NativeIcon(iconOverlay, iconSizeSmall);
 		}
-		auto description = (counter > 0) ? tr::lng_unread_bar(tr::now, lt_count, counter) : QString();
-		taskbarList->SetOverlayIcon(ps_hWnd, ps_iconOverlay, description.toStdWString().c_str());
+		const auto description = (counter > 0)
+			? tr::lng_unread_bar(tr::now, lt_count, counter).toStdWString()
+			: std::wstring();
+		taskbarList->SetOverlayIcon(ps_hWnd, ps_iconOverlay, description.c_str());
 	}
 	SetWindowPos(ps_hWnd, 0, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
@@ -393,11 +458,12 @@ void MainWindow::initHook() {
 	using namespace base::Platform;
 	auto factory = ComPtr<IUIViewSettingsInterop>();
 	if (SupportsWRL()) {
-		GetActivationFactory(
+		ABI::Windows::Foundation::GetActivationFactory(
 			StringReferenceWrapper(
 				RuntimeClass_Windows_UI_ViewManagement_UIViewSettings).Get(),
 			&factory);
 		if (factory) {
+			// NB! No such method (or IUIViewSettingsInterop) in C++/WinRT :(
 			factory->GetForWindow(
 				ps_hWnd,
 				IID_PPV_ARGS(&_private->viewSettings));
@@ -410,11 +476,9 @@ void MainWindow::initHook() {
 }
 
 void MainWindow::validateWindowTheme(bool native, bool night) {
-	if (!Dlls::SetWindowTheme) {
-		return;
-	} else if (!IsWindows8OrGreater()) {
+	if (!IsWindows8OrGreater()) {
 		const auto empty = native ? nullptr : L" ";
-		Dlls::SetWindowTheme(ps_hWnd, empty, empty);
+		SetWindowTheme(ps_hWnd, empty, empty);
 		QApplication::setStyle(QStyleFactory::create(u"Windows"_q));
 #if 0
 	} else if (!Platform::IsDarkModeSupported()/*
@@ -425,7 +489,7 @@ void MainWindow::validateWindowTheme(bool native, bool night) {
 		return;
 #endif
 	} else if (!native) {
-		Dlls::SetWindowTheme(ps_hWnd, nullptr, nullptr);
+		SetWindowTheme(ps_hWnd, nullptr, nullptr);
 		return;
 	}
 
@@ -444,13 +508,13 @@ void MainWindow::validateWindowTheme(bool native, bool night) {
 				sizeof(darkValue)
 			};
 			Dlls::SetWindowCompositionAttribute(ps_hWnd, &data);
-		} else if (kSystemVersion.microVersion() >= 17763 && Dlls::DwmSetWindowAttribute) {
-			static const auto DWMWA_USE_IMMERSIVE_DARK_MODE = (kSystemVersion.microVersion() >= 18985)
+		} else if (kSystemVersion.microVersion() >= 17763) {
+			static const auto kDWMWA_USE_IMMERSIVE_DARK_MODE = (kSystemVersion.microVersion() >= 18985)
 				? DWORD(20)
 				: DWORD(19);
-			Dlls::DwmSetWindowAttribute(
+			DwmSetWindowAttribute(
 				ps_hWnd,
-				DWMWA_USE_IMMERSIVE_DARK_MODE,
+				kDWMWA_USE_IMMERSIVE_DARK_MODE,
 				&darkValue,
 				sizeof(darkValue));
 		}
@@ -466,7 +530,7 @@ void MainWindow::validateWindowTheme(bool native, bool night) {
 
 	//const auto updateWindowTheme = [&] {
 	//	const auto set = [&](LPCWSTR name) {
-	//		return Dlls::SetWindowTheme(ps_hWnd, name, nullptr);
+	//		return SetWindowTheme(ps_hWnd, name, nullptr);
 	//	};
 	//	if (!night || FAILED(set(L"DarkMode_Explorer"))) {
 	//		set(L"Explorer");
@@ -542,7 +606,6 @@ MainWindow::~MainWindow() {
 	}
 
 	psDestroyIcons();
-	if (ps_tbHider_hWnd) DestroyWindow(ps_tbHider_hWnd);
 
 	EventFilter::Destroy();
 }

@@ -51,7 +51,7 @@ struct HistoryServiceSelfDestruct
 
 struct HistoryServiceOngoingCall
 : public RuntimeComponent<HistoryServiceOngoingCall, HistoryItem> {
-	uint64 id = 0;
+	CallId id = 0;
 	ClickHandlerPtr link;
 	rpl::lifetime lifetime;
 };
@@ -69,10 +69,12 @@ public:
 
 	HistoryService(
 		not_null<History*> history,
+		MsgId id,
 		const MTPDmessage &data,
 		MessageFlags localFlags);
 	HistoryService(
 		not_null<History*> history,
+		MsgId id,
 		const MTPDmessageService &data,
 		MessageFlags localFlags);
 	HistoryService(
@@ -107,13 +109,13 @@ public:
 	void dependencyItemRemoved(HistoryItem *dependency) override;
 
 	bool needCheck() const override;
-	bool serviceMsg() const override {
+	bool isService() const override {
 		return true;
 	}
 
 	QString notificationText() const override;
 
-	QString inDialogsText(DrawInDialog way) const override;
+	ItemPreview toPreview(ToPreviewOptions options) const override;
 	QString inReplyText() const override;
 
 	std::unique_ptr<HistoryView::Element> createView(
@@ -173,7 +175,7 @@ private:
 	PreparedText preparePaymentSentText();
 	PreparedText prepareInvitedToCallText(
 		const QVector<MTPlong> &users,
-		uint64 linkCallId);
+		CallId linkCallId);
 	PreparedText prepareCallScheduledText(
 		TimeId scheduleDate);
 
@@ -186,7 +188,8 @@ private:
 [[nodiscard]] not_null<HistoryService*> GenerateJoinedMessage(
 	not_null<History*> history,
 	TimeId inviteDate,
-	not_null<UserData*> inviter);
+	not_null<UserData*> inviter,
+	bool viaRequest);
 [[nodiscard]] std::optional<bool> PeerHasThisCall(
 	not_null<PeerData*> peer,
-	uint64 id);
+	CallId id);

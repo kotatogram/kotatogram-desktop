@@ -12,7 +12,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/platform/linux/ui_linux_wayland_integration.h"
 #include "platform/linux/linux_desktop_environment.h"
 #include "platform/linux/linux_wayland_integration.h"
-#include "base/qt_adapters.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
 #include "storage/localstorage.h"
@@ -21,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/core_settings.h"
 #include "core/update_checker.h"
 #include "window/window_controller.h"
+#include "webview/platform/linux/webview_linux_webkit2gtk.h"
 
 #ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 #include "base/platform/linux/base_linux_glibmm_helper.h"
@@ -34,13 +34,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/linux/base_linux_xsettings.h"
 #endif // !DESKTOP_APP_DISABLE_X11_INTEGRATION
 
-#ifndef DESKTOP_APP_DISABLE_WEBKITGTK
-#include "webview/platform/linux/webview_linux_webkit2gtk.h"
-#endif // !DESKTOP_APP_DISABLE_WEBKITGTK
-
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyle>
-#include <QtWidgets/QDesktopWidget>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QProcess>
 #include <QtGui/QWindow>
@@ -562,6 +557,43 @@ bool AutostartSupported() {
 	return !InSnap();
 }
 
+void AutostartToggle(bool enabled, Fn<void(bool)> done) {
+	const auto guard = gsl::finally([&] {
+		if (done) {
+			done(enabled);
+		}
+	});
+
+#ifdef __HAIKU__
+
+	HaikuAutostart(enabled);
+
+#else // __HAIKU__
+
+	const auto silent = !done;
+	if (InFlatpak()) {
+#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+		PortalAutostart(enabled, silent);
+#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+	} else {
+		const auto autostart = QStandardPaths::writableLocation(
+			QStandardPaths::GenericConfigLocation)
+			+ qsl("/autostart/");
+
+		if (enabled) {
+			GenerateDesktopFile(autostart, qsl("-autostart"), silent);
+		} else {
+			QFile::remove(autostart + QGuiApplication::desktopFileName());
+		}
+	}
+
+#endif // __HAIKU__
+}
+
+bool AutostartSkip() {
+	return !cAutoStart();
+}
+
 bool TrayIconSupported() {
 	return App::wnd()
 		? App::wnd()->trayAvailable()
@@ -640,7 +672,7 @@ QString psAppDataPath() {
 
 void psDoCleanup() {
 	try {
-		psAutoStart(false, true);
+		Platform::AutostartToggle(false);
 		psSendToMenu(false, true);
 	} catch (...) {
 	}
@@ -671,7 +703,7 @@ void start() {
 	LOG(("Launcher filename: %1").arg(QGuiApplication::desktopFileName()));
 
 #ifndef DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION
-	qputenv("QT_WAYLAND_SHELL_INTEGRATION", "desktop-app-xdg-shell;xdg-shell;wl-shell");
+	qputenv("QT_WAYLAND_SHELL_INTEGRATION", "desktop-app-xdg-shell;xdg-shell");
 #endif // !DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION
 
 	qputenv("PULSE_PROP_application.name", AppName.utf8());
@@ -707,14 +739,12 @@ void start() {
 	}
 #endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
-#ifndef DESKTOP_APP_DISABLE_WEBKITGTK
 	const auto d = QFile::encodeName(QDir(cWorkingDir()).absolutePath());
 	char h[33] = { 0 };
 	hashMd5Hex(d.constData(), d.size(), h);
 
 	Webview::WebKit2Gtk::SetServiceName(
 		kWebviewService.utf16().arg(h).arg("%1").toStdString());
-#endif // !DESKTOP_APP_DISABLE_WEBKITGTK
 }
 
 void finish() {
@@ -838,29 +868,6 @@ void psNewVersion() {
 #ifndef __HAIKU__
 	Platform::InstallLauncher();
 #endif // __HAIKU__
-}
-
-void psAutoStart(bool start, bool silent) {
-#ifdef __HAIKU__
-	HaikuAutostart(start);
-	return;
-#endif // __HAIKU__
-
-	if (InFlatpak()) {
-#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-		PortalAutostart(start, silent);
-#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
-	} else {
-		const auto autostart = QStandardPaths::writableLocation(
-			QStandardPaths::GenericConfigLocation)
-			+ qsl("/autostart/");
-
-		if (start) {
-			GenerateDesktopFile(autostart, qsl("-autostart"), silent);
-		} else {
-			QFile::remove(autostart + QGuiApplication::desktopFileName());
-		}
-	}
 }
 
 void psSendToMenu(bool send, bool silent) {

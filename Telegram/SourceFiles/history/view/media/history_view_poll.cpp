@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
+#include "api/api_polls.h"
 #include "styles/style_chat.h"
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
@@ -282,7 +283,7 @@ bool Poll::showVotes() const {
 }
 
 bool Poll::canVote() const {
-	return !showVotes() && IsServerMsgId(_parent->data()->id);
+	return !showVotes() && _parent->data()->isRegular();
 }
 
 bool Poll::canSendVotes() const {
@@ -551,7 +552,7 @@ ClickHandlerPtr Poll::createAnswerClickHandler(
 	}
 	return std::make_shared<LambdaClickHandler>(crl::guard(this, [=] {
 		_votedFromHere = true;
-		history()->session().api().sendPollVotes(
+		history()->session().api().polls().sendVotes(
 			_parent->data()->fullId(),
 			{ option });
 	}));
@@ -591,7 +592,7 @@ void Poll::sendMultiOptions() {
 	) | ranges::to_vector;
 	if (!chosen.empty()) {
 		_votedFromHere = true;
-		history()->session().api().sendPollVotes(
+		history()->session().api().polls().sendVotes(
 			_parent->data()->fullId(),
 			std::move(chosen));
 	}
@@ -726,7 +727,9 @@ void Poll::draw(Painter &p, const PaintContext &context) const {
 	auto paintw = width();
 
 	checkSendingAnimation();
-	_poll->checkResultsReload(_parent->data(), context.now);
+	if (_poll->checkResultsReload(context.now)) {
+		history()->session().api().polls().reloadResults(_parent->data());
+	}
 
 	const auto stm = context.messageStyle();
 	const auto padding = st::msgPadding;
@@ -989,7 +992,7 @@ void Poll::paintCloseByTimer(
 		const auto part = std::max(
 			left / float64(radial),
 			1. / FullArcLength);
-		const auto length = int(std::round(FullArcLength * part));
+		const auto length = int(base::SafeRound(FullArcLength * part));
 		auto pen = regular->p;
 		pen.setWidth(st::historyPollRadio.thickness);
 		pen.setCapStyle(Qt::RoundCap);
@@ -1076,7 +1079,7 @@ int Poll::paintAnswer(
 		}
 		if (opacity > 0.) {
 			const auto percent = QString::number(
-				int(std::round(animation->percent.current()))) + '%';
+				int(base::SafeRound(animation->percent.current()))) + '%';
 			const auto percentWidth = st::historyPollPercentFont->width(
 				percent);
 			p.setOpacity(opacity);

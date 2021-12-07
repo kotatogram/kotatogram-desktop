@@ -27,7 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_options.h"
 #include "ui/special_buttons.h"
 #include "ui/empty_userpic.h"
-#include "dialogs/dialogs_layout.h"
+#include "dialogs/ui/dialogs_layout.h"
 #include "base/call_delayed.h"
 #include "mainwindow.h"
 #include "storage/localstorage.h"
@@ -36,7 +36,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_common.h"
 #include "base/qt_signal_producer.h"
 #include "boxes/about_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "boxes/peer_list_controllers.h"
 #include "calls/calls_box_controller.h"
 #include "lang/lang_keys.h"
@@ -158,7 +158,7 @@ private:
 	QImage _userpicCache;
 	base::unique_qptr<Ui::PopupMenu> _menu;
 
-	Dialogs::Layout::UnreadBadgeStyle _unreadSt;
+	Dialogs::Ui::UnreadBadgeStyle _unreadSt;
 	int _unreadBadge = 0;
 	bool _unreadBadgeMuted = true;
 
@@ -296,7 +296,7 @@ void MainMenu::AccountButton::paintEvent(QPaintEvent *e) {
 			- st::mainMenu.itemToggleShift;
 		const auto unreadRight = width() - skip;
 		const auto unreadTop = (height() - _unreadSt.size) / 2;
-		Dialogs::Layout::paintUnreadCount(
+		Dialogs::Ui::paintUnreadCount(
 			p,
 			string,
 			unreadRight,
@@ -352,7 +352,7 @@ void MainMenu::AccountButton::contextMenuEvent(QContextMenuEvent *e) {
 			close();
 			Core::App().logout(&session->account());
 		};
-		Ui::show(Box<ConfirmBox>(
+		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_sure_logout(tr::now),
 			tr::lng_settings_logout(tr::now),
 			st::attentionBoxButton,
@@ -448,7 +448,7 @@ void MainMenu::ToggleAccountsButton::paintUnreadBadge(QPainter &p) {
 	if (_unreadBadge.isEmpty()) {
 		return;
 	}
-	Dialogs::Layout::UnreadBadgeStyle st;
+	Dialogs::Ui::UnreadBadgeStyle st;
 
 	const auto right = width() - st::mainMenuTogglePosition.x() - st::mainMenuToggleSize * 2;
 	const auto top = height() - st::mainMenuTogglePosition.y() - st::mainMenuToggleSize;
@@ -486,7 +486,7 @@ void MainMenu::ToggleAccountsButton::validateUnreadBadge() {
 	}
 	_unreadBadge = computeUnreadBadge();
 
-	Dialogs::Layout::UnreadBadgeStyle st;
+	Dialogs::Ui::UnreadBadgeStyle st;
 	_unreadBadgeWidth = st.font->width(_unreadBadge);
 	const auto rectHeight = st.size;
 	const auto rectWidth = std::max(
@@ -877,7 +877,7 @@ not_null<Ui::SlideWrap<Ui::RippleButton>*> MainMenu::setupAddAccount(
 		};
 		if (_accountsCount >= Main::Domain::kMaxAccountsWarn) {
 			Ui::show(
-				Box<ConfirmBox>(
+				Box<Ui::ConfirmBox>(
 					ktr("ktg_too_many_accounts_warning"),
 					ktr("ktg_account_add_anyway"),
 					sure),
@@ -965,7 +965,7 @@ void MainMenu::refreshMenu() {
 
 	auto nightCallback = [=] {
 		if (Window::Theme::Background()->editingTheme()) {
-			controller->show(Box<InformBox>(
+			controller->show(Box<Ui::InformBox>(
 				tr::lng_theme_editor_cant_change_theme(tr::now)));
 			return;
 		}

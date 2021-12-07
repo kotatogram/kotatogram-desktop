@@ -57,7 +57,7 @@ auto RowBlobs() -> std::array<Ui::Paint::Blobs::BlobData, 2> {
 }
 
 [[nodiscard]] QString StatusPercentString(float volume) {
-	return QString::number(int(std::round(volume * 200))) + '%';
+	return QString::number(int(base::SafeRound(volume * 200))) + '%';
 }
 
 [[nodiscard]] int StatusPercentWidth(const QString &percent) {
@@ -492,7 +492,7 @@ int MembersRow::statusIconWidth(bool skipIcon) const {
 	const auto full = iconWidth
 		+ _statusIcon->percentWidth
 		+ st::normalFont->spacew;
-	return int(std::round(shown * full));
+	return int(base::SafeRound(shown * full));
 }
 
 int MembersRow::statusIconHeight() const {
@@ -665,19 +665,19 @@ void MembersRow::paintComplexStatusText(
 			: tr::lng_group_call_invited_status(tr::now)));
 }
 
-QSize MembersRow::actionSize() const {
+QSize MembersRow::rightActionSize() const {
 	return _delegate->rowIsNarrow() ? QSize() : QSize(
 		st::groupCallActiveButton.width,
 		st::groupCallActiveButton.height);
 }
 
-bool MembersRow::actionDisabled() const {
+bool MembersRow::rightActionDisabled() const {
 	return _delegate->rowIsMe(peer())
 		|| (_state == State::Invited)
 		|| !_delegate->rowCanMuteMembers();
 }
 
-QMargins MembersRow::actionMargins() const {
+QMargins MembersRow::rightActionMargins() const {
 	return QMargins(
 		0,
 		0,
@@ -685,14 +685,14 @@ QMargins MembersRow::actionMargins() const {
 		0);
 }
 
-void MembersRow::paintAction(
+void MembersRow::rightActionPaint(
 		Painter &p,
 		int x,
 		int y,
 		int outerWidth,
 		bool selected,
 		bool actionSelected) {
-	auto size = actionSize();
+	auto size = rightActionSize();
 	const auto iconRect = style::rtlrect(
 		x,
 		y,
@@ -747,7 +747,9 @@ void MembersRow::refreshStatus() {
 		_speaking);
 }
 
-void MembersRow::addActionRipple(QPoint point, Fn<void()> updateCallback) {
+void MembersRow::rightActionAddRipple(
+		QPoint point,
+		Fn<void()> updateCallback) {
 	if (!_actionRipple) {
 		auto mask = Ui::RippleAnimation::ellipseMask(QSize(
 			st::groupCallActiveButton.rippleAreaSize,
@@ -765,7 +767,7 @@ void MembersRow::refreshName(const style::PeerListItem &st) {
 	//_narrowName = Ui::Text::String();
 }
 
-void MembersRow::stopLastActionRipple() {
+void MembersRow::rightActionStopLastRipple() {
 	if (_actionRipple) {
 		_actionRipple->lastStop();
 	}

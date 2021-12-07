@@ -37,7 +37,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_editing.h"
 #include "api/api_sending.h"
 #include "apiwrap.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
+#include "boxes/delete_messages_box.h"
 #include "boxes/edit_caption_box.h"
 #include "boxes/send_files_box.h"
 #include "window/window_adaptive.h"
@@ -225,7 +226,10 @@ RepliesWidget::RepliesWidget(
 		static_cast<ListDelegate*>(this)));
 	_scroll->move(0, _topBar->height());
 	_scroll->show();
-	connect(_scroll.get(), &Ui::ScrollArea::scrolled, [=] { onScroll(); });
+	_scroll->scrolls(
+	) | rpl::start_with_next([=] {
+		onScroll();
+	}, lifetime());
 
 	_inner->editMessageRequested(
 	) | rpl::start_with_next([=](auto fullId) {
@@ -457,7 +461,7 @@ void RepliesWidget::setupComposeControls() {
 
 	auto hasSendingMessage = session().changes().historyFlagsValue(
 		_history,
-		Data::HistoryUpdate::Flag::LocalMessages
+		Data::HistoryUpdate::Flag::ClientSideMessages
 	) | rpl::map([=] {
 		return _history->latestSendingMessage() != nullptr;
 	}) | rpl::distinct_until_changed();
@@ -1034,7 +1038,8 @@ void RepliesWidget::edit(
 		}
 		return;
 	} else if (!left.text.isEmpty()) {
-		controller()->show(Box<InformBox>(tr::lng_edit_too_long(tr::now)));
+		controller()->show(Box<Ui::InformBox>(
+			tr::lng_edit_too_long(tr::now)));
 		return;
 	}
 
@@ -1059,13 +1064,15 @@ void RepliesWidget::edit(
 
 		const auto &err = error.type();
 		if (ranges::contains(Api::kDefaultEditMessagesErrors, err)) {
-			controller()->show(Box<InformBox>(tr::lng_edit_error(tr::now)));
+			controller()->show(Box<Ui::InformBox>(
+				tr::lng_edit_error(tr::now)));
 		} else if (err == u"MESSAGE_NOT_MODIFIED"_q) {
 			_composeControls->cancelEditMessage();
 		} else if (err == u"MESSAGE_EMPTY"_q) {
 			doSetInnerFocus();
 		} else {
-			controller()->show(Box<InformBox>(tr::lng_edit_error(tr::now)));
+			controller()->show(Box<Ui::InformBox>(
+				tr::lng_edit_error(tr::now)));
 		}
 		update();
 		return true;
@@ -1102,7 +1109,7 @@ bool RepliesWidget::sendExistingDocument(
 		ChatRestriction::SendStickers);
 	if (error) {
 		controller()->show(
-			Box<InformBox>(*error),
+			Box<Ui::InformBox>(*error),
 			Ui::LayerOption::KeepOther);
 		return false;
 	} else if (showSlowmodeError()) {
@@ -1143,7 +1150,7 @@ bool RepliesWidget::sendExistingPhoto(
 		ChatRestriction::SendMedia);
 	if (error) {
 		controller()->show(
-			Box<InformBox>(*error),
+			Box<Ui::InformBox>(*error),
 			Ui::LayerOption::KeepOther);
 		return false;
 	} else if (showSlowmodeError()) {
@@ -1165,7 +1172,7 @@ void RepliesWidget::sendInlineResult(
 		not_null<UserData*> bot) {
 	const auto errorText = result->getErrorOnSend(_history);
 	if (!errorText.isEmpty()) {
-		controller()->show(Box<InformBox>(errorText));
+		controller()->show(Box<Ui::InformBox>(errorText));
 		return;
 	}
 	sendInlineResult(result, bot, Api::SendOptions());
@@ -1798,7 +1805,7 @@ bool RepliesWidget::listAllowsMultiSelect() {
 
 bool RepliesWidget::listIsItemGoodForSelection(
 		not_null<HistoryItem*> item) {
-	return IsServerMsgId(item->id);
+	return item->isRegular();
 }
 
 bool RepliesWidget::listIsLessInOrder(
@@ -1861,9 +1868,7 @@ void RepliesWidget::readTill(not_null<HistoryItem*> item) {
 
 void RepliesWidget::listVisibleItemsChanged(HistoryItemsList &&items) {
 	const auto reversed = ranges::views::reverse(items);
-	const auto good = ranges::find_if(reversed, [](auto item) {
-		return IsServerMsgId(item->id);
-	});
+	const auto good = ranges::find_if(reversed, &HistoryItem::isRegular);
 	if (good != end(reversed)) {
 		readTill(*good);
 	}
@@ -1878,7 +1883,7 @@ MessagesBarData RepliesWidget::listMessagesBar(
 	const auto hidden = (till < 2);
 	for (auto i = 0, count = int(elements.size()); i != count; ++i) {
 		const auto item = elements[i]->data();
-		if (IsServerMsgId(item->id) && item->id > till) {
+		if (item->isRegular() && item->id > till) {
 			if (item->out() || !item->replyToId()) {
 				readTill(item);
 			} else {
@@ -1920,7 +1925,7 @@ bool RepliesWidget::listElementShownUnread(not_null<const Element*> view) {
 
 bool RepliesWidget::listIsGoodForAroundPosition(
 		not_null<const Element*> view) {
-	return IsServerMsgId(view->data()->id);
+	return view->data()->isRegular();
 }
 
 void RepliesWidget::listSendBotCommand(

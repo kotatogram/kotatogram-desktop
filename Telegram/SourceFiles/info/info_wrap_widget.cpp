@@ -28,7 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_slide_animation.h"
 #include "window/window_peer_menu.h"
 #include "boxes/peer_list_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "main/main_session.h"
 #include "mtproto/mtproto_config.h"
 #include "data/data_session.h"
@@ -417,7 +417,7 @@ void WrapWidget::checkBeforeClose(Fn<void()> close) {
 		close();
 	};
 	if (_controller->canSaveChangesNow()) {
-		Ui::show(Box<ConfirmBox>(
+		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_settings_close_sure(tr::now),
 			tr::lng_close(tr::now),
 			confirmed));
@@ -488,7 +488,7 @@ void WrapWidget::addProfileCallsButton() {
 					: st::infoTopBarCall))
 		)->addClickHandler([=] {
 			if (cConfirmBeforeCall()) {
-				Ui::show(Box<ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
+				Ui::show(Box<Ui::ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
 					Ui::hideLayer();
 					Core::App().calls().startOutgoingCall(user, false);
 				}));

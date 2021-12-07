@@ -25,6 +25,8 @@ struct FileLoadResult;
 struct SendingAlbum;
 enum class SendMediaType;
 class MessageLinksParser;
+struct InlineBotQuery;
+struct AutocompleteQuery;
 
 namespace MTP {
 class Error;
@@ -71,12 +73,15 @@ class LinkButton;
 class RoundButton;
 class PinnedBar;
 class GroupCallBar;
+class RequestsBar;
 struct PreparedList;
 class SendFilesWay;
 enum class ReportReason;
 namespace Toast {
 class Instance;
 } // namespace Toast
+class ChooseThemeController;
+class ContinuousScroll;
 } // namespace Ui
 
 namespace Window {
@@ -98,7 +103,6 @@ class TopBarWidget;
 class ContactStatus;
 class Element;
 class PinnedTracker;
-class GroupCallTracker;
 namespace Controls {
 class RecordLock;
 class VoiceRecordBar;
@@ -181,9 +185,6 @@ public:
 
 	QPoint clampMousePosition(QPoint point);
 
-	void checkSelectingScroll(QPoint point);
-	void noSelectingScroll();
-
 	bool touchScroll(const QPoint &delta);
 
 	void enqueueMessageHighlight(not_null<HistoryView::Element*> view);
@@ -239,6 +240,8 @@ public:
 	void clearDelayedShowAt();
 	void saveFieldToHistoryLocalDraft();
 
+	void toggleChooseChatTheme(not_null<PeerData*> peer);
+
 	void applyCloudDraft(History *history);
 
 	void updateHistoryDownPosition();
@@ -264,6 +267,7 @@ public:
 	void confirmDeleteSelected();
 	void clearSelected();
 
+	[[nodiscard]] SendMenu::Type sendMenuType() const;
 	bool sendExistingDocument(
 		not_null<DocumentData*> document,
 		Api::SendOptions options);
@@ -365,7 +369,6 @@ private:
 	void preloadHistoryIfNeeded();
 
 	void handleScroll();
-	void scrollByTimer();
 	void updateHistoryItemsByTimer();
 
 	[[nodiscard]] Dialogs::EntryState computeDialogsEntryState() const;
@@ -380,10 +383,9 @@ private:
 	void sendWithModifiers(Qt::KeyboardModifiers modifiers);
 	void sendSilent();
 	void sendScheduled();
-	[[nodiscard]] SendMenu::Type sendMenuType() const;
 	[[nodiscard]] SendMenu::Type sendButtonMenuType() const;
 	void handlePendingHistoryUpdate();
-	void fullPeerUpdated(PeerData *peer);
+	void fullInfoUpdated();
 	void toggleTabbedSelectorMode();
 	void recountChatWidth();
 	void historyDownClicked();
@@ -465,6 +467,10 @@ private:
 	std::optional<QString> writeRestriction() const;
 	void orderWidgets();
 
+	[[nodiscard]] InlineBotQuery parseInlineBotQuery() const;
+	[[nodiscard]] auto parseMentionHashtagBotCommandQuery() const
+		-> AutocompleteQuery;
+
 	void clearInlineBot();
 	void inlineBotChanged();
 
@@ -508,7 +514,8 @@ private:
 		int nowScrollTop);
 
 	void checkMessagesTTL();
-	void setupGroupCallTracker();
+	void setupGroupCallBar();
+	void setupRequestsBar();
 
 	void sendInlineResult(InlineBots::ResultSelected result);
 
@@ -596,18 +603,20 @@ private:
 	void inlineBotResolveDone(const MTPcontacts_ResolvedPeer &result);
 	void inlineBotResolveFail(const MTP::Error &error, const QString &username);
 
-	bool isRecording() const;
+	[[nodiscard]] bool isRecording() const;
 
-	bool isBotStart() const;
-	bool isBlocked() const;
-	bool isJoinChannel() const;
-	bool isMuteUnmute() const;
-	bool isReportMessages() const;
+	[[nodiscard]] bool isBotStart() const;
+	[[nodiscard]] bool isBlocked() const;
+	[[nodiscard]] bool isJoinChannel() const;
+	[[nodiscard]] bool isMuteUnmute() const;
+	[[nodiscard]] bool isReportMessages() const;
 	bool updateCmdStartShown();
 	void updateSendButtonType();
-	bool showRecordButton() const;
-	bool showInlineBotCancel() const;
+	[[nodiscard]] bool showRecordButton() const;
+	[[nodiscard]] bool showInlineBotCancel() const;
 	void refreshSilentToggle();
+
+	[[nodiscard]] bool isChoosingTheme() const;
 
 	void setupScheduledToggle();
 	void refreshScheduledToggle();
@@ -637,9 +646,10 @@ private:
 	FullMsgId _pinnedClickedId;
 	std::optional<FullMsgId> _minPinnedId;
 
-	std::unique_ptr<HistoryView::GroupCallTracker> _groupCallTracker;
 	std::unique_ptr<Ui::GroupCallBar> _groupCallBar;
 	int _groupCallBarHeight = 0;
+	std::unique_ptr<Ui::RequestsBar> _requestsBar;
+	int _requestsBarHeight = 0;
 
 	bool _preserveScrollTop = false;
 
@@ -675,7 +685,7 @@ private:
 	int _delayedShowAtRequest = 0; // Not real mtpRequestId.
 
 	object_ptr<HistoryView::TopBarWidget> _topBar;
-	object_ptr<Ui::ScrollArea> _scroll;
+	object_ptr<Ui::ContinuousScroll> _scroll;
 	QPointer<HistoryInner> _list;
 	History *_migrated = nullptr;
 	History *_history = nullptr;
@@ -700,7 +710,7 @@ private:
 	bool _unreadMentionsIsShown = false;
 	object_ptr<Ui::HistoryDownButton> _unreadMentions;
 
-	object_ptr<FieldAutocomplete> _fieldAutocomplete;
+	const object_ptr<FieldAutocomplete> _fieldAutocomplete;
 	object_ptr<Support::Autocomplete> _supportAutocomplete;
 	std::unique_ptr<MessageLinksParser> _fieldLinksParser;
 
@@ -738,6 +748,8 @@ private:
 	object_ptr<Ui::ScrollArea> _kbScroll;
 	const not_null<BotKeyboard*> _keyboard;
 
+	std::unique_ptr<Ui::ChooseThemeController> _chooseTheme;
+
 	object_ptr<Ui::InnerDropdown> _membersDropdown = { nullptr };
 	base::Timer _membersDropdownShowTimer;
 
@@ -757,9 +769,6 @@ private:
 	Ui::Animations::Simple _a_show;
 	Window::SlideDirection _showDirection;
 	QPixmap _cacheUnder, _cacheOver;
-
-	base::Timer _scrollTimer;
-	int32 _scrollDelta = 0;
 
 	MsgId _highlightedMessageId = 0;
 	std::deque<MsgId> _highlightQueue;

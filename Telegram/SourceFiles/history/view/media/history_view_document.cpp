@@ -89,9 +89,9 @@ void PaintWaveform(
 	const auto active = stm->msgWaveformActive;
 	const auto inactive = stm->msgWaveformInactive;
 	const auto wfSize = wf
-		? wf->size()
+		? int(wf->size())
 		: ::Media::Player::kWaveformSamplesCount;
-	const auto activeWidth = std::round(availableWidth * progress);
+	const auto activeWidth = base::SafeRound(availableWidth * progress);
 
 	const auto &barWidth = st::msgWaveformBar;
 	const auto barCount = std::min(
@@ -530,7 +530,7 @@ void Document::draw(
 		}();
 		if (voice->seeking()) {
 			voiceStatusOverride = Ui::FormatPlayedText(
-				std::round(progress * voice->_lastDurationMs) / 1000,
+				base::SafeRound(progress * voice->_lastDurationMs) / 1000,
 				voice->_lastDurationMs / 1000);
 		}
 
@@ -599,7 +599,7 @@ bool Document::downloadInCorner() const {
 	return _data->isAudioFile()
 		&& _data->canBeStreamed()
 		&& !_data->inappPlaybackFailed()
-		&& IsServerMsgId(_realParent->id);
+		&& _realParent->isRegular();
 }
 
 void Document::drawCornerDownload(

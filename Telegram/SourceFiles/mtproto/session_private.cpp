@@ -75,12 +75,18 @@ using namespace details;
 }
 
 [[nodiscard]] QString ComputeAppVersion() {
-	return QString::fromLatin1(AppKotatoVersionStr) + ([] {
+#if defined Q_OS_WIN && defined Q_PROCESSOR_X86_64
+	const auto arch = u" x64"_q;
+#elif (defined Q_OS_WIN && defined Q_PROCESSOR_X86_32) || defined Q_PROCESSOR_X86_64
+	const auto arch = QString();
+#else
+	const auto arch = ' ' + QSysInfo::buildCpuArchitecture();
+#endif
+	return QString::fromLatin1(AppKotatoVersionStr) + arch + ([] {
 #if defined OS_MAC_STORE
 		return u" Mac App Store"_q;
 #elif defined OS_WIN_STORE // OS_MAC_STORE
-		return (Platform::IsWindows64Bit() ? u" x64"_q : QString())
-			+ u" Microsoft Store"_q;
+		return u" Microsoft Store"_q;
 #elif defined Q_OS_UNIX && !defined Q_OS_MAC // OS_MAC_STORE || OS_WIN_STORE
 		return Platform::InFlatpak()
 			? u" Flatpak"_q
@@ -88,7 +94,7 @@ using namespace details;
 			? u" Snap"_q
 			: QString();
 #else // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
-		return Platform::IsWindows64Bit() ? u" x64"_q : QString();
+		return QString();
 #endif // OS_MAC_STORE || OS_WIN_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
 	})() + (cAlphaVersion()
 				? qsl("-%1.%2").arg(AppKotatoTestBranch).arg(AppKotatoTestVersion)
@@ -538,7 +544,7 @@ MTPVector<MTPJSONObjectValue> SessionPrivate::prepareInitParams() {
 	const auto local = QDateTime::currentDateTime();
 	const auto utc = QDateTime(local.date(), local.time(), Qt::UTC);
 	const auto shift = base::unixtime::now() - (TimeId)::time(nullptr);
-	const auto delta = int(utc.toTime_t()) - int(local.toTime_t()) - shift;
+	const auto delta = int(utc.toSecsSinceEpoch()) - int(local.toSecsSinceEpoch()) - shift;
 	auto sliced = delta;
 	while (sliced < -12 * 3600) {
 		sliced += 24 * 3600;
@@ -547,7 +553,9 @@ MTPVector<MTPJSONObjectValue> SessionPrivate::prepareInitParams() {
 		sliced -= 24 * 3600;
 	}
 	const auto sign = (sliced < 0) ? -1 : 1;
-	const auto rounded = std::round(std::abs(sliced) / 900.) * 900 * sign;
+	const auto rounded = base::SafeRound(std::abs(sliced) / 900.)
+		* 900
+		* sign;
 	return MTP_vector<MTPJSONObjectValue>(
 		1,
 		MTP_jsonObjectValue(

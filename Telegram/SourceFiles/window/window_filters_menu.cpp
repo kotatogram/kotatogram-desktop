@@ -23,7 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout_reorder.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/toast/toast.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "boxes/filters/edit_filter_box.h"
 #include "kotato/json_settings.h"
 #include "settings/settings_common.h"
@@ -448,7 +448,7 @@ void FiltersMenu::showEditBox(FilterId id) {
 }
 
 void FiltersMenu::showRemoveBox(FilterId id) {
-	_session->window().show(Box<ConfirmBox>(
+	_session->window().show(Box<Ui::ConfirmBox>(
 		tr::lng_filters_remove_sure(tr::now),
 		tr::lng_filters_remove_yes(tr::now),
 		[=](Fn<void()> &&close) { close(); remove(id); }));

@@ -54,7 +54,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "calls/calls_instance.h" // Core::App().calls().inCall().
 #include "calls/group/calls_group_call.h"
 #include "ui/boxes/calendar_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "main/main_domain.h"
@@ -110,10 +110,16 @@ constexpr auto kNightBaseFile = ":/gui/night-custom-base.tdesktop-theme"_cs;
 }
 
 [[nodiscard]] Ui::ChatThemeBubblesData PrepareBubblesData(
-		const Data::CloudTheme &theme) {
+		const Data::CloudTheme &theme,
+		Data::CloudThemeType type) {
+	const auto i = theme.settings.find(type);
 	return {
-		.colors = theme.outgoingMessagesColors,
-		.accent = theme.outgoingAccentColor,
+		.colors = (i != end(theme.settings)
+			? i->second.outgoingMessagesColors
+			: std::vector<QColor>()),
+		.accent = (i != end(theme.settings)
+			? i->second.outgoingAccentColor
+			: std::optional<QColor>()),
 	};
 }
 
@@ -124,6 +130,14 @@ void ActivateWindow(not_null<SessionController*> controller) {
 	window->raise();
 	window->activateWindow();
 	Ui::ActivateWindowDelayed(window);
+}
+
+bool operator==(const PeerThemeOverride &a, const PeerThemeOverride &b) {
+	return (a.peer == b.peer) && (a.theme == b.theme);
+}
+
+bool operator!=(const PeerThemeOverride &a, const PeerThemeOverride &b) {
+	return !(a == b);
 }
 
 DateClickHandler::DateClickHandler(Dialogs::Key chat, QDate date)
@@ -194,7 +208,7 @@ void SessionNavigation::resolveUsername(
 	}).fail([=](const MTP::Error &error) {
 		_resolveRequestId = 0;
 		if (error.code() == 400) {
-			show(Box<InformBox>(
+			show(Box<Ui::InformBox>(
 				tr::lng_username_not_found(tr::now, lt_user, username)));
 		}
 	}).send();
@@ -568,13 +582,12 @@ SessionController::SessionController(
 		enableGifPauseReason(GifPauseReason::RoundPlaying);
 	}
 
-	base::ObservableViewer(
-		session->api().fullPeerUpdated()
-	) | rpl::start_with_next([=](PeerData *peer) {
-		if (peer == _showEditPeer) {
-			_showEditPeer = nullptr;
-			show(Box<EditPeerInfoBox>(this, peer));
-		}
+	session->changes().peerUpdates(
+		Data::PeerUpdate::Flag::FullInfo
+	) | rpl::filter([=](const Data::PeerUpdate &update) {
+		return (update.peer == _showEditPeer);
+	}) | rpl::start_with_next([=] {
+		show(Box<EditPeerInfoBox>(this, base::take(_showEditPeer)));
 	}, lifetime());
 
 	session->data().chatsListChanges(
@@ -1126,13 +1139,37 @@ void SessionController::closeThirdSection() {
 	}
 }
 
+void SessionController::showPeer(not_null<PeerData*> peer, MsgId msgId) {
+	const auto currentPeer = activeChatCurrent().peer();
+	if (peer && peer->isChannel() && currentPeer != peer) {
+		const auto clickedChannel = peer->asChannel();
+		if (!clickedChannel->isPublic()
+			&& !clickedChannel->amIn()
+			&& (!currentPeer->isChannel()
+				|| currentPeer->asChannel()->linkedChat()
+					!= clickedChannel)) {
+			Ui::ShowMultilineToast({
+				.text = {
+					.text = peer->isMegagroup()
+						? tr::lng_group_not_accessible(tr::now)
+						: tr::lng_channel_not_accessible(tr::now)
+				},
+			});
+		} else {
+			showPeerHistory(peer->id, SectionShow(), msgId);
+		}
+	} else {
+		showPeerInfo(peer, SectionShow());
+	}
+}
+
 void SessionController::startOrJoinGroupCall(
 		not_null<PeerData*> peer,
 		QString joinHash,
 		GroupCallJoinConfirm confirm) {
 	auto &calls = Core::App().calls();
 	const auto askConfirmation = [&](QString text, QString button) {
-		show(Box<ConfirmBox>(text, button, crl::guard(this, [=] {
+		show(Box<Ui::ConfirmBox>(text, button, crl::guard(this, [=] {
 			Ui::hideLayer();
 			startOrJoinGroupCall(peer, joinHash, GroupCallJoinConfirm::None);
 		})));
@@ -1184,8 +1221,8 @@ void SessionController::showJumpToDate(Dialogs::Key chat, QDate requestedDate) {
 						return history->blocks.front()->messages.front()->dateTime().date();
 					}
 				}
-			} else if (history->chatListTimeId() != 0) {
-				return base::unixtime::parse(history->chatListTimeId()).date();
+			} else if (const auto item = history->lastMessage()) {
+				return base::unixtime::parse(item->date()).date();
 			}
 		}
 		return QDate();
@@ -1195,8 +1232,8 @@ void SessionController::showJumpToDate(Dialogs::Key chat, QDate requestedDate) {
 			if (const auto channel = history->peer->migrateTo()) {
 				history = channel->owner().historyLoaded(channel);
 			}
-			if (history && history->chatListTimeId() != 0) {
-				return base::unixtime::parse(history->chatListTimeId()).date();
+			if (const auto item = history ? history->lastMessage() : nullptr) {
+				return base::unixtime::parse(item->date()).date();
 			}
 		}
 		return QDate::currentDate();
@@ -1268,6 +1305,10 @@ void SessionController::clearChooseReportMessages() {
 	content()->clearChooseReportMessages();
 }
 
+void SessionController::toggleChooseChatTheme(not_null<PeerData*> peer) {
+	content()->toggleChooseChatTheme(peer);
+}
+
 void SessionController::updateColumnLayout() {
 	content()->updateColumnLayout();
 }
@@ -1317,7 +1358,7 @@ void SessionController::cancelUploadLayer(not_null<HistoryItem*> item) {
 		session().uploader().unpause();
 	};
 
-	show(Box<ConfirmBox>(
+	show(Box<Ui::ConfirmBox>(
 		tr::lng_selected_cancel_sure_this(tr::now),
 		tr::lng_selected_upload_stop(tr::now),
 		tr::lng_continue(tr::now),
@@ -1448,21 +1489,29 @@ void SessionController::openDocument(
 }
 
 auto SessionController::cachedChatThemeValue(
-	const Data::CloudTheme &data)
+	const Data::CloudTheme &data,
+	Data::CloudThemeType type)
 -> rpl::producer<std::shared_ptr<Ui::ChatTheme>> {
-	const auto key = data.id;
-	if (!key || !data.paper || data.paper->backgroundColors().empty()) {
+	const auto key = Ui::ChatThemeKey{
+		data.id,
+		(type == Data::CloudThemeType::Dark),
+	};
+	const auto settings = data.settings.find(type);
+	if (!key
+		|| (settings == end(data.settings))
+		|| !settings->second.paper
+		|| settings->second.paper->backgroundColors().empty()) {
 		return rpl::single(_defaultChatTheme);
 	}
 	const auto i = _customChatThemes.find(key);
 	if (i != end(_customChatThemes)) {
 		if (auto strong = i->second.theme.lock()) {
-			pushToLastUsed(strong);
+			pushLastUsedChatTheme(strong);
 			return rpl::single(std::move(strong));
 		}
 	}
 	if (i == end(_customChatThemes) || !i->second.caching) {
-		cacheChatTheme(data);
+		cacheChatTheme(data, type);
 	}
 	const auto limit = Data::CloudThemes::TestingColors() ? (1 << 20) : 1;
 	using namespace rpl::mappers;
@@ -1473,12 +1522,12 @@ auto SessionController::cachedChatThemeValue(
 		if (theme->key() != key) {
 			return false;
 		}
-		pushToLastUsed(theme);
+		pushLastUsedChatTheme(theme);
 		return true;
 	}) | rpl::take(limit));
 }
 
-void SessionController::pushToLastUsed(
+void SessionController::pushLastUsedChatTheme(
 		const std::shared_ptr<Ui::ChatTheme> &theme) {
 	const auto i = ranges::find(_lastUsedCustomChatThemes, theme);
 	if (i == end(_lastUsedCustomChatThemes)) {
@@ -1504,6 +1553,21 @@ void SessionController::clearCachedChatThemes() {
 	_customChatThemes.clear();
 }
 
+void SessionController::overridePeerTheme(
+		not_null<PeerData*> peer,
+		std::shared_ptr<Ui::ChatTheme> theme) {
+	_peerThemeOverride = PeerThemeOverride{
+		peer,
+		theme ? theme : _defaultChatTheme,
+	};
+}
+
+void SessionController::clearPeerThemeOverride(not_null<PeerData*> peer) {
+	if (_peerThemeOverride.current().peer == peer.get()) {
+		_peerThemeOverride = PeerThemeOverride();
+	}
+}
+
 void SessionController::pushDefaultChatBackground() {
 	const auto background = Theme::Background();
 	const auto &paper = background->paper();
@@ -1520,20 +1584,26 @@ void SessionController::pushDefaultChatBackground() {
 	});
 }
 
-void SessionController::cacheChatTheme(const Data::CloudTheme &data) {
+void SessionController::cacheChatTheme(
+		const Data::CloudTheme &data,
+		Data::CloudThemeType type) {
 	Expects(data.id != 0);
-	Expects(data.paper.has_value());
-	Expects(!data.paper->backgroundColors().empty());
 
-	const auto key = data.id;
-	const auto document = data.paper->document();
+	const auto dark = (type == Data::CloudThemeType::Dark);
+	const auto key = Ui::ChatThemeKey{ data.id, dark };
+	const auto i = data.settings.find(type);
+	Assert(i != end(data.settings));
+	const auto &paper = i->second.paper;
+	Assert(paper.has_value());
+	Assert(!paper->backgroundColors().empty());
+	const auto document = paper->document();
 	const auto media = document ? document->createMediaView() : nullptr;
-	data.paper->loadDocument();
+	paper->loadDocument();
 	auto &theme = [&]() -> CachedTheme& {
 		const auto i = _customChatThemes.find(key);
 		if (i != end(_customChatThemes)) {
 			i->second.media = media;
-			i->second.paper = *data.paper;
+			i->second.paper = *paper;
 			i->second.caching = true;
 			return i->second;
 		}
@@ -1541,18 +1611,18 @@ void SessionController::cacheChatTheme(const Data::CloudTheme &data) {
 			key,
 			CachedTheme{
 				.media = media,
-				.paper = *data.paper,
+				.paper = *paper,
 				.caching = true,
 			}).first->second;
 	}();
 	auto descriptor = Ui::ChatThemeDescriptor{
-		.id = key,
+		.key = key,
 		.preparePalette = PreparePaletteCallback(
-			data.basedOnDark,
-			data.accentColor),
+			dark,
+			i->second.accentColor),
 		.backgroundData = backgroundData(theme),
-		.bubblesData = PrepareBubblesData(data),
-		.basedOnDark = data.basedOnDark,
+		.bubblesData = PrepareBubblesData(data, type),
+		.basedOnDark = dark,
 	};
 	crl::async([
 		this,

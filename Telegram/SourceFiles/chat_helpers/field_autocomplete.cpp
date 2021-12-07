@@ -41,6 +41,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_chat.h"
 #include "styles/style_widgets.h"
 #include "styles/style_chat_helpers.h"
+#include "base/qt_adapters.h"
 
 #include <QtWidgets/QApplication>
 
@@ -84,7 +85,7 @@ private:
 	void paintEvent(QPaintEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
 
-	void enterEventHook(QEvent *e) override;
+	void enterEventHook(QEnterEvent *e) override;
 	void leaveEventHook(QEvent *e) override;
 
 	void mousePressEvent(QMouseEvent *e) override;
@@ -168,11 +169,10 @@ FieldAutocomplete::FieldAutocomplete(
 
 	hide();
 
-	connect(
-		_scroll,
-		&Ui::ScrollArea::geometryChanged,
-		_inner,
-		&Inner::onParentGeometryChanged);
+	_scroll->geometryChanged(
+	) | rpl::start_with_next(crl::guard(_inner, [=] {
+		_inner->onParentGeometryChanged();
+	}), lifetime());
 }
 
 not_null<Window::SessionController*> FieldAutocomplete::controller() const {
@@ -258,19 +258,19 @@ void FieldAutocomplete::showFiltered(
 
 	query = query.toLower();
 	auto type = Type::Stickers;
-	auto plainQuery = query.midRef(0);
+	auto plainQuery = QStringView(query);
 	switch (query.at(0).unicode()) {
 	case '@':
 		type = Type::Mentions;
-		plainQuery = query.midRef(1);
+		plainQuery = base::StringViewMid(query, 1);
 		break;
 	case '#':
 		type = Type::Hashtags;
-		plainQuery = query.midRef(1);
+		plainQuery = base::StringViewMid(query, 1);
 		break;
 	case '/':
 		type = Type::BotCommands;
-		plainQuery = query.midRef(1);
+		plainQuery = base::StringViewMid(query, 1);
 		break;
 	}
 	bool resetScroll = (_type != type || _filter != plainQuery);
@@ -1223,7 +1223,7 @@ void FieldAutocomplete::Inner::contextMenuEvent(QContextMenuEvent *e) {
 	}
 }
 
-void FieldAutocomplete::Inner::enterEventHook(QEvent *e) {
+void FieldAutocomplete::Inner::enterEventHook(QEnterEvent *e) {
 	setMouseTracking(true);
 }
 

@@ -159,7 +159,7 @@ struct State {
 				auto &entry = context->cache(item);
 				entry.requestId = 0;
 				auto peers = std::vector<PeerId>();
-				peers.reserve(std::max(result.v.size(), 1));
+				peers.reserve(std::max(int(result.v.size()), 1));
 				for (const auto &id : result.v) {
 					peers.push_back(UserId(id));
 				}
@@ -291,10 +291,6 @@ bool WhoReadExists(not_null<HistoryItem*> item) {
 	const auto megagroup = peer->asMegagroup();
 	if (!chat && !megagroup) {
 		return false;
-	} else if (peer->migrateTo()) {
-		// They're all always marked as read.
-		// We don't know if there really are any readers.
-		return false;
 	}
 	const auto &appConfig = peer->session().account().appConfig();
 	const auto expirePeriod = TimeId(appConfig.get<double>(
@@ -354,6 +350,8 @@ rpl::producer<Ui::WhoReadContent> WhoRead(
 				return;
 			} else if (UpdateUserpics(state, item, peers)) {
 				RegenerateParticipants(state, small, large);
+				pushNext();
+			} else if (peers.empty()) {
 				pushNext();
 			}
 		}, lifetime);

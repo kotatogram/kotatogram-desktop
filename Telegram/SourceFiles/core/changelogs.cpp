@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "storage/storage_domain.h"
 #include "data/data_session.h"
+#include "base/qt_adapters.h"
 #include "mainwindow.h"
 #include "apiwrap.h"
 
@@ -62,7 +63,72 @@ std::map<int, const char*> BetaLogs() {
 	{
 		3000005,
 		"- Add support for Emoji 13.1."
-	}
+	},
+	{
+		3001002,
+		"- Control video in fullscreen mode using arrows and numbers.\n"
+
+		"- Open locations in browser if default Bing Maps is not installed.\n"
+
+		"- Reconnect without timeout when network availability changes.\n"
+
+		"- Crash fixes."
+	},
+	{
+		3001005,
+		"- Choose one of 8 new preset themes for any individual private chat.\n"
+
+		"- Click on '...' menu > 'Change Colors' to pick a theme.\n"
+
+		"- Both chat participants will see the same theme in that chat "
+		"– on all their devices.\n"
+
+		"- Each new theme features colorful gradient message bubbles, "
+		"beautifully animated backgrounds and unique background patterns.\n"
+
+		"- All chat themes have day and night versions and will follow "
+		"your overall dark mode settings.\n"
+
+		"- Implement main window rounded corners on Windows 11.\n"
+
+		"- Fix audio capture from AirPods on macOS.\n"
+	},
+	{
+		3001006,
+		"- Show small media previews in chats list.\n"
+
+		"- Show media album previews and caption text in chats list.\n"
+
+		"- Add \"Quick Reply\" and \"Mark as Read\" "
+		"to native Windows notifications.\n"
+	},
+	{
+		3001012,
+		"- Create special invite links that require admins "
+		"to approve users before they become members.\n"
+
+		"- Admins can view the applicants' profiles and bios "
+		"by tapping the Join Requests bar at the top of the chat.\n"
+
+		"- Add internal labels to your chat's Invite Links "
+		"to keep them organized.\n"
+
+		"- Run natively on Apple Silicon (macOS only).\n"
+	},
+	{
+		3001013,
+		"- Fix requests to groups / channels processing.\n"
+
+		"- Fix internal link previews with View Content button layout.\n"
+
+		"- Fix crash in messages search with imported messages results.\n"
+
+		"- Don't use fractional system UI scaling on Linux.\n"
+
+		"- Fix invite link icons on macOS.\n"
+
+		"- Several crash fixes.\n"
+	},
 	};
 };
 
@@ -195,7 +261,7 @@ void Changelogs::addBetaLog(int changeVersion, const char *changes) {
 		static const auto simple = u"\n- "_q;
 		static const auto separator = QString::fromUtf8("\n\xE2\x80\xA2 ");
 		auto result = QString::fromUtf8(changes).trimmed();
-		if (result.startsWith(simple.midRef(1))) {
+		if (result.startsWith(base::StringViewMid(simple, 1))) {
 			result = separator.mid(1) + result.mid(simple.size() - 1);
 		}
 		return result.replace(simple, separator);

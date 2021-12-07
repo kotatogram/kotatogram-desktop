@@ -24,10 +24,10 @@ namespace HistoryView {
 namespace {
 
 [[nodiscard]] TimeId TimeFromMatch(
-		const QStringRef &hours,
-		const QStringRef &minutes1,
-		const QStringRef &minutes2,
-		const QStringRef &seconds) {
+		QStringView hours,
+		QStringView minutes1,
+		QStringView minutes2,
+		QStringView seconds) {
 	auto ok1 = true;
 	auto ok2 = true;
 	auto ok3 = true;
@@ -49,7 +49,7 @@ QString DocumentTimestampLinkBase(
 		FullMsgId context) {
 	return QString(
 		"doc%1_%2_%3"
-	).arg(document->id).arg(context.channel.bare).arg(context.msg);
+	).arg(document->id).arg(context.channel.bare).arg(context.msg.bare);
 }
 
 TextWithEntities AddTimestampLinks(
@@ -71,10 +71,10 @@ TextWithEntities AddTimestampLinks(
 		offset = till;
 
 		const auto time = TimeFromMatch(
-			m.capturedRef(1),
-			m.capturedRef(2),
-			m.capturedRef(3),
-			m.capturedRef(4));
+			m.capturedView(1),
+			m.capturedView(2),
+			m.capturedView(3),
+			m.capturedView(4));
 		if (time < 0 || time > duration) {
 			continue;
 		}

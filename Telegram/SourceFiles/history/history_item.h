@@ -11,6 +11,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/flags.h"
 #include "base/value_ordering.h"
 #include "data/data_media_types.h"
+#include "history/history_item_edition.h"
+#include "history/history_item_reply_markup.h"
+
+#include <any>
 
 enum class UnreadMentionType;
 struct HistoryMessageReplyMarkup;
@@ -46,41 +50,57 @@ class SessionController;
 } // namespace Window
 
 namespace HistoryView {
+
 struct TextState;
 struct StateRequest;
 enum class CursorState : char;
 enum class PointState : char;
 enum class Context : char;
 class ElementDelegate;
-enum class DrawInDialog {
-	Normal,
-	WithoutSender,
-	WithoutSenderAndCaption,
+
+struct ItemPreviewImage {
+	QImage data;
+	uint64 cacheKey = 0;
+
+	explicit operator bool() const {
+		return !data.isNull();
+	}
 };
+
+struct ItemPreview {
+	QString text;
+	std::vector<ItemPreviewImage> images;
+	int imagesInTextPosition = 0;
+	std::any loadingContext;
+};
+
+struct ToPreviewOptions {
+	const std::vector<ItemPreviewImage> *existing = nullptr;
+	bool hideSender = false;
+	bool hideCaption = false;
+	bool generateImages = true;
+	bool ignoreGroup = false;
+};
+
 } // namespace HistoryView
 
 struct HiddenSenderInfo;
 class History;
 
-enum class ReplyMarkupFlag : uint32 {
-	None                  = (1U << 0),
-	ForceReply            = (1U << 1),
-	HasSwitchInlineButton = (1U << 2),
-	Inline                = (1U << 3),
-	Resize                = (1U << 4),
-	SingleUse             = (1U << 5),
-	Selective             = (1U << 6),
-};
-inline constexpr bool is_flag_type(ReplyMarkupFlag) { return true; }
-using ReplyMarkupFlags = base::flags<ReplyMarkupFlag>;
-
-[[nodiscard]] MessageFlags FlagsFromMTP(MTPDmessage::Flags flags);
-[[nodiscard]] MessageFlags FlagsFromMTP(MTPDmessageService::Flags flags);
+[[nodiscard]] MessageFlags FlagsFromMTP(
+	MsgId id,
+	MTPDmessage::Flags flags,
+	MessageFlags localFlags);
+[[nodiscard]] MessageFlags FlagsFromMTP(
+	MsgId id,
+	MTPDmessageService::Flags flags,
+	MessageFlags localFlags);
 
 class HistoryItem : public RuntimeComposer<HistoryItem> {
 public:
 	static not_null<HistoryItem*> Create(
 		not_null<History*> history,
+		MsgId id,
 		const MTPMessage &message,
 		MessageFlags localFlags);
 
@@ -109,6 +129,7 @@ public:
 	[[nodiscard]] bool isAdminLogEntry() const;
 	[[nodiscard]] bool isFromScheduled() const;
 	[[nodiscard]] bool isScheduled() const;
+	[[nodiscard]] bool isSponsored() const;
 	[[nodiscard]] bool skipNotification() const;
 
 	void addLogEntryOriginal(
@@ -212,6 +233,14 @@ public:
 	[[nodiscard]] bool hasFailed() const {
 		return _flags & MessageFlag::SendingFailed;
 	}
+	[[nodiscard]] bool hideEditedBadge() const {
+		return (_flags & MessageFlag::HideEdited);
+	}
+	[[nodiscard]] bool isLocal() const {
+		return _flags & MessageFlag::Local;
+	}
+	[[nodiscard]] bool isRegular() const;
+	[[nodiscard]] bool isUploading() const;
 	void sendFailed();
 	[[nodiscard]] virtual int viewsCount() const {
 		return hasViews() ? 1 : -1;
@@ -260,10 +289,10 @@ public:
 
 	[[nodiscard]] virtual bool needCheck() const;
 
-	[[nodiscard]] virtual bool serviceMsg() const {
+	[[nodiscard]] virtual bool isService() const {
 		return false;
 	}
-	virtual void applyEdition(const MTPDmessage &message) {
+	virtual void applyEdition(HistoryMessageEdition &&edition) {
 	}
 	virtual void applyEdition(const MTPDmessageService &message) {
 	}
@@ -272,7 +301,7 @@ public:
 		const TextWithEntities &textWithEntities,
 		const MTPMessageMedia *media) {
 	}
-	virtual void updateReplyMarkup(const MTPReplyMarkup *markup) {
+	virtual void updateReplyMarkup(HistoryMessageMarkupData &&markup) {
 	}
 	virtual void updateForwardedInfo(const MTPMessageFwdHeader *fwd) {
 	}
@@ -297,13 +326,18 @@ public:
 	}
 	[[nodiscard]] virtual QString notificationText() const;
 
-	using DrawInDialog = HistoryView::DrawInDialog;
+	using ToPreviewOptions = HistoryView::ToPreviewOptions;
+	using ItemPreview = HistoryView::ItemPreview;
 
 	// Returns text with link-start and link-end commands for service-color highlighting.
 	// Example: "[link1-start]You:[link1-end] [link1-start]Photo,[link1-end] caption text"
-	[[nodiscard]] virtual QString inDialogsText(DrawInDialog way) const;
+	[[nodiscard]] virtual ItemPreview toPreview(
+		ToPreviewOptions options) const;
 	[[nodiscard]] virtual QString inReplyText() const {
-		return inDialogsText(DrawInDialog::WithoutSender);
+		return toPreview({
+			.hideSender = true,
+			.generateImages = false,
+		}).text;
 	}
 	[[nodiscard]] virtual Ui::Text::IsolatedEmoji isolatedEmoji() const;
 	[[nodiscard]] virtual TextWithEntities originalText() const {
@@ -317,7 +351,7 @@ public:
 	}
 	virtual void setForwardsCount(int count) {
 	}
-	virtual void setReplies(const MTPMessageReplies &data) {
+	virtual void setReplies(HistoryMessageRepliesData &&data) {
 	}
 	virtual void clearReplies() {
 	}
@@ -334,20 +368,12 @@ public:
 	virtual void incrementReplyToTopCounter() {
 	}
 
-	void drawInDialog(
-		Painter &p,
-		const QRect &r,
-		bool active,
-		bool selected,
-		DrawInDialog way,
-		const HistoryItem *&cacheFor,
-		Ui::Text::String &cache) const;
-
 	[[nodiscard]] bool emptyText() const {
 		return _text.isEmpty();
 	}
 
 	[[nodiscard]] bool canPin() const;
+	[[nodiscard]] bool canBeEdited() const;
 	[[nodiscard]] bool canStopPoll() const;
 	[[nodiscard]] virtual bool allowsSendNow() const;
 	[[nodiscard]] virtual bool allowsForward() const;
@@ -378,12 +404,6 @@ public:
 		return false;
 	}
 
-	[[nodiscard]] virtual HistoryMessage *toHistoryMessage() { // dynamic_cast optimize
-		return nullptr;
-	}
-	[[nodiscard]] virtual const HistoryMessage *toHistoryMessage() const { // dynamic_cast optimize
-		return nullptr;
-	}
 	[[nodiscard]] MsgId replyToId() const;
 	[[nodiscard]] MsgId replyToTop() const;
 

@@ -42,7 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "boxes/peers/edit_participants_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "data/data_session.h"
 #include "data/data_photo.h"
 #include "data/data_photo_media.h"
@@ -148,8 +148,9 @@ void InnerWidget::enumerateUserpics(Method method) {
 
 	auto userpicCallback = [&](not_null<Element*> view, int itemtop, int itembottom) {
 		// Skip all service messages.
-		const auto message = view->data()->toHistoryMessage();
-		if (!message) return true;
+		if (view->data()->isService()) {
+			return true;
+		}
 
 		if (lowestAttachedItemTop < 0 && view->isAttachedToNext()) {
 			lowestAttachedItemTop = itemtop + view->marginTop();
@@ -964,10 +965,7 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 
 				// paint the userpic if it intersects the painted rect
 				if (userpicTop + st::msgPhotoSize > clip.top()) {
-					const auto message = view->data()->toHistoryMessage();
-					Assert(message != nullptr);
-
-					const auto from = message->from();
+					const auto from = view->data()->from();
 					from->paintUserpicLeft(
 						p,
 						_userpics[from],
@@ -1248,7 +1246,11 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 						}));
 					}
 				}
-				if (msg && !link && (view->hasVisibleText() || mediaHasTextForCopy)) {
+				if (msg
+					&& !link
+					&& (view->hasVisibleText()
+						|| mediaHasTextForCopy
+						|| item->Has<HistoryMessageLogEntryOriginal>())) {
 					_menu->addAction(tr::lng_context_copy_text(tr::now), [=] {
 						copyContextText(itemId);
 					});
@@ -1411,8 +1413,8 @@ void InnerWidget::suggestRestrictUser(not_null<UserData*> user) {
 		const auto text = tr::lng_profile_sure_kick(tr::now, lt_user, user->firstName);
 		auto editRestrictions = [=](bool hasAdminRights, ChatRestrictionsInfo currentRights) {
 			auto weak = QPointer<InnerWidget>(this);
-			auto weakBox = std::make_shared<QPointer<ConfirmBox>>();
-			auto box = Box<ConfirmBox>(
+			auto weakBox = std::make_shared<QPointer<Ui::ConfirmBox>>();
+			auto box = Box<Ui::ConfirmBox>(
 				text,
 				tr::lng_box_remove(tr::now),
 				crl::guard(this, [=] {
@@ -1511,7 +1513,7 @@ void InnerWidget::mouseReleaseEvent(QMouseEvent *e) {
 	}
 }
 
-void InnerWidget::enterEventHook(QEvent *e) {
+void InnerWidget::enterEventHook(QEnterEvent *e) {
 	mouseActionUpdate(QCursor::pos());
 	return TWidget::enterEventHook(e);
 }
@@ -1724,26 +1726,21 @@ void InnerWidget::updateSelected() {
 		dragState = view->textState(itemPoint, request);
 		lnkhost = view;
 		if (!dragState.link && itemPoint.x() >= st::historyPhotoLeft && itemPoint.x() < st::historyPhotoLeft + st::msgPhotoSize) {
-			if (item->toHistoryMessage()) {
-				if (view->hasFromPhoto()) {
-					enumerateUserpics([&](not_null<Element*> view, int userpicTop) {
-						// stop enumeration if the userpic is below our point
-						if (userpicTop > point.y()) {
-							return false;
-						}
+			if (!item->isService() && view->hasFromPhoto()) {
+				enumerateUserpics([&](not_null<Element*> view, int userpicTop) {
+					// stop enumeration if the userpic is below our point
+					if (userpicTop > point.y()) {
+						return false;
+					}
 
-						// stop enumeration if we've found a userpic under the cursor
-						if (point.y() >= userpicTop && point.y() < userpicTop + st::msgPhotoSize) {
-							const auto message = view->data()->toHistoryMessage();
-							Assert(message != nullptr);
-
-							dragState.link = message->from()->openLink();
-							lnkhost = view;
-							return false;
-						}
-						return true;
-					});
-				}
+					// stop enumeration if we've found a userpic under the cursor
+					if (point.y() >= userpicTop && point.y() < userpicTop + st::msgPhotoSize) {
+						dragState.link = view->data()->from()->openLink();
+						lnkhost = view;
+						return false;
+					}
+					return true;
+				});
 			}
 		}
 	}

@@ -12,7 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item_components.h"
 #include "history/history_item.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/shadow.h"
 #include "ui/layers/generic_box.h"
@@ -60,7 +60,7 @@ namespace {
 
 PinnedMemento::PinnedMemento(
 	not_null<History*> history,
-	MsgId highlightId)
+	UniversalMsgId highlightId)
 : _history(history)
 , _highlightId(highlightId) {
 	_list.setAroundPosition({
@@ -157,7 +157,10 @@ PinnedWidget::PinnedWidget(
 		static_cast<ListDelegate*>(this)));
 	_scroll->move(0, _topBar->height());
 	_scroll->show();
-	connect(_scroll.get(), &Ui::ScrollArea::scrolled, [=] { onScroll(); });
+	_scroll->scrolls(
+	) | rpl::start_with_next([=] {
+		onScroll();
+	}, lifetime());
 
 	setupClearButton();
 	setupScrollDownButton();
@@ -610,7 +613,7 @@ bool PinnedWidget::listAllowsMultiSelect() {
 
 bool PinnedWidget::listIsItemGoodForSelection(
 		not_null<HistoryItem*> item) {
-	return IsServerMsgId(item->id);
+	return item->isRegular();
 }
 
 bool PinnedWidget::listIsLessInOrder(
@@ -658,7 +661,7 @@ bool PinnedWidget::listElementShownUnread(not_null<const Element*> view) {
 
 bool PinnedWidget::listIsGoodForAroundPosition(
 		not_null<const Element*> view) {
-	return IsServerMsgId(view->data()->id);
+	return view->data()->isRegular();
 }
 
 void PinnedWidget::listSendBotCommand(

@@ -22,7 +22,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "kotato/boxes/kotato_fonts_box.h"
 #include "kotato/boxes/kotato_radio_box.h"
 #include "boxes/about_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "platform/platform_specific.h"
 #include "platform/platform_file_utilities.h"
 #include "window/window_session_controller.h"
@@ -588,7 +588,7 @@ void SetupKotatoSystem(
 		const auto cancelled = [=] {
 			qtScaleToggled->fire(cQtScale() == true);
 		};
-		Ui::show(Box<ConfirmBox>(
+		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
 			confirmed,
@@ -644,7 +644,7 @@ void SetupKotatoSystem(
 			const auto cancelled = [=] {
 				useNativeDecorationsToggled->fire(cUseNativeDecorations() == true);
 			};
-			Ui::show(Box<ConfirmBox>(
+			Ui::show(Box<Ui::ConfirmBox>(
 				tr::lng_settings_need_restart(tr::now),
 				tr::lng_settings_restart_now(tr::now),
 				confirmed,

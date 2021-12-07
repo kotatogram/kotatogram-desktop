@@ -779,6 +779,11 @@ historyPollOutChosenSelected: icon {{ "poll_select_check", historyFileOutIconFgS
 historyPollInChosen: icon {{ "poll_select_check", historyFileInIconFg }};
 historyPollInChosenSelected: icon {{ "poll_select_check", historyFileInIconFgSelected }};
 
+historyViewButtonHeight: 42px;
+historyViewButtonMargins: margins(13px, 5px, 13px, 5px);
+historyViewButtonOutline: margins(2px, 2px, 2px, 2px);
+historyViewButtonTextStyle: semiboldTextStyle;
+
 historyCommentsButtonHeight: 40px;
 historyCommentsSkipLeft: 9px;
 historyCommentsSkipText: 10px;
@@ -933,3 +938,11 @@ whoReadChecksDisabled: icon{{ "chat/seen_checks", menuFgDisabled }};
 whoReadPlayed: icon{{ "chat/seen_played", windowFg }};
 whoReadPlayedOver: icon{{ "chat/seen_played", windowFgOver }};
 whoReadPlayedDisabled: icon {{ "chat/seen_played", menuFgDisabled }};
+
+historyRequestsUserpics: GroupCallUserpics {
+	size: 22px;
+	shift: 8px;
+	stroke: 4px;
+	align: align(left);
+}
+historyRequestsHeight: 33px;

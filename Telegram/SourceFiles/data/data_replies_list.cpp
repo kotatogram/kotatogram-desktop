@@ -29,7 +29,7 @@ constexpr auto kMessagesPerPage = 50;
 		TimeId date,
 		const QString &text) {
 	return history->makeServiceMessage(
-		history->session().data().nextNonHistoryEntryId(),
+		history->nextNonHistoryEntryId(),
 		MessageFlag::FakeHistoryItem,
 		date,
 		HistoryService::PreparedText{ text },
@@ -74,7 +74,7 @@ rpl::producer<MessagesSlice> RepliesList::source(
 		const auto push = [=] {
 			viewer->scheduled = false;
 			if (buildFromData(viewer)) {
-				appendLocalMessages(viewer->slice);
+				appendClientSideMessages(viewer->slice);
 				consumer.put_next_copy(viewer->slice);
 			}
 		};
@@ -98,13 +98,13 @@ rpl::producer<MessagesSlice> RepliesList::source(
 
 		_history->session().changes().historyUpdates(
 			_history,
-			Data::HistoryUpdate::Flag::LocalMessages
+			Data::HistoryUpdate::Flag::ClientSideMessages
 		) | rpl::start_with_next(pushDelayed, lifetime);
 
 		_partLoaded.events(
 		) | rpl::start_with_next(pushDelayed, lifetime);
 
-		_history->session().data().channelDifferenceTooLong(
+		_history->owner().channelDifferenceTooLong(
 		) | rpl::filter([=](not_null<ChannelData*> channel) {
 			if (_history->peer != channel || !_skippedAfter.has_value()) {
 				return false;
@@ -118,16 +118,16 @@ rpl::producer<MessagesSlice> RepliesList::source(
 	};
 }
 
-void RepliesList::appendLocalMessages(MessagesSlice &slice) {
-	const auto &local = _history->localMessages();
-	if (local.empty()) {
+void RepliesList::appendClientSideMessages(MessagesSlice &slice) {
+	const auto &messages = _history->clientSideMessages();
+	if (messages.empty()) {
 		return;
 	} else if (slice.ids.empty()) {
 		if (slice.skippedBefore != 0 || slice.skippedAfter != 0) {
 			return;
 		}
-		slice.ids.reserve(local.size());
-		for (const auto &item : local) {
+		slice.ids.reserve(messages.size());
+		for (const auto &item : messages) {
 			if (item->replyToTop() != _rootId) {
 				continue;
 			}
@@ -145,7 +145,7 @@ void RepliesList::appendLocalMessages(MessagesSlice &slice) {
 
 		dates.push_back(message->date());
 	}
-	for (const auto &item : local) {
+	for (const auto &item : messages) {
 		if (item->replyToTop() != _rootId) {
 			continue;
 		}
@@ -373,8 +373,7 @@ bool RepliesList::buildFromData(not_null<Viewer*> viewer) {
 bool RepliesList::applyUpdate(
 		not_null<Viewer*> viewer,
 		const MessageUpdate &update) {
-	if (update.item->history() != _history
-		|| !IsServerMsgId(update.item->id)) {
+	if (update.item->history() != _history || !update.item->isRegular()) {
 		return false;
 	}
 	if (update.flags & MessageUpdate::Flag::Destroyed) {
@@ -458,7 +457,7 @@ void RepliesList::loadAround(MsgId id) {
 			_list.clear();
 			if (processMessagesIsEmpty(result)) {
 				_fullCount = _skippedBefore = _skippedAfter = 0;
-			} else if (id > 0) {
+			} else if (id) {
 				Assert(!_list.empty());
 				if (_list.front() <= id) {
 					_skippedAfter = 0;

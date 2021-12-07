@@ -595,11 +595,13 @@ Manager::DisplayOptions Manager::getNotificationOptions(
 		|| (view > Core::Settings::NotifyView::ShowName);
 	result.hideMessageText = hideEverything
 		|| (view > Core::Settings::NotifyView::ShowPreview);
-	result.hideReplyButton = result.hideMessageText
+	result.hideMarkAsRead = result.hideMessageText
 		|| !item
 		|| ((item->out() || item->history()->peer->isSelf())
-			&& item->isFromScheduled())
+			&& item->isFromScheduled());
+	result.hideReplyButton = result.hideMarkAsRead
 		|| !item->history()->peer->canWrite()
+		|| item->history()->peer->isBroadcast()
 		|| (item->history()->peer->slowmodeSecondsLeft() > 0);
 	return result;
 }
@@ -636,7 +638,9 @@ QString Manager::accountNameSeparator() {
 	return QString::fromUtf8(" \xE2\x9E\x9C ");
 }
 
-void Manager::notificationActivated(NotificationId id) {
+void Manager::notificationActivated(
+		NotificationId id,
+		const TextWithTags &reply) {
 	onBeforeNotificationActivated(id);
 	if (const auto session = system()->findSession(id.full.sessionId)) {
 		if (session->windows().empty()) {
@@ -645,6 +649,22 @@ void Manager::notificationActivated(NotificationId id) {
 		if (!session->windows().empty()) {
 			const auto window = session->windows().front();
 			const auto history = session->data().history(id.full.peerId);
+			if (!reply.text.isEmpty()) {
+				const auto replyToId = (id.msgId > 0
+					&& !history->peer->isUser())
+					? id.msgId
+					: 0;
+				auto draft = std::make_unique<Data::Draft>(
+					reply,
+					replyToId,
+					MessageCursor{
+						int(reply.text.size()),
+						int(reply.text.size()),
+						QFIXED_MAX,
+					},
+					Data::PreviewState::Allowed);
+				history->setLocalDraft(std::move(draft));
+			}
 			window->widget()->showFromTray();
 			window->widget()->reActivateWindow();
 			if (Core::App().passcodeLocked()) {
@@ -662,13 +682,13 @@ void Manager::openNotificationMessage(
 		not_null<History*> history,
 		MsgId messageId) {
 	const auto openExactlyMessage = [&] {
-		if (history->peer->isUser()
-			|| history->peer->isChannel()
-			|| !IsServerMsgId(messageId)) {
+		if (history->peer->isUser() || history->peer->isChannel()) {
 			return false;
 		}
-		const auto item = history->owner().message(history->channelId(), messageId);
-		if (!item || !item->mentionsMe()) {
+		const auto item = history->owner().message(
+			history->channelId(),
+			messageId);
+		if (!item || !item->isRegular() || !item->mentionsMe()) {
 			return false;
 		}
 		return true;
@@ -745,8 +765,7 @@ void NativeManager::doShowNotification(
 		scheduled ? WrapFromScheduled(fullTitle) : fullTitle,
 		subtitle,
 		text,
-		options.hideNameAndPhoto,
-		options.hideReplyButton);
+		options);
 }
 
 bool NativeManager::forceHideDetails() const {
