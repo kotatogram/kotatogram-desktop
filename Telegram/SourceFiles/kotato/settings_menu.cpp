@@ -714,7 +714,9 @@ void SetupKotatoSystem(
 	AddSkip(container);
 }
 
-void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
+void SetupKotatoOther(
+	not_null<Window::SessionController*> controller,
+	not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_other"));
@@ -768,9 +770,9 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
 		return (enabled != cUseExternalVideoPlayer());
-	}) | rpl::start_with_next([](bool enabled) {
+	}) | rpl::start_with_next([=](bool enabled) {
 		cSetUseExternalVideoPlayer(enabled);
-		Core::App().saveSettingsDelayed();
+		controller->session().saveSettingsDelayed();
 	}, container->lifetime());
 
 	AddSkip(container);
@@ -793,7 +795,7 @@ void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 	SetupKotatoNetwork(content);
 	SetupKotatoFolders(controller, content);
 	SetupKotatoSystem(controller, content);
-	SetupKotatoOther(content);
+	SetupKotatoOther(controller, content);
 
 	Ui::ResizeFitChild(this, content);
 }
