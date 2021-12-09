@@ -149,6 +149,14 @@ QIcon CreateOfficialIcon(Main::Session *session) {
 }
 
 QIcon CreateIcon(Main::Session *session) {
+	if constexpr (Platform::IsMac()) {
+		if ((!session || !session->supportMode())
+			&& (cCustomAppIcon() == 0)
+			&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
+			return QIcon();
+		}
+	}
+
 	auto result = CreateOfficialIcon(session);
 
 #if defined Q_OS_UNIX && !defined Q_OS_MAC
