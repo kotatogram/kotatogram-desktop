@@ -3242,8 +3242,8 @@ void ApiWrap::forwardMessages(
 		const auto newGroupId = item->groupId();
 		if (item != draft.items.front() &&
 			((draft.groupOptions == Data::GroupingOptions::GroupAsIs
-				&& (forwardGroupId != newGroupId || forwardFrom != newFrom)
-			|| draft.groupOptions == Data::GroupingOptions::Separate))) {
+				&& (forwardGroupId != newGroupId || forwardFrom != newFrom))
+			|| draft.groupOptions == Data::GroupingOptions::Separate)) {
 			sendAccumulated();
 			forwardFrom = newFrom;
 			forwardGroupId = newGroupId;
