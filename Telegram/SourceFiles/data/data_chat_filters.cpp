@@ -218,20 +218,20 @@ LocalFolder ChatFilter::toLocal(int cloudOrder, FilterId replaceId) const {
 	auto always = _always;
 	auto pinned = std::vector<uint64>();
 	pinned.reserve(_pinned.size());
-	for (const auto history : _pinned) {
+	for (const auto &history : _pinned) {
 		const auto &peer = history->peer;
 		pinned.push_back(peer->id.value);
 		always.remove(history);
 	}
 	auto include = std::vector<uint64>();
 	include.reserve(always.size());
-	for (const auto history : always) {
+	for (const auto &history : always) {
 		const auto &peer = history->peer;
 		include.push_back(peer->id.value);
 	}
 	auto never = std::vector<uint64>();
 	never.reserve(_never.size());
-	for (const auto history : _never) {
+	for (const auto &history : _never) {
 		const auto &peer = history->peer;
 		never.push_back(peer->id.value);
 	}

@@ -80,7 +80,7 @@ jobs:
 
       - name: First set up.
         run: |
-          brew install autoconf automake cmake meson openal-soft openssl opus nasm ninja pkg-config python qt@5 yasm xz
+          brew install autoconf automake cmake meson openal-soft openssl opus nasm ninja pkg-config python qt yasm xz
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
           xcodebuild -version > CACHE_KEY.txt
@@ -92,7 +92,7 @@ jobs:
           fi
           echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
 
-          echo /usr/local/opt/qt@5/bin >> $GITHUB_PATH
+          echo /usr/local/opt/qt/bin >> $GITHUB_PATH
 
           mkdir -p Libraries/macos
           cd Libraries/macos
@@ -137,7 +137,6 @@ jobs:
           --disable-protocols \
           --disable-devices \
           --disable-filters \
-          --disable-iconv \
           --enable-audiotoolbox \
           --enable-videotoolbox \
           --enable-libopus \
@@ -176,7 +175,7 @@ jobs:
           -DTG_OWT_BUILD_AUDIO_BACKENDS=OFF \
           -DTG_OWT_PACKAGED_BUILD_FFMPEG_STATIC=ON
 
-          cmake --build build -j$(sysctl -n hw.logicalcpu)
+          cmake --build build --parallel
 
       - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
@@ -197,12 +196,14 @@ jobs:
           cmake -Bbuild -GNinja . \
           -DCMAKE_BUILD_TYPE=Debug \
           -DCMAKE_FIND_FRAMEWORK=LAST \
+          -DCMAKE_C_FLAGS="-Werror" \
+          -DCMAKE_CXX_FLAGS="-Werror" \
           -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_USE_PACKAGED_FFMPEG_STATIC=ON \
           $DEFINE
 
-          cmake --build build -j$(sysctl -n hw.logicalcpu)
+          cmake --build build --parallel
 
           cd build
           macdeployqt Kotatogram.app
