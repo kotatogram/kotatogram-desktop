@@ -549,7 +549,6 @@ void SendLocationPoint(
 		history->clearLocalDraft();
 		history->clearCloudDraft();
 	}
-	const auto anonymousPost = peer->amAnonymous();
 	const auto sendAs = action.options.sendAs;
 
 	if (sendAs) {
