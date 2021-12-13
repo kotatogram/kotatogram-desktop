@@ -424,7 +424,6 @@ void ChatFilters::load(bool force) {
 
 void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	const auto account = &_owner->session().account();
-	const auto defaultFilterId = account->defaultFilterId();
 	const auto localFilters = cRefLocalFolders();
 	auto position = 0;
 	auto originalPosition = 0;
