@@ -1976,7 +1976,7 @@ void ParticipantsBoxController::recomputeTypeFor(
 void ParticipantsBoxController::refreshCustomStatus(
 		not_null<PeerListRow*> row) const {
 	const auto participant = row->peer();
-	const auto user = participant->asUser();
+	// const auto user = participant->asUser();
 	if (_role == Role::Admins) {
 		/*
 		Assert(user != nullptr);
