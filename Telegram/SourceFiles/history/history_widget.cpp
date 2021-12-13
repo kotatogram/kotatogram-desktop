@@ -255,9 +255,6 @@ object_ptr<Ui::FlatButton> SetupDiscussButton(
 			int labelWidth,
 			int width) {
 		const auto textTop = st::historyComposeButton.textTop;
-		const auto badgeTop = textTop
-			+ st::historyComposeButton.font->height
-			- badge->textBaseline();
 		const auto add = badgeShown
 			? (textTop + badgeWidth)
 			: 0;
