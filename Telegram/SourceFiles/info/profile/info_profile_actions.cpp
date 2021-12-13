@@ -992,7 +992,6 @@ void ManageFiller::addPeerInviteLinks(
 			: peer->asChat()->canHaveInviteLink();
 	}();
 	if (canHaveInviteLink) {
-		const auto controller = _controller;
 		auto button = AddActionButton(
 			_wrap,
 			tr::lng_manage_peer_invite_links(),
