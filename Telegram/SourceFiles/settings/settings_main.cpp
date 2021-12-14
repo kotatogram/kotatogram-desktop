@@ -115,7 +115,7 @@ void SetupSections(
 	const auto preload = [=] {
 		controller->session().data().chatsFilters().requestSuggested();
 	};
-	const auto account = &controller->session().account();
+	// const auto account = &controller->session().account();
 	const auto slided = container->add(
 		object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
 			container,

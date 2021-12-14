@@ -3413,10 +3413,7 @@ void ApiWrap::forwardMessagesUnquoted(
 		mediaInputs->reserve(ids.size());
 		mediaRefs->reserve(ids.size());
 
-		const auto views = 1;
-		const auto forwards = 0;
 		const auto newGroupId = base::RandomValue<uint64>();
-
 		auto msgFlags = NewMessageFlags(peer);
 
 		FillMessagePostFlags(action, peer, msgFlags);
