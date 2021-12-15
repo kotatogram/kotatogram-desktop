@@ -477,7 +477,9 @@ jobs:
           cmake --build build --parallel
 
       - name: Kotatogram Desktop build.
+        id: build-kotatogram
         if: env.ONLY_CACHE == 'false'
+        continue-on-error: true
         env:
           tg_owt_DIR: ${{ env.LibrariesPath }}/tg_owt/build
         run: |
@@ -494,6 +496,34 @@ jobs:
 
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
+          -DTDESKTOP_API_TEST=ON \
+          -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
+          -DDESKTOP_APP_QT6=OFF \
+          $DEFINE
+
+          cmake --build ../out --config Debug --parallel
+          DESTDIR=../../AppDir cmake --install .
+
+      - name: Restart with -Werror on fail
+        if: env.ONLY_CACHE == 'false' && steps.build-kotatogram.outcome == 'failure'
+        env:
+          tg_owt_DIR: ${{ env.LibrariesPath }}/tg_owt/build
+        run: |
+          cd $REPO_NAME/Telegram
+
+          DEFINE=""
+          if [ -n "${{ matrix.defines }}" ]; then
+            DEFINE="-D ${{ matrix.defines }}=ON"
+            echo Define from matrix: $DEFINE
+            echo "ARTIFACT_NAME=Kotatogram_${{ matrix.defines }}" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_NAME=Kotatogram" >> $GITHUB_ENV
+          fi
+
+          ./configure.sh \
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_C_FLAGS="-Werror" \
+          -DCMAKE_CXX_FLAGS="-Werror" \
           -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_QT6=OFF \
