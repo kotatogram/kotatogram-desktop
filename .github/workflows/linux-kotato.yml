@@ -502,7 +502,7 @@ jobs:
           $DEFINE
 
           cmake --build ../out --config Debug --parallel
-          DESTDIR=../../AppDir cmake --install ../out --config Debug
+          DESTDIR=../AppDir cmake --install ../out --config Debug
 
       - name: AppImage build.
         if: env.ONLY_CACHE == 'false'
