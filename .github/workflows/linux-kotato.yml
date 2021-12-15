@@ -411,12 +411,12 @@ jobs:
 
           git clone -b v5.88.0 --depth=1 $GIT/KDE/kwindowsystem.git
           cd kwindowsystem
-          cmake . \
+          cmake -B build -GNinja \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_TESTING=OFF \
           -DKDE_INSTALL_LIBDIR=lib
-          cmake --build . --parallel
-          cmake --install .
+          cmake --build build --parallel
+          cmake --install build
           ldconfig
           cd ..
           rm -rf kwindowsystem
@@ -502,7 +502,7 @@ jobs:
           $DEFINE
 
           cmake --build ../out --config Debug --parallel
-          DESTDIR=../../AppDir cmake --install .
+          DESTDIR=../../AppDir cmake --install ../out --config Debug
 
       - name: AppImage build.
         if: env.ONLY_CACHE == 'false'
