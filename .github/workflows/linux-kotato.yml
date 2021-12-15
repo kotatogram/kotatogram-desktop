@@ -494,6 +494,8 @@ jobs:
 
           ./configure.sh \
           -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_C_FLAGS="-Werror" \
+          -DCMAKE_CXX_FLAGS="-Werror" \
           -DTDESKTOP_API_TEST=ON \
           -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
           -DDESKTOP_APP_QT6=OFF \
