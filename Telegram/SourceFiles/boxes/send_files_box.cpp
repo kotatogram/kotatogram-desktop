@@ -976,7 +976,8 @@ void SendFilesBox::saveSendWaySettings() {
 		way.setGroupFiles(oldWay.groupFiles());
 	}
 	if (_list.overrideSendImagesAsPhotos == way.sendImagesAsPhotos()
-		|| _sendImagesAsPhotos->isHidden()) {
+		|| _sendImagesAsPhotos->isHidden()
+		|| !cRememberCompressImages()) {
 		way.setSendImagesAsPhotos(oldWay.sendImagesAsPhotos());
 	}
 	if (way != oldWay) {
