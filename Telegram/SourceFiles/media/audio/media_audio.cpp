@@ -49,7 +49,7 @@ int CoarseTuneForSpeed(float64 speed) {
 
 	constexpr auto kTuneSteps = 12;
 	const auto tuneRatio = std::log(speed) / std::log(2.);
-	return -int(std::round(kTuneSteps * tuneRatio));
+	return -int(base::SafeRound(kTuneSteps * tuneRatio));
 }
 
 } // namespace
@@ -331,7 +331,10 @@ void Mixer::Track::createStream(AudioMsgId::Type type) {
 	alSourcei(stream.source, AL_SOURCE_RELATIVE, 1);
 	alSourcei(stream.source, AL_ROLLOFF_FACTOR, 0);
 	if (alIsExtensionPresent("AL_SOFT_direct_channels_remix")) {
-		alSourcei(stream.source, alGetEnumValue("AL_DIRECT_CHANNELS_SOFT"), 2);
+		alSourcei(
+			stream.source,
+			alGetEnumValue("AL_DIRECT_CHANNELS_SOFT"),
+			alcGetEnumValue(nullptr, "AL_REMIX_UNMATCHED_SOFT"));
 	}
 	alGenBuffers(3, stream.buffers);
 	if (speedEffect) {

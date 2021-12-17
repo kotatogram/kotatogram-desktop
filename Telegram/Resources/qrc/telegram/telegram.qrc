@@ -78,6 +78,21 @@
     <file alias="recording/info_video_landscape.svg">../../art/recording/recording_info_video_landscape.svg</file>
     <file alias="recording/info_video_portrait.svg">../../art/recording/recording_info_video_portrait.svg</file>
   </qresource>
+  <qresource prefix="/icons">
+    <file alias="calls/hands.lottie">../../icons/calls/hands.lottie</file>
+    <file alias="calls/voice.lottie">../../icons/calls/voice.lottie</file>
+    <file alias="settings/devices/device_desktop_mac.lottie">../../icons/settings/devices/device_desktop_mac.lottie</file>
+    <file alias="settings/devices/device_desktop_win.lottie">../../icons/settings/devices/device_desktop_win.lottie</file>
+    <file alias="settings/devices/device_linux.lottie">../../icons/settings/devices/device_linux.lottie</file>
+    <file alias="settings/devices/device_linux_ubuntu.lottie">../../icons/settings/devices/device_linux_ubuntu.lottie</file>
+    <file alias="settings/devices/device_phone_android.lottie">../../icons/settings/devices/device_phone_android.lottie</file>
+    <file alias="settings/devices/device_phone_ios.lottie">../../icons/settings/devices/device_phone_ios.lottie</file>
+    <file alias="settings/devices/device_tablet_ios.lottie">../../icons/settings/devices/device_tablet_ios.lottie</file>
+    <file alias="settings/devices/device_web_chrome.lottie">../../icons/settings/devices/device_web_chrome.lottie</file>
+    <file alias="settings/devices/device_web_edge.lottie">../../icons/settings/devices/device_web_edge.lottie</file>
+    <file alias="settings/devices/device_web_firefox.lottie">../../icons/settings/devices/device_web_firefox.lottie</file>
+    <file alias="settings/devices/device_web_safari.lottie">../../icons/settings/devices/device_web_safari.lottie</file>
+  </qresource>
   <qresource prefix="/qt-project.org">
     <file>../qmime/freedesktop.org.xml</file>
   </qresource>
@@ -92,6 +107,7 @@
     <file alias="de.json">../../langs/rewrites/de.json</file>
     <file alias="en.json">../../langs/rewrites/en.json</file>
     <file alias="es.json">../../langs/rewrites/es.json</file>
+    <file alias="fa.json">../../langs/rewrites/fa.json</file>
     <file alias="fr.json">../../langs/rewrites/fr.json</file>
     <file alias="he.json">../../langs/rewrites/he.json</file>
     <file alias="it.json">../../langs/rewrites/it.json</file>

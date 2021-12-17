@@ -218,20 +218,20 @@ LocalFolder ChatFilter::toLocal(int cloudOrder, FilterId replaceId) const {
 	auto always = _always;
 	auto pinned = std::vector<uint64>();
 	pinned.reserve(_pinned.size());
-	for (const auto history : _pinned) {
+	for (const auto &history : _pinned) {
 		const auto &peer = history->peer;
 		pinned.push_back(peer->id.value);
 		always.remove(history);
 	}
 	auto include = std::vector<uint64>();
 	include.reserve(always.size());
-	for (const auto history : always) {
+	for (const auto &history : always) {
 		const auto &peer = history->peer;
 		include.push_back(peer->id.value);
 	}
 	auto never = std::vector<uint64>();
 	never.reserve(_never.size());
-	for (const auto history : _never) {
+	for (const auto &history : _never) {
 		const auto &peer = history->peer;
 		never.push_back(peer->id.value);
 	}
@@ -417,14 +417,13 @@ void ChatFilters::load(bool force) {
 	)).done([=](const MTPVector<MTPDialogFilter> &result) {
 		received(result.v);
 		_loadRequestId = 0;
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_loadRequestId = 0;
 	}).send();
 }
 
 void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	const auto account = &_owner->session().account();
-	const auto defaultFilterId = account->defaultFilterId();
 	const auto localFilters = cRefLocalFolders();
 	auto position = 0;
 	auto originalPosition = 0;
@@ -780,7 +779,7 @@ bool ChatFilters::loadNextExceptions(bool chatsListLoaded) {
 		_exceptionsLoadRequestId = 0;
 		_owner->session().data().histories().applyPeerDialogs(result);
 		_owner->session().api().requestMoreDialogsIfNeeded();
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_exceptionsLoadRequestId = 0;
 		_owner->session().api().requestMoreDialogsIfNeeded();
 	}).send();
@@ -819,7 +818,7 @@ void ChatFilters::requestSuggested() {
 		}) | ranges::to_vector;
 
 		_suggestedUpdated.fire({});
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_suggestedRequestId = 0;
 		_suggestedLastReceived = crl::now() + kRefreshSuggestedTimeout / 2;
 

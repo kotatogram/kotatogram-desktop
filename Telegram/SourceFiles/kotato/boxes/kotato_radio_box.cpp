@@ -11,7 +11,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "kotato/json_settings.h"
@@ -156,7 +156,7 @@ void RadioBox::save() {
 		const auto box = std::make_shared<QPointer<BoxContent>>();
 
 		*box = getDelegate()->show(
-			Box<ConfirmBox>(
+			Box<Ui::ConfirmBox>(
 				tr::lng_settings_need_restart(tr::now),
 				tr::lng_settings_restart_now(tr::now),
 				tr::lng_cancel(tr::now),

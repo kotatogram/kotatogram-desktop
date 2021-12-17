@@ -12,7 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme_preview.h"
 #include "window/themes/window_themes_generate_name.h"
 #include "window/window_controller.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/widgets/checkbox.h"
@@ -466,7 +466,7 @@ Fn<void()> SavePreparedTheme(
 		Fn<void(SaveErrorType,QString)> fail) {
 	Expects(window->account().sessionExists());
 
-	using Storage::UploadedDocument;
+	using Storage::UploadedMedia;
 	struct State {
 		FullMsgId id;
 		bool generating = false;
@@ -518,7 +518,7 @@ Fn<void()> SavePreparedTheme(
 			MTP_string(fields.slug),
 			MTP_string(fields.title),
 			document->mtpInput(),
-			MTPInputThemeSettings()
+			MTPVector<MTPInputThemeSettings>()
 		)).done([=](const MTPTheme &result) {
 			finish(result);
 		}).fail([=](const MTP::Error &error) {
@@ -541,7 +541,7 @@ Fn<void()> SavePreparedTheme(
 			MTP_string(fields.slug),
 			MTP_string(fields.title),
 			document->mtpInput(),
-			MTPInputThemeSettings()
+			MTPVector<MTPInputThemeSettings>()
 		)).done([=](const MTPTheme &result) {
 			finish(result);
 		}).fail([=](const MTP::Error &error) {
@@ -549,11 +549,11 @@ Fn<void()> SavePreparedTheme(
 		}).send();
 	};
 
-	const auto uploadTheme = [=](const UploadedDocument &data) {
+	const auto uploadTheme = [=](const UploadedMedia &data) {
 		state->requestId = api->request(MTPaccount_UploadTheme(
 			MTP_flags(MTPaccount_UploadTheme::Flag::f_thumb),
-			data.file,
-			*data.thumb,
+			data.info.file,
+			*data.info.thumb,
 			MTP_string(state->filename),
 			MTP_string("application/x-tgtheme-tdesktop")
 		)).done([=](const MTPDocument &result) {
@@ -576,9 +576,9 @@ Fn<void()> SavePreparedTheme(
 		state->themeContent = theme;
 
 		session->uploader().documentReady(
-		) | rpl::filter([=](const UploadedDocument &data) {
-			return (data.fullId == state->id) && data.thumb.has_value();
-		}) | rpl::start_with_next([=](const UploadedDocument &data) {
+		) | rpl::filter([=](const UploadedMedia &data) {
+			return (data.fullId == state->id) && data.info.thumb.has_value();
+		}) | rpl::start_with_next([=](const UploadedMedia &data) {
 			uploadTheme(data);
 		}, state->lifetime);
 
@@ -608,7 +608,7 @@ Fn<void()> SavePreparedTheme(
 			MTP_string(fields.slug),
 			MTP_string(fields.title),
 			MTP_inputDocumentEmpty(),
-			MTPInputThemeSettings()
+			MTPVector<MTPInputThemeSettings>()
 		)).done([=](const MTPTheme &result) {
 			save();
 		}).fail([=](const MTP::Error &error) {
@@ -656,7 +656,7 @@ void StartEditor(
 		? GenerateDefaultPalette()
 		: ParseTheme(object, true).palette;
 	if (palette.isEmpty() || !CopyColorsToPalette(path, palette, cloud)) {
-		window->show(Box<InformBox>(tr::lng_theme_editor_error(tr::now)));
+		window->show(Box<Ui::InformBox>(tr::lng_theme_editor_error(tr::now)));
 		return;
 	}
 	if (Core::App().settings().systemDarkModeEnabled()) {
@@ -744,7 +744,7 @@ void SaveTheme(
 			result.match([&](const MTPDtheme &data) {
 				save(CloudTheme::Parse(&window->account().session(), data));
 			});
-		}).fail([=](const MTP::Error &error) {
+		}).fail([=] {
 			save(CloudTheme());
 		}).send();
 	} else {

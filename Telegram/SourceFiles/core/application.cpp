@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/ui_integration.h"
 #include "chat_helpers/emoji_keywords.h"
 #include "chat_helpers/stickers_emoji_image_loader.h"
+#include "base/qt_adapters.h"
 #include "base/platform/base_platform_url_scheme.h"
 #include "base/platform/base_platform_last_input.h"
 #include "base/platform/base_platform_info.h"
@@ -81,12 +82,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/qthelp_regex.h"
 #include "base/qthelp_url.h"
 #include "boxes/connection_box.h"
-#include "boxes/confirm_phone_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "boxes/share_box.h"
 #include "app.h"
 
-#include <QtWidgets/QDesktopWidget>
 #include <QtCore/QMimeDatabase>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
@@ -144,32 +143,7 @@ Application::Application(not_null<Launcher*> launcher)
 , _langpack(std::make_unique<Lang::Instance>())
 , _langCloudManager(std::make_unique<Lang::CloudManager>(langpack()))
 , _emojiKeywords(std::make_unique<ChatHelpers::EmojiKeywords>())
-, _logo(Window::LoadLogo())
-, _logoBlue(Window::LoadLogo(1))
-, _logoGreen(Window::LoadLogo(2))
-, _logoOrange(Window::LoadLogo(3))
-, _logoRed(Window::LoadLogo(4))
-, _logoOld(Window::LoadLogo(5))
-, _logoNoMargin(Window::LoadLogoNoMargin())
-, _logoNoMarginBlue(Window::LoadLogoNoMargin(1))
-, _logoNoMarginGreen(Window::LoadLogoNoMargin(2))
-, _logoNoMarginOrange(Window::LoadLogoNoMargin(3))
-, _logoNoMarginRed(Window::LoadLogoNoMargin(4))
-, _logoNoMarginOld(Window::LoadLogoNoMargin(5))
 , _autoLockTimer([=] { checkAutoLock(); }) {
-	Expects(!_logo.isNull());
-	Expects(!_logoBlue.isNull());
-	Expects(!_logoGreen.isNull());
-	Expects(!_logoOrange.isNull());
-	Expects(!_logoRed.isNull());
-	Expects(!_logoOld.isNull());
-	Expects(!_logoNoMargin.isNull());
-	Expects(!_logoNoMarginBlue.isNull());
-	Expects(!_logoNoMarginGreen.isNull());
-	Expects(!_logoNoMarginOrange.isNull());
-	Expects(!_logoNoMarginRed.isNull());
-	Expects(!_logoNoMarginOld.isNull());
-
 	Ui::Integration::Set(&_private->uiIntegration);
 
 	passcodeLockChanges(
@@ -236,7 +210,6 @@ void Application::run() {
 	style::internal::StartFonts();
 
 	ThirdParty::start();
-	refreshGlobalProxy(); // Depends on Core::IsAppLaunched().
 
 	// Depends on OpenSSL on macOS, so on ThirdParty::start().
 	// Depends on notifications settings.
@@ -249,6 +222,8 @@ void Application::run() {
 		ValidateScale();
 	}
 
+	refreshGlobalProxy(); // Depends on app settings being read.
+
 	if (Local::oldSettingsVersion() < AppVersion) {
 		RegisterUrlScheme();
 		psNewVersion();
@@ -258,8 +233,8 @@ void Application::run() {
 		cSetAutoStart(false);
 	}
 
-	if (cLaunchMode() == LaunchModeAutoStart && !cAutoStart()) {
-		psAutoStart(false, true);
+	if (cLaunchMode() == LaunchModeAutoStart && Platform::AutostartSkip()) {
+		Platform::AutostartToggle(false);
 		App::quit();
 		return;
 	}
@@ -286,6 +261,7 @@ void Application::run() {
 
 	DEBUG_LOG(("Application Info: inited..."));
 
+	cChangeDateFormat(QLocale::system().dateFormat(QLocale::ShortFormat));
 	cChangeTimeFormat(QLocale::system().timeFormat(QLocale::ShortFormat));
 
 	DEBUG_LOG(("Application Info: starting app..."));
@@ -371,7 +347,7 @@ void Application::showOpenGLCrashNotification() {
 		Core::App().settings().setDisableOpenGL(true);
 		Local::writeSettings();
 	};
-	_window->show(Box<ConfirmBox>(
+	_window->show(Box<Ui::ConfirmBox>(
 		"There may be a problem with your graphics drivers and OpenGL. "
 		"Try updating your drivers.\n\n"
 		"OpenGL has been disabled. You can try to enable it again "
@@ -563,7 +539,7 @@ void Application::badMtprotoConfigurationError() {
 				_settings.proxy().selected(),
 				MTP::ProxyData::Settings::System);
 		};
-		_badProxyDisableBox = Ui::show(Box<InformBox>(
+		_badProxyDisableBox = Ui::show(Box<Ui::InformBox>(
 			Lang::Hard::ProxyConfigError(),
 			disableCallback));
 	}
@@ -662,7 +638,7 @@ void Application::logout(Main::Account *account) {
 void Application::forceLogOut(
 		not_null<Main::Account*> account,
 		const TextWithEntities &explanation) {
-	const auto box = Ui::show(Box<InformBox>(
+	const auto box = Ui::show(Box<Ui::InformBox>(
 		explanation,
 		tr::lng_passcode_logout(tr::now)));
 	box->setCloseByEscape(false);
@@ -856,7 +832,7 @@ bool Application::openCustomUrl(
 		|| passcodeLocked()) {
 		return false;
 	}
-	const auto command = urlTrimmed.midRef(protocol.size(), 8192);
+	const auto command = base::StringViewMid(urlTrimmed, protocol.size(), 8192);
 	const auto controller = _window ? _window->sessionController() : nullptr;
 
 	using namespace qthelp;
@@ -1110,7 +1086,7 @@ void Application::QuitAttempt() {
 	if (!IsAppLaunched()
 		|| Sandbox::Instance().isSavingSession()
 		|| App().readyToQuit()) {
-		QApplication::quit();
+		Sandbox::QuitWhenStarted();
 	}
 }
 
@@ -1146,7 +1122,7 @@ void Application::quitPreventFinished() {
 
 void Application::quitDelayed() {
 	if (!_private->quitTimer.isActive()) {
-		_private->quitTimer.setCallback([] { QApplication::quit(); });
+		_private->quitTimer.setCallback([] { Sandbox::QuitWhenStarted(); });
 		_private->quitTimer.callOnce(kQuitPreventTimeoutMs);
 	}
 }
@@ -1201,7 +1177,7 @@ void Application::RegisterUrlScheme() {
 		.arguments = qsl("-workdir \"%1\"").arg(cWorkingDir()),
 		.protocol = qsl("tg"),
 		.protocolName = qsl("Telegram Link"),
-		.shortAppName = qsl("tdesktop"),
+		.shortAppName = qsl("ktgdesktop"),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
 		.displayAppDescription = AppName.utf16(),

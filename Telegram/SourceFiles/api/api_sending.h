@@ -30,25 +30,25 @@ struct MessageToSend;
 struct SendAction;
 
 void SendWebDocument(
-	Api::MessageToSend &&message,
+	MessageToSend &&message,
 	not_null<DocumentData*> document,
 	Fn<void()> doneCallback = nullptr,
 	bool forwarding = false);
 
 void SendExistingDocument(
-	Api::MessageToSend &&message,
+	MessageToSend &&message,
 	not_null<DocumentData*> document,
 	Fn<void()> doneCallback = nullptr,
 	bool forwarding = false);
 
 void SendExistingPhoto(
-	Api::MessageToSend &&message,
+	MessageToSend &&message,
 	not_null<PhotoData*> photo,
 	Fn<void()> doneCallback = nullptr,
 	bool forwarding = false);
 
 bool SendDice(
-	Api::MessageToSend &message,
+	MessageToSend &message,
 	Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback = nullptr,
 	bool forwarding = false);
 

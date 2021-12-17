@@ -7,7 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_groups.h"
 
+#include "history/history.h"
 #include "history/history_item.h"
+#include "dialogs/ui/dialogs_message_view.h"
 #include "data/data_media_types.h"
 #include "data/data_session.h"
 
@@ -71,7 +73,7 @@ void Groups::refreshMessage(
 		unregisterMessage(item);
 		return;
 	}
-	if (!IsServerMsgId(item->id) && !item->isScheduled()) {
+	if (!item->isRegular() && !item->isScheduled()) {
 		return;
 	}
 	const auto groupId = item->groupId();
@@ -110,14 +112,13 @@ void Groups::refreshMessage(
 HistoryItemsList::const_iterator Groups::findPositionForItem(
 		const HistoryItemsList &group,
 		not_null<HistoryItem*> item) {
-	const auto itemId = item->id;
 	const auto last = end(group);
-	if (!IsServerMsgId(itemId)) {
+	if (!item->isRegular()) {
 		return last;
 	}
+	const auto itemId = item->id;
 	for (auto result = begin(group); result != last; ++result) {
-		const auto alreadyId = (*result)->id;
-		if (IsServerMsgId(alreadyId) && alreadyId > itemId) {
+		if ((*result)->isRegular() && (*result)->id > itemId) {
 			return result;
 		}
 	}
@@ -140,8 +141,13 @@ const Group *Groups::find(not_null<const HistoryItem*> item) const {
 }
 
 void Groups::refreshViews(const HistoryItemsList &items) {
+	if (items.empty()) {
+		return;
+	}
+	const auto history = items.front()->history();
 	for (const auto &item : items) {
 		_data->requestItemViewRefresh(item);
+		history->lastItemDialogsView.itemInvalidated(item);
 	}
 }
 

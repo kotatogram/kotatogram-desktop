@@ -43,8 +43,7 @@ uint64 PinnedDialogPos(int pinnedIndex) {
 } // namespace
 
 Entry::Entry(not_null<Data::Session*> owner, Type type)
-: lastItemTextCache(st::dialogsTextWidthMin)
-, _owner(owner)
+: _owner(owner)
 , _isFolder(type == Type::Folder) {
 }
 
@@ -64,8 +63,8 @@ Data::Folder *Entry::asFolder() {
 	return _isFolder ? static_cast<Data::Folder*>(this) : nullptr;
 }
 
-void Entry::pinnedIndexChanged(int was, int now) {
-	if (session().supportMode()) {
+void Entry::pinnedIndexChanged(FilterId filterId, int was, int now) {
+	if (!filterId && session().supportMode()) {
 		// Force reorder in support mode.
 		_sortKeyInChatList = 0;
 	}
@@ -84,15 +83,12 @@ void Entry::cachePinnedIndex(FilterId filterId, int index) {
 	}
 	if (!index) {
 		_pinnedIndex.erase(i);
-		pinnedIndexChanged(was, index);
+	} else if (!was) {
+		_pinnedIndex.emplace(filterId, index);
 	} else {
-		if (!was) {
-			_pinnedIndex.emplace(filterId, index);
-		} else {
-			i->second = index;
-		}
-		pinnedIndexChanged(was, index);
+		i->second = index;
 	}
+	pinnedIndexChanged(filterId, was, index);
 }
 
 void Entry::cacheTopPromoted(bool promoted) {

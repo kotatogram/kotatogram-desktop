@@ -1,3 +1,133 @@
+3.3 (07.12.21)
+
+- Content creators can restrict the ability to save media and forward messages from their groups and channels.
+- Clear messages in one-on-one chats from a specific day or date range.
+- Comment as one of your channels in public groups and channel comments.
+- When you request to join a community and its admin or bot-admin contacts you with a message, you will see which chat they are from at the top of the chat.
+- Bot-admins can now ask users to complete tasks before they are allowed to join - like accepting community rules, passing a test, or making a donation to the content creators. 
+
+3.2.8 beta (01.12.21)
+
+- Fix crash in opening shared media with another user.
+
+3.2.7 beta (30.11.21)
+
+- Active sessions list redesign.
+- Fix disappearing emoji selector button.
+- Fix a crash in archived stickers loading.
+- Fix a crash in calls to old Telegram versions.
+
+3.2.6 beta (26.11.21)
+
+- Try out the new audio player with playlist shuffle and repeat.
+- Give a custom name to your desktop session to distinguish it in the sessions list.
+
+3.2.5 (16.11.21) [Windows, macOS]
+
+- Fix connecting in case bad characters appear in device name on Windows.
+- Fix custom input methods on macOS.
+
+3.2.4 (13.11.21)
+
+- Fix editing of scheduled messages on macOS.
+- Fix launching on Chrome OS in Crostini container. 
+
+3.2.3 (08.11.21)
+
+- Fix autoupdater launch on macOS.
+
+3.2.2 (05.11.21)
+
+- Fix webpage preview links when View Button is present.
+- Fixed possible crash on sponsored messages.
+
+3.2.1 (03.11.21)
+
+- Remove AppImage icon hack and -pie.
+
+3.2 (03.11.21)
+
+- Create special invite links that require admins to approve users before they become members.
+- Admins can view the applicants' profiles and bios by tapping the Join Requests bar at the top of the chat.
+- Add internal labels to your chat's Invite Links to keep them organized.
+- More Interactive Emoji - :ghost:, :dislike:, :face_vomiting:, :joy:, :money_with_wings: or :jack_o_lantern:
+
+3.1.13 beta (02.11.21)
+
+- Fix requests to groups / channels processing.
+- Fix internal link previews with View Content button layout.
+- Fix crash in messages search with imported messages results.
+- Don't use fractional system UI scaling on Linux.
+- Fix invite link icons on macOS.
+- Several crash fixes.
+
+3.1.12 beta (30.10.21)
+
+- Create special invite links that require admins to approve users before they become members.
+- Admins can view the applicants' profiles and bios by tapping the Join Requests bar at the top of the chat.
+- Add internal labels to your chat's Invite Links to keep them organized.
+- Run natively on Apple Silicon (macOS only).
+
+3.1.11 (29.10.21)
+
+- Create special invite links that require admins to approve users before they become members.
+- Admins can view the applicants' profiles and bios by tapping the Join Requests bar at the top of the chat.
+- Add internal labels to your chat's Invite Links to keep them organized.
+- Run natively on Apple Silicon (macOS only).
+
+3.1.10 beta (29.10.21)
+
+- Native support for M1 on macOS.
+- Build macOS and Linux versions on Qt 6.2.
+
+3.1.9 (08.10.21)
+
+- Fix crash in chat closing while scrolling (macOS only).
+
+3.1.8 (08.10.21)
+
+- Show small media previews in chats list.
+- Show media album previews and caption text in chats list.
+- Add "Quick Reply" and "Mark as Read" to native Windows notifications.
+
+3.1.7 beta (07.10.21)
+
+- Fix channel message views and comments counter updates.
+- Sponsored messages support.
+- Crash fix.
+
+3.1.6 beta (06.10.21)
+
+- Show small media previews in chats list.
+- Show media album previews and caption text in chats list.
+- Add "Quick Reply" and "Mark as Read" to native Windows notifications.
+
+3.1.5 beta (28.09.21)
+
+- Choose one of 8 new preset themes for any individual private chat.
+- Click on '...' menu > 'Change Colors' to pick a theme.
+- Both chat participants will see the same theme in that chat – on all their devices.
+- Each new theme features colorful gradient message bubbles, beautifully animated backgrounds and unique background patterns.
+- All chat themes have day and night versions and will follow your overall dark mode settings.
+- Implement main window rounded corners on Windows 11.
+- Fix audio capture from AirPods on macOS.
+
+3.1.4 beta (27.09.21)
+
+- Fix crash in network availability init.
+- Fix assertion violation after a NaN-resulting std::round call.
+
+3.1.3 beta (27.09.21)
+
+- Fix illegal instruction crash in opus encoder.
+
+3.1.2 beta (26.09.21)
+
+- Control video in fullscreen mode using arrows and numbers.
+- Open locations in browser if default Bing Maps is not installed.
+- Reconnect without timeout when network availability changes.
+- Crash fixes.
+
 3.1.1 (24.09.21)
 
 - Crash fixes.
@@ -437,7 +567,7 @@
 
 - Pin several messages in any chat, including one-on-one chats.
 - Jump between pinned messages or open them all on a separate page via the top bar.
-- Send several music tracks as a playlist. 
+- Send several music tracks as a playlist.
 - Send several files as an album in one chat bubble.
 - Send a :slot_machine: emoji to any chat to see if you hit the jackpot.
 - Hide Telegram taskbar icon on Linux in Settings > Advanced.

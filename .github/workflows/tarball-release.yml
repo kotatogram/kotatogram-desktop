@@ -2,7 +2,7 @@ name: Release Tarball
 
 on:
   release:
-    types: [created]
+    types: [published]
 
 jobs:
 

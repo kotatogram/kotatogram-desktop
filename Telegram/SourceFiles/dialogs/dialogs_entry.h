@@ -183,12 +183,9 @@ public:
 		paintUserpic(p, view, rtl() ? (w - x - size) : x, y, size);
 	}
 
-	TimeId chatListTimeId() const {
+	[[nodiscard]] TimeId chatListTimeId() const {
 		return _timeId;
 	}
-
-	mutable const HistoryItem *textCachedFor = nullptr; // cache
-	mutable Ui::Text::String lastItemTextCache;
 
 protected:
 	void notifyUnreadStateChange(const UnreadState &wasState);
@@ -208,7 +205,7 @@ protected:
 
 private:
 	virtual void changedChatListPinHook();
-	void pinnedIndexChanged(int was, int now);
+	void pinnedIndexChanged(FilterId filterId, int was, int now);
 	[[nodiscard]] uint64 computeSortPosition(FilterId filterId) const;
 
 	void setChatListExistence(bool exists);

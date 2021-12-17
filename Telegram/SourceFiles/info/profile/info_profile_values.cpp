@@ -50,6 +50,7 @@ auto PlainUsernameValue(not_null<PeerData*> peer) {
 	});
 }
 
+/*
 void StripExternalLinks(TextWithEntities &text) {
 	const auto local = [](const QString &url) {
 		return !UrlRequiresConfirmation(QUrl::fromUserInput(url));
@@ -67,6 +68,7 @@ void StripExternalLinks(TextWithEntities &text) {
 		ranges::remove_if(text.entities, notLocal),
 		text.entities.end());
 }
+*/
 
 } // namespace
 
@@ -139,7 +141,9 @@ rpl::producer<TextWithEntities> UsernameValue(not_null<UserData*> user) {
 	}) | Ui::Text::ToWithEntities();
 }
 
-rpl::producer<TextWithEntities> AboutValue(not_null<PeerData*> peer) {
+TextWithEntities AboutWithEntities(
+		not_null<PeerData*> peer,
+		const QString &value) {
 	auto flags = TextParseLinks | TextParseMentions;
 	const auto user = peer->asUser();
 	const auto isBot = user && user->isBot();
@@ -153,17 +157,21 @@ rpl::producer<TextWithEntities> AboutValue(not_null<PeerData*> peer) {
 		|| peer->isMegagroup()
 		|| (user && !isBot);
 	*/
+	auto result = TextWithEntities{ value };
+	TextUtilities::ParseEntities(result, flags);
+	/*
+	if (stripExternal) {
+		StripExternalLinks(result);
+	}
+	*/
+	return result;
+}
+
+rpl::producer<TextWithEntities> AboutValue(not_null<PeerData*> peer) {
 	return PlainAboutValue(
 		peer
-	) | Ui::Text::ToWithEntities(
-	) | rpl::map([=](TextWithEntities &&text) {
-		TextUtilities::ParseEntities(text, flags);
-		/*
-		if (stripExternal) {
-			StripExternalLinks(text);
-		}
-		*/
-		return std::move(text);
+	) | rpl::map([peer](const QString &value) {
+		return AboutWithEntities(peer, value);
 	});
 }
 
@@ -271,6 +279,25 @@ rpl::producer<int> MembersCountValue(not_null<PeerData*> peer) {
 			UpdateFlag::Members
 		) | rpl::map([=] {
 			return channel->membersCount();
+		});
+	}
+	Unexpected("User in MembersCountViewer().");
+}
+
+rpl::producer<int> PendingRequestsCountValue(not_null<PeerData*> peer) {
+	if (const auto chat = peer->asChat()) {
+		return peer->session().changes().peerFlagsValue(
+			peer,
+			UpdateFlag::PendingRequests
+		) | rpl::map([=] {
+			return chat->pendingRequestsCount();
+		});
+	} else if (const auto channel = peer->asChannel()) {
+		return peer->session().changes().peerFlagsValue(
+			peer,
+			UpdateFlag::PendingRequests
+		) | rpl::map([=] {
+			return channel->pendingRequestsCount();
 		});
 	}
 	Unexpected("User in MembersCountViewer().");

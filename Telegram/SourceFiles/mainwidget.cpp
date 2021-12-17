@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 
 #include "api/api_updates.h"
+#include "api/api_views.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
 #include "data/data_document_media.h"
@@ -29,7 +30,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_file_origin.h"
 #include "data/data_histories.h"
 #include "data/stickers/data_stickers.h"
-#include "api/api_text_entities.h"
 #include "ui/chat/chat_theme.h"
 #include "ui/special_buttons.h"
 #include "ui/widgets/buttons.h"
@@ -71,7 +71,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/add_contact_box.h"
 #include "mainwindow.h"
 #include "inline_bots/inline_bot_layout_item.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "boxes/sticker_set_box.h"
 #include "boxes/mute_settings_box.h"
 #include "boxes/peer_list_controllers.h"
@@ -81,7 +81,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "media/audio/media_audio.h"
 #include "media/player/media_player_panel.h"
 #include "media/player/media_player_widget.h"
-#include "media/player/media_player_volume_controller.h"
+#include "media/player/media_player_dropdown.h"
 #include "media/player/media_player_instance.h"
 #include "media/player/media_player_float.h"
 #include "base/qthelp_regex.h"
@@ -116,13 +116,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QMimeData>
-
-namespace {
-
-// Send channel views each second.
-constexpr auto kSendViewsTimeout = crl::time(1000);
-
-} // namespace
 
 enum StackItemType {
 	HistoryStackItem,
@@ -229,14 +222,12 @@ MainWidget::MainWidget(
 	not_null<Window::SessionController*> controller)
 : RpWidget(parent)
 , _controller(controller)
-, _api(&controller->session().mtp())
 , _dialogsWidth(st::columnMinimalWidthLeft)
 , _thirdColumnWidth(st::columnMinimalWidthThird)
 , _sideShadow(this)
 , _dialogs(this, _controller)
 , _history(this, _controller)
 , _playerPlaylist(this, _controller)
-, _viewsIncrementTimer([=] { viewsIncrement(); })
 , _changelogs(Core::Changelogs::Create(&controller->session())) {
 	setupConnectingWidget();
 
@@ -341,20 +332,8 @@ MainWidget::MainWidget(
 
 	QCoreApplication::instance()->installEventFilter(this);
 
-	subscribe(Media::Player::instance()->playerWidgetOver(), [this](bool over) {
-		if (over) {
-			if (_playerPlaylist->isHidden()) {
-				auto position = mapFromGlobal(QCursor::pos()).x();
-				auto bestPosition = _playerPlaylist->bestPositionFor(position);
-				if (rtl()) bestPosition = position + 2 * (position - bestPosition) - _playerPlaylist->width();
-				updateMediaPlaylistPosition(bestPosition);
-			}
-			_playerPlaylist->showFromOther();
-		} else {
-			_playerPlaylist->hideFromOther();
-		}
-	});
-	subscribe(Media::Player::instance()->tracksFinishedNotifier(), [this](AudioMsgId::Type type) {
+	Media::Player::instance()->tracksFinished(
+	) | rpl::start_with_next([=](AudioMsgId::Type type) {
 		if (type == AudioMsgId::Type::Voice) {
 			const auto songState = Media::Player::instance()->getState(AudioMsgId::Type::Song);
 			if (!songState.id || IsStoppedOrStopping(songState.state)) {
@@ -366,7 +345,7 @@ MainWidget::MainWidget(
 				closeBothPlayers();
 			}
 		}
-	});
+	}, lifetime());
 
 	_controller->adaptive().changes(
 	) | rpl::start_with_next([=] {
@@ -512,7 +491,7 @@ bool MainWidget::setForwardDraft(PeerId peerId, Data::ForwardDraft &&draft) {
 		session().data().idsToItems(draft.ids),
 		true);
 	if (!error.isEmpty()) {
-		Ui::show(Box<InformBox>(error), Ui::LayerOption::KeepOther);
+		Ui::show(Box<Ui::InformBox>(error), Ui::LayerOption::KeepOther);
 		return false;
 	}
 
@@ -533,7 +512,7 @@ bool MainWidget::shareUrl(
 
 	const auto peer = session().data().peer(peerId);
 	if (!peer->canWrite()) {
-		Ui::show(Box<InformBox>(tr::lng_share_cant(tr::now)));
+		Ui::show(Box<Ui::InformBox>(tr::lng_share_cant(tr::now)));
 		return false;
 	}
 	TextWithTags textWithTags = {
@@ -541,8 +520,8 @@ bool MainWidget::shareUrl(
 		TextWithTags::Tags()
 	};
 	MessageCursor cursor = {
-		url.size() + 1,
-		url.size() + 1 + text.size(),
+		int(url.size()) + 1,
+		int(url.size()) + 1 + int(text.size()),
 		QFIXED_MAX
 	};
 	auto history = peer->owner().history(peer);
@@ -563,12 +542,12 @@ bool MainWidget::inlineSwitchChosen(PeerId peerId, const QString &botAndQuery) {
 
 	const auto peer = session().data().peer(peerId);
 	if (!peer->canWrite()) {
-		Ui::show(Box<InformBox>(tr::lng_inline_switch_cant(tr::now)));
+		Ui::show(Box<Ui::InformBox>(tr::lng_inline_switch_cant(tr::now)));
 		return false;
 	}
 	const auto h = peer->owner().history(peer);
 	TextWithTags textWithTags = { botAndQuery, TextWithTags::Tags() };
-	MessageCursor cursor = { botAndQuery.size(), botAndQuery.size(), QFIXED_MAX };
+	MessageCursor cursor = { int(botAndQuery.size()), int(botAndQuery.size()), QFIXED_MAX };
 	h->setLocalDraft(std::make_unique<Data::Draft>(
 		textWithTags,
 		0,
@@ -586,12 +565,13 @@ bool MainWidget::sendPaths(PeerId peerId) {
 
 	auto peer = session().data().peer(peerId);
 	if (!peer->canWrite()) {
-		Ui::show(Box<InformBox>(tr::lng_forward_send_files_cant(tr::now)));
+		Ui::show(Box<Ui::InformBox>(
+			tr::lng_forward_send_files_cant(tr::now)));
 		return false;
 	} else if (const auto error = Data::RestrictionError(
 			peer,
 			ChatRestriction::SendMedia)) {
-		Ui::show(Box<InformBox>(*error));
+		Ui::show(Box<Ui::InformBox>(*error));
 		return false;
 	}
 	Ui::showPeerHistory(peer, ShowAtTheEndMsgId);
@@ -617,7 +597,8 @@ void MainWidget::onFilesOrForwardDrop(
 	} else {
 		auto peer = session().data().peer(peerId);
 		if (!peer->canWrite()) {
-			Ui::show(Box<InformBox>(tr::lng_forward_send_files_cant(tr::now)));
+			Ui::show(Box<Ui::InformBox>(
+				tr::lng_forward_send_files_cant(tr::now)));
 			return;
 		}
 		Ui::showPeerHistory(peer, ShowAtTheEndMsgId);
@@ -736,14 +717,6 @@ void MainWidget::showSendPathsLayer() {
 	}
 }
 
-void MainWidget::deletePhotoLayer(PhotoData *photo) {
-	if (!photo) return;
-	Ui::show(Box<ConfirmBox>(tr::lng_delete_photo_sure(tr::now), tr::lng_box_delete(tr::now), crl::guard(this, [=] {
-		session().api().clearPeerPhoto(photo);
-		Ui::hideLayer();
-	})));
-}
-
 void MainWidget::shareUrlLayer(const QString &url, const QString &text) {
 	// Don't allow to insert an inline bot query by share url link.
 	if (url.trimmed().startsWith('@')) {
@@ -772,10 +745,6 @@ void MainWidget::inlineSwitchLayer(const QString &botAndQuery) {
 
 bool MainWidget::selectingPeer() const {
 	return _hider ? true : false;
-}
-
-crl::time MainWidget::highlightStartTime(not_null<const HistoryItem*> item) const {
-	return _history->highlightStartTime(item);
 }
 
 void MainWidget::sendBotCommand(Bot::SendCommandRequest request) {
@@ -835,7 +804,6 @@ void MainWidget::closeBothPlayers() {
 	if (_player) {
 		_player->hide(anim::type::normal);
 	}
-	_playerVolume.destroyDelayed();
 
 	_playerPlaylist->hideIgnoringEnterEvents();
 	Media::Player::instance()->stop(AudioMsgId::Type::Voice);
@@ -854,7 +822,7 @@ void MainWidget::createPlayer() {
 	if (!_player) {
 		_player.create(
 			this,
-			object_ptr<Media::Player::Widget>(this, &session()),
+			object_ptr<Media::Player::Widget>(this, this, _controller),
 			_controller->adaptive().oneColumnValue());
 		rpl::merge(
 			_player->heightValue() | rpl::map_to(true),
@@ -867,8 +835,21 @@ void MainWidget::createPlayer() {
 				not_null<const HistoryItem*> item) {
 			_controller->showPeerHistoryAtItem(item);
 		});
-		_playerVolume.create(this, _controller);
-		_player->entity()->volumeWidgetCreated(_playerVolume);
+
+		_player->entity()->togglePlaylistRequests(
+		) | rpl::start_with_next([=](bool shown) {
+			if (!shown) {
+				_playerPlaylist->hideFromOther();
+				return;
+			} else if (_playerPlaylist->isHidden()) {
+				auto position = mapFromGlobal(QCursor::pos()).x();
+				auto bestPosition = _playerPlaylist->bestPositionFor(position);
+				if (rtl()) bestPosition = position + 2 * (position - bestPosition) - _playerPlaylist->width();
+				updateMediaPlaylistPosition(bestPosition);
+			}
+			_playerPlaylist->showFromOther();
+		}, _player->lifetime());
+
 		orderWidgets();
 		if (_a_show.animating()) {
 			_player->show(anim::type::instant);
@@ -902,7 +883,6 @@ void MainWidget::playerHeightUpdated() {
 	if (!_playerHeight && _player->isHidden()) {
 		const auto state = Media::Player::instance()->getState(Media::Player::instance()->getActiveType());
 		if (!state.id || Media::Player::IsStoppedOrStopping(state.state)) {
-			_playerVolume.destroyDelayed();
 			_player.destroyDelayed();
 		}
 	}
@@ -1091,8 +1071,18 @@ void MainWidget::inlineResultLoadFailed(FileLoader *loader, bool started) {
 	//Ui::repaintInlineItem();
 }
 
+SendMenu::Type MainWidget::sendMenuType() const {
+	return _history->sendMenuType();
+}
+
 bool MainWidget::sendExistingDocument(not_null<DocumentData*> document) {
-	return _history->sendExistingDocument(document, Api::SendOptions());
+	return sendExistingDocument(document, {});
+}
+
+bool MainWidget::sendExistingDocument(
+		not_null<DocumentData*> document,
+		Api::SendOptions options) {
+	return _history->sendExistingDocument(document, options);
 }
 
 void MainWidget::dialogsCancelled() {
@@ -1226,100 +1216,6 @@ void MainWidget::setInnerFocus() {
 	}
 }
 
-void MainWidget::scheduleViewIncrement(HistoryItem *item) {
-	PeerData *peer = item->history()->peer;
-	auto i = _viewsIncremented.find(peer);
-	if (i != _viewsIncremented.cend()) {
-		if (i->second.contains(item->id)) return;
-	} else {
-		i = _viewsIncremented.emplace(peer).first;
-	}
-	i->second.emplace(item->id);
-	auto j = _viewsToIncrement.find(peer);
-	if (j == _viewsToIncrement.cend()) {
-		j = _viewsToIncrement.emplace(peer).first;
-		_viewsIncrementTimer.callOnce(kSendViewsTimeout);
-	}
-	j->second.emplace(item->id);
-}
-
-void MainWidget::viewsIncrement() {
-	for (auto i = _viewsToIncrement.begin(); i != _viewsToIncrement.cend();) {
-		if (_viewsIncrementRequests.contains(i->first)) {
-			++i;
-			continue;
-		}
-
-		QVector<MTPint> ids;
-		ids.reserve(i->second.size());
-		for (const auto msgId : i->second) {
-			ids.push_back(MTP_int(msgId));
-		}
-		const auto requestId = _api.request(MTPmessages_GetMessagesViews(
-			i->first->input,
-			MTP_vector<MTPint>(ids),
-			MTP_bool(true)
-		)).done([=](const MTPmessages_MessageViews &result, mtpRequestId requestId) {
-			viewsIncrementDone(ids, result, requestId);
-		}).fail([=](const MTP::Error &error, mtpRequestId requestId) {
-			viewsIncrementFail(error, requestId);
-		}).afterDelay(5).send();
-
-		_viewsIncrementRequests.emplace(i->first, requestId);
-		i = _viewsToIncrement.erase(i);
-	}
-}
-
-void MainWidget::viewsIncrementDone(
-		QVector<MTPint> ids,
-		const MTPmessages_MessageViews &result,
-		mtpRequestId requestId) {
-	const auto &data = result.c_messages_messageViews();
-	session().data().processUsers(data.vusers());
-	session().data().processChats(data.vchats());
-	auto &v = data.vviews().v;
-	if (ids.size() == v.size()) {
-		for (auto i = _viewsIncrementRequests.begin(); i != _viewsIncrementRequests.cend(); ++i) {
-			if (i->second == requestId) {
-				const auto peer = i->first;
-				const auto channel = peerToChannel(peer->id);
-				for (int32 j = 0, l = ids.size(); j < l; ++j) {
-					if (const auto item = session().data().message(channel, ids[j].v)) {
-						v[j].match([&](const MTPDmessageViews &data) {
-							if (const auto views = data.vviews()) {
-								item->setViewsCount(views->v);
-							}
-							if (const auto forwards = data.vforwards()) {
-								item->setForwardsCount(forwards->v);
-							}
-							if (const auto replies = data.vreplies()) {
-								item->setReplies(*replies);
-							}
-						});
-					}
-				}
-				_viewsIncrementRequests.erase(i);
-				break;
-			}
-		}
-	}
-	if (!_viewsToIncrement.empty() && !_viewsIncrementTimer.isActive()) {
-		_viewsIncrementTimer.callOnce(kSendViewsTimeout);
-	}
-}
-
-void MainWidget::viewsIncrementFail(const MTP::Error &error, mtpRequestId requestId) {
-	for (auto i = _viewsIncrementRequests.begin(); i != _viewsIncrementRequests.cend(); ++i) {
-		if (i->second == requestId) {
-			_viewsIncrementRequests.erase(i);
-			break;
-		}
-	}
-	if (!_viewsToIncrement.empty() && !_viewsIncrementTimer.isActive()) {
-		_viewsIncrementTimer.callOnce(kSendViewsTimeout);
-	}
-}
-
 void MainWidget::choosePeer(PeerId peerId, MsgId showAtMsgId) {
 	if (selectingPeer()) {
 		_hider->offerPeer(peerId);
@@ -1358,12 +1254,17 @@ void MainWidget::clearChooseReportMessages() {
 	_history->setChooseReportMessagesDetails({}, nullptr);
 }
 
+void MainWidget::toggleChooseChatTheme(not_null<PeerData*> peer) {
+	_history->toggleChooseChatTheme(peer);
+}
+
 void MainWidget::ui_showPeerHistory(
 		PeerId peerId,
 		const SectionShow &params,
 		MsgId showAtMsgId) {
-
-	if (auto peer = session().data().peerLoaded(peerId)) {
+	if (peerId && _controller->window().locked()) {
+		return;
+	} else if (auto peer = session().data().peerLoaded(peerId)) {
 		if (peer->migrateTo()) {
 			peer = peer->migrateTo();
 			peerId = peer->id;
@@ -1372,7 +1273,7 @@ void MainWidget::ui_showPeerHistory(
 		const auto unavailable = peer->computeUnavailableReason();
 		if (!unavailable.isEmpty()) {
 			if (params.activation != anim::activation::background) {
-				Ui::show(Box<InformBox>(unavailable));
+				Ui::show(Box<Ui::InformBox>(unavailable));
 			}
 			return;
 		}
@@ -1491,6 +1392,7 @@ void MainWidget::ui_showPeerHistory(
 
 	if (noPeer) {
 		_controller->setActiveChatEntry(Dialogs::Key());
+		_controller->setChatStyleTheme(controller()->defaultChatTheme());
 	}
 
 	if (onlyDialogs) {
@@ -1506,7 +1408,7 @@ void MainWidget::ui_showPeerHistory(
 	} else {
 		const auto nowActivePeer = _controller->activeChatCurrent().peer();
 		if (nowActivePeer && nowActivePeer != wasActivePeer) {
-			_viewsIncremented.remove(nowActivePeer);
+			session().api().views().removeIncremented(nowActivePeer);
 		}
 		if (isOneColumn() && !_dialogs->isHidden()) {
 			_dialogs->hide();
@@ -1629,11 +1531,7 @@ Window::SectionSlideParams MainWidget::prepareShowAnimation(
 
 	floatPlayerHideAll();
 	if (_player) {
-		_player->hideShadow();
-	}
-	auto playerVolumeVisible = _playerVolume && !_playerVolume->isHidden();
-	if (playerVolumeVisible) {
-		_playerVolume->hide();
+		_player->entity()->hideShadowAndDropdowns();
 	}
 	auto playerPlaylistVisible = !_playerPlaylist->isHidden();
 	if (playerPlaylistVisible) {
@@ -1659,14 +1557,11 @@ Window::SectionSlideParams MainWidget::prepareShowAnimation(
 			height() - sectionTop));
 	}
 
-	if (playerVolumeVisible) {
-		_playerVolume->show();
-	}
 	if (playerPlaylistVisible) {
 		_playerPlaylist->show();
 	}
 	if (_player) {
-		_player->showShadow();
+		_player->entity()->showShadowAndDropdowns();
 	}
 	floatPlayerShowVisible();
 
@@ -1690,6 +1585,9 @@ void MainWidget::showNewSection(
 		const SectionShow &params) {
 	using Column = Window::Column;
 
+	if (_controller->window().locked()) {
+		return;
+	}
 	auto saveInStack = (params.way == SectionShow::Way::Forward);
 	const auto thirdSectionTop = getThirdSectionTop();
 	const auto newThirdGeometry = QRect(
@@ -1923,9 +1821,6 @@ void MainWidget::orderWidgets() {
 	if (_callTopBar) {
 		_callTopBar->raise();
 	}
-	if (_playerVolume) {
-		_playerVolume->raise();
-	}
 	_sideShadow->raise();
 	if (_thirdShadow) {
 		_thirdShadow->raise();
@@ -1937,27 +1832,19 @@ void MainWidget::orderWidgets() {
 		_thirdColumnResizeArea->raise();
 	}
 	_connecting->raise();
-	_playerPlaylist->raise();
 	floatPlayerRaiseAll();
+	_playerPlaylist->raise();
+	if (_player) {
+		_player->entity()->raiseDropdowns();
+	}
 	if (_hider) _hider->raise();
-}
-
-QRect MainWidget::historyRect() const {
-	QRect r(_history->historyRect());
-	r.moveLeft(r.left() + _history->x());
-	r.moveTop(r.top() + _history->y());
-	return r;
 }
 
 QPixmap MainWidget::grabForShowAnimation(const Window::SectionSlideParams &params) {
 	QPixmap result;
 	floatPlayerHideAll();
 	if (_player) {
-		_player->hideShadow();
-	}
-	auto playerVolumeVisible = _playerVolume && !_playerVolume->isHidden();
-	if (playerVolumeVisible) {
-		_playerVolume->hide();
+		_player->entity()->hideShadowAndDropdowns();
 	}
 	auto playerPlaylistVisible = !_playerPlaylist->isHidden();
 	if (playerPlaylistVisible) {
@@ -1986,14 +1873,11 @@ QPixmap MainWidget::grabForShowAnimation(const Window::SectionSlideParams &param
 			_thirdShadow->show();
 		}
 	}
-	if (playerVolumeVisible) {
-		_playerVolume->show();
-	}
 	if (playerPlaylistVisible) {
 		_playerPlaylist->show();
 	}
 	if (_player) {
-		_player->showShadow();
+		_player->entity()->showShadowAndDropdowns();
 	}
 	floatPlayerShowVisible();
 	return result;
@@ -2100,7 +1984,7 @@ void MainWidget::hideAll() {
 void MainWidget::showAll() {
 	if (cPasswordRecovered()) {
 		cSetPasswordRecovered(false);
-		Ui::show(Box<InformBox>(tr::lng_cloud_password_updated(tr::now)));
+		Ui::show(Box<Ui::InformBox>(tr::lng_cloud_password_updated(tr::now)));
 	}
 	if (isOneColumn()) {
 		_sideShadow->hide();
@@ -2278,7 +2162,9 @@ void MainWidget::updateControlsGeometry() {
 		_mainSection->setGeometryWithTopMoved(mainSectionGeometry, _contentScrollAddToY);
 	}
 	refreshResizeAreas();
-	updateMediaPlayerPosition();
+	if (_player) {
+		_player->entity()->updateDropdownsGeometry();
+	}
 	updateMediaPlaylistPosition(_playerPlaylist->x());
 	_contentScrollAddToY = 0;
 
@@ -2477,14 +2363,6 @@ void MainWidget::updateThirdColumnToCurrentChat(
 	}
 }
 
-void MainWidget::updateMediaPlayerPosition() {
-	if (_player && _playerVolume) {
-		auto relativePosition = _player->entity()->getPositionForVolumeWidget();
-		auto playerMargins = _playerVolume->getMargin();
-		_playerVolume->moveToLeft(_player->x() + relativePosition.x() - playerMargins.left(), _player->y() + relativePosition.y() - playerMargins.top());
-	}
-}
-
 void MainWidget::updateMediaPlaylistPosition(int x) {
 	if (_player) {
 		auto playlistLeft = x;
@@ -2506,12 +2384,10 @@ void MainWidget::returnTabbedSelector() {
 	}
 }
 
-void MainWidget::keyPressEvent(QKeyEvent *e) {
-}
-
 bool MainWidget::eventFilter(QObject *o, QEvent *e) {
 	if (e->type() == QEvent::FocusIn) {
-		if (const auto widget = qobject_cast<QWidget*>(o)) {
+		if (o->isWidgetType()) {
+			const auto widget = static_cast<QWidget*>(o);
 			if (_history == widget || _history->isAncestorOf(widget)
 				|| (_mainSection && (_mainSection == widget || _mainSection->isAncestorOf(widget)))
 				|| (_thirdSection && (_thirdSection == widget || _thirdSection->isAncestorOf(widget)))) {
@@ -2639,9 +2515,8 @@ void MainWidget::mentionUser(PeerData *peer) {
 }
 
 bool MainWidget::contentOverlapped(const QRect &globalRect) {
-	return (_history->contentOverlapped(globalRect)
-			|| _playerPlaylist->overlaps(globalRect)
-			|| (_playerVolume && _playerVolume->overlaps(globalRect)));
+	return _history->contentOverlapped(globalRect)
+		|| _playerPlaylist->overlaps(globalRect);
 }
 
 void MainWidget::activate() {
@@ -2660,7 +2535,7 @@ void MainWidget::activate() {
 						_controller,
 						path.mid(interpret.size()));
 					if (!error.isEmpty()) {
-						Ui::show(Box<InformBox>(error));
+						Ui::show(Box<Ui::InformBox>(error));
 					}
 				} else {
 					showSendPathsLayer();

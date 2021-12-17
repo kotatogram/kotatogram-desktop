@@ -137,7 +137,7 @@ QSize Sticker::Size() {
 }
 
 QSize Sticker::EmojiSize() {
-	const auto maxHeight = int(st::maxStickerSize / 256.0 * StickerHeight());
+	const auto maxHeight = int(st::maxStickerSize / 256.0 * StickerHeight() / 2);
 	const auto side = std::min(maxHeight, kMaxEmojiSizeFixed);
 	return { side, side };
 }

@@ -8,16 +8,19 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_peer_menu.h"
 
 #include "kotato/kotato_lang.h"
+#include "api/api_chat_participants.h"
 #include "lang/lang_keys.h"
-#include "api/api_sending.h"
-#include "boxes/confirm_box.h"
+#include "boxes/delete_messages_box.h"
+#include "boxes/max_invite_box.h"
 #include "boxes/mute_settings_box.h"
 #include "boxes/add_contact_box.h"
 #include "boxes/create_poll_box.h"
+#include "boxes/pin_messages_box.h"
 #include "boxes/peers/add_participants_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/share_box.h"
 #include "kotato/boxes/kotato_unpin_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/boxes/report_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h"
@@ -33,6 +36,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "api/api_blocked_peers.h"
 #include "api/api_chat_filters.h"
+#include "api/api_polls.h"
+#include "api/api_sending.h"
 #include "api/api_updates.h"
 #include "api/api_text_entities.h"
 #include "mtproto/mtproto_config.h"
@@ -73,7 +78,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
-#include <QtWidgets/QAction>
+#include <QAction>
 
 namespace Window {
 namespace {
@@ -198,7 +203,7 @@ bool PinnedLimitReached(Dialogs::Key key, FilterId filterId) {
 				tr::now,
 				lt_count,
 				pinnedMax);
-		Ui::show(Box<InformBox>(errorText));
+		Ui::show(Box<Ui::InformBox>(errorText));
 	}
 	return true;
 }
@@ -223,7 +228,7 @@ void TogglePinnedDialog(
 		history->session().api().request(MTPmessages_ToggleDialogPin(
 			MTP_flags(flags),
 			MTP_inputDialogPeer(key.history()->peer->input)
-		)).done([=](const MTPBool &result) {
+		)).done([=] {
 			owner->notifyPinnedDialogsOrderUpdated();
 		}).send();
 	} else if (const auto folder = key.folder()) {
@@ -512,6 +517,11 @@ void Filler::addUserActions(not_null<UserData*> user) {
 				[=] { AddBotToGroup::Start(user); });
 		}
 		addPollAction(user);
+		if (!user->isBot() && _request.section == Section::History) {
+			_addAction(
+				tr::lng_chat_theme_change(tr::now),
+				[=] { controller->toggleChooseChatTheme(user); });
+		}
 		if (user->canExportChatHistory()) {
 			_addAction(
 				tr::lng_profile_export_chat(tr::now),
@@ -803,7 +813,7 @@ void PeerMenuDeleteContact(not_null<UserData*> user) {
 			user->session().api().applyUpdates(result);
 		}).send();
 	};
-	Ui::show(Box<ConfirmBox>(
+	Ui::show(Box<Ui::ConfirmBox>(
 		text,
 		tr::lng_box_delete(tr::now),
 		deleteSure));
@@ -815,7 +825,7 @@ void PeerMenuShareContactBox(
 	const auto weak = std::make_shared<QPointer<PeerListBox>>();
 	auto callback = [=](not_null<PeerData*> peer) {
 		if (!peer->canWrite()) {
-			Ui::show(Box<InformBox>(
+			Ui::show(Box<Ui::InformBox>(
 				tr::lng_forward_share_cant(tr::now)),
 				Ui::LayerOption::KeepOther);
 			return;
@@ -832,7 +842,7 @@ void PeerMenuShareContactBox(
 		auto recipient = peer->isUser()
 			? peer->name
 			: '\xAB' + peer->name + '\xBB';
-		Ui::show(Box<ConfirmBox>(
+		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_forward_share_contact(tr::now, lt_recipient, recipient),
 			tr::lng_forward_send(tr::now),
 			[peer, user, navigation] {
@@ -881,15 +891,16 @@ void PeerMenuCreatePoll(
 		if (std::exchange(*lock, true)) {
 			return;
 		}
-		auto action = Api::SendAction(peer->owner().history(peer));
+		auto action = Api::SendAction(
+			peer->owner().history(peer),
+			result.options);
 		action.clearDraft = false;
-		action.options = result.options;
 		action.replyTo = replyToId;
 		if (const auto localDraft = action.history->localDraft()) {
 			action.clearDraft = localDraft->textWithTags.text.isEmpty();
 		}
 		const auto api = &peer->session().api();
-		api->createPoll(result.poll, action, crl::guard(box, [=] {
+		api->polls().create(result.poll, action, crl::guard(box, [=] {
 			box->closeBox();
 		}), crl::guard(box, [=](const MTP::Error &error) {
 			*lock = false;
@@ -1194,7 +1205,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 			}
 			text.append(error.first);
 			Ui::show(
-				Box<InformBox>(text),
+				Box<Ui::InformBox>(text),
 				Ui::LayerOption::KeepOther);
 			return;
 		}
@@ -1213,18 +1224,17 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 
 		for (const auto peer : result) {
 			const auto history = owner->history(peer);
+			auto action = Api::SendAction(history);
+			action.options = options;
+			action.clearDraft = false;
+
 			if (!comment.text.isEmpty()) {
-				auto message = ApiWrap::MessageToSend(history);
+				auto message = ApiWrap::MessageToSend(action);
 				message.textWithTags = comment;
-				message.action.options = options;
-				message.action.clearDraft = false;
 				api.sendMessage(std::move(message));
 			}
 
 			data->requestsLeft++;
-			auto action = Api::SendAction(history);
-			action.options = options;
-			action.clearDraft = false;
 			auto resolved = history->resolveForwardDraft(data->draft);
 
 			api.forwardMessages(std::move(resolved), action, [=] {
@@ -1343,7 +1353,7 @@ QPointer<Ui::RpWidget> ShowSendNowMessagesBox(
 		}
 	};
 	return Ui::show(
-		Box<ConfirmBox>(text, tr::lng_send_button(tr::now), std::move(done)),
+		Box<Ui::ConfirmBox>(text, tr::lng_send_button(tr::now), std::move(done)),
 		Ui::LayerOption::KeepOther).data();
 }
 
@@ -1359,35 +1369,25 @@ void PeerMenuAddChannelMembers(
 		return;
 	}
 	const auto api = &channel->session().api();
-	api->requestChannelMembersForAdd(channel, crl::guard(navigation, [=](
-			const MTPchannels_ChannelParticipants &result) {
-		api->parseChannelParticipants(channel, result, [&](
-				int availableCount,
-				const QVector<MTPChannelParticipant> &list) {
-			auto already = (
-				list
-			) | ranges::views::transform([](const MTPChannelParticipant &p) {
-				return p.match([](const MTPDchannelParticipantBanned &data) {
-					return peerFromMTP(data.vpeer());
-				}, [](const MTPDchannelParticipantLeft &data) {
-					return peerFromMTP(data.vpeer());
-				}, [](const auto &data) {
-					return peerFromUser(data.vuser_id());
-				});
-			}) | ranges::views::transform([&](PeerId participantId) {
-				return peerIsUser(participantId)
-					? channel->owner().userLoaded(
-						peerToUser(participantId))
-					: nullptr;
-			}) | ranges::views::filter([](UserData *user) {
-				return (user != nullptr);
-			}) | ranges::to_vector;
+	api->chatParticipants().requestForAdd(channel, crl::guard(navigation, [=](
+			const Api::ChatParticipants::TLMembers &data) {
+		const auto &[availableCount, list] = Api::ChatParticipants::Parse(
+			channel,
+			data);
+		const auto already = (
+			list
+		) | ranges::views::transform([&](const Api::ChatParticipant &p) {
+			return p.isUser()
+				? channel->owner().userLoaded(p.userId())
+				: nullptr;
+		}) | ranges::views::filter([](UserData *user) {
+			return (user != nullptr);
+		}) | ranges::to_vector;
 
-			AddParticipantsBoxController::Start(
-				navigation,
-				channel,
-				{ already.begin(), already.end() });
-		});
+		AddParticipantsBoxController::Start(
+			navigation,
+			channel,
+			{ already.begin(), already.end() });
 	}));
 }
 
@@ -1410,7 +1410,7 @@ void HidePinnedBar(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<PeerData*> peer,
 		Fn<void()> onHidden) {
-	Ui::show(Box<ConfirmBox>(tr::lng_pinned_hide_all_sure(tr::now), tr::lng_pinned_hide_all_hide(tr::now), crl::guard(navigation, [=] {
+	const auto callback = crl::guard(navigation, [=] {
 		Ui::hideLayer();
 		auto &session = peer->session();
 		const auto migrated = peer->migrateFrom();
@@ -1429,13 +1429,17 @@ void HidePinnedBar(
 		} else {
 			session.api().requestFullPeer(peer);
 		}
-	})));
+	});
+	Ui::show(Box<Ui::ConfirmBox>(
+		tr::lng_pinned_hide_all_sure(tr::now),
+		tr::lng_pinned_hide_all_hide(tr::now),
+		callback));
 }
 
 void UnpinAllMessages(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<History*> history) {
-	Ui::show(Box<ConfirmBox>(tr::lng_pinned_unpin_all_sure(tr::now), tr::lng_pinned_unpin(tr::now), crl::guard(navigation, [=] {
+	const auto callback = crl::guard(navigation, [=] {
 		Ui::hideLayer();
 		const auto api = &history->session().api();
 		const auto sendRequest = [=](auto self) -> void {
@@ -1452,7 +1456,11 @@ void UnpinAllMessages(
 			}).send();
 		};
 		sendRequest(sendRequest);
-	})));
+	});
+	Ui::show(Box<Ui::ConfirmBox>(
+		tr::lng_pinned_unpin_all_sure(tr::now),
+		tr::lng_pinned_unpin(tr::now),
+		callback));
 }
 
 void PeerMenuAddMuteAction(
@@ -1490,7 +1498,7 @@ void MenuAddMarkAsReadAllChatsAction(
 				MarkAsReadChatList(folder->chatsList());
 			}
 		};
-		Ui::show(Box<ConfirmBox>(
+		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_context_mark_read_all_sure(tr::now),
 			std::move(boxCallback)));
 	};
@@ -1513,7 +1521,7 @@ void MenuAddMarkAsReadChatListAction(
 				MarkAsReadChatList(list());
 				close();
 			};
-			Ui::show(Box<ConfirmBox>(
+			Ui::show(Box<Ui::ConfirmBox>(
 				tr::lng_context_mark_read_sure(tr::now),
 				std::move(boxCallback)));
 		} else {

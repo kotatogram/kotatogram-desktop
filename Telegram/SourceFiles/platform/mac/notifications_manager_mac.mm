@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/mac/base_utilities_mac.h"
 #include "base/random.h"
 #include "history/history.h"
+#include "history/history_item.h"
 #include "ui/empty_userpic.h"
 #include "main/main_session.h"
 #include "mainwindow.h"
@@ -107,7 +108,7 @@ using Manager = Platform::Notifications::Manager;
 	}
 
 	NSNumber *msgObject = [notificationUserInfo objectForKey:@"msgid"];
-	const auto notificationMsgId = msgObject ? [msgObject intValue] : 0;
+	const auto notificationMsgId = msgObject ? [msgObject longLongValue] : 0LL;
 
 	const auto my = Window::Notifications::Manager::NotificationId{
 		.full = Manager::FullPeer{
@@ -184,9 +185,9 @@ public:
 		const QString &title,
 		const QString &subtitle,
 		const QString &msg,
-		bool hideNameAndPhoto,
-		bool hideReplyButton);
+		DisplayOptions options);
 	void clearAll();
+	void clearFromItem(not_null<HistoryItem*> item);
 	void clearFromHistory(not_null<History*> history);
 	void clearFromSession(not_null<Main::Session*> session);
 	void updateDelegate();
@@ -208,6 +209,9 @@ private:
 	std::mutex _clearingMutex;
 	std::condition_variable _clearingCondition;
 
+	struct ClearFromItem {
+		NotificationId id;
+	};
 	struct ClearFromHistory {
 		FullPeer fullPeer;
 	};
@@ -219,6 +223,7 @@ private:
 	struct ClearFinish {
 	};
 	using ClearTask = std::variant<
+		ClearFromItem,
 		ClearFromHistory,
 		ClearFromSession,
 		ClearAll,
@@ -250,22 +255,36 @@ void Manager::Private::showNotification(
 		const QString &title,
 		const QString &subtitle,
 		const QString &msg,
-		bool hideNameAndPhoto,
-		bool hideReplyButton) {
+		DisplayOptions options) {
 	@autoreleasepool {
 
 	NSUserNotification *notification = [[[NSUserNotification alloc] init] autorelease];
 	if ([notification respondsToSelector:@selector(setIdentifier:)]) {
-		auto identifier = _managerIdString + '_' + QString::number(peer->id.value) + '_' + QString::number(msgId);
+		auto identifier = _managerIdString
+			+ '_'
+			+ QString::number(peer->id.value)
+			+ '_'
+			+ QString::number(msgId.bare);
 		auto identifierValue = Q2NSString(identifier);
 		[notification setIdentifier:identifierValue];
 	}
-	[notification setUserInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithUnsignedLongLong:peer->session().uniqueId()],@"session",[NSNumber numberWithUnsignedLongLong:peer->id.value],@"peer",[NSNumber numberWithInt:msgId],@"msgid",[NSNumber numberWithUnsignedLongLong:_managerId],@"manager",nil]];
+	[notification setUserInfo:
+		[NSDictionary dictionaryWithObjectsAndKeys:
+			[NSNumber numberWithUnsignedLongLong:peer->session().uniqueId()],
+			@"session",
+			[NSNumber numberWithUnsignedLongLong:peer->id.value],
+			@"peer",
+			[NSNumber numberWithLongLong:msgId.bare],
+			@"msgid",
+			[NSNumber numberWithUnsignedLongLong:_managerId],
+			@"manager",
+			nil]];
 
 	[notification setTitle:Q2NSString(title)];
 	[notification setSubtitle:Q2NSString(subtitle)];
 	[notification setInformativeText:Q2NSString(msg)];
-	if (!hideNameAndPhoto && [notification respondsToSelector:@selector(setContentImage:)]) {
+	if (!options.hideNameAndPhoto
+		&& [notification respondsToSelector:@selector(setContentImage:)]) {
 		auto userpic = peer->isSelf()
 			? Ui::EmptyUserpic::GenerateSavedMessages(st::notifyMacPhotoSize)
 			: peer->isRepliesChat()
@@ -275,7 +294,8 @@ void Manager::Private::showNotification(
 		[notification setContentImage:img];
 	}
 
-	if (!hideReplyButton && [notification respondsToSelector:@selector(setHasReplyButton:)]) {
+	if (!options.hideReplyButton
+		&& [notification respondsToSelector:@selector(setHasReplyButton:)]) {
 		[notification setHasReplyButton:YES];
 	}
 
@@ -291,6 +311,7 @@ void Manager::Private::clearingThreadLoop() {
 	auto finished = false;
 	while (!finished) {
 		auto clearAll = false;
+		auto clearFromItems = base::flat_set<NotificationId>();
 		auto clearFromPeers = base::flat_set<FullPeer>();
 		auto clearFromSessions = base::flat_set<uint64>();
 		{
@@ -304,6 +325,8 @@ void Manager::Private::clearingThreadLoop() {
 					clearAll = true;
 				}, [&](ClearAll) {
 					clearAll = true;
+				}, [&](const ClearFromItem &value) {
+					clearFromItems.emplace(value.id);
 				}, [&](const ClearFromHistory &value) {
 					clearFromPeers.emplace(value.fullPeer);
 				}, [&](const ClearFromSession &value) {
@@ -321,17 +344,21 @@ void Manager::Private::clearingThreadLoop() {
 			if (!notificationSessionId) {
 				return true;
 			}
-			if (NSNumber *peerObject = [notificationUserInfo objectForKey:@"peer"]) {
-				const auto notificationPeerId = [peerObject unsignedLongLongValue];
-				if (notificationPeerId) {
-					return clearFromSessions.contains(notificationSessionId)
-						|| clearFromPeers.contains(FullPeer{
-							.sessionId = notificationSessionId,
-							.peerId = PeerId(notificationPeerId)
-						});
-				}
+			NSNumber *peerObject = [notificationUserInfo objectForKey:@"peer"];
+			const auto notificationPeerId = peerObject ? [peerObject unsignedLongLongValue] : 0;
+			if (!notificationPeerId) {
+				return true;
 			}
-			return true;
+			NSNumber *msgObject = [notificationUserInfo objectForKey:@"msgid"];
+			const auto msgId = msgObject ? [msgObject longLongValue] : 0LL;
+			const auto full = FullPeer{
+				.sessionId = notificationSessionId,
+				.peerId = PeerId(notificationPeerId)
+			};
+			const auto id = NotificationId{ full, MsgId(msgId) };
+			return clearFromSessions.contains(notificationSessionId)
+				|| clearFromPeers.contains(full)
+				|| (msgId && clearFromItems.contains(id));
 		};
 
 		NSUserNotificationCenter *center = [NSUserNotificationCenter defaultUserNotificationCenter];
@@ -364,6 +391,13 @@ void Manager::Private::putClearTask(Task task) {
 
 void Manager::Private::clearAll() {
 	putClearTask(ClearAll());
+}
+
+void Manager::Private::clearFromItem(not_null<HistoryItem*> item) {
+	putClearTask(ClearFromItem { FullPeer{
+		.sessionId = item->history()->session().uniqueId(),
+		.peerId = item->history()->peer->id
+	}, item->id });
 }
 
 void Manager::Private::clearFromHistory(not_null<History*> history) {
@@ -405,8 +439,7 @@ void Manager::doShowNativeNotification(
 		const QString &title,
 		const QString &subtitle,
 		const QString &msg,
-		bool hideNameAndPhoto,
-		bool hideReplyButton) {
+		DisplayOptions options) {
 	_private->showNotification(
 		peer,
 		userpicView,
@@ -414,12 +447,15 @@ void Manager::doShowNativeNotification(
 		title,
 		subtitle,
 		msg,
-		hideNameAndPhoto,
-		hideReplyButton);
+		options);
 }
 
 void Manager::doClearAllFast() {
 	_private->clearAll();
+}
+
+void Manager::doClearFromItem(not_null<HistoryItem*> item) {
+	_private->clearFromItem(item);
 }
 
 void Manager::doClearFromHistory(not_null<History*> history) {

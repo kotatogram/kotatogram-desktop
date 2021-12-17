@@ -8,11 +8,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_drag_area.h"
 
 #include "base/event_filter.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "boxes/sticker_set_box.h"
 #include "inline_bots/inline_bot_result.h"
 #include "inline_bots/inline_bot_layout_item.h"
-#include "dialogs/dialogs_layout.h"
+#include "dialogs/ui/dialogs_layout.h"
 #include "history/history_widget.h"
 #include "storage/localstorage.h"
 #include "lang/lang_keys.h"

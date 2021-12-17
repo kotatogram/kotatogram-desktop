@@ -53,6 +53,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat_filters.h"
 #include "data/data_scheduled_messages.h"
 #include "data/data_send_action.h"
+#include "data/data_sponsored_messages.h"
 #include "data/data_cloud_themes.h"
 #include "data/data_streaming.h"
 #include "data/data_media_rotation.h"
@@ -95,7 +96,7 @@ void CheckForSwitchInlineButton(not_null<HistoryItem*> item) {
 			return;
 		}
 		if (const auto markup = item->Get<HistoryMessageReplyMarkup>()) {
-			for (const auto &row : markup->rows) {
+			for (const auto &row : markup->data.rows) {
 				for (const auto &button : row) {
 					using ButtonType = HistoryMessageMarkupButton::Type;
 					if (button.type == ButtonType::SwitchInline) {
@@ -239,7 +240,8 @@ Session::Session(not_null<Main::Session*> session)
 , _streaming(std::make_unique<Streaming>(this))
 , _mediaRotation(std::make_unique<MediaRotation>())
 , _histories(std::make_unique<Histories>(this))
-, _stickers(std::make_unique<Stickers>(this)) {
+, _stickers(std::make_unique<Stickers>(this))
+, _sponsoredMessages(std::make_unique<SponsoredMessages>(this)) {
 	_cache->open(_session->local().cacheKey());
 	_bigFileCache->open(_session->local().cacheBigFileKey());
 
@@ -280,6 +282,7 @@ void Session::clear() {
 
 	_histories->unloadAll();
 	_scheduledMessages = nullptr;
+	_sponsoredMessages = nullptr;
 	_dependentMessages.clear();
 	base::take(_messages);
 	base::take(_channelMessages);
@@ -345,7 +348,7 @@ PeerData *Session::peerLoaded(PeerId id) const {
 	const auto i = _peers.find(id);
 	if (i == end(_peers)) {
 		return nullptr;
-	} else if (!i->second->isFullLoaded()) {
+	} else if (!i->second->isLoaded()) {
 		return nullptr;
 	}
 	return i->second.get();
@@ -553,9 +556,9 @@ not_null<UserData*> Session::processUser(const MTPUser &data) {
 		if (!result->isMinimalLoaded()) {
 			result->setLoadedStatus(PeerData::LoadedStatus::Minimal);
 		}
-	} else if (!result->isFullLoaded()
+	} else if (!result->isLoaded()
 		&& (!result->isSelf() || !result->phone().isEmpty())) {
-		result->setLoadedStatus(PeerData::LoadedStatus::Full);
+		result->setLoadedStatus(PeerData::LoadedStatus::Normal);
 	}
 
 	if (status && !minimal) {
@@ -638,7 +641,8 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 			| Flag::Deactivated
 			| Flag::Forbidden
 			| Flag::CallActive
-			| Flag::CallNotEmpty;
+			| Flag::CallNotEmpty
+			| Flag::NoForwards;
 		const auto flagsSet = (data.is_left() ? Flag::Left : Flag())
 			| (data.is_kicked() ? Flag::Kicked : Flag())
 			| (data.is_creator() ? Flag::Creator : Flag())
@@ -648,7 +652,8 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 				|| (chat->groupCall()
 					&& chat->groupCall()->fullCount() > 0))
 				? Flag::CallNotEmpty
-				: Flag());
+				: Flag())
+			| (data.is_noforwards() ? Flag::NoForwards : Flag());
 		chat->setFlags((chat->flags() & ~flagsMask) | flagsSet);
 		chat->count = data.vparticipants_count().v;
 
@@ -677,7 +682,7 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 		const auto channel = result->asChannel();
 
 		minimal = data.is_min();
-		if (minimal && !result->isFullLoaded()) {
+		if (minimal && !result->isLoaded()) {
 			LOG(("API Warning: not loaded minimal channel applied."));
 		}
 
@@ -736,10 +741,8 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 			| Flag::CallActive
 			| Flag::CallNotEmpty
 			| Flag::Forbidden
-			| (!minimal
-				? Flag::Left
-				| Flag::Creator
-				: Flag());
+			| (!minimal ? (Flag::Left | Flag::Creator) : Flag())
+			| Flag::NoForwards;
 		const auto flagsSet = (data.is_broadcast() ? Flag::Broadcast : Flag())
 			| (data.is_verified() ? Flag::Verified : Flag())
 			| (data.is_scam() ? Flag::Scam : Flag())
@@ -759,7 +762,8 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 			| (!minimal
 				? (data.is_left() ? Flag::Left : Flag())
 				| (data.is_creator() ? Flag::Creator : Flag())
-				: Flag());
+				: Flag())
+			| (data.is_noforwards() ? Flag::NoForwards : Flag());
 		channel->setFlags((channel->flags() & ~flagsMask) | flagsSet);
 
 		channel->setName(
@@ -822,8 +826,8 @@ not_null<PeerData*> Session::processChat(const MTPChat &data) {
 		if (!result->isMinimalLoaded()) {
 			result->setLoadedStatus(PeerData::LoadedStatus::Minimal);
 		}
-	} else if (!result->isFullLoaded()) {
-		result->setLoadedStatus(PeerData::LoadedStatus::Full);
+	} else if (!result->isLoaded()) {
+		result->setLoadedStatus(PeerData::LoadedStatus::Normal);
 	}
 	if (flags) {
 		session().changes().peerUpdated(result, flags);
@@ -868,12 +872,12 @@ void Session::unregisterGroupCall(not_null<GroupCall*> call) {
 	_groupCalls.remove(call->id());
 }
 
-GroupCall *Session::groupCall(uint64 callId) const {
+GroupCall *Session::groupCall(CallId callId) const {
 	const auto i = _groupCalls.find(callId);
 	return (i != end(_groupCalls)) ? i->second.get() : nullptr;
 }
 
-auto Session::invitedToCallUsers(uint64 callId) const
+auto Session::invitedToCallUsers(CallId callId) const
 -> const base::flat_set<not_null<UserData*>> & {
 	static const base::flat_set<not_null<UserData*>> kEmpty;
 	const auto i = _invitedToCallUsers.find(callId);
@@ -881,7 +885,7 @@ auto Session::invitedToCallUsers(uint64 callId) const
 }
 
 void Session::registerInvitedToCallUser(
-		uint64 callId,
+		CallId callId,
 		not_null<PeerData*> peer,
 		not_null<UserData*> user) {
 	const auto call = peer->groupCall();
@@ -899,7 +903,7 @@ void Session::registerInvitedToCallUser(
 }
 
 void Session::unregisterInvitedToCallUser(
-		uint64 callId,
+		CallId callId,
 		not_null<UserData*> user) {
 	const auto i = _invitedToCallUsers.find(callId);
 	if (i != _invitedToCallUsers.end()) {
@@ -1168,7 +1172,7 @@ void Session::setupUserIsContactViewer() {
 				requestViewResize(view);
 			}
 		}
-		if (!user->isFullLoaded()) {
+		if (!user->isLoaded()) {
 			LOG(("API Error: "
 				"userIsContactChanged() called for a not loaded user!"));
 			return;
@@ -1381,6 +1385,10 @@ void Session::requestItemRepaint(not_null<const HistoryItem*> item) {
 				enumerateItemViews(leader, repaintView);
 			}
 		}
+	}
+	const auto history = item->history();
+	if (history->lastItemDialogsView.dependsOn(item)) {
+		history->updateChatListEntry();
 	}
 }
 
@@ -1822,8 +1830,10 @@ void Session::updateEditedMessage(const MTPMessage &data) {
 		checkEntitiesAndViewsUpdate(data.c_message());
 	}
 	data.match([](const MTPDmessageEmpty &) {
-	}, [&](const auto &data) {
+	}, [&](const MTPDmessageService &data) {
 		existing->applyEdition(data);
+	}, [&](const auto &data) {
+		existing->applyEdition(HistoryMessageEdition(_session, data));
 	});
 }
 
@@ -1841,8 +1851,8 @@ void Session::processMessages(
 				continue;
 			}
 		}
-		const auto id = IdFromMessage(message);
-		indices.emplace((uint64(uint32(id)) << 32) | uint64(i), i);
+		const auto id = IdFromMessage(message); // Only 32 bit values here.
+		indices.emplace((uint64(uint32(id.bare)) << 32) | uint64(i), i);
 	}
 	for (const auto &[position, index] : indices) {
 		addNewMessage(
@@ -1856,6 +1866,26 @@ void Session::processMessages(
 		const MTPVector<MTPMessage> &data,
 		NewMessageType type) {
 	processMessages(data.v, type);
+}
+
+void Session::processExistingMessages(
+		ChannelData *channel,
+		const MTPmessages_Messages &data) {
+	data.match([&](const MTPDmessages_channelMessages &data) {
+		if (channel) {
+			channel->ptsReceived(data.vpts().v);
+		} else {
+			LOG(("App Error: received messages.channelMessages!"));
+		}
+	}, [](const auto &) {});
+
+	data.match([&](const MTPDmessages_messagesNotModified&) {
+		LOG(("API Error: received messages.messagesNotModified!"));
+	}, [&](const auto &data) {
+		processUsers(data.vusers());
+		processChats(data.vchats());
+		processMessages(data.vmessages(), NewMessageType::Existing);
+	});
 }
 
 const Session::Messages *Session::messagesList(ChannelId channelId) const {
@@ -2169,16 +2199,25 @@ HistoryItem *Session::addNewMessage(
 		const MTPMessage &data,
 		MessageFlags localFlags,
 		NewMessageType type) {
+	return addNewMessage(IdFromMessage(data), data, localFlags, type);
+}
+
+HistoryItem *Session::addNewMessage(
+		MsgId id,
+		const MTPMessage &data,
+		MessageFlags localFlags,
+		NewMessageType type) {
 	const auto peerId = PeerFromMessage(data);
 	if (!peerId) {
 		return nullptr;
 	}
 
 	const auto result = history(peerId)->addNewMessage(
+		id,
 		data,
 		localFlags,
 		type);
-	if (result && type == NewMessageType::Unread) {
+	if (type == NewMessageType::Unread) {
 		CheckForSwitchInlineButton(result);
 	}
 	return result;
@@ -3006,7 +3045,7 @@ void Session::webpageApplyFields(
 not_null<GameData*> Session::game(GameId id) {
 	auto i = _games.find(id);
 	if (i == _games.cend()) {
-		i = _games.emplace(id, std::make_unique<GameData>(id)).first;
+		i = _games.emplace(id, std::make_unique<GameData>(this, id)).first;
 	}
 	return i->second.get();
 }
@@ -3461,7 +3500,7 @@ HistoryItem *Session::findWebPageItem(not_null<WebPageData*> page) const {
 	const auto i = _webpageItems.find(page);
 	if (i != _webpageItems.end()) {
 		for (const auto &item : i->second) {
-			if (IsServerMsgId(item->id)) {
+			if (item->isRegular()) {
 				return item;
 			}
 		}
@@ -3948,13 +3987,15 @@ void Session::insertCheckedServiceNotification(
 		| MTPDmessage::Flag::f_from_id
 		| MTPDmessage::Flag::f_media;
 	const auto localFlags = MessageFlag::ClientSideUnread
-		| MessageFlag::LocalHistoryEntry;
+		| MessageFlag::Local;
 	auto sending = TextWithEntities(), left = message;
 	while (TextUtilities::CutPart(sending, left, MaxMessageSize)) {
+		const auto id = nextLocalMessageId();
 		addNewMessage(
+			id,
 			MTP_message(
 				MTP_flags(flags),
-				MTP_int(nextLocalMessageId()),
+				MTP_int(0), // Not used (would've been trimmed to 32 bits).
 				peerToMTP(PeerData::kServiceNotificationsId),
 				peerToMTP(PeerData::kServiceNotificationsId),
 				MTPMessageFwdHeader(),

@@ -22,7 +22,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "kotato/boxes/kotato_fonts_box.h"
 #include "kotato/boxes/kotato_radio_box.h"
 #include "boxes/about_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "platform/platform_specific.h"
 #include "platform/platform_file_utilities.h"
 #include "window/window_session_controller.h"
@@ -588,7 +588,7 @@ void SetupKotatoSystem(
 		const auto cancelled = [=] {
 			qtScaleToggled->fire(cQtScale() == true);
 		};
-		Ui::show(Box<ConfirmBox>(
+		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
 			confirmed,
@@ -644,7 +644,7 @@ void SetupKotatoSystem(
 			const auto cancelled = [=] {
 				useNativeDecorationsToggled->fire(cUseNativeDecorations() == true);
 			};
-			Ui::show(Box<ConfirmBox>(
+			Ui::show(Box<Ui::ConfirmBox>(
 				tr::lng_settings_need_restart(tr::now),
 				tr::lng_settings_restart_now(tr::now),
 				confirmed,
@@ -714,7 +714,9 @@ void SetupKotatoSystem(
 	AddSkip(container);
 }
 
-void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
+void SetupKotatoOther(
+	not_null<Window::SessionController*> controller,
+	not_null<Ui::VerticalLayout*> container) {
 	AddDivider(container);
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_other"));
@@ -768,9 +770,9 @@ void SetupKotatoOther(not_null<Ui::VerticalLayout*> container) {
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
 		return (enabled != cUseExternalVideoPlayer());
-	}) | rpl::start_with_next([](bool enabled) {
+	}) | rpl::start_with_next([=](bool enabled) {
 		cSetUseExternalVideoPlayer(enabled);
-		Core::App().saveSettingsDelayed();
+		controller->session().saveSettingsDelayed();
 	}, container->lifetime());
 
 	AddSkip(container);
@@ -793,7 +795,7 @@ void Kotato::setupContent(not_null<Window::SessionController*> controller) {
 	SetupKotatoNetwork(content);
 	SetupKotatoFolders(controller, content);
 	SetupKotatoSystem(controller, content);
-	SetupKotatoOther(content);
+	SetupKotatoOther(controller, content);
 
 	Ui::ResizeFitChild(this, content);
 }

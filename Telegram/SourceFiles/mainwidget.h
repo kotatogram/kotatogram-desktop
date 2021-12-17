@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
-#include "base/timer.h"
 #include "base/weak_ptr.h"
 #include "chat_helpers/bot_command.h"
 #include "ui/rp_widget.h"
@@ -18,7 +17,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 struct HistoryMessageMarkupButton;
 class MainWindow;
-class ConfirmBox;
 class HistoryWidget;
 class StackItem;
 struct FileLoadResult;
@@ -31,7 +29,12 @@ class Error;
 
 namespace Api {
 struct SendAction;
+struct SendOptions;
 } // namespace Api
+
+namespace SendMenu {
+enum class Type;
+} // namespace SendMenu
 
 namespace Main {
 class Session;
@@ -52,7 +55,6 @@ class Widget;
 namespace Media {
 namespace Player {
 class Widget;
-class VolumeWidget;
 class Panel;
 struct TrackState;
 } // namespace Player
@@ -67,6 +69,7 @@ struct Content;
 } // namespace Export
 
 namespace Ui {
+class ConfirmBox;
 class ResizeArea;
 class PlainShadow;
 class DropdownMenu;
@@ -147,11 +150,14 @@ public:
 	void showBackFromStack(
 		const SectionShow &params);
 	void orderWidgets();
-	QRect historyRect() const;
 	QPixmap grabForShowAnimation(const Window::SectionSlideParams &params);
 	void checkMainSectionToLayer();
 
-	bool sendExistingDocument(not_null<DocumentData*> sticker);
+	[[nodiscard]] SendMenu::Type sendMenuType() const;
+	bool sendExistingDocument(not_null<DocumentData*> document);
+	bool sendExistingDocument(
+		not_null<DocumentData*> document,
+		Api::SendOptions options);
 
 	bool isActive() const;
 	[[nodiscard]] bool doWeMarkAsRead() const;
@@ -175,11 +181,6 @@ public:
 	void onFilesOrForwardDrop(const PeerId &peer, const QMimeData *data);
 	bool selectingPeer() const;
 
-	void deletePhotoLayer(PhotoData *photo);
-
-	// While HistoryInner is not HistoryView::ListWidget.
-	crl::time highlightStartTime(not_null<const HistoryItem*> item) const;
-
 	void sendBotCommand(Bot::SendCommandRequest request);
 	void hideSingleUseKeyboard(PeerData *peer, MsgId replyTo);
 	bool insertBotCommand(const QString &cmd);
@@ -201,8 +202,6 @@ public:
 	void ctrlEnterSubmitUpdated();
 	void setInnerFocus();
 
-	void scheduleViewIncrement(HistoryItem *item);
-
 	bool contentOverlapped(const QRect &globalRect);
 
 	void searchInChat(Dialogs::Key chat);
@@ -214,6 +213,8 @@ public:
 		Ui::ReportReason reason,
 		Fn<void(MessageIdsList)> done);
 	void clearChooseReportMessages();
+
+	void toggleChooseChatTheme(not_null<PeerData*> peer);
 
 	void ui_showPeerHistory(
 		PeerId peer,
@@ -244,17 +245,13 @@ public Q_SLOTS:
 protected:
 	void paintEvent(QPaintEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
-	void keyPressEvent(QKeyEvent *e) override;
 	bool eventFilter(QObject *o, QEvent *e) override;
 
 private:
-	void viewsIncrement();
-
 	void animationCallback();
 	void handleAdaptiveLayoutUpdate();
 	void updateWindowAdaptiveLayout();
 	void handleAudioUpdate(const Media::Player::TrackState &state);
-	void updateMediaPlayerPosition();
 	void updateMediaPlaylistPosition(int x);
 	void updateControlsGeometry();
 	void updateDialogsWidthAnimated();
@@ -316,12 +313,6 @@ private:
 	void floatPlayerDoubleClickEvent(
 		not_null<const HistoryItem*> item) override;
 
-	void viewsIncrementDone(
-		QVector<MTPint> ids,
-		const MTPmessages_MessageViews &result,
-		mtpRequestId requestId);
-	void viewsIncrementFail(const MTP::Error &error, mtpRequestId requestId);
-
 	void refreshResizeAreas();
 	template <typename MoveCallback, typename FinishCallback>
 	void createResizeArea(
@@ -345,7 +336,6 @@ private:
 	bool isThreeColumn() const;
 
 	const not_null<Window::SessionController*> _controller;
-	MTP::Sender _api;
 
 	Ui::Animations::Simple _a_show;
 	bool _showBack = false;
@@ -378,7 +368,6 @@ private:
 
 	object_ptr<Window::TopBarWrapWidget<Media::Player::Widget>> _player
 		= { nullptr };
-	object_ptr<Media::Player::VolumeWidget> _playerVolume = { nullptr };
 	object_ptr<Media::Player::Panel> _playerPlaylist;
 	bool _playerUsingPanel = false;
 
@@ -391,12 +380,6 @@ private:
 	int _contentScrollAddToY = 0;
 
 	PhotoData *_deletingPhoto = nullptr;
-
-	base::flat_map<not_null<PeerData*>, base::flat_set<MsgId>> _viewsIncremented;
-	base::flat_map<not_null<PeerData*>, base::flat_set<MsgId>> _viewsToIncrement;
-	base::flat_map<not_null<PeerData*>, mtpRequestId> _viewsIncrementRequests;
-	base::flat_map<mtpRequestId, not_null<PeerData*>> _viewsIncrementByRequest;
-	base::Timer _viewsIncrementTimer;
 
 	struct SettingBackground;
 	std::unique_ptr<SettingBackground> _background;

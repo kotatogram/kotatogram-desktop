@@ -13,12 +13,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_file_origin.h"
 #include "data/data_document_media.h"
 #include "data/stickers/data_stickers.h"
+#include "chat_helpers/send_context_menu.h"
 #include "lang/lang_keys.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "core/application.h"
 #include "mtproto/sender.h"
 #include "storage/storage_account.h"
-#include "dialogs/dialogs_layout.h"
+#include "dialogs/ui/dialogs_layout.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/dropdown_menu.h"
@@ -28,7 +29,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/path_shift_gradient.h"
 #include "ui/emoji_config.h"
 #include "ui/toast/toast.h"
-//#include "ui/widgets/popup_menu.h"
+#include "ui/widgets/popup_menu.h"
 #include "ui/cached_round_corners.h"
 #include "lottie/lottie_multi_player.h"
 #include "lottie/lottie_animation.h"
@@ -37,6 +38,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
+#include "api/api_toggling_media.h"
+#include "api/api_common.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "styles/style_info.h"
@@ -90,6 +93,7 @@ protected:
 	void mousePressEvent(QMouseEvent *e) override;
 	void mouseMoveEvent(QMouseEvent *e) override;
 	void mouseReleaseEvent(QMouseEvent *e) override;
+	void contextMenuEvent(QContextMenuEvent *e) override;
 	void paintEvent(QPaintEvent *e) override;
 	void leaveEventHook(QEvent *e) override;
 
@@ -115,6 +119,8 @@ private:
 
 	void gotSet(const MTPmessages_StickerSet &set);
 	void installDone(const MTPmessages_StickerSetInstallResult &result);
+
+	void send(not_null<DocumentData*> sticker, Api::SendOptions options);
 
 	not_null<Lottie::MultiPlayer*> getLottiePlayer();
 
@@ -146,6 +152,8 @@ private:
 
 	base::Timer _previewTimer;
 	int _previewShown = -1;
+
+	base::unique_qptr<Ui::PopupMenu> _menu;
 
 	rpl::event_stream<uint64> _setInstalled;
 	rpl::event_stream<uint64> _setArchived;
@@ -256,7 +264,7 @@ void StickerSetBox::copyTitle() {
 	_inner->title(
 	) | rpl::start_with_next([](const TextWithEntities &value) {
 		QGuiApplication::clipboard()->setText(value.text);
-		Ui::show(Box<InformBox>(ktr("ktg_stickers_title_copied")));
+		Ui::show(Box<Ui::InformBox>(ktr("ktg_stickers_title_copied")));
 	}, lifetime());
 }
 
@@ -268,7 +276,7 @@ void StickerSetBox::handleError(Error error) {
 	switch (error) {
 	case Error::NotFound:
 		_controller->show(
-			Box<InformBox>(tr::lng_stickers_not_found(tr::now)));
+			Box<Ui::InformBox>(tr::lng_stickers_not_found(tr::now)));
 		break;
 	default: Unexpected("Error in StickerSetBox::handleError.");
 	}
@@ -395,8 +403,8 @@ bool StickerSetBox::showMenu(not_null<Ui::IconButton*> button) {
 		_menu->addAction(tr::lng_stickers_archive_pack(tr::now), archive);
 	}
 
-	const auto parentTopLeft = window()->mapToGlobal({ 0, 0 });
-	const auto buttonTopLeft = button->mapToGlobal({ 0, 0 });
+	const auto parentTopLeft = window()->mapToGlobal(QPoint());
+	const auto buttonTopLeft = button->mapToGlobal(QPoint());
 	const auto parentRect = QRect(parentTopLeft, window()->size());
 	const auto buttonRect = QRect(buttonTopLeft, button->size());
 	_menu->move(
@@ -429,10 +437,11 @@ StickerSetBox::Inner::Inner(
 , _input(set)
 , _previewTimer([=] { showPreview(); }) {
 	_api.request(MTPmessages_GetStickerSet(
-		Data::InputStickerSet(_input)
+		Data::InputStickerSet(_input),
+		MTP_int(0) // hash
 	)).done([=](const MTPmessages_StickerSet &result) {
 		gotSet(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_loaded = true;
 		_errors.fire(Error::NotFound);
 	}).send();
@@ -474,7 +483,7 @@ void StickerSetBox::Inner::gotSet(const MTPmessages_StickerSet &set) {
 
 					auto p = StickersPack();
 					p.reserve(stickers.size());
-					for (auto j = 0, c = stickers.size(); j != c; ++j) {
+					for (auto j = 0, c = int(stickers.size()); j != c; ++j) {
 						auto doc = _controller->session().data().document(stickers[j].v);
 						if (!doc || !doc->sticker()) continue;
 
@@ -525,6 +534,8 @@ void StickerSetBox::Inner::gotSet(const MTPmessages_StickerSet &set) {
 				set->setThumbnail(_setThumbnail);
 			}
 		});
+	}, [&](const MTPDmessages_stickerSetNotModified &data) {
+		LOG(("API Error: Unexpected messages.stickerSetNotModified."));
 	});
 
 	if (_pack.isEmpty()) {
@@ -602,7 +613,7 @@ void StickerSetBox::Inner::installDone(
 	auto &order = isMasks
 		? stickers.maskSetsOrderRef()
 		: stickers.setsOrderRef();
-	const auto insertAtIndex = 0, currentIndex = order.indexOf(_setId);
+	const auto insertAtIndex = 0, currentIndex = int(order.indexOf(_setId));
 	if (currentIndex != insertAtIndex) {
 		if (currentIndex > 0) {
 			order.removeAt(currentIndex);
@@ -647,10 +658,14 @@ void StickerSetBox::Inner::installDone(
 }
 
 void StickerSetBox::Inner::mousePressEvent(QMouseEvent *e) {
-	int index = stickerFromGlobalPos(e->globalPos());
-	if (index >= 0 && index < _pack.size()) {
-		_previewTimer.callOnce(QApplication::startDragTime());
+	if (e->button() != Qt::LeftButton) {
+		return;
 	}
+	const auto index = stickerFromGlobalPos(e->globalPos());
+	if (index < 0 || index >= _pack.size()) {
+		return;
+	}
+	_previewTimer.callOnce(QApplication::startDragTime());
 }
 
 void StickerSetBox::Inner::mouseMoveEvent(QMouseEvent *e) {
@@ -675,18 +690,62 @@ void StickerSetBox::Inner::mouseReleaseEvent(QMouseEvent *e) {
 		_previewShown = -1;
 		return;
 	}
-	if (_previewTimer.isActive()) {
-		_previewTimer.cancel();
-		const auto index = stickerFromGlobalPos(e->globalPos());
-		if (index >= 0 && index < _pack.size() && !isMasksSet()) {
-			const auto sticker = _pack[index];
-			Ui::PostponeCall(crl::guard(_controller, [=] {
-				if (_controller->content()->sendExistingDocument(sticker)) {
-					Ui::hideSettingsAndLayer();
-				}
-			}));
-		}
+	if (!_previewTimer.isActive()) {
+		return;
 	}
+	_previewTimer.cancel();
+	const auto index = stickerFromGlobalPos(e->globalPos());
+	if (index < 0 || index >= _pack.size() || isMasksSet()) {
+		return;
+	}
+	send(_pack[index], {});
+}
+
+void StickerSetBox::Inner::send(
+		not_null<DocumentData*> sticker,
+		Api::SendOptions options) {
+	const auto controller = _controller;
+	Ui::PostponeCall(controller, [=] {
+		if (controller->content()->sendExistingDocument(sticker, options)) {
+			Ui::hideSettingsAndLayer();
+		}
+	});
+}
+
+void StickerSetBox::Inner::contextMenuEvent(QContextMenuEvent *e) {
+	const auto index = stickerFromGlobalPos(e->globalPos());
+	if (index < 0 || index >= _pack.size()) {
+		return;
+	}
+	const auto type = _controller->content()->sendMenuType();
+	if (type == SendMenu::Type::Disabled) {
+		return;
+	}
+	_previewTimer.cancel();
+	_menu = base::make_unique_q<Ui::PopupMenu>(this);
+
+	const auto document = _pack[index];
+	const auto sendSelected = [=](Api::SendOptions options) {
+		send(document, options);
+	};
+	SendMenu::FillSendMenu(
+		_menu.get(),
+		type,
+		SendMenu::DefaultSilentCallback(sendSelected),
+		SendMenu::DefaultScheduleCallback(this, type, sendSelected));
+
+	const auto toggleFavedSticker = [=] {
+		Api::ToggleFavedSticker(
+			document,
+			Data::FileOriginStickerSet(Data::Stickers::FavedSetId, 0));
+	};
+	_menu->addAction(
+		(document->owner().stickers().isFaved(document)
+			? tr::lng_faved_stickers_remove
+			: tr::lng_faved_stickers_add)(tr::now),
+		toggleFavedSticker);
+
+	_menu->popup(QCursor::pos());
 }
 
 void StickerSetBox::Inner::updateSelected() {
@@ -945,7 +1004,7 @@ void StickerSetBox::Inner::install() {
 		MTP_bool(false)
 	)).done([=](const MTPmessages_StickerSetInstallResult &result) {
 		installDone(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_errors.fire(Error::NotFound);
 	}).send();
 }
@@ -958,7 +1017,7 @@ void StickerSetBox::Inner::archiveStickers() {
 		if (result.type() == mtpc_messages_stickerSetInstallResultSuccess) {
 			_setArchived.fire_copy(_setId);
 		}
-	}).fail([](const MTP::Error &error) {
+	}).fail([] {
 		Ui::Toast::Show(Lang::Hard::ServerError());
 	}).send();
 }

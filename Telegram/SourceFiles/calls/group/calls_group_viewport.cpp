@@ -26,7 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_calls.h"
 
 #include <QtGui/QtEvents>
-#include <QtGui/QOpenGLShader>
+#include <QOpenGLShader>
 
 namespace Calls::Group {
 namespace {
@@ -461,15 +461,15 @@ Viewport::Layout Viewport::countWide(int outerWidth, int outerHeight) const {
 		const auto columns = slices;
 		const auto sizew = (outerWidth + skip) / float64(columns);
 		for (auto column = 0; column != columns; ++column) {
-			const auto left = int(std::round(column * sizew));
-			const auto width = int(std::round(column * sizew + sizew - skip))
-				- left;
-			const auto rows = int(std::round((count - index)
+			const auto left = int(base::SafeRound(column * sizew));
+			const auto width = int(
+				base::SafeRound(column * sizew + sizew - skip)) - left;
+			const auto rows = int(base::SafeRound((count - index)
 				/ float64(columns - column)));
 			const auto sizeh = (outerHeight + skip) / float64(rows);
 			for (auto row = 0; row != rows; ++row) {
-				const auto top = int(std::round(row * sizeh));
-				const auto height = int(std::round(
+				const auto top = int(base::SafeRound(row * sizeh));
+				const auto height = int(base::SafeRound(
 					row * sizeh + sizeh - skip)) - top;
 				auto &geometry = sizes[index];
 				geometry.columns = {
@@ -493,15 +493,15 @@ Viewport::Layout Viewport::countWide(int outerWidth, int outerHeight) const {
 		const auto rows = slices;
 		const auto sizeh = (outerHeight + skip) / float64(rows);
 		for (auto row = 0; row != rows; ++row) {
-			const auto top = int(std::round(row * sizeh));
-			const auto height = int(std::round(row * sizeh + sizeh - skip))
-				- top;
-			const auto columns = int(std::round((count - index)
+			const auto top = int(base::SafeRound(row * sizeh));
+			const auto height = int(
+				base::SafeRound(row * sizeh + sizeh - skip)) - top;
+			const auto columns = int(base::SafeRound((count - index)
 				/ float64(rows - row)));
 			const auto sizew = (outerWidth + skip) / float64(columns);
 			for (auto column = 0; column != columns; ++column) {
-				const auto left = int(std::round(column * sizew));
-				const auto width = int(std::round(
+				const auto left = int(base::SafeRound(column * sizew));
+				const auto width = int(base::SafeRound(
 					column * sizew + sizew - skip)) - left;
 				auto &geometry = sizes[index];
 				geometry.rows = {
@@ -845,53 +845,6 @@ rpl::producer<bool> Viewport::mouseInsideValue() const {
 
 rpl::lifetime &Viewport::lifetime() {
 	return _content->lifetime();
-}
-
-QImage GenerateShadow(
-		int height,
-		int topAlpha,
-		int bottomAlpha,
-		QColor color) {
-	Expects(topAlpha >= 0 && topAlpha < 256);
-	Expects(bottomAlpha >= 0 && bottomAlpha < 256);
-	Expects(height * style::DevicePixelRatio() < 65536);
-
-	const auto base = (uint32(color.red()) << 16)
-		| (uint32(color.green()) << 8)
-		| uint32(color.blue());
-	const auto premultiplied = (topAlpha == bottomAlpha) || !base;
-	auto result = QImage(
-		QSize(1, height * style::DevicePixelRatio()),
-		(premultiplied
-			? QImage::Format_ARGB32_Premultiplied
-			: QImage::Format_ARGB32));
-	if (topAlpha == bottomAlpha) {
-		color.setAlpha(topAlpha);
-		result.fill(color);
-		return result;
-	}
-	constexpr auto kShift = 16;
-	constexpr auto kMultiply = (1U << kShift);
-	const auto values = std::abs(topAlpha - bottomAlpha);
-	const auto rows = uint32(result.height());
-	const auto step = (values * kMultiply) / (rows - 1);
-	const auto till = rows * uint32(step);
-	Assert(result.bytesPerLine() == sizeof(uint32));
-	auto ints = reinterpret_cast<uint32*>(result.bits());
-	if (topAlpha < bottomAlpha) {
-		for (auto i = uint32(0); i != till; i += step) {
-			*ints++ = base | ((topAlpha + (i >> kShift)) << 24);
-		}
-	} else {
-		for (auto i = uint32(0); i != till; i += step) {
-			*ints++ = base | ((topAlpha - (i >> kShift)) << 24);
-		}
-	}
-	if (!premultiplied) {
-		result = std::move(result).convertToFormat(
-			QImage::Format_ARGB32_Premultiplied);
-	}
-	return result;
 }
 
 rpl::producer<QString> MuteButtonTooltip(not_null<GroupCall*> call) {

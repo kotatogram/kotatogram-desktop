@@ -31,7 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_context_menu.h" // HistoryView::ShowReportPeerBox
 #include "history/admin_log/history_admin_log_section.h"
 #include "boxes/abstract_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "boxes/peer_list_box.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/add_contact_box.h"
@@ -992,7 +992,6 @@ void ManageFiller::addPeerInviteLinks(
 			: peer->asChat()->canHaveInviteLink();
 	}();
 	if (canHaveInviteLink) {
-		const auto controller = _controller;
 		auto button = AddActionButton(
 			_wrap,
 			tr::lng_manage_peer_invite_links(),

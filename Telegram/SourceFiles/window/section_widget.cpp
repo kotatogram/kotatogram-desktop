@@ -25,8 +25,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Window {
 namespace {
 
-constexpr auto kDarkValueThreshold = 0.5;
-
 [[nodiscard]] rpl::producer<QString> PeerThemeEmojiValue(
 		not_null<PeerData*> peer) {
 	return peer->session().changes().peerFlagsValue(
@@ -39,35 +37,28 @@ constexpr auto kDarkValueThreshold = 0.5;
 
 [[nodiscard]] auto MaybeChatThemeDataValueFromPeer(
 	not_null<PeerData*> peer)
--> rpl::producer<std::optional<Data::ChatTheme>> {
+-> rpl::producer<std::optional<Data::CloudTheme>> {
 	return PeerThemeEmojiValue(
 		peer
 	) | rpl::map([=](const QString &emoji)
-	-> rpl::producer<std::optional<Data::ChatTheme>> {
+	-> rpl::producer<std::optional<Data::CloudTheme>> {
 		return peer->owner().cloudThemes().themeForEmojiValue(emoji);
 	}) | rpl::flatten_latest();
 }
 
+struct ResolvedTheme {
+	std::optional<Data::CloudTheme> theme;
+	bool dark = false;
+};
+
 [[nodiscard]] auto MaybeCloudThemeValueFromPeer(
 	not_null<PeerData*> peer)
--> rpl::producer<std::optional<Data::CloudTheme>> {
-	auto isThemeDarkValue = rpl::single(
-		rpl::empty_value()
-	) | rpl::then(
-		style::PaletteChanged()
-	) | rpl::map([] {
-		return (st::dialogsBg->c.valueF() < kDarkValueThreshold);
-	}) | rpl::distinct_until_changed();
-
+-> rpl::producer<ResolvedTheme> {
 	return rpl::combine(
 		MaybeChatThemeDataValueFromPeer(peer),
-		std::move(isThemeDarkValue)
-	) | rpl::map([](std::optional<Data::ChatTheme> theme, bool night) {
-		return !theme
-			? std::nullopt
-			: night
-			? std::make_optional(std::move(theme->dark))
-			: std::make_optional(std::move(theme->light));
+		Theme::IsThemeDarkValue() | rpl::distinct_until_changed()
+	) | rpl::map([](std::optional<Data::CloudTheme> theme, bool night) {
+		return ResolvedTheme{ std::move(theme), night };
 	});
 }
 
@@ -304,16 +295,30 @@ auto ChatThemeValueFromPeer(
 	not_null<SessionController*> controller,
 	not_null<PeerData*> peer)
 -> rpl::producer<std::shared_ptr<Ui::ChatTheme>> {
-	return MaybeCloudThemeValueFromPeer(
+	auto cloud = MaybeCloudThemeValueFromPeer(
 		peer
-	) | rpl::map([=](std::optional<Data::CloudTheme> theme)
+	) | rpl::map([=](ResolvedTheme resolved)
 	-> rpl::producer<std::shared_ptr<Ui::ChatTheme>> {
-		if (!theme) {
-			return rpl::single(controller->defaultChatTheme());
-		}
-		return controller->cachedChatThemeValue(*theme);
+		return resolved.theme
+			? controller->cachedChatThemeValue(
+				*resolved.theme,
+				(resolved.dark
+					? Data::CloudThemeType::Dark
+					: Data::CloudThemeType::Light))
+			: rpl::single(controller->defaultChatTheme());
 	}) | rpl::flatten_latest(
 	) | rpl::distinct_until_changed();
+
+	return rpl::combine(
+		std::move(cloud),
+		controller->peerThemeOverrideValue()
+	) | rpl::map([=](
+			std::shared_ptr<Ui::ChatTheme> &&cloud,
+			PeerThemeOverride &&overriden) {
+		return (overriden.peer == peer.get())
+			? std::move(overriden.theme)
+			: std::move(cloud);
+	});
 }
 
 } // namespace Window

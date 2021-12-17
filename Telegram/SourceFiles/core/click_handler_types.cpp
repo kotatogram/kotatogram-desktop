@@ -13,7 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "main/main_session.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "kotato/boxes/kotato_confirm_box.h"
 #include "base/qthelp_regex.h"
 #include "storage/storage_account.h"
@@ -64,6 +64,26 @@ bool UrlRequiresConfirmation(const QUrl &url) {
 		"(^|\\.)(telegram\\.(org|me|dog)|t\\.me|telegra\\.ph|telesco\\.pe)$",
 		url.host(),
 		RegExOption::CaseInsensitive);
+}
+
+QString HiddenUrlClickHandler::copyToClipboardText() const {
+	return url().startsWith(qstr("internal:url:"))
+		? url().mid(qstr("internal:url:").size())
+		: url();
+}
+
+QString HiddenUrlClickHandler::copyToClipboardContextItemText() const {
+	return url().isEmpty()
+		? QString()
+		: !url().startsWith(qstr("internal:"))
+		? UrlClickHandler::copyToClipboardContextItemText()
+		: url().startsWith(qstr("internal:url:"))
+		? UrlClickHandler::copyToClipboardContextItemText()
+		: QString();
+}
+
+QString HiddenUrlClickHandler::dragText() const {
+	return HiddenUrlClickHandler::copyToClipboardText();
 }
 
 void HiddenUrlClickHandler::Open(QString url, QVariant context) {
@@ -126,7 +146,7 @@ void BotGameUrlClickHandler::onClick(ClickContext context) const {
 			bot->session().local().markBotTrustedOpenGame(bot->id);
 			open();
 		};
-		Ui::show(Box<ConfirmBox>(
+		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_allow_bot_pass(tr::now, lt_bot_name, _bot->name),
 			tr::lng_allow_bot(tr::now),
 			callback));

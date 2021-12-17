@@ -16,7 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_peer.h"
 #include "styles/style_calls.h"
 
-#include <QtGui/QOpenGLShader>
+#include <QOpenGLShader>
 
 namespace Calls::Group {
 namespace {
@@ -242,7 +242,7 @@ vec4 background() {
 		QSize outer,
 		float factor) {
 	factor *= kBlurTextureSizeFactor;
-	const auto area = outer / int(std::round(factor * cScale() / 100));
+	const auto area = outer / int(base::SafeRound(factor * cScale() / 100));
 	const auto scaled = unscaled.scaled(area, Qt::KeepAspectRatio);
 	return (scaled.width() > unscaled.width()
 		|| scaled.height() > unscaled.height())

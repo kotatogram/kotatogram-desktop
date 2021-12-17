@@ -590,13 +590,13 @@ void CallMuteButton::refreshLabels() {
 
 void CallMuteButton::refreshIcons() {
 	_icons[0].emplace(Lottie::IconDescriptor{
-		.path = u":/gui/icons/calls/voice.lottie"_q,
+		.path = u":/icons/calls/voice.lottie"_q,
 		.color = st::groupCallIconFg,
 		.sizeOverride = _st->lottieSize,
 		.frame = (_iconState.index ? 0 : _iconState.frameTo),
 	});
 	_icons[1].emplace(Lottie::IconDescriptor{
-		.path = u":/gui/icons/calls/hands.lottie"_q,
+		.path = u":/icons/calls/hands.lottie"_q,
 		.color = st::groupCallIconFg,
 		.sizeOverride = _st->lottieSize,
 		.frame = (_iconState.index ? _iconState.frameTo : 0),
@@ -1002,7 +1002,7 @@ void CallMuteButton::shake() {
 			? -1.
 			: 0.;
 		const auto shift = from * (1. - part) + to * part;
-		_labelShakeShift = int(std::round(shift * st::shakeShift));
+		_labelShakeShift = int(base::SafeRound(shift * st::shakeShift));
 		updateLabelsGeometry();
 	};
 	_shakeAnimation.start(

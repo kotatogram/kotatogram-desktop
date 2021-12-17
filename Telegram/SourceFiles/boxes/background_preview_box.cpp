@@ -28,7 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_document_resolver.h"
 #include "data/data_file_origin.h"
 #include "base/unixtime.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "boxes/background_preview_box.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h"
@@ -210,7 +210,7 @@ void ServiceCheck::Generator::paintFrame(
 	const auto frames = framesForStyle(st);
 	auto &image = frames->image;
 	const auto count = int(frames->ready.size());
-	const auto index = int(std::round(toggled * (count - 1)));
+	const auto index = int(base::SafeRound(toggled * (count - 1)));
 	Assert(index >= 0 && index < count);
 	if (!frames->ready[index]) {
 		frames->ready[index] = true;
@@ -288,7 +288,6 @@ bool ServiceCheck::checkRippleStartPosition(QPoint position) const {
 		bool out) {
 	Expects(history->peer->isUser());
 
-	static auto id = ServerMaxMsgId + (ServerMaxMsgId / 3);
 	const auto flags = MessageFlag::FakeHistoryItem
 		| MessageFlag::HasFromId
 		| (out ? MessageFlag::Outgoing : MessageFlag(0));
@@ -296,7 +295,7 @@ bool ServiceCheck::checkRippleStartPosition(QPoint position) const {
 	const auto viaBotId = UserId();
 	const auto groupedId = uint64();
 	const auto item = history->makeMessage(
-		++id,
+		history->nextNonHistoryEntryId(),
 		flags,
 		replyTo,
 		viaBotId,
@@ -305,7 +304,7 @@ bool ServiceCheck::checkRippleStartPosition(QPoint position) const {
 		QString(),
 		TextWithEntities{ TextUtilities::Clean(text) },
 		MTP_messageMediaEmpty(),
-		MTPReplyMarkup(),
+		HistoryMessageMarkupData(),
 		groupedId);
 	return AdminLog::OwnedItem(delegate, item);
 }
@@ -785,7 +784,7 @@ bool BackgroundPreviewBox::Start(
 	}
 	if (!IsValidWallPaperSlug(slug)) {
 		controller->show(
-			Box<InformBox>(tr::lng_background_bad_link(tr::now)));
+			Box<Ui::InformBox>(tr::lng_background_bad_link(tr::now)));
 		return false;
 	}
 	controller->session().api().requestWallPaper(slug, crl::guard(controller, [=](
@@ -795,7 +794,7 @@ bool BackgroundPreviewBox::Start(
 			result.withUrlParams(params)));
 	}), crl::guard(controller, [=](const MTP::Error &error) {
 		controller->show(
-			Box<InformBox>(tr::lng_background_bad_link(tr::now)));
+			Box<Ui::InformBox>(tr::lng_background_bad_link(tr::now)));
 	}));
 	return true;
 }

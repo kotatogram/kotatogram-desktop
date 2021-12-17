@@ -22,7 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/media/info_media_buttons.h"
 #include "boxes/abstract_box.h"
 #include "boxes/add_contact_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "mainwidget.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
@@ -121,7 +121,7 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 				? request.ymin
 				: mapFromGlobal(_members->mapToGlobal({ 0, request.ymin })).y();
 			auto max = (request.ymin < 0)
-				? mapFromGlobal(_members->mapToGlobal({ 0, 0 })).y()
+				? mapFromGlobal(_members->mapToGlobal(QPoint())).y()
 				: (request.ymax < 0)
 				? request.ymax
 				: mapFromGlobal(_members->mapToGlobal({ 0, request.ymax })).y();
@@ -170,7 +170,6 @@ object_ptr<Ui::RpWidget> InnerWidget::setupSharedMedia(
 
 	addMediaButton(MediaType::Photo, st::infoIconMediaPhoto);
 	addMediaButton(MediaType::Video, st::infoIconMediaVideo);
-	addMediaButton(MediaType::GIF, st::infoIconMediaGif);
 	addMediaButton(MediaType::File, st::infoIconMediaFile);
 	addMediaButton(MediaType::MusicFile, st::infoIconMediaAudio);
 	addMediaButton(MediaType::Link, st::infoIconMediaLink);

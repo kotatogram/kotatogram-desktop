@@ -19,10 +19,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_service_message.h"
 #include "history/history_message.h"
 #include "lang/lang_keys.h"
-#include "data/data_session.h"
 #include "base/unixtime.h"
 #include "base/call_delayed.h"
-#include "base/qt_adapters.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "apiwrap.h"
@@ -274,7 +272,6 @@ AdminLog::OwnedItem GenerateCommentItem(
 	if (data.comment.isEmpty()) {
 		return nullptr;
 	}
-	const auto id = ServerMaxMsgId + (ServerMaxMsgId / 2);
 	const auto flags = MessageFlag::HasFromId
 		| MessageFlag::Outgoing
 		| MessageFlag::FakeHistoryItem;
@@ -282,7 +279,7 @@ AdminLog::OwnedItem GenerateCommentItem(
 	const auto viaBotId = UserId();
 	const auto groupedId = uint64();
 	const auto item = history->makeMessage(
-		id,
+		history->nextNonHistoryEntryId(),
 		flags,
 		replyTo,
 		viaBotId,
@@ -291,7 +288,7 @@ AdminLog::OwnedItem GenerateCommentItem(
 		QString(),
 		TextWithEntities{ TextUtilities::Clean(data.comment) },
 		MTP_messageMediaEmpty(),
-		MTPReplyMarkup(),
+		HistoryMessageMarkupData(),
 		groupedId);
 	return AdminLog::OwnedItem(delegate, item);
 }
@@ -305,7 +302,7 @@ AdminLog::OwnedItem GenerateContactItem(
 	const auto postAuthor = QString();
 	const auto groupedId = uint64();
 	const auto item = history->makeMessage(
-		(ServerMaxMsgId + (ServerMaxMsgId / 2) + 1),
+		history->nextNonHistoryEntryId(),
 		(MessageFlag::HasFromId
 			| MessageFlag::Outgoing
 			| MessageFlag::FakeHistoryItem),
@@ -321,7 +318,7 @@ AdminLog::OwnedItem GenerateContactItem(
 			MTP_string(data.lastName),
 			MTP_string(), // vcard
 			MTP_long(0)), // user_id
-		MTPReplyMarkup(),
+		HistoryMessageMarkupData(),
 		groupedId);
 	return AdminLog::OwnedItem(delegate, item);
 }
@@ -479,7 +476,7 @@ void Autocomplete::submitValue(const QString &value) {
 		const auto contact = value.mid(
 			prefix.size(),
 			(line > 0) ? (line - prefix.size()) : -1);
-		const auto parts = contact.split(' ', base::QStringSkipEmptyParts);
+		const auto parts = contact.split(' ', Qt::SkipEmptyParts);
 		if (parts.size() > 1) {
 			const auto phone = parts[0];
 			const auto firstName = parts[1];

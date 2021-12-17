@@ -24,7 +24,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/box_content_divider.h"
 #include "ui/widgets/buttons.h"
 #include "boxes/abstract_box.h"
-#include "boxes/confirm_box.h"
+#include "boxes/sessions_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "window/themes/window_theme_editor_box.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -52,6 +53,8 @@ object_ptr<Section> CreateSection(
 		return object_ptr<Notifications>(parent, controller);
 	case Type::PrivacySecurity:
 		return object_ptr<PrivacySecurity>(parent, controller);
+	case Type::Sessions:
+		return object_ptr<Sessions>(parent, controller);
 	case Type::Advanced:
 		return object_ptr<Advanced>(parent, controller);
 	case Type::Folders:
@@ -225,7 +228,7 @@ void FillMenu(
 			} else if (list.size() < ::Main::Domain::kMaxAccounts) {
 				addAction(tr::lng_menu_add_account(tr::now), [=] {
 					Ui::show(
-					Box<ConfirmBox>(
+					Box<Ui::ConfirmBox>(
 						ktr("ktg_too_many_accounts_warning"),
 						ktr("ktg_account_add_anyway"),
 						[=] {

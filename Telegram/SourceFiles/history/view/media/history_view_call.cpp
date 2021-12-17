@@ -8,7 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/media/history_view_call.h"
 
 #include "kotato/kotato_lang.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "lang/lang_keys.h"
 #include "ui/chat/chat_style.h"
 #include "ui/text/format_values.h"
@@ -64,7 +64,7 @@ QSize Call::countOptimalSize() {
 	_link = std::make_shared<LambdaClickHandler>([=] {
 		if (user) {
 			if (cConfirmBeforeCall()) {
-				Ui::show(Box<ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
+				Ui::show(Box<Ui::ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
 					Ui::hideLayer();
 					Core::App().calls().startOutgoingCall(user, video);
 				}));

@@ -48,11 +48,10 @@ Widget::Widget(
 
 	_inner->moveToLeft(0, 0, _scroll->width());
 
-	connect(
-		_scroll,
-		&Ui::ScrollArea::scrolled,
-		this,
-		&InlineBots::Layout::Widget::onScroll);
+	_scroll->scrolls(
+	) | rpl::start_with_next([=] {
+		onScroll();
+	}, lifetime());
 
 	_inner->inlineRowsCleared(
 	) | rpl::start_with_next([=] {
@@ -448,7 +447,7 @@ void Widget::onInlineRequest() {
 		MTP_string(nextOffset)
 	)).done([=](const MTPmessages_BotResults &result) {
 		inlineResultsDone(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		// show error?
 		_requesting.fire(false);
 		_inlineRequestId = 0;

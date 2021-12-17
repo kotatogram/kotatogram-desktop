@@ -153,6 +153,7 @@ bool ReadStringOption(QJsonObject obj, QString key, std::function<void(QString)>
 	return (readValueResult && readResult);
 }
 
+/*
 bool ReadDoubleOption(QJsonObject obj, QString key, std::function<void(double)> callback) {
 	auto readResult = false;
 	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
@@ -163,6 +164,7 @@ bool ReadDoubleOption(QJsonObject obj, QString key, std::function<void(double)> 
 	});
 	return (readValueResult && readResult);
 }
+*/
 
 bool ReadIntOption(QJsonObject obj, QString key, std::function<void(int)> callback) {
 	auto readResult = false;

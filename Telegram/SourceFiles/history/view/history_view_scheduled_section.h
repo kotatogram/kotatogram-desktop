@@ -22,6 +22,7 @@ enum class Type;
 
 namespace Api {
 struct SendOptions;
+struct SendAction;
 } // namespace Api
 
 namespace Ui {
@@ -119,6 +120,8 @@ public:
 		const FullMsgId &context) override;
 	void listHandleViaClick(not_null<UserData*> bot) override;
 	not_null<Ui::ChatTheme*> listChatTheme() override;
+	CopyRestrictionType listCopyRestrictionType(HistoryItem *item) override;
+	CopyRestrictionType listSelectRestrictionType() override;
 
 protected:
 	void resizeEvent(QResizeEvent *e) override;
@@ -155,6 +158,8 @@ private:
 
 	void addRecentBot(not_null<UserData*> bot);
 
+	[[nodiscard]] Api::SendAction prepareSendAction(
+		Api::SendOptions options) const;
 	void send();
 	void send(Api::SendOptions options);
 	void sendVoice(QByteArray bytes, VoiceWaveform waveform, int duration);

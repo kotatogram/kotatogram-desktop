@@ -21,7 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/boxes/single_choice_box.h"
 #include "boxes/connection_box.h"
 #include "boxes/about_box.h"
-#include "boxes/confirm_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "platform/platform_specific.h"
 #include "ui/platform/ui_platform_window.h"
 #include "base/platform/base_platform_info.h"
@@ -463,15 +463,20 @@ void SetupSystemIntegrationContent(
 			return (checked != cAutoStart());
 		}) | rpl::start_with_next([=](bool checked) {
 			cSetAutoStart(checked);
-			psAutoStart(checked);
-			if (checked) {
-				Local::writeSettings();
-			} else if (minimized->entity()->checked()) {
-				minimized->entity()->setChecked(false);
-			} else {
-				Local::writeSettings();
-			}
+			Platform::AutostartToggle(checked, crl::guard(autostart, [=](
+					bool enabled) {
+				autostart->setChecked(enabled);
+				if (enabled || !minimized->entity()->checked()) {
+					Local::writeSettings();
+				} else {
+					minimized->entity()->setChecked(false);
+				}
+			}));
 		}, autostart->lifetime());
+
+		Platform::AutostartRequestStateFromSystem(crl::guard(
+			controller,
+			[=](bool enabled) { autostart->setChecked(enabled); }));
 
 		minimized->toggleOn(autostart->checkedValue());
 		minimized->entity()->checkedChanges(
@@ -480,7 +485,7 @@ void SetupSystemIntegrationContent(
 		}) | rpl::start_with_next([=](bool checked) {
 			if (controller->session().domain().local().hasLocalPasscode()) {
 				minimized->entity()->setChecked(false);
-				controller->show(Box<InformBox>(
+				controller->show(Box<Ui::InformBox>(
 					ktr("ktg_error_start_minimized_passcoded")));
 			} else {
 				cSetStartMinimized(checked);
@@ -597,7 +602,7 @@ void SetupANGLE(
 					}
 					App::restart();
 				});
-				controller->show(Box<ConfirmBox>(
+				controller->show(Box<Ui::ConfirmBox>(
 					tr::lng_settings_need_restart(tr::now),
 					tr::lng_settings_restart_now(tr::now),
 					confirmed));
@@ -639,7 +644,7 @@ void SetupOpenGL(
 		const auto cancelled = crl::guard(button, [=] {
 			toggles->fire(!enabled);
 		});
-		controller->show(Box<ConfirmBox>(
+		controller->show(Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
 			confirmed,

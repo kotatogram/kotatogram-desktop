@@ -217,7 +217,8 @@ Action::Action(
 		content
 	) | rpl::start_with_next([=](WhoReadContent &&content) {
 		checkAppeared();
-		const auto changed = (_content.participants != content.participants);
+		const auto changed = (_content.participants != content.participants)
+			|| (_content.unknown != content.unknown);
 		_content = content;
 		if (changed) {
 			PostponeCall(this, [=] { populateSubmenu(); });

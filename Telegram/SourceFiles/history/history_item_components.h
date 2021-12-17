@@ -77,6 +77,15 @@ struct HistoryMessageEdited : public RuntimeComponent<HistoryMessageEdited, Hist
 	Ui::Text::String text;
 };
 
+struct HistoryMessageSponsored : public RuntimeComponent<
+		HistoryMessageSponsored,
+		HistoryItem> {
+	HistoryMessageSponsored();
+	int maxWidth() const;
+
+	Ui::Text::String text;
+};
+
 struct HiddenSenderInfo {
 	HiddenSenderInfo(const QString &name, bool external);
 
@@ -121,6 +130,7 @@ struct HistoryMessageReply : public RuntimeComponent<HistoryMessageReply, Histor
 		replyToMsgId = other.replyToMsgId;
 		replyToMsgTop = other.replyToMsgTop;
 		replyToDocumentId = other.replyToDocumentId;
+		replyToWebPageId = other.replyToWebPageId;
 		std::swap(replyToMsg, other.replyToMsg);
 		replyToLnk = std::move(other.replyToLnk);
 		replyToName = std::move(other.replyToName);
@@ -173,13 +183,14 @@ struct HistoryMessageReply : public RuntimeComponent<HistoryMessageReply, Histor
 	void setReplyToLinkFrom(
 		not_null<HistoryMessage*> holder);
 
-	void refreshReplyToDocument();
+	void refreshReplyToMedia();
 
 	PeerId replyToPeerId = 0;
 	MsgId replyToMsgId = 0;
 	MsgId replyToMsgTop = 0;
 	HistoryItem *replyToMsg = nullptr;
 	DocumentId replyToDocumentId = 0;
+	WebPageId replyToWebPageId = 0;
 	ClickHandlerPtr replyToLnk;
 	mutable Ui::Text::String replyToName, replyToText;
 	mutable int replyToVersion = 0;
@@ -189,62 +200,15 @@ struct HistoryMessageReply : public RuntimeComponent<HistoryMessageReply, Histor
 
 };
 
-struct HistoryMessageMarkupButton {
-	enum class Type {
-		Default,
-		Url,
-		Callback,
-		CallbackWithPassword,
-		RequestPhone,
-		RequestLocation,
-		RequestPoll,
-		SwitchInline,
-		SwitchInlineSame,
-		Game,
-		Buy,
-		Auth,
-	};
-
-	HistoryMessageMarkupButton(
-		Type type,
-		const QString &text,
-		const QByteArray &data = QByteArray(),
-		const QString &forwardText = QString(),
-		int32 buttonId = 0);
-
-	static HistoryMessageMarkupButton *Get(
-		not_null<Data::Session*> owner,
-		FullMsgId itemId,
-		int row,
-		int column);
-
-	Type type;
-	QString text, forwardText;
-	QByteArray data;
-	int32 buttonId = 0;
-	mutable mtpRequestId requestId = 0;
-
-};
-
 struct HistoryMessageReplyMarkup
 	: public RuntimeComponent<HistoryMessageReplyMarkup, HistoryItem> {
 	using Button = HistoryMessageMarkupButton;
 
-	HistoryMessageReplyMarkup() = default;
-	HistoryMessageReplyMarkup(ReplyMarkupFlags flags) : flags(flags) {
-	}
+	void createForwarded(const HistoryMessageReplyMarkup &original);
+	void updateData(HistoryMessageMarkupData &&markup);
 
-	void create(const MTPReplyMarkup &markup);
-	void create(const HistoryMessageReplyMarkup &markup);
-
-	std::vector<std::vector<Button>> rows;
-	ReplyMarkupFlags flags = 0;
-	QString placeholder;
-
+	HistoryMessageMarkupData data;
 	std::unique_ptr<ReplyKeyboard> inlineKeyboard;
-
-private:
-	void createFromButtonRows(const QVector<MTPKeyboardButtonRow> &v);
 
 };
 

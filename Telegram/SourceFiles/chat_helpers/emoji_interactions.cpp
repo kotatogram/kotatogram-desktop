@@ -114,7 +114,7 @@ EmojiPtr EmojiInteractions::chooseInteractionEmoji(
 void EmojiInteractions::startOutgoing(
 		not_null<const HistoryView::Element*> view) {
 	const auto item = view->data();
-	if (!IsServerMsgId(item->id) || !item->history()->peer->isUser()) {
+	if (!item->isRegular() || !item->history()->peer->isUser()) {
 		return;
 	}
 	const auto emoticon = item->originalText().text;
@@ -161,13 +161,11 @@ void EmojiInteractions::startIncoming(
 		MsgId messageId,
 		const QString &emoticon,
 		EmojiInteractionsBunch &&bunch) {
-	if (!peer->isUser()
-		|| bunch.interactions.empty()
-		|| !IsServerMsgId(messageId)) {
+	if (!peer->isUser() || bunch.interactions.empty()) {
 		return;
 	}
 	const auto item = _session->data().message(nullptr, messageId);
-	if (!item) {
+	if (!item || !item->isRegular()) {
 		return;
 	}
 	const auto emoji = chooseInteractionEmoji(item);
@@ -186,7 +184,7 @@ void EmojiInteractions::startIncoming(
 	}
 	const auto now = crl::now();
 	for (const auto &single : bunch.interactions) {
-		const auto at = now + crl::time(std::round(single.time * 1000));
+		const auto at = now + crl::time(base::SafeRound(single.time * 1000));
 		if (!animations.empty() && animations.back().scheduledAt >= at) {
 			continue;
 		}
@@ -490,7 +488,7 @@ EmojiInteractionsBunch EmojiInteractions::Parse(const QByteArray &json) {
 		return {};
 	}
 	auto result = EmojiInteractionsBunch();
-	for (const auto &interaction : actions) {
+	for (const auto interaction : actions) {
 		const auto object = interaction.toObject();
 		const auto index = object.value("i").toInt();
 		if (index < 0 || index > 10) {

@@ -62,7 +62,7 @@ constexpr auto kMaxMediumQualities = 16; // 4 Fulls or 16 Mediums.
 
 [[nodiscard]] const Data::GroupCallParticipant *LookupParticipant(
 		not_null<PeerData*> peer,
-		uint64 id,
+		CallId id,
 		not_null<PeerData*> participantPeer) {
 	const auto call = peer->groupCall();
 	return (id && call && call->id() == id)
@@ -1604,7 +1604,7 @@ void GroupCall::discard() {
 		// updates being handled, but in a guarded way.
 		crl::on_main(this, [=] { hangup(); });
 		_peer->session().api().applyUpdates(result);
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		hangup();
 	}).send();
 }
@@ -1672,7 +1672,7 @@ void GroupCall::leave() {
 		// updates being handled, but in a guarded way.
 		crl::on_main(weak, [=] { setState(finalState); });
 		session->api().applyUpdates(result);
-	}).fail(crl::guard(weak, [=](const MTP::Error &error) {
+	}).fail(crl::guard(weak, [=] {
 		setState(finalState);
 	})).send();
 }
@@ -2225,7 +2225,6 @@ void GroupCall::changeTitle(const QString &title) {
 	)).done([=](const MTPUpdates &result) {
 		_peer->session().api().applyUpdates(result);
 		_titleChanged.fire({});
-	}).fail([=](const MTP::Error &error) {
 	}).send();
 }
 
@@ -2258,7 +2257,7 @@ void GroupCall::toggleRecording(
 	)).done([=](const MTPUpdates &result) {
 		_peer->session().api().applyUpdates(result);
 		_recordingStoppedByMe = false;
-	}).fail([=](const MTP::Error &error) {
+	}).fail([=] {
 		_recordingStoppedByMe = false;
 	}).send();
 }
@@ -2361,6 +2360,7 @@ bool GroupCall::tryCreateController() {
 		auto callLogFolder = cWorkingDir() + qsl("DebugLogs");
 		auto callLogPath = callLogFolder + qsl("/last_group_call_log.txt");
 		auto callLogNative = QDir::toNativeSeparators(callLogPath);
+		descriptor.config.need_log = true;
 #ifdef Q_OS_WIN
 		descriptor.config.logPath.data = callLogNative.toStdWString();
 #else // Q_OS_WIN
@@ -2370,6 +2370,8 @@ bool GroupCall::tryCreateController() {
 #endif // Q_OS_WIN
 		QFile(callLogPath).remove();
 		QDir().mkpath(callLogFolder);
+	} else {
+		descriptor.config.need_log = false;
 	}
 
 	LOG(("Call Info: Creating group instance"));

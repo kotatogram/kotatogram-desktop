@@ -119,7 +119,7 @@ void AutoDeleteSettingsBox(
 			if (const auto strong = state->weak.data()) {
 				strong->closeBox();
 			}
-		}).fail([=](const MTP::Error &error) {
+		}).fail([=] {
 			state->savingRequestId = 0;
 		}).send();
 	};

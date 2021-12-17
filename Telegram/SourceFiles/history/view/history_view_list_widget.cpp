@@ -28,14 +28,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_peer_menu.h"
 #include "main/main_session.h"
-#include "boxes/confirm_box.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/toast/toast.h"
+#include "ui/toasts/common_toasts.h"
 #include "ui/inactive_press.h"
 #include "ui/effects/path_shift_gradient.h"
 #include "ui/chat/chat_theme.h"
 #include "ui/chat/chat_style.h"
 #include "lang/lang_keys.h"
+#include "boxes/delete_messages_box.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "data/data_session.h"
 #include "data/data_folder.h"
@@ -166,8 +167,9 @@ void ListWidget::enumerateUserpics(Method method) {
 
 	auto userpicCallback = [&](not_null<Element*> view, int itemtop, int itembottom) {
 		// Skip all service messages.
-		auto message = view->data()->toHistoryMessage();
-		if (!message) return true;
+		if (view->data()->isService()) {
+			return true;
+		}
 
 		if (lowestAttachedItemTop < 0 && view->isAttachedToNext()) {
 			lowestAttachedItemTop = itemtop + view->marginTop();
@@ -326,6 +328,11 @@ ListWidget::ListWidget(
 	) | rpl::start_with_next([=](bool wide) {
 		_isChatWide = wide;
 	}, lifetime());
+
+	_selectScroll.scrolls(
+	) | rpl::start_with_next([=](int d) {
+		delegate->listScrollTo(_visibleTop + d);
+	}, lifetime());
 }
 
 Main::Session &ListWidget::session() const {
@@ -477,7 +484,8 @@ void ListWidget::scrollToAnimationCallback(
 		int relativeTo) {
 	if (!attachToId) {
 		// Animated scroll to bottom.
-		const auto current = int(std::round(_scrollToAnimation.value(0)));
+		const auto current = int(base::SafeRound(
+			_scrollToAnimation.value(0)));
 		_delegate->listScrollTo(height()
 			- (_visibleBottom - _visibleTop)
 			+ current);
@@ -488,7 +496,7 @@ void ListWidget::scrollToAnimationCallback(
 	if (!attachToView) {
 		_scrollToAnimation.stop();
 	} else {
-		const auto current = int(std::round(_scrollToAnimation.value(
+		const auto current = int(base::SafeRound(_scrollToAnimation.value(
 			relativeTo)));
 		_delegate->listScrollTo(itemTop(attachToView) + current);
 	}
@@ -1068,7 +1076,9 @@ void ListWidget::cancelSelection() {
 }
 
 void ListWidget::selectItem(not_null<HistoryItem*> item) {
-	if (const auto view = viewForItem(item)) {
+	if (hasSelectRestriction()) {
+		return;
+	} else if (const auto view = viewForItem(item)) {
 		clearTextSelection();
 		changeSelection(
 			_selected,
@@ -1079,7 +1089,9 @@ void ListWidget::selectItem(not_null<HistoryItem*> item) {
 }
 
 void ListWidget::selectItemAsGroup(not_null<HistoryItem*> item) {
-	if (const auto view = viewForItem(item)) {
+	if (hasSelectRestriction()) {
+		return;
+	} else if (const auto view = viewForItem(item)) {
 		clearTextSelection();
 		changeSelectionAsGroup(
 			_selected,
@@ -1155,6 +1167,52 @@ bool ListWidget::isEmpty() const {
 	return loadedAtTop()
 		&& loadedAtBottom()
 		&& (_itemsHeight + _itemsRevealHeight == 0);
+}
+
+bool ListWidget::hasCopyRestriction(HistoryItem *item) const {
+	return _delegate->listCopyRestrictionType(item)
+		!= CopyRestrictionType::None;
+}
+
+bool ListWidget::showCopyRestriction(HistoryItem *item) {
+	const auto type = _delegate->listCopyRestrictionType(item);
+	if (type == CopyRestrictionType::None) {
+		return false;
+	}
+	Ui::ShowMultilineToast({
+		.text = { (type == CopyRestrictionType::Channel)
+			? tr::lng_error_nocopy_channel(tr::now)
+			: tr::lng_error_nocopy_group(tr::now) },
+	});
+	return true;
+}
+
+bool ListWidget::hasCopyRestrictionForSelected() const {
+	if (hasCopyRestriction()) {
+		return true;
+	}
+	for (const auto &[itemId, selection] : _selected) {
+		if (const auto item = session().data().message(itemId)) {
+			if (item->forbidsForward()) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool ListWidget::showCopyRestrictionForSelected() {
+	for (const auto &[itemId, selection] : _selected) {
+		if (showCopyRestriction(session().data().message(itemId))) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ListWidget::hasSelectRestriction() const {
+	return _delegate->listSelectRestrictionType()
+		!= CopyRestrictionType::None;
 }
 
 int ListWidget::itemMinimalHeight() const {
@@ -1653,10 +1711,7 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 
 			// paint the userpic if it intersects the painted rect
 			if (userpicTop + st::msgPhotoSize > clip.top()) {
-				const auto message = view->data()->toHistoryMessage();
-				Assert(message != nullptr);
-
-				if (const auto from = message->displayFrom()) {
+				if (const auto from = view->data()->displayFrom()) {
 					from->paintUserpicLeft(
 						p,
 						_userpics[from],
@@ -1664,7 +1719,7 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 						userpicTop,
 						view->width(),
 						st::msgPhotoSize);
-				} else if (const auto info = message->hiddenForwardedInfo()) {
+				} else if (const auto info = view->data()->hiddenForwardedInfo()) {
 					info->userpic.paint(
 						p,
 						st::historyPhotoLeft,
@@ -1727,7 +1782,9 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 }
 
 void ListWidget::applyDragSelection() {
-	applyDragSelection(_selected);
+	if (!hasSelectRestriction()) {
+		applyDragSelection(_selected);
+	}
 	clearDragSelection();
 	pushSelectedItems();
 }
@@ -1764,7 +1821,9 @@ TextForMimeData ListWidget::getSelectedText() const {
 		return _selectedText;
 	}
 
-	const auto timeFormat = qsl(", [dd.MM.yy hh:mm]\n");
+	const auto timeFormat = QString(", [%1 %2]\n")
+		.arg(cDateFormat())
+		.arg(cTimeFormat());
 	auto groups = base::flat_set<not_null<const Data::Group*>>();
 	auto fullSize = 0;
 	auto texts = std::vector<std::pair<
@@ -1886,11 +1945,15 @@ void ListWidget::keyPressEvent(QKeyEvent *e) {
 			_delegate->listCancelRequest();
 		}
 	} else if (e == QKeySequence::Copy
-		&& (hasSelectedText() || hasSelectedItems())) {
+		&& (hasSelectedText() || hasSelectedItems())
+		&& !showCopyRestriction()
+		&& !hasCopyRestrictionForSelected()) {
 		TextUtilities::SetClipboardText(getSelectedText());
 #ifdef Q_OS_MAC
 	} else if (e->key() == Qt::Key_E
-		&& e->modifiers().testFlag(Qt::ControlModifier)) {
+		&& e->modifiers().testFlag(Qt::ControlModifier)
+		&& !showCopyRestriction()
+		&& !hasCopyRestrictionForSelected()) {
 		TextUtilities::SetClipboardText(getSelectedText(), QClipboard::FindBuffer);
 #endif // Q_OS_MAC
 	} else if (e == QKeySequence::Delete) {
@@ -1908,9 +1971,8 @@ void ListWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 		&& (_mouseCursorState == CursorState::None
 			|| _mouseCursorState == CursorState::Date)
 		&& _selected.empty()
-		&& (_mouseAction != MouseAction::Selecting)
 		&& _overElement
-		&& IsServerMsgId(_overElement->data()->id)) {
+		&& _overElement->data()->isRegular()) {
 		mouseActionCancel();
 		replyToMessageRequestNotify(_overElement->data()->fullId());
 	}
@@ -2031,7 +2093,7 @@ void ListWidget::mouseReleaseEvent(QMouseEvent *e) {
 	}
 }
 
-void ListWidget::enterEventHook(QEvent *e) {
+void ListWidget::enterEventHook(QEnterEvent *e) {
 	mouseActionUpdate(QCursor::pos());
 	return TWidget::enterEventHook(e);
 }
@@ -2053,7 +2115,9 @@ void ListWidget::leaveEventHook(QEvent *e) {
 }
 
 void ListWidget::updateDragSelection() {
-	if (!_overState.itemId || !_pressState.itemId) {
+	if (!_overState.itemId
+		|| !_pressState.itemId
+		|| hasSelectRestriction()) {
 		clearDragSelection();
 		return;
 	} else if (_items.empty() || !_overElement || !_selectEnabled) {
@@ -2254,7 +2318,7 @@ void ListWidget::mouseActionStart(
 	} else if (hasSelectedItems()) {
 		if (overSelectedItems()) {
 			_mouseAction = MouseAction::PrepareDrag;
-		} else if (!_pressWasInactive) {
+		} else if (!_pressWasInactive && !hasSelectRestriction()) {
 			_mouseAction = MouseAction::PrepareSelect;
 		}
 	}
@@ -2299,7 +2363,7 @@ void ListWidget::mouseActionStart(
 							_mouseTextSymbol,
 							_mouseTextSymbol));
 						_mouseAction = MouseAction::Selecting;
-					} else {
+					} else if (!hasSelectRestriction()) {
 						_mouseAction = MouseAction::PrepareSelect;
 					}
 				}
@@ -2324,7 +2388,7 @@ void ListWidget::mouseActionCancel() {
 	_mouseAction = MouseAction::None;
 	clearDragSelection();
 	_wasSelectedText = false;
-	//_widget->noSelectingScroll(); // #TODO select scroll
+	_selectScroll.cancel();
 }
 
 void ListWidget::mouseActionFinish(
@@ -2408,11 +2472,12 @@ void ListWidget::mouseActionFinish(
 	}
 	_mouseAction = MouseAction::None;
 	_mouseSelectType = TextSelectType::Letters;
-	//_widget->noSelectingScroll(); // #TODO select scroll
+	_selectScroll.cancel();
 
 	if (QGuiApplication::clipboard()->supportsSelection()
 		&& _selectedTextItem
-		&& _selectedTextRange.from != _selectedTextRange.to) {
+		&& _selectedTextRange.from != _selectedTextRange.to
+		&& !hasCopyRestriction(_selectedTextItem)) {
 		if (const auto view = viewForItem(_selectedTextItem)) {
 			TextUtilities::SetClipboardText(
 				view->selectedText(_selectedTextRange),
@@ -2536,11 +2601,8 @@ void ListWidget::mouseActionUpdate() {
 
 						// stop enumeration if we've found a userpic under the cursor
 						if (point.y() >= userpicTop && point.y() < userpicTop + st::msgPhotoSize) {
-							const auto message = view->data()->toHistoryMessage();
-							Assert(message != nullptr);
-
 							dragState = TextState(nullptr, view->fromPhotoLink());
-							_overItemExact = session().data().message(dragState.itemId);
+							_overItemExact = nullptr;
 							lnkhost = view;
 							return false;
 						}
@@ -2603,11 +2665,14 @@ void ListWidget::mouseActionUpdate() {
 		}
 	}
 
-	//if (_mouseAction == MouseAction::Selecting) {
-	//	_widget->checkSelectingScroll(mousePos);
-	//} else {
-	//	_widget->noSelectingScroll();
-	//} // #TODO select scroll
+	if (_mouseAction == MouseAction::Selecting) {
+		_selectScroll.checkDeltaScroll(
+			mousePosition,
+			_visibleTop,
+			_visibleBottom);
+	} else {
+		_selectScroll.cancel();
+	}
 }
 
 style::cursor ListWidget::computeMouseCursor() const {
@@ -2625,7 +2690,8 @@ std::unique_ptr<QMimeData> ListWidget::prepareDrag() {
 		return nullptr;
 	}
 	auto pressedHandler = ClickHandler::getPressed();
-	if (dynamic_cast<VoiceSeekClickHandler*>(pressedHandler.get())) {
+	if (dynamic_cast<VoiceSeekClickHandler*>(pressedHandler.get())
+		|| hasCopyRestriction()) {
 		return nullptr;
 	}
 
@@ -2650,7 +2716,7 @@ std::unique_ptr<QMimeData> ListWidget::prepareDrag() {
 	}();
 	if (auto mimeData = TextUtilities::MimeDataFromText(selectedText)) {
 		clearDragSelection();
-//		_widget->noSelectingScroll(); #TODO scroll
+		_selectScroll.cancel();
 
 		if (!urls.isEmpty()) {
 			mimeData->setUrls(urls);
@@ -2987,15 +3053,12 @@ void ConfirmDeleteSelectedItems(not_null<ListWidget*> widget) {
 			return;
 		}
 	}
-	const auto weak = Ui::MakeWeak(widget);
 	auto box = Box<DeleteMessagesBox>(
 		&widget->controller()->session(),
 		widget->getSelectedIds());
-	box->setDeleteConfirmedCallback([=] {
-		if (const auto strong = weak.data()) {
-			strong->cancelSelection();
-		}
-	});
+	box->setDeleteConfirmedCallback(crl::guard(widget, [=] {
+		widget->cancelSelection();
+	}));
 	widget->controller()->show(std::move(box));
 }
 
@@ -3051,6 +3114,30 @@ void ConfirmSendNowSelectedItems(not_null<ListWidget*> widget) {
 		history,
 		widget->getSelectedIds(),
 		clearSelection);
+}
+
+CopyRestrictionType CopyRestrictionTypeFor(
+		not_null<PeerData*> peer,
+		HistoryItem *item) {
+	return (peer->allowsForwarding() && (!item || !item->forbidsForward()))
+		? CopyRestrictionType::None
+		: peer->isBroadcast()
+		? CopyRestrictionType::Channel
+		: CopyRestrictionType::Group;
+}
+
+CopyRestrictionType SelectRestrictionTypeFor(
+		not_null<PeerData*> peer) {
+	if (const auto chat = peer->asChat()) {
+		return chat->canDeleteMessages()
+			? CopyRestrictionType::None
+			: CopyRestrictionTypeFor(peer);
+	} else if (const auto channel = peer->asChannel()) {
+		return channel->canDeleteMessages()
+			? CopyRestrictionType::None
+			: CopyRestrictionTypeFor(peer);
+	}
+	return CopyRestrictionType::None;
 }
 
 } // namespace HistoryView
