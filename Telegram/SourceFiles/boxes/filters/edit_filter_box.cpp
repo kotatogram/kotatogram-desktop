@@ -627,9 +627,7 @@ void EditFilterBox(
 	if (!isLocal) {
 		name->setMaxLength(kMaxFilterTitleLength);
 	}
-	name->setInstantReplaces(Ui::InstantReplaces::Default());
-	name->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	name->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	Ui::Emoji::SuggestionsController::Init(
 		box->getDelegate()->outerContainer(),
 		name,
