@@ -77,10 +77,11 @@ using namespace Microsoft::WRL;
 		Main::Session *session,
 		bool smallIcon) {
 	static constexpr auto kCount = 3;
-	static constexpr auto kLogoCount = 6;
+	static constexpr auto kLogoCount = 7;
 	static constexpr auto kTotalCount = kLogoCount * kCount;
 	static auto ScaledLogo = std::array<QImage, kTotalCount>();
 	static auto ScaledLogoNoMargin = std::array<QImage, kTotalCount>();
+	static auto CustomIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	struct Dimensions {
 		int index = 0;
@@ -109,13 +110,17 @@ using namespace Microsoft::WRL;
 
 	auto &scaled = smallIcon ? ScaledLogoNoMargin : ScaledLogo;
 	auto result = [&] {
-		auto &image = scaled[cCustomAppIcon() * kCount + d.index];
+		const auto idx = CustomIcon.isNull() ? cCustomAppIcon() : kLogoCount - 1;
+		auto &image = scaled[idx * kCount + d.index];
+
 		if (image.isNull()) {
-			image = (smallIcon
-				? Window::LogoNoMargin(cCustomAppIcon())
-				: Window::Logo(cCustomAppIcon())).scaledToWidth(
-					d.size,
-					Qt::SmoothTransformation);
+			image = !CustomIcon.isNull()
+				? CustomIcon.scaledToWidth(d.size, Qt::SmoothTransformation)
+				: (smallIcon
+					? Window::LogoNoMargin(cCustomAppIcon())
+					: Window::Logo(cCustomAppIcon())).scaledToWidth(
+						d.size,
+						Qt::SmoothTransformation);
 		}
 		return image;
 	}();
