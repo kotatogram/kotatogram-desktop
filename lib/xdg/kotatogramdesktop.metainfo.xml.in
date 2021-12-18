@@ -35,6 +35,19 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4.6" date="2021-12-18">
+            <description>
+                <p>TDesktop sources were updated to 3.3.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Ability to disable remembering image compression when sending.</li>
+                    <li>Custom auto-replaces now work without emoji replacement enabled.</li>
+                    <li>Removed window size restiction.</li>
+                    <li>Fixed tg:// link protocol in system.</li>
+                    <li>Fixed "External video player" option.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.4.5" date="2021-12-04">
             <description>
                 <p>TDesktop sources were updated to 3.1.1.</p>
