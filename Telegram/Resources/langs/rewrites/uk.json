@@ -255,5 +255,7 @@
 	"ktg_forward_force_old_unquoted": "Старий метод пересилання без автора",
 	"ktg_forward_force_old_unquoted_desc": "Старий метод копіює повідомлення на стороні клієнта, а не сервера. В даний час він використовується лише для режиму групування «Об'єднувати медіа», оскільки новий метод не підтримує його. Якщо пересилання не працює, змінить цю опцію.",
 	"ktg_disable_chat_themes": "Вимкнути теми чатів",
+	"ktg_settings_remember_compress_images": "Remember compress images",
+	"ktg_settings_compress_images_default": "Compress images by default",
 	"dummy_last_string": ""
 }

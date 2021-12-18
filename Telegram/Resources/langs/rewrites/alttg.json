@@ -255,5 +255,7 @@
 	"ktg_forward_force_old_unquoted": "Старый метод пересылки без автора",
 	"ktg_forward_force_old_unquoted_desc": "Старый метод копирует содержимое сообщений на клиенте вместо сервера. Сейчас он используется только в режиме отправки «Сетом», так как новый его не поддерживает. Если пересылка без автора не работает, смените эту настройку.",
 	"ktg_disable_chat_themes": "Отключить темы чатов",
+	"ktg_settings_remember_compress_images": "Remember compress images",
+	"ktg_settings_compress_images_default": "Compress images by default",
 	"dummy_last_string": ""
 }

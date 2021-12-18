@@ -255,5 +255,7 @@
 	"ktg_forward_force_old_unquoted": "Alte nicht zitierte Weiterleitungsmethode",
 	"ktg_forward_force_old_unquoted_desc": "Die alte Methode kopiert den Inhalt der Nachrichten auf dem Client statt auf dem Server. Wir aktuell nur von \"Medien neu gruppieren\" unterstützt. Wenn aus irgendeinem Grund die nicht zitierte Weiterleitung nicht richtig funktioniert, versuchen Sie diese Option zu ändern.",
 	"ktg_disable_chat_themes": "Chat-Themes deaktivieren",
+	"ktg_settings_remember_compress_images": "\"Bilder komprimieren\" merken",
+	"ktg_settings_compress_images_default": "Bilder standardmäßig komprimieren",
 	"dummy_last_string": ""
 }

@@ -255,5 +255,7 @@
 	"ktg_forward_force_old_unquoted": "الطريقة القديمة لاعادة التوجيه من غير اقتباس",
 	"ktg_forward_force_old_unquoted_desc": "الطريقة القديمة تنسخ محتوى الرسائل على العميل بدلاً من الخادم. يتم استخدامه حاليًا فقط في وضع تجميع \"إعادة تجميع الوسائط\" ، نظرًا لأن الوضع الجديد لا يدعمه. إذا لم تعمل ميزة التوجيه غير المقتبس بشكل صحيح لسبب ما ، فحاول تبديل هذا الخيار.",
 	"ktg_disable_chat_themes": "تعطيل سمات الدردشة",
+	"ktg_settings_remember_compress_images": "Remember compress images",
+	"ktg_settings_compress_images_default": "Compress images by default",
 	"dummy_last_string": ""
 }

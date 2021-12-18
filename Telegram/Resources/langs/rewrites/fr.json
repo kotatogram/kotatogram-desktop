@@ -255,5 +255,7 @@
 	"ktg_forward_force_old_unquoted": "Ancienne méthode de transfert sans citer l'expéditeur",
 	"ktg_forward_force_old_unquoted_desc": "L'ancienne méthode copie le contenu des messages sur le client plutôt que sur le serveur. Actuellement il est uniquement utilisé pour le mode de regroupement \"Regrouper les médias\", car le nouveau ne le prend pas en charge. Si pour une raison quelconque le transfert sans la citation de l'expéditeur ne fonctionne pas correctement, essayez de changer cette option.",
 	"ktg_disable_chat_themes": "Désactiver les thèmes de discussion",
+	"ktg_settings_remember_compress_images": "Remember compress images",
+	"ktg_settings_compress_images_default": "Compress images by default",
 	"dummy_last_string": ""
 }

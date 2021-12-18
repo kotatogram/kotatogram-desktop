@@ -255,5 +255,7 @@
 	"ktg_forward_force_old_unquoted": "Stara metoda przekazywania bez cytowania",
 	"ktg_forward_force_old_unquoted_desc": "Stara metoda kopiuje zawartość wiadomości na klienta, a nie na serwer. Ponieważ nowy tryb nie obsługuje tej metody, obecnie jest ona używana tylko dla trybu grupowania „Przegrupowane multimedia”. Jeśli z jakiegoś powodu metoda przekazywania bez cytowania nie działa poprawnie, spróbuj przełączyć tę opcję.",
 	"ktg_disable_chat_themes": "Wyłącz motywy czatów",
+	"ktg_settings_remember_compress_images": "Zapamiętaj kompresję obrazów",
+	"ktg_settings_compress_images_default": "Domyślnie kompresuj obrazy",
 	"dummy_last_string": ""
 }

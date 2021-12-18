@@ -255,5 +255,7 @@
 	"ktg_forward_force_old_unquoted": "השתמש בשיטה הישנה להעברה ללא קרדיט",
 	"ktg_forward_force_old_unquoted_desc": "השיטה הישנה מעתיקה את תוכן ההודעות בלקוח ולא בשרת. נכון לעכשיו הוא משמש רק למצב קבוצה, מכיוון שהוא כבר לא נתמך. אם מסיבה כלשהי העברה ללא קרדיט אינה פועלת כראוי, נסה להחליף אפשרות זו.",
 	"ktg_disable_chat_themes": "בטל את ערכת הנושא של הצ'אט",
+	"ktg_settings_remember_compress_images": "Remember compress images",
+	"ktg_settings_compress_images_default": "Compress images by default",
 	"dummy_last_string": ""
 }
