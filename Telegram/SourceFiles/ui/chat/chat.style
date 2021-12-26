@@ -974,3 +974,14 @@ sendAsButton: SendAsButton {
 	}
 	duration: 150;
 }
+
+msgNameChatIcon: icon {{ "dialogs/dialogs_chat", ktgMessageNameIconFg, point(1px, 4px) }};
+msgNameChatIconSelected: icon {{ "dialogs/dialogs_chat", ktgMessageNameIconFgSelected, point(1px, 4px) }};
+msgNameChannelIcon: icon {{ "dialogs/dialogs_channel", ktgMessageNameIconFg, point(3px, 4px) }};
+msgNameChannelIconSelected: icon {{ "dialogs/dialogs_channel", ktgMessageNameIconFgSelected, point(3px, 4px) }};
+msgNameBotIcon: icon {{ "dialogs/dialogs_bot", ktgMessageNameIconFg, point(1px, 3px) }};
+msgNameBotIconSelected: icon {{ "dialogs/dialogs_bot", ktgMessageNameIconFgSelected, point(1px, 3px) }};
+msgNameDeletedIcon: icon {{ "dialogs/dialogs_deleted", ktgMessageNameIconFg, point(1px, 4px) }};
+msgNameDeletedIconSelected: icon {{ "dialogs/dialogs_deleted", ktgMessageNameIconFgSelected, point(1px, 4px) }};
+msgNameSponsoredIcon: icon {{ "dialogs/dialogs_sponsored", ktgMessageNameIconFg, point(1px, 4px) }};
+msgNameSponsoredIconSelected: icon {{ "dialogs/dialogs_sponsored", ktgMessageNameIconFgSelected, point(1px, 4px) }};

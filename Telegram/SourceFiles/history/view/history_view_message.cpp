@@ -860,6 +860,42 @@ void Message::paintFromName(
 		availableWidth -= st::msgPadding.right() + rightWidth;
 	}
 
+	const auto chatTypeIcon = [&]() -> const style::icon * {
+		if (const auto sponsored = displayedSponsorBadge()) {
+			return context.selected()
+					? &st::msgNameSponsoredIconSelected
+					: &st::msgNameSponsoredIcon;
+		} else if (!item->isPost()) {
+			const auto from = item->displayFrom();
+			if (from->isChat() || from->isMegagroup()) {
+				return context.selected()
+						? &st::msgNameChatIconSelected
+						: &st::msgNameChatIcon;
+			} else if (from->isChannel()) {
+				return context.selected()
+						? &st::msgNameChannelIconSelected
+						: &st::msgNameChannelIcon;
+			} else if (const auto user = from->asUser()) {
+				if (user->isInaccessible()) {
+					return context.selected()
+							? &st::msgNameDeletedIconSelected
+							: &st::msgNameDeletedIcon;
+				} else if (user->isBot() && !user->isSupport() && !user->isRepliesChat()) {
+					return context.selected()
+							? &st::msgNameBotIconSelected
+							: &st::msgNameBotIcon;
+				}
+			}
+		}
+		return nullptr;
+	}();
+
+	if (chatTypeIcon) {
+		chatTypeIcon->paint(p, QPoint(availableLeft, trect.top()), availableWidth);
+		availableLeft += st::dialogsChatTypeSkip;
+		availableWidth -= st::dialogsChatTypeSkip;
+	}
+
 	p.setFont(st::msgNameFont);
 	const auto stm = context.messageStyle();
 
