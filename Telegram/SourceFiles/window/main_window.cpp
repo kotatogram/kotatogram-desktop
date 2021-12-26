@@ -615,6 +615,8 @@ void MainWindow::refreshTitleWidget() {
 }
 
 void MainWindow::updateMinimumSize() {
+	setMinimumWidth(computeMinWidth());
+	setMinimumHeight(computeMinHeight());
 }
 
 void MainWindow::recountGeometryConstraints() {
@@ -967,10 +969,16 @@ void MainWindow::showRightColumn(object_ptr<TWidget> widget) {
 	const auto wasMinimumWidth = minimumWidth();
 	const auto nowMinimumWidth = computeMinWidth();
 	const auto firstResize = (nowMinimumWidth < wasMinimumWidth);
+	if (firstResize) {
+		setMinimumWidth(nowMinimumWidth);
+	}
 	if (!isMaximized()) {
 		tryToExtendWidthBy(wasWidth + nowRightWidth - wasRightWidth - width());
 	} else {
 		updateControlsGeometry();
+	}
+	if (!firstResize) {
+		setMinimumWidth(nowMinimumWidth);
 	}
 }
 

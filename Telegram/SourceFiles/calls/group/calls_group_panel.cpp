@@ -1398,6 +1398,7 @@ void Panel::initGeometry() {
 	const auto center = Core::App().getPointForCallPanelCenter();
 	const auto rect = QRect(0, 0, st::groupCallWidth, st::groupCallHeight);
 	window()->setGeometry(rect.translated(center - rect.center()));
+	window()->setMinimumSize(rect.size());
 	window()->show();
 }
 
