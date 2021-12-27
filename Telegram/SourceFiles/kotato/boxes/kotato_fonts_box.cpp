@@ -9,6 +9,9 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 #include "kotato/kotato_lang.h"
 #include "base/platform/base_platform_info.h"
+#include "ui/wrap/vertical_layout.h"
+#include "ui/wrap/padding_wrap.h"
+#include "ui/wrap/wrap.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
@@ -20,13 +23,8 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "app.h"
 
 FontsBox::FontsBox(QWidget* parent)
-: _useSystemFont(this, ktr("ktg_fonts_use_system_font"), cUseSystemFont())
-, _useOriginalMetrics(this, ktr("ktg_fonts_use_original_metrics"), cUseOriginalMetrics())
-, _mainFontName(this, st::defaultInputField, rktr("ktg_fonts_main"))
-, _semiboldFontName(this, st::defaultInputField, rktr("ktg_fonts_semibold"))
-, _semiboldIsBold(this, ktr("ktg_fonts_semibold_is_bold"), cSemiboldFontIsBold())
-, _monospacedFontName(this, st::defaultInputField, rktr("ktg_fonts_monospaced"))
-, _about(st::boxWidth - st::boxPadding.left() * 1.5)
+: _owned(this)
+, _content(_owned.data())
 {
 }
 
@@ -37,6 +35,56 @@ void FontsBox::prepare() {
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 
 	addLeftButton(rktr("ktg_fonts_reset"), [=] { resetToDefault(); });
+
+	_useSystemFont = _content->add(
+		object_ptr<Ui::Checkbox>(_content, ktr("ktg_fonts_use_system_font"), cUseSystemFont()),
+		QMargins(
+			st::boxPadding.left(),
+			0,
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+	_useOriginalMetrics = _content->add(
+		object_ptr<Ui::Checkbox>(_content, ktr("ktg_fonts_use_original_metrics"), cUseOriginalMetrics()),
+		QMargins(
+			st::boxPadding.left(),
+			st::boxPadding.bottom(),
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+	_mainFontName = _content->add(
+		object_ptr<Ui::InputField>(_content, st::defaultInputField, rktr("ktg_fonts_main")),
+		QMargins(
+			st::boxPadding.left(),
+			0,
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+	_semiboldFontName = _content->add(
+		object_ptr<Ui::InputField>(_content, st::defaultInputField, rktr("ktg_fonts_semibold")),
+		QMargins(
+			st::boxPadding.left(),
+			0,
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+	_semiboldIsBold = _content->add(
+		object_ptr<Ui::Checkbox>(_content, ktr("ktg_fonts_semibold_is_bold"), cSemiboldFontIsBold()),
+		QMargins(
+			st::boxPadding.left(),
+			0,
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+	_monospacedFontName = _content->add(
+		object_ptr<Ui::InputField>(_content, st::defaultInputField, rktr("ktg_fonts_monospaced")),
+		QMargins(
+			st::boxPadding.left(),
+			0,
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+	_content->add(
+		object_ptr<Ui::FlatLabel>(_content, rktr("ktg_fonts_about"), st::boxDividerLabel),
+		QMargins(
+			st::boxPadding.left(),
+			0,
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
 
 	if (!cMainFont().isEmpty()) {
 		_mainFontName->setText(cMainFont());
@@ -50,54 +98,11 @@ void FontsBox::prepare() {
 		_monospacedFontName->setText(cMonospaceFont());
 	}
 
-	_about.setText(st::fontsBoxTextStyle, ktr("ktg_fonts_about"));
-	_aboutHeight = _about.countHeight(st::boxWidth - st::boxPadding.left() * 1.5);
-
-	setDimensions(st::boxWidth, _useSystemFont->height()
-		+ _useOriginalMetrics->height()
-		+ _mainFontName->height()
-		+ _semiboldFontName->height()
-		+ _semiboldIsBold->height()
-		+ _monospacedFontName->height()
-		+ _aboutHeight
-		+ st::boxLittleSkip * 3);
+	auto wrap = object_ptr<Ui::OverrideMargins>(this, std::move(_owned));
+	setDimensionsToContent(st::boxWidth, wrap.data());
+	setInnerWidget(std::move(wrap));
 }
 
-
-void FontsBox::paintEvent(QPaintEvent *e) {
-	BoxContent::paintEvent(e);
-
-	Painter p(this);
-	int32 w = st::boxWidth - st::boxPadding.left() * 1.5;
-	int32 abouty = _useSystemFont->height()
-		+ _useOriginalMetrics->height()
-		+ _mainFontName->height()
-		+ _semiboldFontName->height()
-		+ _semiboldIsBold->height()
-		+ _monospacedFontName->height()
-		+ st::boxLittleSkip * 3;
-	p.setPen(st::windowSubTextFg);
-	_about.drawLeft(p, st::boxPadding.left(), abouty, w, width());
-
-}
-
-void FontsBox::resizeEvent(QResizeEvent *e) {
-	BoxContent::resizeEvent(e);
-
-	int32 w = st::boxWidth - st::boxPadding.left() - st::boxPadding.right();
-	_useSystemFont->resize(w, _useSystemFont->height());
-	_useSystemFont->moveToLeft(st::boxPadding.left(), 0);
-	_useOriginalMetrics->resize(w, _useOriginalMetrics->height());
-	_useOriginalMetrics->moveToLeft(st::boxPadding.left(), _useSystemFont->y() + _useSystemFont->height() + st::boxLittleSkip);
-	_mainFontName->resize(w, _mainFontName->height());
-	_mainFontName->moveToLeft(st::boxPadding.left(), _useOriginalMetrics->y() + _useOriginalMetrics->height() + st::boxLittleSkip);
-	_semiboldFontName->resize(w, _semiboldFontName->height());
-	_semiboldFontName->moveToLeft(st::boxPadding.left(), _mainFontName->y() + _mainFontName->height());
-	_semiboldIsBold->resize(w, _semiboldIsBold->height());
-	_semiboldIsBold->moveToLeft(st::boxPadding.left(), _semiboldFontName->y() + _semiboldFontName->height() + st::boxLittleSkip);
-	_monospacedFontName->resize(w, _monospacedFontName->height());
-	_monospacedFontName->moveToLeft(st::boxPadding.left(), _semiboldIsBold->y() + _semiboldIsBold->height());
-}
 
 void FontsBox::setInnerFocus() {
 	_mainFontName->setFocusFast();

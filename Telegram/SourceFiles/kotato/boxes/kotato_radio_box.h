@@ -13,6 +13,7 @@ namespace Ui {
 class RadiobuttonGroup;
 class Radiobutton;
 class FlatLabel;
+class VerticalLayout;
 } // namespace Ui
 
 namespace Kotato {
@@ -71,6 +72,9 @@ private:
 	Fn<void(int)> _saveCallback;
 	bool _warnRestart = false;
 	std::shared_ptr<Ui::RadiobuttonGroup> _group;
+
+	object_ptr<Ui::VerticalLayout> _owned;
+	not_null<Ui::VerticalLayout*> _content;
 };
 
 } // namespace Kotato
