@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "media/view/media_view_overlay_widget.h"
 
+#include "kotato/kotato_lang.h"
 #include "apiwrap.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_peer_photo.h"
@@ -3136,8 +3137,11 @@ float64 OverlayWidget::playbackControlsCurrentSpeed() {
 }
 
 void OverlayWidget::switchToPip() {
+	if (_document == nullptr) {
+		Ui::Toast::Show(_widget, ktr("ktg_pip_not_supported"));
+		return;
+	}
 	Expects(_streamed != nullptr);
-	Expects(_document != nullptr);
 
 	const auto document = _document;
 	const auto message = _message;
