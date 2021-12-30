@@ -257,5 +257,6 @@
 	"ktg_disable_chat_themes": "Wyłącz motywy czatów",
 	"ktg_settings_remember_compress_images": "Zapamiętaj kompresję obrazów",
 	"ktg_settings_compress_images_default": "Domyślnie kompresuj obrazy",
+	"ktg_pip_not_supported": "Tryb obraz-w-obrazie nie jest tutaj obsługiwany.",
 	"dummy_last_string": ""
 }

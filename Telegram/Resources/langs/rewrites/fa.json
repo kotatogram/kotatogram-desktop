@@ -257,5 +257,6 @@
 	"ktg_disable_chat_themes": "غیرفعال کردن تم های گفتگو",
 	"ktg_settings_remember_compress_images": "بخاطر سپردن فشرده سازی تصاویر",
 	"ktg_settings_compress_images_default": "فشرده سازی تصاویر به صورت پیش فرض",
+	"ktg_pip_not_supported": "متأسفیم، حالت تصویر در تصویر در اینجا پشتیبانی نمی شود.",
 	"dummy_last_string": ""
 }

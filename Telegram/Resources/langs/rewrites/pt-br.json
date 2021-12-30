@@ -86,11 +86,11 @@
 	"ktg_settings_disable_sound_from_tray": "Desativar som",
 	"ktg_settings_enable_sound_from_tray": "Ativar som",
 	"ktg_settings_recent_stickers_limit": {
-		"zero": "Recent stickers: show {count} stickers",
+		"zero": "Stickers recentes: mostrar {count} stickers",
 		"one": "Stickers recentes: mostrar {count} sticker",
-		"two": "Recent stickers: show {count} stickers",
-		"few": "Recent stickers: show {count} stickers",
-		"many": "Recent stickers: show {count} stickers",
+		"two": "Stickers recentes: mostrar {count} stickers",
+		"few": "Stickers recentes: mostrar {count} stickers",
+		"many": "Stickers recentes: mostrar {count} stickers",
 		"other": "Stickers recentes: mostrar {count} stickers"
 	},
 	"ktg_settings_recent_stickers_limit_none": "Stickers recentes: ocultar tudo",
@@ -203,7 +203,7 @@
 	"ktg_filters_hide_all_chats_toast": "A pasta \"Todos os Chats\" está oculta.\nVocê pode habilitá-la novamente nas Configurações do Kotatogram.",
 	"ktg_filters_hide_edit_toast": "O botão editar está oculto.\nVocê pode habilitá-lo novamente nas Configurações do Kotatogram.",
 	"ktg_settings_telegram_sites_autologin": "Login automático em sites do Telegram",
-	"ktg_mute_for_selected_time": "For selected time",
+	"ktg_mute_for_selected_time": "Definir tempo",
 	"ktg_send_preview": "Enviar pré-visualização",
 	"ktg_send_silent_preview": "Send preview silent",
 	"ktg_reminder_preview": "Remind with preview",
@@ -242,8 +242,8 @@
 		"other": "dias"
 	},
 	"ktg_forward_sender_names_and_captions_removed": "Nomes dos autores e legendas removidos",
-	"ktg_forward_remember_mode": "Remember forward mode",
-	"ktg_forward_mode": "Forward mode",
+	"ktg_forward_remember_mode": "Lembrar encaminhar modo",
+	"ktg_forward_mode": "Encaminhar modo",
 	"ktg_forward_mode_quoted": "Citar",
 	"ktg_forward_mode_unquoted": "Não citar",
 	"ktg_forward_mode_uncaptioned": "Sem legenda",
@@ -253,9 +253,10 @@
 	"ktg_forward_grouping_mode_regroup_desc": "Sem citação e sem legenda apenas",
 	"ktg_forward_grouping_mode_separate": "Separado",
 	"ktg_forward_force_old_unquoted": "Método antigo para encaminhamento sem citação",
-	"ktg_forward_force_old_unquoted_desc": "Old method copies messages content on client rather than server. Currently it's used only for \"Regroup media\" grouping mode, since new one doesn't support it. If for some reason unquoted forward doesn't work correctly, try switching this option.",
+	"ktg_forward_force_old_unquoted_desc": "O método antigo copia o conteúdo das mensagens no cliente em vez do servidor. Atualmente é usado apenas para o modo de agrupamento \"Reagrupar mídia\", já que o novo não o suporta. Se, por algum motivo, o encaminhamento sem aspas não funcionar corretamente, tente alternar esta opção.",
 	"ktg_disable_chat_themes": "Desativar temas de chat",
 	"ktg_settings_remember_compress_images": "Lembrar imagens comprimidas",
 	"ktg_settings_compress_images_default": "Comprimir imagens por padrão",
+	"ktg_pip_not_supported": "Desculpe, o modo Picture-in-Picture não é suportado aqui.",
 	"dummy_last_string": ""
 }
