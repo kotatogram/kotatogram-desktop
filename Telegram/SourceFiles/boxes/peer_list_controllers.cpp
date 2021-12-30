@@ -172,7 +172,7 @@ void PeerListRowWithLink::rightActionPaint(
 		int outerWidth,
 		bool selected,
 		bool actionSelected) {
-	if (!_action.isEmpty() && (_actionPlaceholder.isEmpty() || selected)) {
+	if (!_action.isEmpty() && ((_actionPlaceholder.isEmpty() && _adminRank.isEmpty()) || selected)) {
 		p.setFont(actionSelected ? st::linkOverFont : st::linkFont);
 		p.setPen(actionSelected ? st::defaultLinkButton.overColor : st::defaultLinkButton.color);
 		p.drawTextLeft(x, y, outerWidth, _action, _actionWidth);
@@ -185,6 +185,32 @@ void PeerListRowWithLink::rightActionPaint(
 			: st::defaultPeerListItem.statusFg);
 		p.drawTextLeft(x, y, outerWidth, _actionPlaceholder, _actionPlaceholderWidth);
 	}
+}
+
+void PeerListRowWithLink::setAdminRank(const QString &rank, bool isCreator) {
+	_adminRank = rank;
+	_isCreator = isCreator;
+}
+
+int PeerListRowWithLink::adminRankWidth() const {
+	return st::normalFont->width(_adminRank);
+}
+
+void PeerListRowWithLink::paintAdminRank(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		bool selected) {
+	if (hasAction() && selected) {
+		return;
+	}
+	p.setPen(_isCreator
+		? st::defaultPeerListItem.statusFgActive
+		: selected
+		? st::defaultPeerListItem.statusFgOver
+		: st::defaultPeerListItem.statusFg);
+	p.drawTextLeft(x, y, outerWidth, _adminRank, adminRankWidth());
 }
 
 PeerListGlobalSearchController::PeerListGlobalSearchController(

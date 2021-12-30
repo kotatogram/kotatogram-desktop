@@ -1917,7 +1917,7 @@ std::unique_ptr<PeerListRow> ParticipantsBoxController::createRow(
 		if (_additional.canEditAdmin(user) && !_additional.isCreator(user)) {
 			row->setActionLink(tr::lng_profile_kick(tr::now));
 		}
-		row->setActionPlaceholder(channel
+		row->setAdminRank(channel
 			? channel->adminRank(user)
 			: (chat && _additional.isCreator(user))
 				? tr::lng_owner_badge(tr::now)
@@ -1976,9 +1976,8 @@ void ParticipantsBoxController::recomputeTypeFor(
 void ParticipantsBoxController::refreshCustomStatus(
 		not_null<PeerListRow*> row) const {
 	const auto participant = row->peer();
-	// const auto user = participant->asUser();
+	/* const auto user = participant->asUser();
 	if (_role == Role::Admins) {
-		/*
 		Assert(user != nullptr);
 		if (const auto by = _additional.adminPromotedBy(user)) {
 			row->setCustomStatus(tr::lng_channel_admin_status_promoted_by(
@@ -1994,8 +1993,7 @@ void ParticipantsBoxController::refreshCustomStatus(
 					tr::lng_channel_admin_status_not_admin(tr::now));
 			}
 		}
-		*/
-	} else if (_role == Role::Kicked || _role == Role::Restricted) {
+	} else */if (_role == Role::Kicked || _role == Role::Restricted) {
 		const auto by = _additional.restrictedBy(participant);
 		row->setCustomStatus((_role == Role::Kicked
 			? tr::lng_channel_banned_status_removed_by

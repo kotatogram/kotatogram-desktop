@@ -47,6 +47,15 @@ public:
 	void lazyInitialize(const style::PeerListItem &st) override;
 	bool hasAction() override;
 
+	void setAdminRank(const QString &rank, bool isCreator = false);
+	int adminRankWidth() const override;
+	void paintAdminRank(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		bool selected) override;
+
 private:
 	void refreshActionLink();
 	QSize rightActionSize() const override;
@@ -66,6 +75,8 @@ private:
 	int _actionWidth = 0;
 	int _actionPlaceholderWidth = 0;
 
+	QString _adminRank;
+	bool _isCreator = false;
 };
 
 class PeerListGlobalSearchController : public PeerListSearchController {
