@@ -1,3 +1,8 @@
+1.4.7 (30.12.2021)
+- Ability to switch accounts by hotkeys.
+- Added icon near the author name in message.
+- Fixed ranks in admin list.
+
 1.4.6 (18.12.2021)
 - Updated TDesktop sources to 3.3.
 - Ability to disable remembering image compression when sending.

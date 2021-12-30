@@ -35,6 +35,16 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4.7" date="2021-12-30">
+            <description>
+                <p>In this update:</p>
+                <ul>
+                    <li>Ability to switch accounts by hotkeys.</li>
+                    <li>Added icon near the author name in message.</li>
+                    <li>Fixed ranks in admin list.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.4.6" date="2021-12-18">
             <description>
                 <p>TDesktop sources were updated to 3.3.</p>
