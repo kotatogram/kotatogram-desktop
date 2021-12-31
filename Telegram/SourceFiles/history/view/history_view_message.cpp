@@ -865,7 +865,7 @@ void Message::paintFromName(
 			return context.selected()
 					? &st::msgNameSponsoredIconSelected
 					: &st::msgNameSponsoredIcon;
-		} else if (!item->isPost()) {
+		} else if (!item->isPost() && item->displayFrom()) {
 			const auto from = item->displayFrom();
 			if (from->isChat() || from->isMegagroup()) {
 				return context.selected()
