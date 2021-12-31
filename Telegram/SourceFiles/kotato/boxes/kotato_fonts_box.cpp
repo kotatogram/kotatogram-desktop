@@ -207,7 +207,8 @@ void FontsBox::prepare() {
 			st::settingsAudioVolumeSlider),
 		st::settingsAudioVolumeSliderPadding);
 	const auto updateFontSizeLabel = [=](int value) {
-		const auto pixels = QString::number(value);
+		const auto prefix = (value >= 0) ? qsl("+") : QString();
+		const auto pixels = prefix + QString::number(value);
 		_fontSizeLabel->setText(
 			ktr("ktg_fonts_size", { "pixels", pixels }));
 	};
