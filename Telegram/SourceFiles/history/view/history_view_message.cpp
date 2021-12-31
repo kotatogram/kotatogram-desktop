@@ -1437,9 +1437,26 @@ bool Message::getStateFromName(
 		if (point.y() >= trect.top() && point.y() < trect.top() + st::msgNameFont->height) {
 			auto availableLeft = trect.left();
 			auto availableWidth = trect.width();
+			const auto hasChatTypeIcon = [&]() {
+				if (const auto sponsored = displayedSponsorBadge()) {
+					return true;
+				} else if (!item->isPost() && item->displayFrom()) {
+					const auto from = item->displayFrom();
+					if (from->isChat() || from->isMegagroup() || from->isChannel()) {
+						return true;
+					} else if (const auto user = from->asUser()) {
+						if (user->isInaccessible()
+							|| (user->isBot() && !user->isSupport() && !user->isRepliesChat())) {
+							return true;
+						}
+					}
+				}
+				return false;
+			}();
 			if (replyWidth) {
 				availableWidth -= st::msgPadding.right() + replyWidth;
 			}
+			const auto chatIconWidth = (hasChatTypeIcon) ? st::dialogsChatTypeSkip : 0;
 			const auto from = item->displayFrom();
 			const auto nameText = [&]() -> const Ui::Text::String * {
 				if (from) {
@@ -1452,7 +1469,7 @@ bool Message::getStateFromName(
 			}();
 			if (point.x() >= availableLeft
 				&& point.x() < availableLeft + availableWidth
-				&& point.x() < availableLeft + nameText->maxWidth()) {
+				&& point.x() < availableLeft + nameText->maxWidth() + chatIconWidth) {
 				outResult->link = fromLink();
 				return true;
 			}
