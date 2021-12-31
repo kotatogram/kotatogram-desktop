@@ -22,6 +22,99 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "lang/lang_keys.h"
 #include "app.h"
 
+#include <QFontDatabase>
+#include <QListView>
+#include <QStringListModel>
+#include <QVBoxLayout>
+
+class FontListView : public QListView {
+public:
+	FontListView(QWidget *parent)
+	: QListView(parent) {
+		setModel(new QStringListModel(parent));
+		setEditTriggers(NoEditTriggers);
+		setFont(st::normalFont);
+	}
+
+	inline QStringListModel *model() const {
+		return static_cast<QStringListModel *>(QListView::model());
+	}
+	inline void setCurrentItem(int item) {
+		QListView::setCurrentIndex(static_cast<QAbstractListModel*>(model())->index(item));
+	}
+	inline int currentItem() const {
+		return QListView::currentIndex().row();
+	}
+	inline int count() const {
+		return model()->rowCount();
+	}
+	inline QString currentText() const {
+		int row = QListView::currentIndex().row();
+		return row < 0 ? QString() : model()->stringList().at(row);
+	}
+	void currentChanged(const QModelIndex &current, const QModelIndex &previous) override {
+		QListView::currentChanged(current, previous);
+		if (current.isValid())
+			_highlighted.fire_copy(model()->stringList().at(current.row()));
+	}
+	QString text(int i) const {
+		return model()->stringList().at(i);
+	}
+	rpl::producer<QString> highlighted() {
+		return _highlighted.events();
+	}
+	rpl::lifetime &lifetime() {
+		return _lifetime;
+	}
+
+private:
+	rpl::event_stream<QString> _highlighted;
+	rpl::lifetime _lifetime;
+};
+
+class RpFontListView : public Ui::RpWidget {
+public:
+	RpFontListView(QWidget *parent)
+	: Ui::RpWidget(parent)
+	, _layout(this)
+	, _view(this) {
+		_layout->addWidget(_view);
+	}
+
+	void prepare(
+			Ui::InputField *field,
+			const QStringList &fontList,
+			const QString &defaultValue) {
+		_view->model()->setStringList(fontList);
+		resize(0, _view->sizeHintForRow(0) * 10);
+		_view->highlighted(
+		) | rpl::start_with_next([=](QString fontName) {
+			if (!field->hasFocus()) {
+				field->setText(fontName);
+			}
+		}, _view->lifetime());
+		QObject::connect(field, &Ui::InputField::changed, [=] {
+			if (field->getLastText().isEmpty()) {
+				_view->setCurrentItem(-1);
+				return;
+			}
+			_view->setCurrentItem(
+				std::distance(fontList.begin(), ranges::find_if(
+					fontList,
+					[&](const auto &fontName) {
+						return fontName.startsWith(field->getLastText());
+					})));
+		});
+		if (!defaultValue.isEmpty()) {
+			_view->setCurrentItem(fontList.indexOf(defaultValue));
+		}
+	}
+
+private:
+	object_ptr<QVBoxLayout> _layout;
+	object_ptr<FontListView> _view;
+};
+
 FontsBox::FontsBox(QWidget* parent)
 : _owned(this)
 , _content(_owned.data())
@@ -57,11 +150,25 @@ void FontsBox::prepare() {
 			0,
 			st::boxPadding.right(),
 			st::boxPadding.bottom()));
+	_mainFontList = _content->add(
+		object_ptr<RpFontListView>(_content),
+		QMargins(
+			st::boxPadding.left(),
+			st::boxPadding.bottom(),
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
 	_semiboldFontName = _content->add(
 		object_ptr<Ui::InputField>(_content, st::defaultInputField, rktr("ktg_fonts_semibold")),
 		QMargins(
 			st::boxPadding.left(),
 			0,
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+	_semiboldFontList = _content->add(
+		object_ptr<RpFontListView>(_content),
+		QMargins(
+			st::boxPadding.left(),
+			st::boxPadding.bottom(),
 			st::boxPadding.right(),
 			st::boxPadding.bottom()));
 	_semiboldIsBold = _content->add(
@@ -76,6 +183,13 @@ void FontsBox::prepare() {
 		QMargins(
 			st::boxPadding.left(),
 			0,
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
+	_monospacedFontList = _content->add(
+		object_ptr<RpFontListView>(_content),
+		QMargins(
+			st::boxPadding.left(),
+			st::boxPadding.bottom(),
 			st::boxPadding.right(),
 			st::boxPadding.bottom()));
 	_content->add(
@@ -97,6 +211,11 @@ void FontsBox::prepare() {
 	if (!cMonospaceFont().isEmpty()) {
 		_monospacedFontName->setText(cMonospaceFont());
 	}
+
+	const auto fontNames = QFontDatabase().families();
+	_mainFontList->prepare(_mainFontName, fontNames, cMainFont());
+	_semiboldFontList->prepare(_semiboldFontName, fontNames, cSemiboldFont());
+	_monospacedFontList->prepare(_monospacedFontName, fontNames, cMonospaceFont());
 
 	auto wrap = object_ptr<Ui::OverrideMargins>(this, std::move(_owned));
 	setDimensionsToContent(st::boxWidth, wrap.data());
