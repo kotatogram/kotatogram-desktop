@@ -15,8 +15,11 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
+#include "ui/widgets/labels.h"
+#include "ui/widgets/continuous_sliders.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
+#include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"
 #include "kotato/json_settings.h"
 #include "lang/lang_keys.h"
@@ -118,6 +121,7 @@ private:
 FontsBox::FontsBox(QWidget* parent)
 : _owned(this)
 , _content(_owned.data())
+, _fontSize(cFontSize())
 {
 }
 
@@ -192,6 +196,32 @@ void FontsBox::prepare() {
 			st::boxPadding.bottom(),
 			st::boxPadding.right(),
 			st::boxPadding.bottom()));
+	_fontSizeLabel = _content->add(
+		object_ptr<Ui::LabelSimple>(
+			_content,
+			st::settingsAudioVolumeLabel),
+		st::settingsAudioVolumeLabelPadding);
+	_fontSizeSlider = _content->add(
+		object_ptr<Ui::MediaSlider>(
+			_content,
+			st::settingsAudioVolumeSlider),
+		st::settingsAudioVolumeSliderPadding);
+	const auto updateFontSizeLabel = [=](int value) {
+		const auto pixels = QString::number(value);
+		_fontSizeLabel->setText(
+			ktr("ktg_fonts_size", { "pixels", pixels }));
+	};
+	const auto updateFontSize = [=](int value) {
+		updateFontSizeLabel(value);
+		_fontSize = value;
+	};
+	_fontSizeSlider->resize(st::settingsAudioVolumeSlider.seekSize);
+	_fontSizeSlider->setPseudoDiscrete(
+		21,
+		[](int val) { return val - 10; },
+		_fontSize,
+		updateFontSize);
+	updateFontSizeLabel(_fontSize);
 	_content->add(
 		object_ptr<Ui::FlatLabel>(_content, rktr("ktg_fonts_about"), st::boxDividerLabel),
 		QMargins(
@@ -242,6 +272,7 @@ void FontsBox::save() {
 		cSetSemiboldFont(semiboldFont);
 		cSetSemiboldFontIsBold(semiboldIsBold);
 		cSetMonospaceFont(monospacedFont);
+		cSetFontSize(_fontSize);
 		Kotato::JsonSettings::Write();
 		App::restart();
 	};
@@ -262,6 +293,7 @@ void FontsBox::resetToDefault() {
 		cSetSemiboldFont(QString());
 		cSetSemiboldFontIsBold(false);
 		cSetMonospaceFont(QString());
+		cSetFontSize(0);
 #ifdef DESKTOP_APP_USE_PACKAGED_FONTS
 		cSetUseSystemFont(true);
 #else

@@ -8,11 +8,13 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #pragma once
 
 #include "ui/layers/box_content.h"
-#include "ui/wrap/vertical_layout.h"
 
 namespace Ui {
+class VerticalLayout;
 class Checkbox;
 class InputField;
+class LabelSimple;
+class MediaSlider;
 } // namespace Ui
 
 class RpFontListView;
@@ -41,4 +43,8 @@ private:
 	QPointer<Ui::Checkbox> _semiboldIsBold;
 	QPointer<Ui::InputField> _monospacedFontName;
 	QPointer<RpFontListView> _monospacedFontList;
+	QPointer<Ui::LabelSimple> _fontSizeLabel;
+	QPointer<Ui::MediaSlider> _fontSizeSlider;
+
+	int _fontSize;
 };
