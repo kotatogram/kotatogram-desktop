@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "Halbfette Schriftart",
 	"ktg_fonts_semibold_is_bold": "Fette Schriftart",
 	"ktg_fonts_monospaced": "Monospace-Schriftart",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "Systemschriftart verwenden",
 	"ktg_fonts_use_original_metrics": "Open Sans Höhe verwenden",
 	"ktg_settings_network": "Netzwerk",

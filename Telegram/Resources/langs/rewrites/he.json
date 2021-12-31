@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "חצי מודגש",
 	"ktg_fonts_semibold_is_bold": "גופן מודגש",
 	"ktg_fonts_monospaced": "גופן מונו",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "השתמש בגופן המערכת",
 	"ktg_fonts_use_original_metrics": "תשתמש ב Open Sans height",
 	"ktg_settings_network": "רשת",

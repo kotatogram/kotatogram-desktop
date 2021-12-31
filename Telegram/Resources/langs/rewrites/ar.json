@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "خط نصف غامق",
 	"ktg_fonts_semibold_is_bold": "خط غامق",
 	"ktg_fonts_monospaced": "خط رمزي",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "إستخدام خط النظام",
 	"ktg_fonts_use_original_metrics": "استخدام خط \" Open Sans height \"",
 	"ktg_settings_network": "الشبكة",

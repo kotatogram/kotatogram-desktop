@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "Czcionka pół pogrubiona",
 	"ktg_fonts_semibold_is_bold": "Pogrubiona czcionka",
 	"ktg_fonts_monospaced": "Czcionka o stałej szerokości",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "Użyj czcionki systemowej",
 	"ktg_fonts_use_original_metrics": "Użyj wysokiej Open Sans",
 	"ktg_settings_network": "Sieć",

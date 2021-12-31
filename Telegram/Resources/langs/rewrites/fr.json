@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "Police semi-gras",
 	"ktg_fonts_semibold_is_bold": "Police grasse",
 	"ktg_fonts_monospaced": "Police mono",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "Utiliser la police du système",
 	"ktg_fonts_use_original_metrics": "Utiliser Open Sans height",
 	"ktg_settings_network": "Réseau",

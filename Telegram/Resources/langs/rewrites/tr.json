@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "Yarıkalın hatt",
 	"ktg_fonts_semibold_is_bold": "kalın hatt yüzü",
 	"ktg_fonts_monospaced": "Monospace hattı",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "sistem hattını kullan",
 	"ktg_fonts_use_original_metrics": "Open Sans uzunluğu'nu ekle",
 	"ktg_settings_network": "ağ",

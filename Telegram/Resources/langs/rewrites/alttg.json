@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "Полужирный шрифт",
 	"ktg_fonts_semibold_is_bold": "Жирное начертание",
 	"ktg_fonts_monospaced": "Моноширинный шрифт",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "Использовать системный шрифт",
 	"ktg_fonts_use_original_metrics": "Высота Open Sans",
 	"ktg_settings_network": "Сеть",

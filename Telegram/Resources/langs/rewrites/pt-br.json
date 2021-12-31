@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "Negrito",
 	"ktg_fonts_semibold_is_bold": "Esboço em negrito",
 	"ktg_fonts_monospaced": "Monoespaçado",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "Usar fonte do sistema",
 	"ktg_fonts_use_original_metrics": "Usar a altura da Open Sans",
 	"ktg_settings_network": "Rede",

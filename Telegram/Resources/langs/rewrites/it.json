@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "Carattere semi-grassetto",
 	"ktg_fonts_semibold_is_bold": "Carattere grassetto",
 	"ktg_fonts_monospaced": "Carattere monospaziato",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "Usa carattere di sistema",
 	"ktg_fonts_use_original_metrics": "Usa altezza Open Sans",
 	"ktg_settings_network": "Rete",
