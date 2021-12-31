@@ -38,6 +38,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "facades.h"
 #include "app.h"
 #include "styles/style_settings.h"
+#include "ui/platform/ui_platform_utility.h"
 
 namespace Settings {
 
@@ -275,7 +276,10 @@ void SetupKotatoChats(
 
 	SettingsMenuCSwitch(ktg_settings_top_bar_mute, ProfileTopBarNotifications);
 	SettingsMenuCSwitch(ktg_settings_disable_up_edit, DisableUpEdit);
-	SettingsMenuCSwitch(ktg_settings_auto_scroll_unfocused, AutoScrollUnfocused);
+
+	if (Ui::Platform::IsOverlapped(controller, QRect()).has_value()) {
+		SettingsMenuCSwitch(ktg_settings_auto_scroll_unfocused, AutoScrollUnfocused);
+	}
 
 	AddButton(
 		container,
