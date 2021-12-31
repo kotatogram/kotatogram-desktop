@@ -51,6 +51,7 @@
 	"ktg_fonts_semibold": "Semibold font",
 	"ktg_fonts_semibold_is_bold": "Bold font face",
 	"ktg_fonts_monospaced": "Monospaced font",
+	"ktg_fonts_size": "Font size: {pixels}px",
 	"ktg_fonts_use_system_font": "Use system font",
 	"ktg_fonts_use_original_metrics": "Use Open Sans height",
 	"ktg_settings_network": "Network",
