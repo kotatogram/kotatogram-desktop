@@ -35,6 +35,16 @@
         <keyword>im</keyword>
     </keywords>
     <releases>
+        <release version="1.4.8" date="2021-12-31">
+            <description>
+                <p>In this update:</p>
+                <ul>
+                    <li>Better font settings.</li>
+                    <li>Fixed severe crash in Saved Messages.</li>
+                    <li>Fixed non-clickable part of message author name if there an icon near it.</li>
+                </ul>
+            </description>
+        </release>
         <release version="1.4.7" date="2021-12-30">
             <description>
                 <p>In this update:</p>
