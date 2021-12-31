@@ -277,7 +277,7 @@ void SetupKotatoChats(
 	SettingsMenuCSwitch(ktg_settings_top_bar_mute, ProfileTopBarNotifications);
 	SettingsMenuCSwitch(ktg_settings_disable_up_edit, DisableUpEdit);
 
-	if (Ui::Platform::IsOverlapped(controller, QRect()).has_value()) {
+	if (Ui::Platform::IsOverlapped(container, QRect()).has_value()) {
 		SettingsMenuCSwitch(ktg_settings_auto_scroll_unfocused, AutoScrollUnfocused);
 	}
 
