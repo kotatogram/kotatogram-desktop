@@ -35,6 +35,7 @@ struct Draft;
 class Session;
 class Folder;
 class ChatFilter;
+struct SponsoredFrom;
 
 enum class ForwardOptions {
 	PreserveInfo,
@@ -91,15 +92,13 @@ public:
 	History &operator=(const History &) = delete;
 	~History();
 
-	ChannelId channelId() const;
-	bool isChannel() const;
-	bool isMegagroup() const;
 	not_null<History*> migrateToOrMe() const;
 	History *migrateFrom() const;
 	MsgRange rangeForDifferenceRequest() const;
 	void checkLocalMessages();
 	void removeJoinedMessage();
 
+	void reactionsEnabledChanged(bool enabled);
 
 	bool isEmpty() const;
 	bool isDisplayedEmpty() const;
@@ -202,6 +201,10 @@ public:
 		const QString &postAuthor,
 		not_null<GameData*> game,
 		HistoryMessageMarkupData &&markup);
+	not_null<HistoryItem*> addNewLocalMessage(
+		MsgId id,
+		Data::SponsoredFrom from,
+		const TextWithEntities &textWithEntities); // sponsored
 
 	// Used only internally and for channel admin log.
 	not_null<HistoryItem*> createItem(
@@ -421,7 +424,7 @@ public:
 	void checkChatListMessageRemoved(not_null<HistoryItem*> item);
 
 	void applyChatListGroup(
-		ChannelId channelId,
+		PeerId dataPeerId,
 		const MTPmessages_Messages &data);
 
 	void forgetScrollState() {
@@ -449,6 +452,9 @@ public:
 
 	[[nodiscard]] bool hasPinnedMessages() const;
 	void setHasPinnedMessages(bool has);
+
+	bool hasHiddenPinnedMessage();
+	bool switchPinnedHidden(bool hidden);
 
 	// Still public data.
 	std::deque<std::unique_ptr<HistoryBlock>> blocks;

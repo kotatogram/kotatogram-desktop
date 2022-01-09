@@ -131,6 +131,8 @@ public:
 		return _needTime;
 	};
 
+	void hideSpoilers() override;
+
 	~HistoryService();
 
 protected:

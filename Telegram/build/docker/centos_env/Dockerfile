@@ -4,14 +4,15 @@ ARG QT6=true
 FROM centos:7 AS builder
 
 ENV GIT https://github.com
+ENV GIT_FREEDESKTOP ${GIT}/gitlab-freedesktop-mirrors
 ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig
 ENV QT5_VER 5_15_2
 ENV QT5_TAG v5.15.2
 ENV QT5_PREFIX /usr/local/desktop-app/Qt-5.15.2
 ENV Qt5_DIR ${QT5_PREFIX}
-ENV QT6_VER 6_2_0
-ENV QT6_TAG v6.2.0
-ENV QT6_PREFIX /usr/local/desktop-app/Qt-6.2.0
+ENV QT6_VER 6_2_2
+ENV QT6_TAG v6.2.2
+ENV QT6_PREFIX /usr/local/desktop-app/Qt-6.2.2
 ENV Qt6_DIR ${QT6_PREFIX}
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
@@ -19,12 +20,14 @@ ENV OPENSSL_ROOT_DIR ${OPENSSL_PREFIX}
 ENV CMAKE_VER 3.21.3
 ENV CMAKE_FILE cmake-$CMAKE_VER-Linux-x86_64.sh
 ENV PATH ${PATH}:${QT5_PREFIX}/bin:${QT6_PREFIX}/bin
+ENV HFLAGS_DEBUG "-fstack-protector-all -fstack-clash-protection -fPIC"
+ENV HFLAGS "$HFLAGS_DEBUG -D_FORTIFY_SOURCE=2"
 
 RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && yum clean all
 RUN yum -y install https://packages.endpoint.com/rhel/7/os/x86_64/endpoint-repo-1.7-1.x86_64.rpm && yum clean all
 RUN yum -y install centos-release-scl && yum clean all
 
-RUN yum -y install git meson ninja-build autoconf automake libtool \
+RUN yum -y install git meson ninja-build autoconf automake libtool patch \
 	fontconfig-devel freetype-devel libX11-devel at-spi2-core-devel alsa-lib-devel \
 	pulseaudio-libs-devel mesa-libGL-devel mesa-libEGL-devel gtk3-devel \
 	perl-XML-Parser pkgconfig bison yasm file which xorg-x11-util-macros \
@@ -32,11 +35,12 @@ RUN yum -y install git meson ninja-build autoconf automake libtool \
 	devtoolset-10-binutils llvm-toolset-7.0 llvm-toolset-7.0-clang-devel \
 	llvm-toolset-7.0-llvm-devel && yum clean all
 
+# Fix a bug with argument naming in CentOS 7 glibc
+RUN sed -i 's/char \*__block/char */' /usr/include/unistd.h
+
 SHELL [ "bash", "-c", ". /opt/rh/devtoolset-10/enable; exec bash -c \"$@\"", "-s"]
 
 ENV LibrariesPath /usr/src/Libraries
-ENV HFLAGS_DEBUG "-fstack-protector-all -fstack-clash-protection -fPIC"
-ENV HFLAGS "$HFLAGS_DEBUG -D_FORTIFY_SOURCE=2"
 WORKDIR $LibrariesPath
 
 RUN mkdir /opt/cmake
@@ -46,11 +50,11 @@ RUN ln -s /opt/cmake/bin/cmake /usr/local/bin/cmake
 RUN rm $CMAKE_FILE
 
 FROM builder AS patches
-RUN git clone $GIT/desktop-app/patches.git && cd patches && git checkout b6c29e99da
+RUN git clone $GIT/desktop-app/patches.git && cd patches && git checkout 5368789dc7
 
 FROM builder AS extra-cmake-modules
 
-RUN git clone -b v5.87.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
+RUN git clone -b v5.89.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
 
 WORKDIR extra-cmake-modules
 RUN cmake -GNinja -B build . -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
@@ -61,7 +65,7 @@ WORKDIR ..
 RUN rm -rf extra-cmake-modules
 
 FROM builder AS libffi
-RUN git clone -b v3.3 --depth=1 $GIT/libffi/libffi.git
+RUN git clone -b v3.4.2 --depth=1 $GIT/libffi/libffi.git
 
 WORKDIR libffi
 RUN ./autogen.sh
@@ -145,7 +149,7 @@ WORKDIR ..
 RUN rm -rf mozjpeg
 
 FROM builder AS opus
-RUN git clone -b v1.3 --depth=1 $GIT/xiph/opus.git
+RUN git clone -b v1.3.1 --depth=1 $GIT/xiph/opus.git
 
 WORKDIR opus
 RUN ./autogen.sh
@@ -173,7 +177,7 @@ WORKDIR ..
 RUN rm -rf rnnoise
 
 FROM builder AS xcb-proto
-RUN git clone -b xcb-proto-1.14 --depth=1 https://gitlab.freedesktop.org/xorg/proto/xcbproto.git
+RUN git clone -b xcb-proto-1.14.1 --depth=1 $GIT_FREEDESKTOP/xcbproto.git
 
 WORKDIR xcbproto
 RUN ./autogen.sh
@@ -186,7 +190,7 @@ RUN rm -rf xcbproto
 FROM builder AS xcb
 COPY --from=xcb-proto ${LibrariesPath}/xcb-proto-cache /
 
-RUN git clone -b libxcb-1.14 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxcb.git
+RUN git clone -b libxcb-1.14 --depth=1 $GIT_FREEDESKTOP/libxcb.git
 
 WORKDIR libxcb
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -198,7 +202,7 @@ RUN rm -rf libxcb
 
 FROM builder AS xcb-wm
 
-RUN git clone -b 0.4.1 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-wm.git
+RUN git clone -b 0.4.1 --depth=1 --recursive $GIT_FREEDESKTOP/libxcb-wm.git
 
 WORKDIR libxcb-wm
 RUN ./autogen.sh --enable-static
@@ -207,7 +211,7 @@ RUN make DESTDIR="$LibrariesPath/xcb-wm-cache" install
 
 FROM builder AS xcb-util
 
-RUN git clone -b 0.4.0 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-util.git
+RUN git clone -b 0.4.0 --depth=1 --recursive $GIT_FREEDESKTOP/libxcb-util.git
 
 WORKDIR libxcb-util
 RUN ./autogen.sh --enable-static
@@ -217,7 +221,7 @@ RUN make DESTDIR="$LibrariesPath/xcb-util-cache" install
 FROM builder AS xcb-image
 COPY --from=xcb-util ${LibrariesPath}/xcb-util-cache /
 
-RUN git clone -b 0.4.0 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-image.git
+RUN git clone -b 0.4.0 --depth=1 --recursive $GIT_FREEDESKTOP/libxcb-image.git
 
 WORKDIR libxcb-image
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -226,7 +230,7 @@ RUN make DESTDIR="$LibrariesPath/xcb-image-cache" install
 
 FROM builder AS xcb-keysyms
 
-RUN git clone -b 0.4.0 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-keysyms.git
+RUN git clone -b 0.4.0 --depth=1 --recursive $GIT_FREEDESKTOP/libxcb-keysyms.git
 
 WORKDIR libxcb-keysyms
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -235,7 +239,7 @@ RUN make DESTDIR="$LibrariesPath/xcb-keysyms-cache" install
 
 FROM builder AS xcb-render-util
 
-RUN git clone -b 0.3.9 --depth=1 --recursive https://gitlab.freedesktop.org/xorg/lib/libxcb-render-util.git
+RUN git clone -b 0.3.9 --depth=1 --recursive $GIT_FREEDESKTOP/libxcb-render-util.git
 
 WORKDIR libxcb-render-util
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -243,7 +247,7 @@ RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/xcb-render-util-cache" install
 
 FROM builder AS libXext
-RUN git clone -b libXext-1.3.4 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxext.git
+RUN git clone -b libXext-1.3.4 --depth=1 $GIT_FREEDESKTOP/libxext.git
 
 WORKDIR libxext
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -254,7 +258,7 @@ WORKDIR ..
 RUN rm -rf libxext
 
 FROM builder AS libXtst
-RUN git clone -b libXtst-1.2.3 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxtst.git
+RUN git clone -b libXtst-1.2.3 --depth=1 $GIT_FREEDESKTOP/libxtst.git
 
 WORKDIR libxtst
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -265,7 +269,7 @@ WORKDIR ..
 RUN rm -rf libxtst
 
 FROM builder AS libXfixes
-RUN git clone -b libXfixes-5.0.3 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxfixes.git
+RUN git clone -b libXfixes-5.0.3 --depth=1 $GIT_FREEDESKTOP/libxfixes.git
 
 WORKDIR libxfixes
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -278,7 +282,7 @@ RUN rm -rf libxfixes
 FROM builder AS libXv
 COPY --from=libXext ${LibrariesPath}/libXext-cache /
 
-RUN git clone -b libXv-1.0.11 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxv.git
+RUN git clone -b libXv-1.0.11 --depth=1 $GIT_FREEDESKTOP/libxv.git
 
 WORKDIR libxv
 RUN ./autogen.sh --enable-static
@@ -289,7 +293,7 @@ WORKDIR ..
 RUN rm -rf libxv
 
 FROM builder AS libXrandr
-RUN git clone -b libXrandr-1.5.2 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxrandr.git
+RUN git clone -b libXrandr-1.5.2 --depth=1 $GIT_FREEDESKTOP/libxrandr.git
 
 WORKDIR libxrandr
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -300,7 +304,7 @@ WORKDIR ..
 RUN rm -rf libxrandr
 
 FROM builder AS libXrender
-RUN git clone -b libXrender-0.9.10 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxrender.git
+RUN git clone -b libXrender-0.9.10 --depth=1 $GIT_FREEDESKTOP/libxrender.git
 
 WORKDIR libxrender
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -311,7 +315,7 @@ WORKDIR ..
 RUN rm -rf libxrender
 
 FROM builder AS libXdamage
-RUN git clone -b libXdamage-1.1.5 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxdamage.git
+RUN git clone -b libXdamage-1.1.5 --depth=1 $GIT_FREEDESKTOP/libxdamage.git
 
 WORKDIR libxdamage
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -322,7 +326,7 @@ WORKDIR ..
 RUN rm -rf libxdamage
 
 FROM builder AS libXcomposite
-RUN git clone -b libXcomposite-0.4.5 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libxcomposite.git
+RUN git clone -b libXcomposite-0.4.5 --depth=1 $GIT_FREEDESKTOP/libxcomposite.git
 
 WORKDIR libxcomposite
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh --enable-static
@@ -335,16 +339,19 @@ RUN rm -rf libxcomposite
 FROM builder AS wayland
 COPY --from=libffi ${LibrariesPath}/libffi-cache /
 
-RUN git clone -b 1.19.0 --depth=1 https://gitlab.freedesktop.org/wayland/wayland.git
+RUN git clone -b 1.20.0 --depth=1 $GIT_FREEDESKTOP/wayland.git
 
 WORKDIR wayland
-RUN ./autogen.sh \
-	--enable-static \
-	--disable-documentation \
-	--disable-dtd-validation
+RUN meson build \
+	--buildtype=release \
+	--default-library=both \
+	-Dtests=false \
+	-Ddocumentation=false \
+	-Ddtd_validation=false \
+	-Dicon_directory=/usr/share/icons
 
-RUN make -j$(nproc)
-RUN make DESTDIR="$LibrariesPath/wayland-cache" install
+RUN meson compile -C build
+RUN DESTDIR="$LibrariesPath/wayland-cache" meson install -C build
 
 WORKDIR ..
 RUN rm -rf wayland
@@ -352,12 +359,16 @@ RUN rm -rf wayland
 FROM builder AS wayland-protocols
 COPY --from=wayland ${LibrariesPath}/wayland-cache /
 
-RUN git clone -b 1.23 --depth=1 https://gitlab.freedesktop.org/wayland/wayland-protocols.git
+RUN git clone -b 1.24 --depth=1 $GIT_FREEDESKTOP/wayland-protocols.git
 
 WORKDIR wayland-protocols
-RUN ./autogen.sh
-RUN make -j$(nproc)
-RUN make DESTDIR="$LibrariesPath/wayland-protocols-cache" install
+RUN meson build \
+	--buildtype=release \
+	--default-library=both \
+	-Dtests=false
+
+RUN meson compile -C build
+RUN DESTDIR="$LibrariesPath/wayland-protocols-cache" meson install -C build
 
 WORKDIR ..
 RUN rm -rf wayland-protocols
@@ -365,7 +376,7 @@ RUN rm -rf wayland-protocols
 FROM builder AS plasma-wayland-protocols
 COPY --from=extra-cmake-modules ${LibrariesPath}/extra-cmake-modules-cache /
 
-RUN git clone -b v1.4.0 --depth=1 $GIT/KDE/plasma-wayland-protocols.git
+RUN git clone -b v1.5.0 --depth=1 $GIT/KDE/plasma-wayland-protocols.git
 
 WORKDIR plasma-wayland-protocols
 RUN cmake -GNinja -B build . -DCMAKE_BUILD_TYPE=Release
@@ -376,7 +387,7 @@ WORKDIR ..
 RUN rm -rf plasma-wayland-protocols
 
 FROM builder AS libpciaccess
-RUN git clone -b libpciaccess-0.16 --depth=1 https://gitlab.freedesktop.org/xorg/lib/libpciaccess.git
+RUN git clone -b libpciaccess-0.16 --depth=1 $GIT_FREEDESKTOP/libpciaccess.git
 
 WORKDIR libpciaccess
 RUN ./autogen.sh --enable-static
@@ -390,7 +401,7 @@ RUN rm -rf libpciaccess
 FROM builder AS drm
 COPY --from=libpciaccess ${LibrariesPath}/libpciaccess-cache /
 
-RUN git clone -b libdrm-2.4.107 --depth=1 https://gitlab.freedesktop.org/mesa/drm.git
+RUN git clone -b libdrm-2.4.109 --depth=1 $GIT_FREEDESKTOP/drm.git
 
 WORKDIR drm
 RUN meson build \
@@ -411,7 +422,7 @@ COPY --from=libXfixes ${LibrariesPath}/libXfixes-cache /
 COPY --from=wayland ${LibrariesPath}/wayland-cache /
 COPY --from=drm ${LibrariesPath}/drm-cache /
 
-RUN git clone -b 2.10.0 --depth=1 $GIT/intel/libva.git
+RUN git clone -b 2.13.0 --depth=1 $GIT/intel/libva.git
 
 WORKDIR libva
 RUN CFLAGS="-g -O2 $HFLAGS" ./autogen.sh \
@@ -426,7 +437,7 @@ WORKDIR ..
 RUN rm -rf libva
 
 FROM builder AS libvdpau
-RUN git clone -b 1.4 --depth=1 https://gitlab.freedesktop.org/vdpau/libvdpau.git
+RUN git clone -b 1.4 --depth=1 $GIT_FREEDESKTOP/libvdpau.git
 
 WORKDIR libvdpau
 RUN sed -i 's/shared_library/library/g' src/meson.build
@@ -454,9 +465,13 @@ COPY --from=drm ${LibrariesPath}/drm-cache /
 COPY --from=libva ${LibrariesPath}/libva-cache /
 COPY --from=libvdpau ${LibrariesPath}/libvdpau-cache /
 
-RUN git clone -b release/4.4 --depth=1 $GIT/FFmpeg/FFmpeg.git ffmpeg
-
+RUN mkdir ffmpeg
 WORKDIR ffmpeg
+RUN git init
+RUN git remote add origin $GIT/FFmpeg/FFmpeg.git
+RUN git fetch --depth=1 origin cc33e73618a981de7fd96385ecb34719de031f16
+RUN git reset --hard FETCH_HEAD
+
 RUN ./configure \
 	--extra-cflags="-DCONFIG_SAFE_BITSTREAM_READER=1 $HFLAGS" \
 	--extra-cxxflags="-DCONFIG_SAFE_BITSTREAM_READER=1 $HFLAGS" \
@@ -604,7 +619,7 @@ RUN rm -rf $opensslDir
 FROM builder AS xkbcommon
 COPY --from=xcb ${LibrariesPath}/xcb-cache /
 
-RUN git clone -b xkbcommon-1.0.3 --depth=1 $GIT/xkbcommon/libxkbcommon.git
+RUN git clone -b xkbcommon-1.3.1 --depth=1 $GIT/xkbcommon/libxkbcommon.git
 
 WORKDIR libxkbcommon
 RUN meson build \
@@ -624,7 +639,7 @@ WORKDIR ..
 RUN rm -rf libxkbcommon
 
 FROM builder AS mm-common
-RUN git clone -b 1.0.2 --depth=1 $GIT/GNOME/mm-common.git
+RUN git clone -b 1.0.3 --depth=1 $GIT/GNOME/mm-common.git
 
 WORKDIR mm-common
 RUN NOCONFIGURE=1 ./autogen.sh
@@ -638,7 +653,7 @@ RUN rm -rf mm-common
 FROM builder AS libsigcplusplus
 COPY --from=mm-common ${LibrariesPath}/mm-common-cache /
 
-RUN git clone -b 2.10.6 --depth=1 $GIT/libsigcplusplus/libsigcplusplus.git
+RUN git clone -b 2.10.7 --depth=1 $GIT/libsigcplusplus/libsigcplusplus.git
 
 WORKDIR libsigcplusplus
 ENV ACLOCAL_PATH="/usr/local/share/aclocal"
@@ -766,38 +781,6 @@ RUN [ -z "${QT6}" ] || DESTDIR="$LibrariesPath/qt-cache" cmake --install .
 WORKDIR ..
 RUN [ -z "${QT6}" ] || rm -rf qt_${QT6_VER}
 
-FROM patches AS kwayland
-ARG QT6
-
-COPY --from=extra-cmake-modules ${LibrariesPath}/extra-cmake-modules-cache /
-COPY --from=libffi ${LibrariesPath}/libffi-cache /
-COPY --from=zlib ${LibrariesPath}/zlib-cache /
-COPY --from=libproxy ${LibrariesPath}/libproxy-cache /
-COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
-COPY --from=xcb ${LibrariesPath}/xcb-cache /
-COPY --from=xcb-wm ${LibrariesPath}/xcb-wm-cache /
-COPY --from=xcb-util ${LibrariesPath}/xcb-util-cache /
-COPY --from=xcb-image ${LibrariesPath}/xcb-image-cache /
-COPY --from=xcb-keysyms ${LibrariesPath}/xcb-keysyms-cache /
-COPY --from=xcb-render-util ${LibrariesPath}/xcb-render-util-cache /
-COPY --from=wayland ${LibrariesPath}/wayland-cache /
-COPY --from=wayland-protocols ${LibrariesPath}/wayland-protocols-cache /
-COPY --from=plasma-wayland-protocols ${LibrariesPath}/plasma-wayland-protocols-cache /
-COPY --from=openssl ${LibrariesPath}/openssl-cache /
-COPY --from=xkbcommon ${LibrariesPath}/xkbcommon-cache /
-COPY --from=qt ${LibrariesPath}/qt-cache /
-
-RUN git clone -b v5.87.0 --depth=1 $GIT/KDE/kwayland.git
-
-WORKDIR kwayland
-RUN [ -z "${QT6}" ] || git apply ../patches/kwayland-qt6.patch
-RUN cmake -GNinja -B build . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF
-RUN cmake --build build --target KF5WaylandClient --parallel
-RUN DESTDIR="$LibrariesPath/kwayland-cache" cmake --install build/src/client
-
-WORKDIR ..
-RUN rm -rf kwayland
-
 FROM patches AS breakpad
 RUN git clone https://chromium.googlesource.com/breakpad/breakpad.git
 
@@ -880,6 +863,8 @@ COPY --from=libXrender ${LibrariesPath}/libXrender-cache /
 COPY --from=libXdamage ${LibrariesPath}/libXdamage-cache /
 COPY --from=libXcomposite ${LibrariesPath}/libXcomposite-cache /
 COPY --from=wayland ${LibrariesPath}/wayland-cache /
+COPY --from=wayland-protocols ${LibrariesPath}/wayland-protocols-cache /
+COPY --from=plasma-wayland-protocols ${LibrariesPath}/plasma-wayland-protocols-cache /
 COPY --from=libpciaccess ${LibrariesPath}/libpciaccess-cache /
 COPY --from=drm ${LibrariesPath}/drm-cache /
 COPY --from=libva ${LibrariesPath}/libva-cache /
@@ -892,7 +877,6 @@ COPY --from=xkbcommon ${LibrariesPath}/xkbcommon-cache /
 COPY --from=libsigcplusplus ${LibrariesPath}/libsigcplusplus-cache /
 COPY --from=glibmm ${LibrariesPath}/glibmm-cache /
 COPY --from=qt ${LibrariesPath}/qt-cache /
-COPY --from=kwayland ${LibrariesPath}/kwayland-cache /
 COPY --from=breakpad ${LibrariesPath}/breakpad breakpad
 COPY --from=breakpad ${LibrariesPath}/breakpad-cache /
 COPY --from=webrtc ${LibrariesPath}/tg_owt tg_owt

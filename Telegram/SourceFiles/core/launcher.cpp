@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "kotato/kotato_version.h"
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
+#include "platform/linux/linux_desktop_environment.h"
 #include "base/platform/base_platform_info.h"
 #include "base/platform/base_platform_file_utilities.h"
 #include "ui/main_queue_processor.h"
@@ -64,7 +65,12 @@ FilteredCommandLineArguments::FilteredCommandLineArguments(
 		pushArgument("cocoa:fontengine=freetype");
 #endif // !Q_OS_WIN
 	}
-#endif // Q_OS_WIN || Q_OS_MAC
+#elif defined Q_OS_UNIX
+	if (Platform::DesktopEnvironment::IsGnome()) {
+		pushArgument("-platform");
+		pushArgument("xcb;wayland");
+	}
+#endif // Q_OS_WIN || Q_OS_MAC || Q_OS_UNIX
 
 	pushArgument(nullptr);
 }
@@ -485,7 +491,6 @@ void Launcher::processArguments() {
 	auto parseMap = std::map<QByteArray, KeyFormat> {
 		{ "-debug"          , KeyFormat::NoValues },
 		{ "-freetype"       , KeyFormat::NoValues },
-		{ "-many"           , KeyFormat::NoValues },
 		{ "-key"            , KeyFormat::OneValue },
 		{ "-autostart"      , KeyFormat::NoValues },
 		{ "-fixprevious"    , KeyFormat::NoValues },
@@ -527,7 +532,6 @@ void Launcher::processArguments() {
 
 	gUseFreeType = parseResult.contains("-freetype");
 	gDebugMode = parseResult.contains("-debug");
-	gManyInstance = parseResult.contains("-many");
 	gKeyFile = parseResult.value("-key", {}).join(QString()).toLower();
 	gKeyFile = gKeyFile.replace(QRegularExpression("[^a-z0-9\\-_]"), {});
 	gLaunchMode = parseResult.contains("-autostart") ? LaunchModeAutoStart

@@ -1281,6 +1281,7 @@ void MainWidget::ui_showPeerHistory(
 	if (IsServerMsgId(showAtMsgId)
 		&& _mainSection
 		&& _mainSection->showMessage(peerId, params, showAtMsgId)) {
+		session().data().hideShownSpoilers();
 		return;
 	}
 
@@ -1434,7 +1435,7 @@ void MainWidget::ui_showPeerHistory(
 			if (const auto history = _history->history()) {
 				_dialogs->scrollToEntry(Dialogs::RowDescriptor(
 					history,
-					FullMsgId(history->channelId(), showAtMsgId)));
+					FullMsgId(history->peer->id, showAtMsgId)));
 			}
 		// }
 		_dialogs->update();

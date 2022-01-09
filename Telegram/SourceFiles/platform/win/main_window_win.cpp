@@ -33,7 +33,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtWidgets/QApplication>
 #include <QtGui/QWindow>
 #include <QtGui/QScreen>
-#include <qpa/qplatformnativeinterface.h>
 
 #include <Shobjidl.h>
 #include <shellapi.h>
@@ -445,11 +444,7 @@ void MainWindow::updateIconCounters() {
 }
 
 void MainWindow::initHook() {
-	if (const auto native = QGuiApplication::platformNativeInterface()) {
-		ps_hWnd = static_cast<HWND>(native->nativeResourceForWindow(
-			QByteArrayLiteral("handle"),
-			windowHandle()));
-	}
+	ps_hWnd = reinterpret_cast<HWND>(winId());
 	if (!ps_hWnd) {
 		return;
 	}

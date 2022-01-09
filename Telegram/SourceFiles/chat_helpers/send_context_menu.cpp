@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_peer.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
+#include "styles/style_menu_icons.h"
 
 #include <QtWidgets/QApplication>
 
@@ -58,14 +59,18 @@ FillMenuResult FillSendMenu(
 	}
 
 	if (silent && now != Type::Reminder) {
-		menu->addAction(tr::lng_send_silent_message(tr::now), silent);
+		menu->addAction(
+			tr::lng_send_silent_message(tr::now),
+			silent,
+			&st::menuIconMute);
 	}
 	if (schedule && now != Type::SilentOnly) {
 		menu->addAction(
 			(now == Type::Reminder
 				? tr::lng_reminder_message(tr::now)
 				: tr::lng_schedule_message(tr::now)),
-			schedule);
+			schedule,
+			&st::menuIconSchedule);
 	}
 	return FillMenuResult::Success;
 }
@@ -112,7 +117,9 @@ void SetupMenuAndShortcuts(
 	}
 	const auto menu = std::make_shared<base::unique_qptr<Ui::PopupMenu>>();
 	const auto showMenu = [=] {
-		*menu = base::make_unique_q<Ui::PopupMenu>(button);
+		*menu = base::make_unique_q<Ui::PopupMenu>(
+			button,
+			st::popupMenuWithIcons);
 		const auto result = FillSendMenu(*menu, type(), silent, schedule);
 		const auto success = (result == FillMenuResult::Success);
 		if (success) {
@@ -184,7 +191,9 @@ void SetupUnreadMentionsMenu(
 		if (!peer) {
 			return;
 		}
-		state->menu = base::make_unique_q<Ui::PopupMenu>(button);
+		state->menu = base::make_unique_q<Ui::PopupMenu>(
+			button,
+			st::popupMenuWithIcons);
 		const auto text = tr::lng_context_mark_read_mentions_all(tr::now);
 		state->menu->addAction(text, [=] {
 			if (!state->sentForPeers.emplace(peer).second) {
@@ -198,7 +207,7 @@ void SetupUnreadMentionsMenu(
 			}).fail([=] {
 				state->sentForPeers.remove(peer);
 			}).send();
-		});
+		}, &st::menuIconMarkRead);
 		state->menu->popup(QCursor::pos());
 	};
 

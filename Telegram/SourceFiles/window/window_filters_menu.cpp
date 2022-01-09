@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
+#include "styles/style_menu_icons.h"
 
 namespace Window {
 namespace {
@@ -345,16 +346,23 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 		return;
 	}
 	const auto defaultFilterId = _session->session().account().defaultFilterId();
-	_popupMenu = base::make_unique_q<Ui::PopupMenu>(i->second.get());
-	const auto addAction = [&](const QString &text, Fn<void()> callback) {
+	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
+		i->second.get(),
+		st::popupMenuWithIcons);
+	const auto addAction = [&](
+			const QString &text,
+			Fn<void()> callback,
+			const style::icon *icon) {
 		return _popupMenu->addAction(
 			text,
-			crl::guard(&_outer, std::move(callback)));
+			crl::guard(&_outer, std::move(callback)),
+			icon);
 	};
 
 	addAction(
 		tr::lng_filters_context_edit(tr::now),
-		crl::guard(&_outer, [=] { showEditBox(id); }));
+		crl::guard(&_outer, [=] { showEditBox(id); }),
+		&st::menuIconEdit);
 	auto filteredChats = [=] {
 		return _session->session().data().chatsFilters().chatsList(id);
 	};
@@ -364,15 +372,18 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 	if (defaultFilterId != id) {
 		_popupMenu->addAction(
 			ktr("ktg_filters_context_make_default"),
-			crl::guard(&_outer, [=] { setDefaultFilter(id); }));
+			crl::guard(&_outer, [=] { setDefaultFilter(id); }),
+			&st::menuIconFave);
 	} else if (id) {
 		_popupMenu->addAction(
 			ktr("ktg_filters_context_reset_default"),
-			crl::guard(&_outer, [=] { setDefaultFilter(0); }));
+			crl::guard(&_outer, [=] { setDefaultFilter(0); }),
+			&st::menuIconUnfave);
 	}
 	_popupMenu->addAction(
 		tr::lng_filters_context_remove(tr::now),
-		[=] { showRemoveBox(id); });
+		[=] { showRemoveBox(id); },
+		&st::menuIconDelete);
 	_popupMenu->popup(position);
 }
 
@@ -382,20 +393,28 @@ void FiltersMenu::showAllMenu(QPoint position) {
 		return;
 	}
 	const auto defaultFilterId = _session->session().account().defaultFilterId();
-	_popupMenu = base::make_unique_q<Ui::PopupMenu>(_all);
-	const auto addAction = [&](const QString &text, Fn<void()> callback) {
+	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
+		_all,
+		st::popupMenuWithIcons);
+	const auto addAction = [&](
+			const QString &text,
+			Fn<void()> callback,
+			const style::icon *icon) {
 		return _popupMenu->addAction(
 			text,
-			crl::guard(&_outer, std::move(callback)));
+			crl::guard(&_outer, std::move(callback)),
+			icon);
 	};
 	MenuAddMarkAsReadAllChatsAction(&_session->session().data(), addAction);
 	_popupMenu->addAction(
 		ktr("ktg_filters_context_edit_all"),
-		crl::guard(&_outer, [=] { _session->showSettings(Settings::Type::Folders); }));
+		crl::guard(&_outer, [=] { _session->showSettings(Settings::Type::Folders); }),
+		&st::menuIconEdit);
 	if (defaultFilterId != 0) {
 		_popupMenu->addAction(
 			ktr("ktg_filters_context_make_default"),
-			crl::guard(&_outer, [=] { setDefaultFilter(0); }));
+			crl::guard(&_outer, [=] { setDefaultFilter(0); }),
+			&st::menuIconFave);
 	}
 	_popupMenu->addAction(
 		ktr("ktg_filters_hide_folder"),
@@ -408,7 +427,7 @@ void FiltersMenu::showAllMenu(QPoint position) {
 				.st = &st::windowArchiveToast,
 				.multiline = true,
 			});
-		}));
+		}), &st::menuIconHide);
 	
 	_popupMenu->popup(position);
 }
@@ -418,7 +437,9 @@ void FiltersMenu::showEditMenu(QPoint position) {
 		_popupMenu = nullptr;
 		return;
 	}
-	_popupMenu = base::make_unique_q<Ui::PopupMenu>(_setup);
+	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
+		_setup,
+		st::popupMenuWithIcons);
 	_popupMenu->addAction(
 		ktr("ktg_filters_hide_button"),
 		crl::guard(&_outer, [=] {
@@ -430,7 +451,7 @@ void FiltersMenu::showEditMenu(QPoint position) {
 				.st = &st::windowArchiveToast,
 				.multiline = true,
 			});
-		}));
+		}), &st::menuIconHide);
 
 	_popupMenu->popup(position);
 }

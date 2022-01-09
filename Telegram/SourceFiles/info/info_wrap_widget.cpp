@@ -38,6 +38,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "styles/style_info.h"
 #include "styles/style_profile.h"
+#include "styles/style_menu_icons.h"
 
 namespace Info {
 namespace {
@@ -542,7 +543,9 @@ void WrapWidget::showTopBarMenu() {
 			Ui::InnerDropdown::HideOption::IgnoreShow);
 		return;
 	}
-	_topBarMenu = base::make_unique_q<Ui::DropdownMenu>(this);
+	_topBarMenu = base::make_unique_q<Ui::DropdownMenu>(
+		this,
+		st::dropdownMenuWithIcons);
 
 	_topBarMenu->setHiddenCallback([this] {
 		InvokeQueued(this, [this] { _topBarMenu = nullptr; });
@@ -564,8 +567,9 @@ void WrapWidget::showTopBarMenu() {
 
 	const auto addAction = [=](
 			const QString &text,
-			Fn<void()> callback) {
-		return _topBarMenu->addAction(text, std::move(callback));
+			Fn<void()> callback,
+			const style::icon *icon) {
+		return _topBarMenu->addAction(text, std::move(callback), icon);
 	};
 	if (const auto peer = key().peer()) {
 		Window::FillDialogsEntryMenu(

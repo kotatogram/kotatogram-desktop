@@ -147,11 +147,7 @@ public:
 		bool archived,
 		Fn<void()> callback);
 
-	using RequestMessageDataCallback = Fn<void(ChannelData*, MsgId)>;
-	void requestMessageData(
-		ChannelData *channel,
-		MsgId msgId,
-		RequestMessageDataCallback callback);
+	void requestMessageData(PeerData *peer, MsgId msgId, Fn<void()> done);
 	QString exportDirectMessageLink(
 		not_null<HistoryItem*> item,
 		bool inRepliesContext);
@@ -372,7 +368,7 @@ public:
 
 private:
 	struct MessageDataRequest {
-		using Callbacks = std::vector<RequestMessageDataCallback>;
+		using Callbacks = std::vector<Fn<void()>>;
 
 		mtpRequestId requestId = 0;
 		Callbacks callbacks;
@@ -527,7 +523,7 @@ private:
 
 	MessageDataRequests _messageDataRequests;
 	base::flat_map<
-		ChannelData*,
+		not_null<ChannelData*>,
 		MessageDataRequests> _channelMessageDataRequests;
 	SingleQueuedInvokation _messageDataResolveDelayed;
 

@@ -37,7 +37,8 @@ class SessionNavigation;
 
 using PeerMenuCallback = Fn<QAction*(
 	const QString &text,
-	Fn<void()> handler)>;
+	Fn<void()> handler,
+	const style::icon *icon)>;
 
 void FillDialogsEntryMenu(
 	not_null<SessionController*> controller,
@@ -56,8 +57,6 @@ void MenuAddMarkAsReadChatListAction(
 	Fn<not_null<Dialogs::MainList*>()> &&list,
 	const PeerMenuCallback &addAction);
 
-void PeerMenuHidePinnedMessage(not_null<PeerData*> peer);
-void PeerMenuUnhidePinnedMessage(not_null<PeerData*> peer);
 void PeerMenuExportChat(not_null<PeerData*> peer);
 void PeerMenuDeleteContact(not_null<UserData*> user);
 void PeerMenuShareContactBox(

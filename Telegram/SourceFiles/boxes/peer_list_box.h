@@ -1020,6 +1020,8 @@ public:
 	int peerListSelectedRowsCount() override;
 	void peerListScrollToTop() override;
 
+	void setAddedTopScrollSkip(int skip);
+
 protected:
 	void prepare() override;
 	void setInnerFocus() override;
@@ -1059,5 +1061,6 @@ private:
 	std::unique_ptr<PeerListController> _controller;
 	Fn<void(PeerListBox*)> _init;
 	bool _scrollBottomFixed = false;
+	int _addedTopScrollSkip = 0;
 
 };

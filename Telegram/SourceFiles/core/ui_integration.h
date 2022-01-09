@@ -71,6 +71,7 @@ public:
 	QString phraseFormattingUnderline() override;
 	QString phraseFormattingStrikeOut() override;
 	QString phraseFormattingMonospace() override;
+	QString phraseFormattingSpoiler() override;
 
 };
 

@@ -93,9 +93,6 @@
     <file alias="settings/devices/device_web_firefox.lottie">../../icons/settings/devices/device_web_firefox.lottie</file>
     <file alias="settings/devices/device_web_safari.lottie">../../icons/settings/devices/device_web_safari.lottie</file>
   </qresource>
-  <qresource prefix="/qt-project.org">
-    <file>../qmime/freedesktop.org.xml</file>
-  </qresource>
   <qresource prefix="/misc">
     <file alias="default_shortcuts-custom.json">../../default_shortcuts-custom.json</file>
     <file alias="default_kotato-settings-custom.json">../../default_kotato-settings-custom.json</file>

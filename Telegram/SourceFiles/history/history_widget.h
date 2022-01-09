@@ -165,8 +165,6 @@ public:
 	void sendFileConfirmed(const std::shared_ptr<FileLoadResult> &file,
 		const std::optional<FullMsgId> &oldId = std::nullopt);
 
-	static bool hasHiddenPinnedMessage(not_null<PeerData*> peer);
-	static bool switchPinnedHidden(not_null<PeerData*> peer, bool hidden);
 	void updateControlsVisibility();
 	void updateControlsGeometry();
 
@@ -375,7 +373,7 @@ private:
 	void refreshTopBarActiveChat();
 
 	void requestMessageData(MsgId msgId);
-	void messageDataReceived(ChannelData *channel, MsgId msgId);
+	void messageDataReceived(not_null<PeerData*> peer, MsgId msgId);
 
 	void addRecentBot(not_null<UserData*> bot);
 
@@ -677,7 +675,6 @@ private:
 
 	PeerData *_peer = nullptr;
 
-	ChannelId _channel = NoChannel;
 	bool _canSendMessages = false;
 	MsgId _showAtMsgId = ShowAtUnreadMsgId;
 

@@ -75,11 +75,6 @@ void UnpinMessageBox::unpinMessage() {
 void UnpinMessageBox::hideMessage() {
 	if (_requestId) return;
 
-	auto hidden = HistoryWidget::switchPinnedHidden(_peer, true);
-	if (hidden) {
-		_peer->session().changes().historyUpdated(
-			_peer->owner().history(_peer),
-			Data::HistoryUpdate::Flag::PinnedMessages);
-	}
+	_peer->owner().history(_peer)->switchPinnedHidden(true);
 	Ui::hideLayer();
 }

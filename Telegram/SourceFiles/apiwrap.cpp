@@ -511,14 +511,14 @@ void ApiWrap::sendMessageFail(
 }
 
 void ApiWrap::requestMessageData(
-		ChannelData *channel,
+		PeerData *peer,
 		MsgId msgId,
-		RequestMessageDataCallback callback) {
-	auto &requests = channel
-		? _channelMessageDataRequests[channel][msgId]
+		Fn<void()> done) {
+	auto &requests = (peer && peer->isChannel())
+		? _channelMessageDataRequests[peer->asChannel()][msgId]
 		: _messageDataRequests[msgId];
-	if (callback) {
-		requests.callbacks.push_back(callback);
+	if (done) {
+		requests.callbacks.push_back(std::move(done));
 	}
 	if (!requests.requestId) {
 		_messageDataResolveDelayed.call();
@@ -540,19 +540,19 @@ QVector<MTPInputMessage> ApiWrap::collectMessageIds(
 
 auto ApiWrap::messageDataRequests(ChannelData *channel, bool onlyExisting)
 -> MessageDataRequests* {
-	if (channel) {
-		auto i = _channelMessageDataRequests.find(channel);
-		if (i == end(_channelMessageDataRequests)) {
-			if (onlyExisting) {
-				return nullptr;
-			}
-			i = _channelMessageDataRequests.emplace(
-				channel,
-				MessageDataRequests()).first;
-		}
-		return &i->second;
+	if (!channel) {
+		return &_messageDataRequests;
 	}
-	return &_messageDataRequests;
+	const auto i = _channelMessageDataRequests.find(channel);
+	if (i != end(_channelMessageDataRequests)) {
+		return &i->second;
+	} else if (onlyExisting) {
+		return nullptr;
+	}
+	return &_channelMessageDataRequests.emplace(
+		channel,
+		MessageDataRequests()
+	).first->second;
 }
 
 void ApiWrap::resolveMessageDatas() {
@@ -615,20 +615,31 @@ void ApiWrap::finalizeMessageDataRequest(
 		ChannelData *channel,
 		mtpRequestId requestId) {
 	auto requests = messageDataRequests(channel, true);
-	if (requests) {
-		for (auto i = requests->begin(); i != requests->cend();) {
-			if (i->second.requestId == requestId) {
-				for (const auto &callback : i->second.callbacks) {
-					callback(channel, i->first);
-				}
-				i = requests->erase(i);
+	if (!requests) {
+		return;
+	}
+	auto callbacks = std::vector<Fn<void()>>();
+	for (auto i = requests->begin(); i != requests->cend();) {
+		if (i->second.requestId == requestId) {
+			auto &list = i->second.callbacks;
+			if (callbacks.empty()) {
+				callbacks = std::move(list);
 			} else {
-				++i;
+				callbacks.insert(
+					end(callbacks),
+					std::make_move_iterator(begin(list)),
+					std::make_move_iterator(end(list)));
 			}
+			i = requests->erase(i);
+		} else {
+			++i;
 		}
-		if (channel && requests->empty()) {
-			_channelMessageDataRequests.remove(channel);
-		}
+	}
+	if (channel && requests->empty()) {
+		_channelMessageDataRequests.remove(channel);
+	}
+	for (const auto &callback : callbacks) {
+		callback();
 	}
 }
 
@@ -647,7 +658,7 @@ QString ApiWrap::exportDirectMessageLink(
 		if (inRepliesContext) {
 			if (const auto rootId = item->replyToTop()) {
 				const auto root = item->history()->owner().message(
-					peerToChannel(channel->id),
+					channel->id,
 					rootId);
 				const auto sender = root
 					? root->discussionPostOriginalSender()
@@ -1389,9 +1400,8 @@ void ApiWrap::deleteAllFromParticipant(
 	const auto ids = history
 		? history->collectMessagesFromParticipantToDelete(from)
 		: std::vector<MsgId>();
-	const auto channelId = peerToChannel(channel->id);
 	for (const auto &msgId : ids) {
-		if (const auto item = _session->data().message(channelId, msgId)) {
+		if (const auto item = _session->data().message(channel->id, msgId)) {
 			item->destroy();
 		}
 	}
@@ -2226,11 +2236,7 @@ void ApiWrap::resolveWebPages() {
 		if (i.key()->pendingTill <= t) {
 			const auto item = _session->data().findWebPageItem(i.key());
 			if (item) {
-				if (item->channelId() == NoChannel) {
-					ids.push_back(MTP_inputMessageID(MTP_int(item->id)));
-					i.value() = -1;
-				} else {
-					auto channel = item->history()->peer->asChannel();
+				if (const auto channel = item->history()->peer->asChannel()) {
 					auto channelMap = idsByChannel.find(channel);
 					if (channelMap == idsByChannel.cend()) {
 						channelMap = idsByChannel.emplace(
@@ -2245,6 +2251,9 @@ void ApiWrap::resolveWebPages() {
 							MTP_inputMessageID(MTP_int(item->id)));
 					}
 					i.value() = -channelMap->second.first - 2;
+				} else {
+					ids.push_back(MTP_inputMessageID(MTP_int(item->id)));
+					i.value() = -1;
 				}
 			}
 		} else {
@@ -2928,14 +2937,13 @@ void ApiWrap::preloadEnoughUnreadMentions(not_null<History*> history) {
 void ApiWrap::checkForUnreadMentions(
 		const base::flat_set<MsgId> &possiblyReadMentions,
 		ChannelData *channel) {
-	for (auto msgId : possiblyReadMentions) {
-		requestMessageData(channel, msgId, [=](
-				ChannelData *channel,
-				MsgId msgId) {
-			if (const auto item = _session->data().message(channel, msgId)) {
-				if (item->mentionsMe()) {
-					item->markMediaRead();
-				}
+	for (const auto &msgId : possiblyReadMentions) {
+		requestMessageData(channel, msgId, [=] {
+			const auto item = channel
+				? _session->data().message(channel->id, msgId)
+				: _session->data().nonChannelMessage(msgId);
+			if (item && item->mentionsMe()) {
+				item->markMediaRead();
 			}
 		});
 	}
@@ -3214,7 +3222,7 @@ void ApiWrap::forwardMessages(
 		const auto randomId = base::RandomValue<uint64>();
 		if (genClientSideMessage) {
 			const auto newId = FullMsgId(
-				peerToChannel(peer->id),
+				peer->id,
 				_session->data().nextLocalMessageId());
 			const auto self = _session->user();
 			const auto messageFromId = sendAs
@@ -3443,7 +3451,7 @@ void ApiWrap::forwardMessagesUnquoted(
 					: MTPDinputSingleMedia::Flag(0);
 
 			const auto newId = FullMsgId(
-				peerToChannel(peer->id),
+				peer->id,
 				_session->data().nextLocalMessageId());
 			auto randomId = randomIds.takeFirst();
 
@@ -3773,7 +3781,7 @@ void ApiWrap::sendSharedContact(
 	const auto peer = history->peer;
 
 	const auto newId = FullMsgId(
-		history->channelId(),
+		peer->id,
 		_session->data().nextLocalMessageId());
 	const auto anonymousPost = peer->amAnonymous();
 
@@ -4007,7 +4015,7 @@ void ApiWrap::sendMessage(
 
 	while (TextUtilities::CutPart(sending, left, MaxMessageSize)) {
 		auto newId = FullMsgId(
-			peerToChannel(peer->id),
+			peer->id,
 			_session->data().nextLocalMessageId());
 		auto randomId = base::RandomValue<uint64>();
 
@@ -4170,7 +4178,7 @@ void ApiWrap::sendInlineResult(
 	const auto history = action.history;
 	const auto peer = history->peer;
 	const auto newId = FullMsgId(
-		peerToChannel(peer->id),
+		peer->id,
 		_session->data().nextLocalMessageId());
 	const auto randomId = base::RandomValue<uint64>();
 
@@ -4186,12 +4194,8 @@ void ApiWrap::sendInlineResult(
 	if (silentPost) {
 		sendFlags |= MTPmessages_SendInlineBotResult::Flag::f_silent;
 	}
-	if (bot) {
-		if (action.options.hideVia) {
-			sendFlags |= MTPmessages_SendInlineBotResult::Flag::f_hide_via;
-		} else {
-			flags |= MessageFlag::HasViaBot;
-		}
+	if (bot && action.options.hideVia) {
+		sendFlags |= MTPmessages_SendInlineBotResult::Flag::f_hide_via;
 	}
 	if (action.options.scheduled) {
 		flags |= MessageFlag::IsOrWasScheduled;

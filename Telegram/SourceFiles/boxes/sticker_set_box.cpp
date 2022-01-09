@@ -46,6 +46,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_info.h"
+#include "styles/style_menu_icons.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QClipboard>
@@ -312,12 +313,15 @@ void StickerSetBox::updateButtons() {
 				const auto menu =
 					std::make_shared<base::unique_qptr<Ui::PopupMenu>>();
 				top->setClickedCallback([=] {
-					*menu = base::make_unique_q<Ui::PopupMenu>(top);
+					*menu = base::make_unique_q<Ui::PopupMenu>(
+						top,
+						st::popupMenuWithIcons);
 					(*menu)->addAction(
 						(isMasks
 							? tr::lng_stickers_share_masks
 							: tr::lng_stickers_share_pack)(tr::now),
-						share);
+						share,
+						&st::menuIconShare);
 					(*menu)->popup(QCursor::pos());
 					return true;
 				});
@@ -345,12 +349,15 @@ void StickerSetBox::updateButtons() {
 				const auto menu =
 					std::make_shared<base::unique_qptr<Ui::PopupMenu>>();
 				top->setClickedCallback([=] {
-					*menu = base::make_unique_q<Ui::PopupMenu>(top);
+					*menu = base::make_unique_q<Ui::PopupMenu>(
+						top,
+						st::popupMenuWithIcons);
 					(*menu)->addAction(
 						isMasks
 							? tr::lng_masks_archive_pack(tr::now)
 							: tr::lng_stickers_archive_pack(tr::now),
-						archive);
+						archive,
+						&st::menuIconArchive);
 					(*menu)->popup(QCursor::pos());
 					return true;
 				});
@@ -369,7 +376,9 @@ bool StickerSetBox::showMenu(not_null<Ui::IconButton*> button) {
 		return true;
 	}
 
-	_menu = base::make_unique_q<Ui::DropdownMenu>(window());
+	_menu = base::make_unique_q<Ui::DropdownMenu>(
+		window(),
+		st::dropdownMenuWithIcons);
 	const auto weak = _menu.get();
 	_menu->setHiddenCallback([=] {
 		weak->deleteLater();
@@ -389,10 +398,16 @@ bool StickerSetBox::showMenu(not_null<Ui::IconButton*> button) {
 	});
 	button->installEventFilter(_menu);
 
-	_menu->addAction(ktr("ktg_stickers_copy_title"), [=] { copyTitle(); });
+	_menu->addAction(
+		ktr("ktg_stickers_copy_title"),
+		[=] { copyTitle(); },
+		&st::menuIconCopy);
 
 	if (!_inner->shortName().isEmpty()) {
-		_menu->addAction(tr::lng_stickers_share_pack(tr::now), [=] { copyStickersLink(); });
+		_menu->addAction(
+			tr::lng_stickers_share_pack(tr::now),
+			[=] { copyStickersLink(); },
+			&st::menuIconShare);
 	}
 
 	if (!_inner->notInstalled()) {
@@ -400,7 +415,10 @@ bool StickerSetBox::showMenu(not_null<Ui::IconButton*> button) {
 			_inner->archiveStickers();
 			closeBox();
 		};
-		_menu->addAction(tr::lng_stickers_archive_pack(tr::now), archive);
+		_menu->addAction(
+			tr::lng_stickers_archive_pack(tr::now),
+			archive,
+			&st::menuIconArchive);
 	}
 
 	const auto parentTopLeft = window()->mapToGlobal(QPoint());
@@ -722,7 +740,9 @@ void StickerSetBox::Inner::contextMenuEvent(QContextMenuEvent *e) {
 		return;
 	}
 	_previewTimer.cancel();
-	_menu = base::make_unique_q<Ui::PopupMenu>(this);
+	_menu = base::make_unique_q<Ui::PopupMenu>(
+		this,
+		st::popupMenuWithIcons);
 
 	const auto document = _pack[index];
 	const auto sendSelected = [=](Api::SendOptions options) {
@@ -739,11 +759,15 @@ void StickerSetBox::Inner::contextMenuEvent(QContextMenuEvent *e) {
 			document,
 			Data::FileOriginStickerSet(Data::Stickers::FavedSetId, 0));
 	};
+	const auto isFaved = document->owner().stickers().isFaved(document);
 	_menu->addAction(
-		(document->owner().stickers().isFaved(document)
+		(isFaved
 			? tr::lng_faved_stickers_remove
 			: tr::lng_faved_stickers_add)(tr::now),
-		toggleFavedSticker);
+		toggleFavedSticker,
+		(isFaved
+			? &st::menuIconUnfave
+			: &st::menuIconFave));
 
 	_menu->popup(QCursor::pos());
 }

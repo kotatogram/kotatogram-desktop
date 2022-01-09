@@ -119,7 +119,7 @@ MTPMessage PrepareLogMessage(const MTPMessage &message, TimeId newDate) {
 			MTPint(), // edit_date
 			MTP_string(),
 			MTP_long(0), // grouped_id
-			//MTPMessageReactions(),
+			MTPMessageReactions(),
 			MTPVector<MTPRestrictionReason>(),
 			MTPint()); // ttl_period
 	});
@@ -344,7 +344,7 @@ QString GenerateInviteLinkText(const MTPExportedChatInvite &data) {
 
 QString GenerateInviteLinkLink(const MTPExportedChatInvite &data) {
 	const auto text = GenerateInviteLinkText(data);
-	return text.endsWith("...")
+	return text.endsWith(Ui::kQEllipsis)
 		? text
 		: textcmdLink(InternalInviteLinkUrl(data), text);
 }
@@ -353,7 +353,7 @@ TextWithEntities GenerateInviteLinkChangeText(
 		const MTPExportedChatInvite &newLink,
 		const MTPExportedChatInvite &prevLink) {
 	auto link = TextWithEntities{ GenerateInviteLinkText(newLink) };
-	if (!link.text.endsWith("...")) {
+	if (!link.text.endsWith(Ui::kQEllipsis)) {
 		link.entities.push_back({
 			EntityType::CustomUrl,
 			0,
@@ -675,6 +675,7 @@ void GenerateItems(
 		MTPDchannelAdminLogEventActionParticipantJoinByRequest;
 	using LogNoForwards = MTPDchannelAdminLogEventActionToggleNoForwards;
 	using LogActionSendMessage = MTPDchannelAdminLogEventActionSendMessage;
+	using LogEventActionChangeAvailableReactions = MTPDchannelAdminLogEventActionChangeAvailableReactions;
 
 	const auto session = &history->session();
 	const auto id = event.vid().v;
@@ -1227,7 +1228,7 @@ void GenerateItems(
 			ClickHandlerPtr additional = nullptr) {
 		auto message = HistoryService::PreparedText{ text };
 		message.links.push_back(fromLink);
-		if (!ExtractInviteLink(data).endsWith("...")) {
+		if (!ExtractInviteLink(data).endsWith(Ui::kQEllipsis)) {
 			message.links.push_back(std::make_shared<UrlClickHandler>(
 				InternalInviteLinkUrl(data)));
 		}
@@ -1356,7 +1357,7 @@ void GenerateItems(
 			? tr::lng_admin_log_participant_approved_by_link
 			: tr::lng_admin_log_participant_approved_by_link_channel);
 		const auto linkText = GenerateInviteLinkLink(data.vinvite());
-		const auto adminIndex = linkText.endsWith("...") ? 2 : 3;
+		const auto adminIndex = linkText.endsWith(Ui::kQEllipsis) ? 2 : 3;
 		addInviteLinkServiceMessage(
 			text(
 				tr::now,
@@ -1393,6 +1394,17 @@ void GenerateItems(
 				MessageFlag::AdminLogEntry,
 				detachExistingItem),
 			ExtractSentDate(data.vmessage()));
+	};
+
+	const auto createChangeAvailableReactions = [&](const LogEventActionChangeAvailableReactions &data) {
+		auto list = QStringList();
+		for (const auto &emoji : data.vnew_value().v) {
+			list.append(qs(emoji));
+		}
+		const auto text = list.isEmpty()
+			? tr::lng_admin_log_reactions_disabled(tr::now, lt_from, fromLinkText)
+			: tr::lng_admin_log_reactions_updated(tr::now, lt_from, fromLinkText, lt_emoji, list.join(", "));
+		addSimpleServiceMessage(text);
 	};
 
 	action.match([&](const LogTitle &data) {
@@ -1465,6 +1477,8 @@ void GenerateItems(
 		createToggleNoForwards(data);
 	}, [&](const LogActionSendMessage &data) {
 		createSendMessage(data);
+	}, [&](const LogEventActionChangeAvailableReactions &data) {
+		createChangeAvailableReactions(data);
 	});
 }
 

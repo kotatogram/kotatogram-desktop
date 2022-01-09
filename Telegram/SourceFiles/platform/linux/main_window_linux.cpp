@@ -71,6 +71,7 @@ constexpr auto kTelegramPanelTrayIconName = "telegram-panel"_cs;
 constexpr auto kTelegramMutePanelTrayIconName = "telegram-mute-panel"_cs;
 constexpr auto kTelegramAttentionPanelTrayIconName = "telegram-attention-panel"_cs;
 
+#ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 constexpr auto kPropertiesInterface = "org.freedesktop.DBus.Properties"_cs;
 constexpr auto kTrayIconFilename = "ktgdesktop-trayicon-XXXXXX.png"_cs;
 
@@ -83,6 +84,7 @@ constexpr auto kAppMenuObjectPath = "/com/canonical/AppMenu/Registrar"_cs;
 constexpr auto kAppMenuInterface = kAppMenuService;
 
 constexpr auto kMainMenuObjectPath = "/MenuBar"_cs;
+#endif // !DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 
 bool TrayIconMuted = true;
 int32 TrayIconCount = 0;
@@ -99,7 +101,7 @@ void XCBSkipTaskbar(QWindow *window, bool skip) {
 		return;
 	}
 
-	const auto root = base::Platform::XCB::GetRootWindowFromQt();
+	const auto root = base::Platform::XCB::GetRootWindow(connection);
 	if (!root.has_value()) {
 		return;
 	}

@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 
 #include "kotato/kotato_lang.h"
+#include "api/api_chat_invite.h"
 #include "history/view/history_view_service_message.h"
 #include "history/view/history_view_message.h"
 #include "history/history_item_components.h"
@@ -16,6 +17,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/media/history_view_media_grouped.h"
 #include "history/view/media/history_view_sticker.h"
 #include "history/view/media/history_view_large_emoji.h"
+#include "history/view/history_view_react_button.h"
+#include "history/view/history_view_cursor_state.h"
 #include "history/history.h"
 #include "base/unixtime.h"
 #include "core/application.h"
@@ -32,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_groups.h"
 #include "data/data_media_types.h"
+#include "data/data_sponsored_messages.h"
 #include "lang/lang_keys.h"
 #include "app.h"
 #include "styles/style_chat.h"
@@ -42,7 +46,7 @@ namespace {
 // A new message from the same sender is attached to previous within 15 minutes.
 constexpr int kAttachMessageToPreviousSecondsDelta = 900;
 
-bool IsAttachedToPreviousInSavedMessages(
+[[nodiscard]] bool IsAttachedToPreviousInSavedMessages(
 		not_null<HistoryItem*> previous,
 		HistoryMessageForwarded *prevForwarded,
 		not_null<HistoryItem*> item,
@@ -60,6 +64,22 @@ bool IsAttachedToPreviousInSavedMessages(
 	Assert(previousInfo != nullptr);
 	Assert(itemInfo != nullptr);
 	return (*previousInfo == *itemInfo);
+}
+
+[[nodiscard]] Window::SessionController *ContextOrSessionWindow(
+		const ClickHandlerContext &context,
+		not_null<Main::Session*> session) {
+	if (const auto controller = context.sessionWindow.get()) {
+		return controller;
+	}
+	const auto &windows = session->windows();
+	if (windows.empty()) {
+		session->domain().activate(&session->account());
+		if (windows.empty()) {
+			return nullptr;
+		}
+	}
+	return windows.front();
 }
 
 } // namespace
@@ -180,9 +200,11 @@ auto SimpleElementDelegate::elementPathShiftGradient()
 void SimpleElementDelegate::elementReplyTo(const FullMsgId &to) {
 }
 
-
 void SimpleElementDelegate::elementStartInteraction(
 	not_null<const Element*> view) {
+}
+
+void SimpleElementDelegate::elementShowSpoilerAnimation() {
 }
 
 TextSelection UnshiftItemSelection(
@@ -232,8 +254,8 @@ QString DateTooltipText(not_null<Element*> view) {
 				+ "\n\n" + dateText;
 		}
 	}
-	if (const auto msgsigned = view->data()->Get<HistoryMessageSigned>()) {
-		if (msgsigned->isElided && !msgsigned->isAnonymousRank) {
+	if (view->isSignedAuthorElided()) {
+		if (const auto msgsigned = view->data()->Get<HistoryMessageSigned>()) {
 			dateText += '\n'
 				+ tr::lng_signed_author(tr::now, lt_user, msgsigned->author);
 		}
@@ -474,6 +496,14 @@ int Element::plainMaxWidth() const {
 	return 0;
 }
 
+int Element::bottomInfoFirstLineWidth() const {
+	return 0;
+}
+
+bool Element::bottomInfoIsWide() const {
+	return false;
+}
+
 bool Element::isHiddenByGroup() const {
 	return _flags & Flag::HiddenByGroup;
 }
@@ -537,6 +567,13 @@ void Element::nextInBlocksRemoved() {
 	setAttachToNext(false);
 }
 
+bool Element::markSponsoredViewed(int shownFromTop) const {
+	const auto sponsoredTextTop = height()
+		- st::msgPadding.bottom()
+		- st::historyViewButtonHeight;
+	return shownFromTop >= sponsoredTextTop;
+}
+
 void Element::refreshDataId() {
 	if (const auto media = this->media()) {
 		media->refreshParentId(data());
@@ -586,28 +623,34 @@ ClickHandlerPtr Element::fromLink() const {
 		return _fromLink;
 	}
 	const auto item = data();
-	if (const auto from = item->displayFrom()) {
+	if (item->isSponsored()) {
+		const auto session = &item->history()->session();
 		_fromLink = std::make_shared<LambdaClickHandler>([=](
 				ClickContext context) {
 			if (context.button != Qt::LeftButton) {
 				return;
 			}
 			const auto my = context.other.value<ClickHandlerContext>();
-			const auto window = [&]() -> Window::SessionController* {
-				if (const auto controller = my.sessionWindow.get()) {
-					return controller;
+			if (const auto window = ContextOrSessionWindow(my, session)) {
+				auto &sponsored = session->data().sponsoredMessages();
+				const auto details = sponsored.lookupDetails(my.itemId);
+				if (const auto &hash = details.hash) {
+					Api::CheckChatInvite(window, *hash);
+				} else if (const auto peer = details.peer) {
+					window->showPeerInfo(peer);
 				}
-				const auto session = &from->session();
-				const auto &windows = session->windows();
-				if (windows.empty()) {
-					session->domain().activate(&session->account());
-					if (windows.empty()) {
-						return nullptr;
-					}
-				}
-				return windows.front();
-			}();
-			if (window) {
+			}
+		});
+		return _fromLink;
+	} else if (const auto from = item->displayFrom()) {
+		_fromLink = std::make_shared<LambdaClickHandler>([=](
+				ClickContext context) {
+			if (context.button != Qt::LeftButton) {
+				return;
+			}
+			const auto my = context.other.value<ClickHandlerContext>();
+			const auto session = &from->session();
+			if (const auto window = ContextOrSessionWindow(my, session)) {
 				window->showPeerInfo(from);
 			}
 		});
@@ -849,6 +892,13 @@ void Element::checkHeavyPart() {
 	}
 }
 
+bool Element::isSignedAuthorElided() const {
+	return false;
+}
+
+void Element::itemDataChanged() {
+}
+
 void Element::unloadHeavyPart() {
 	history()->owner().unregisterHeavyViewPart(this);
 	if (_media) {
@@ -953,18 +1003,24 @@ void Element::drawInfo(
 	InfoDisplayType type) const {
 }
 
-bool Element::pointInTime(
+TextState Element::bottomInfoTextState(
 		int right,
 		int bottom,
 		QPoint point,
 		InfoDisplayType type) const {
-	return false;
+	return TextState();
 }
 
 TextSelection Element::adjustSelection(
 		TextSelection selection,
 		TextSelectType type) const {
 	return selection;
+}
+
+Reactions::ButtonParameters Element::reactionButtonParameters(
+		QPoint position,
+		const TextState &reactionState) const {
+	return {};
 }
 
 void Element::clickHandlerActiveChanged(
