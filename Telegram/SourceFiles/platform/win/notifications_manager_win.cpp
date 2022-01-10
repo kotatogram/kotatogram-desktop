@@ -56,6 +56,7 @@ namespace {
 [[nodiscard]] std::wstring NotificationTemplate(
 		QString id,
 		Window::Notifications::Manager::DisplayOptions options) {
+	const auto crop = (cUserpicCornersType() == 3) ? L"circle" : L"none";
 	const auto wid = id.replace('&', "&amp;").toStdWString();
 	const auto fastReply = LR"(
 		<input id="fastReply" type="text" placeHolderContent=""/>
@@ -78,7 +79,7 @@ namespace {
 <toast launch="action=open&amp;)" + wid + LR"(">
 	<visual>
 		<binding template="ToastGeneric">
-			<image placement="appLogoOverride" hint-crop="circle" src=""/>
+			<image placement="appLogoOverride" hint-crop=")" + crop + LR"( src=""/>
 			<text hint-maxLines="1"></text>
 			<text></text>
 			<text></text>
