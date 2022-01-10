@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/mac/main_window_mac.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "data/data_session.h"
 #include "styles/style_window.h"
 #include "mainwindow.h"
@@ -411,7 +412,7 @@ QIcon MainWindow::generateIconForTray(int counter, bool muted) const {
 	imgsel.detach();
 	const auto size = 22 * cIntRetinaFactor();
 	const auto &bg = (muted ? st::trayCounterBgMute : st::trayCounterBg);
-	if (!cDisableTrayCounter()) {
+	if (!::Kotato::JsonSettings::GetBool("disable_tray_counter")) {
 		_placeCounter(img, size, counter, bg, (dm && muted) ? st::trayCounterFgMacInvert : st::trayCounterFg);
 		_placeCounter(imgsel, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
 	}

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_layout.h"
 
+#include "kotato/kotato_settings.h"
 #include "data/data_abstract_structure.h"
 #include "data/data_drafts.h"
 #include "data/data_session.h"
@@ -94,7 +95,7 @@ void PaintNarrowCounter(
 			? QString::number(unreadCount)
 			: QString();
 		const auto allowDigits = displayMentionBadge ? 1 : 3;
-		auto unreadRight = st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
+		auto unreadRight = st::dialogsPadding.x() + (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
 		auto unreadTop = (lines == 1
 			? st::dialogsPadding.y()
 			: st::dialogsPadding.y() + st::dialogsPhotoSize - st::dialogsUnreadHeight);
@@ -108,7 +109,7 @@ void PaintNarrowCounter(
 	}
 	if (displayMentionBadge) {
 		auto counter = qsl("@");
-		auto unreadRight = st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) - skipBeforeMention;
+		auto unreadRight = st::dialogsPadding.x() + (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) - skipBeforeMention;
 		auto unreadTop = (lines == 1
 			? st::dialogsPadding.y()
 			: st::dialogsPadding.y() + st::dialogsPhotoSize - st::dialogsUnreadHeight);
@@ -896,7 +897,8 @@ void RowPainter::paint(
 		? history->hasUnreadMentions()
 		: false;
 	const auto displayUnreadCounter = [&] {
-		if (fullWidth < st::columnMinimalWidthLeft && DialogListLines() == 1) {
+		if (fullWidth < st::columnMinimalWidthLeft
+			&& ::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
 			return false;
 		}
 
@@ -931,7 +933,7 @@ void RowPainter::paint(
 		| (peer && peer->isSelf() ? Flag::SavedMessages : Flag(0))
 		| (peer && peer->isRepliesChat() ? Flag::RepliesMessages : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
-		const auto texttop = (DialogListLines() == 1
+		const auto texttop = (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
 			? st::dialogsPadding.y()
 			: st::dialogsPadding.y()
 				+ st::msgNameFont->height
@@ -951,7 +953,8 @@ void RowPainter::paint(
 			selected,
 			unreadMuted,
 			mentionMuted);
-		if (DialogListLines() > 1 || flags & Flag::SearchResult) {
+		if (flags & Flag::SearchResult
+			|| ::Kotato::JsonSettings::GetInt("chat_list_lines") > 1) {
 			const auto &color = active
 				? st::dialogsTextFgServiceActive
 				: (selected
@@ -997,9 +1000,9 @@ void RowPainter::paint(
 			active,
 			unreadMuted,
 			mentionMuted,
-			DialogListLines());
+			::Kotato::JsonSettings::GetInt("chat_list_lines"));
 	};
-	if (DialogListLines() == 1) {
+	if (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
 		paintOneLineRow(
 			p,
 			row,
@@ -1102,7 +1105,7 @@ void RowPainter::paint(
 		| (showSavedMessages ? Flag::SavedMessages : Flag(0))
 		| (showRepliesMessages ? Flag::RepliesMessages : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
-		const auto texttop = (DialogListLines() == 1
+		const auto texttop = (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
 			? st::dialogsPadding.y()
 			: st::dialogsPadding.y()
 				+ st::msgNameFont->height
@@ -1122,7 +1125,8 @@ void RowPainter::paint(
 			unreadMuted,
 			mentionMuted);
 
-		if (DialogListLines() > 1 || flags & Flag::SearchResult) {
+		if (flags & Flag::SearchResult
+			|| ::Kotato::JsonSettings::GetInt("chat_list_lines") > 1) {
 			const auto itemRect = QRect(
 				nameleft,
 				texttop,
@@ -1149,9 +1153,9 @@ void RowPainter::paint(
 			active,
 			unreadMuted,
 			mentionMuted,
-			DialogListLines());
+			::Kotato::JsonSettings::GetInt("chat_list_lines"));
 	};
-	if (DialogListLines() == 1) {
+	if (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
 		paintOneLineRow(
 			p,
 			row,
@@ -1195,7 +1199,9 @@ QRect RowPainter::sendActionAnimationRect(
 		int fullWidth,
 		bool textUpdated) {
 	const auto nameleft = st::dialogsPadding.x()
-		+ (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize)
+		+ (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+			? st::dialogsUnreadHeight
+			: st::dialogsPhotoSize)
 		+ st::dialogsPhotoPadding;
 	const auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
 	const auto texttop = st::dialogsPadding.y()

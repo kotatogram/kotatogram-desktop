@@ -7,9 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/share_box.h"
 
-#include "dialogs/dialogs_indexed_list.h"
 #include "kotato/kotato_lang.h"
-#include "kotato/json_settings.h"
+#include "kotato/kotato_settings.h"
+#include "dialogs/dialogs_indexed_list.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
 #include "mainwidget.h"
@@ -275,7 +275,8 @@ void ShareBox::prepare() {
 	});
 	_select->setResizedCallback([=] { updateScrollSkips(); });
 	_select->setSubmittedCallback([=](Qt::KeyboardModifiers modifiers) {
-		if ((modifiers.testFlag(Qt::ControlModifier) && !cForwardChatOnClick())
+		if ((modifiers.testFlag(Qt::ControlModifier)
+			&& !::Kotato::JsonSettings::GetBool("forward_on_click"))
 			|| modifiers.testFlag(Qt::MetaModifier)) {
 			submit({});
 		} else if (modifiers.testFlag(Qt::ShiftModifier)) {
@@ -284,7 +285,8 @@ void ShareBox::prepare() {
 			}
 		} else {
 			_inner->selectActive();
-			if (!modifiers.testFlag(Qt::ControlModifier) || cForwardChatOnClick()) {
+			if (!modifiers.testFlag(Qt::ControlModifier)
+				|| ::Kotato::JsonSettings::GetBool("forward_on_click")) {
 				_inner->tryGoToChat();
 			} else {
 				_inner->selectionMade();
@@ -536,9 +538,9 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 			_menu->addAction(ktr(langKey), [this, option, settingsKey] {
 				_descriptor.draft->options = option;
 				updateAdditionalTitle();
-				if (cForwardRememberMode()) {
-					SetForwardMode(settingsKey);
-					Kotato::JsonSettings::Write();
+				if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+					::Kotato::JsonSettings::Set("forward_mode", settingsKey);
+					::Kotato::JsonSettings::Write();
 				}
 			});
 		}
@@ -556,9 +558,9 @@ bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
 				_menu->addAction(ktr(langKey), [this, option, settingsKey] {
 					_descriptor.draft->groupOptions = option;
 					updateAdditionalTitle();
-					if (cForwardRememberMode()) {
-						SetForwardGroupingMode(settingsKey);
-						Kotato::JsonSettings::Write();
+					if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+						::Kotato::JsonSettings::Set("forward_grouping_mode", settingsKey);
+						::Kotato::JsonSettings::Write();
 					}
 				});
 			}
@@ -1121,7 +1123,8 @@ void ShareBox::Inner::tryGoToChat() {
 		&& _selected.size() == 1) {
 		if (_submitRequest && _selected.front()->isSelf()) {
 			_submitRequest();
-		} else if (_goToChatRequest && cForwardChatOnClick()) {
+		} else if (_goToChatRequest
+			&& ::Kotato::JsonSettings::GetBool("forward_on_click")) {
 			_goToChatRequest();
 		}
 		_hadSelection = true;

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_web_page.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/click_handler_types.h"
 #include "core/ui_integration.h"
 #include "lang/lang_keys.h"
@@ -300,7 +301,7 @@ QSize WebPage::countOptimalSize() {
 		_durationWidth = st::msgDateFont->width(_duration);
 	}
 	maxWidth += st::msgPadding.left() + st::webPageLeft + st::msgPadding.right();
-	if (AdaptiveBubbles()) {
+	if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		accumulate_min(maxWidth, st::msgMaxWidth);
 		accumulate_max(maxWidth, _parent->plainMaxWidth());
 	}
@@ -318,7 +319,7 @@ QSize WebPage::countCurrentSize(int newWidth) {
 		return { newWidth, minHeight() };
 	}
 
-	if (AdaptiveBubbles() && !asArticle()) {
+	if (::Kotato::JsonSettings::GetBool("adaptive_bubbles") && !asArticle()) {
 		accumulate_min(newWidth, maxWidth());
 	}
 

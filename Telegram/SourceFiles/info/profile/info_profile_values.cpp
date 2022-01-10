@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_values.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/application.h"
 #include "core/click_handler_types.h"
 #include "main/main_session.h"
@@ -82,7 +83,7 @@ QString IDString(not_null<PeerData*> peer) {
 		? peerToChannel(peer->id).bare
 		: peer->id.value);
 
-	if (ShowChatId() == 2) {
+	if (::Kotato::JsonSettings::GetInt("show_chat_id") == 2) {
 		if (peer->isChannel()) {
 			resultId = QString::number(peerToChannel(peer->id).bare - kMaxChannelId).prepend("-");
 		} else if (peer->isChat()) {

@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_main.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "settings/settings_common.h"
 #include "settings/settings_codes.h"
 #include "settings/settings_chat.h"
@@ -43,6 +44,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "app.h"
 #include "styles/style_settings.h"
 #include "base/platform/base_platform_info.h"
+
+#include <QtCore/QJsonArray>
 
 namespace Settings {
 
@@ -167,7 +170,7 @@ void SetupSections(
 	addSection(
 		rktr("ktg_settings_kotato"),
 		Type::Kotato,
-		(cCustomAppIcon() == 5
+		(::Kotato::JsonSettings::GetInt("custom_app_icon") == 5
 			? &st::settingsIconKotatoOld
 			: &st::settingsIconKotato));
 
@@ -177,7 +180,11 @@ void SetupSections(
 }
 
 bool HasInterfaceScale() {
-	return !cQtScale();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	return !::Kotato::JsonSettings::GetBool("qt_scale");
+#else
+	return true;
+#endif
 }
 
 void SetupInterfaceScale(
@@ -203,9 +210,21 @@ void SetupInterfaceScale(
 		object_ptr<Ui::SettingsSlider>(container, st::settingsSlider),
 		icon ? st::settingsScalePadding : st::settingsBigScalePadding);
 
+	static const auto customScales = [&] {
+		const auto scalesJson = ::Kotato::JsonSettings::Get("scales").toJsonArray();
+		auto result = std::vector<int>();
+		result.reserve(scalesJson.size());
+		for (auto i = scalesJson.begin(); i != scalesJson.end(); ++i) {
+			if ((*i).type() != QJsonValue::Undefined) {
+				result.push_back(int((*i).toDouble()));
+			}
+		}
+		return result;
+	}();
+
 	static const auto ScaleValues = [&] {
-		auto values = HasCustomScales()
-			? cInterfaceScales()
+		auto values = (customScales.size() > 1)
+			? customScales
 			: (cIntRetinaFactor() > 1)
 			? std::vector<int>{ 100, 110, 120, 130, 140, 150 }
 			: std::vector<int>{ 100, 125, 150, 200, 250, 300 };

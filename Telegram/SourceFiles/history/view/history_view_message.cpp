@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_message.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/click_handler_types.h" // ClickHandlerContext
 #include "history/view/history_view_cursor_state.h"
 #include "history/history_item_components.h"
@@ -2693,7 +2694,7 @@ QRect Message::countGeometry() const {
 	//	contentLeft += st::msgPhotoSkip - (hmaxwidth - hwidth);
 	}
 	accumulate_min(contentWidth, maxWidth());
-	if (!AdaptiveBubbles()) {
+	if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		accumulate_min(contentWidth, _bubbleWidthLimit);
 	}
 	if (mediaWidth < contentWidth) {
@@ -2707,7 +2708,7 @@ QRect Message::countGeometry() const {
 	}
 	if (contentWidth < availableWidth
 		&& (!delegate()->elementIsChatWide()
-			|| (commentsRoot && AdaptiveBubbles()))) {
+			|| (commentsRoot && ::Kotato::JsonSettings::GetBool("adaptive_bubbles")))) {
 		if (outbg) {
 			contentLeft += availableWidth - contentWidth;
 		} else if (commentsRoot) {
@@ -2751,10 +2752,10 @@ int Message::resizeContentGetHeight(int newWidth) {
 		}
 	}
 	accumulate_min(contentWidth, maxWidth());
-	_bubbleWidthLimit = (MonospaceLargeBubbles()
+	_bubbleWidthLimit = (::Kotato::JsonSettings::GetBool("monospace_large_bubbles")
 		? std::max(st::msgMaxWidth, monospaceMaxWidth())
 		: st::msgMaxWidth);
-	if (!AdaptiveBubbles()) {
+	if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		accumulate_min(contentWidth, _bubbleWidthLimit);
 	}
 	if (mediaDisplayed) {
@@ -2789,7 +2790,7 @@ int Message::resizeContentGetHeight(int newWidth) {
 			_reactions->resizeGetHeight(textWidth);
 		}
 
-		if (!AdaptiveBubbles() && contentWidth == maxWidth()) {
+		if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles") && contentWidth == maxWidth()) {
 			if (mediaDisplayed) {
 				if (entry) {
 					newHeight += entry->resizeGetHeight(contentWidth);

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/main_window.h"
 
+#include "kotato/kotato_settings.h"
 #include "storage/localstorage.h"
 #include "platform/platform_specific.h"
 #include "ui/platform/ui_platform_window.h"
@@ -139,7 +140,7 @@ QIcon CreateOfficialIcon(Main::Session *session) {
 	const auto customIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	auto image = customIcon.isNull()
-		? Logo(cCustomAppIcon())
+		? Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))
 		: customIcon;
 
 	if (session && session->supportMode()) {
@@ -151,7 +152,7 @@ QIcon CreateOfficialIcon(Main::Session *session) {
 QIcon CreateIcon(Main::Session *session) {
 	if constexpr (Platform::IsMac()) {
 		if ((!session || !session->supportMode())
-			&& (cCustomAppIcon() == 0)
+			&& (::Kotato::JsonSettings::GetInt("custom_app_icon") == 0)
 			&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
 			return QIcon();
 		}
@@ -161,7 +162,7 @@ QIcon CreateIcon(Main::Session *session) {
 
 #if defined Q_OS_UNIX && !defined Q_OS_MAC
 	if ((session && session->supportMode())
-		|| (cCustomAppIcon() != 0)
+		|| (::Kotato::JsonSettings::GetInt("custom_app_icon") != 0)
 		|| QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
 		return result;
 	}
@@ -446,10 +447,11 @@ void MainWindow::updateWindowIcon() {
 		? &sessionController()->session()
 		: nullptr;
 	const auto supportIcon = session && session->supportMode();
-	if (supportIcon != _usingSupportIcon || _icon.isNull() || _customIconId != cCustomAppIcon()) {
+	const auto customAppIcon = ::Kotato::JsonSettings::GetInt("custom_app_icon");
+	if (supportIcon != _usingSupportIcon || _icon.isNull() || _customIconId != customAppIcon) {
 		_icon = CreateIcon(session);
 		_usingSupportIcon = supportIcon;
-		_customIconId = cCustomAppIcon();
+		_customIconId = customAppIcon;
 	}
 	setWindowIcon(_icon);
 }

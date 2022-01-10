@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_folders.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "boxes/filters/edit_filter_box.h"
 #include "data/data_session.h"
 #include "data/data_folder.h"
@@ -27,7 +28,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/painter.h"
 #include "ui/filter_icons.h"
-#include "kotato/json_settings.h"
 #include "settings/settings_common.h"
 #include "lang/lang_keys.h"
 #include "apiwrap.h"
@@ -609,10 +609,9 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 		auto addRequests = Requests(), removeRequests = Requests();
 		auto &realFilters = session->data().chatsFilters();
 		const auto &list = realFilters.list();
-		auto &localFolders = cRefLocalFolders();
 		auto order = std::vector<FilterId>();
 		order.reserve(rows->size());
-		auto localFoldersAdded = false;
+		auto localFoldersChanged = false;
 		for (const auto &row : *rows) {
 			const auto id = row.filter.id();
 			const auto removed = row.removed;
@@ -624,35 +623,14 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 				continue;
 			}
 			if (row.filter.isLocal()) {
-				const auto j = ranges::find_if(localFolders, [id, account](LocalFolder localFolder) {
-					return (id == localFolder.id
-						&& account->isCurrent(localFolder.ownerId, localFolder.isTest));
-				});
-
-				if (j == end(localFolders)) {
-					if (removed) {
-						continue;
-					} else {
-						localFolders.push_back(row.filter.toLocal(kFiltersLimit));
-						realFilters.set(row.filter);
-						order.push_back(id);
-						needSave = true;
-						localFoldersAdded = true;
-					}
+				if (removed) {
+					realFilters.remove(id);
 				} else {
-					if (removed) {
-						localFolders.erase(j);
-						realFilters.remove(id);
-						needSave = true;
-					} else {
-						const auto cloudOrder = (*j).cloudOrder;
-						*j = row.filter.toLocal(cloudOrder);
-						realFilters.set(row.filter);
-						order.push_back(id);
-						needSave = true;
-						localFoldersAdded = true;
-					}
+					realFilters.set(row.filter);
+					order.push_back(id);
 				}
+				localFoldersChanged = true;
+				needSave = true;
 			} else {
 				const auto newId = ids.take(row.button).value_or(id);
 				const auto tl = removed
@@ -685,12 +663,15 @@ void FilterRowButton::paintEvent(QPaintEvent *e) {
 				std::move(request)
 			).afterRequest(previousId).send();
 		}
-		if (!order.empty() && (!addRequests.empty() || localFoldersAdded)) {
+		if (!order.empty() && (!addRequests.empty() || localFoldersChanged)) {
 			realFilters.saveOrder(order, previousId);
 		}
 		if (currentDefaultRemoved) {
 			account->setDefaultFilterId(0);
 			controller->setActiveChatsFilter(0);
+		}
+		if (localFoldersChanged) {
+			realFilters.saveLocal();
 		}
 		if (currentDefaultId != account->defaultFilterId()) {
 			needSave = true;

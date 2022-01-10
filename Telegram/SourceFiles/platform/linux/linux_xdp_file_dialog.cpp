@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/linux_xdp_file_dialog.h"
 
+#include "kotato/kotato_settings.h"
 #include "platform/platform_file_utilities.h"
 #include "base/platform/base_platform_info.h"
 #include "base/platform/linux/base_linux_glibmm_helper.h"
@@ -684,7 +685,8 @@ std::optional<bool> Get(
 		const QString &filter,
 		Type type,
 		QString startFile) {
-	if (FileDialogType() > ImplementationType::XDP
+	const auto fileDialogType = ImplementationType(::Kotato::JsonSettings::GetInt("file_dialog_type"));
+	if (fileDialogType > ImplementationType::XDP
 		|| !FileChooserPortalVersion.has_value()
 		|| (type == Type::ReadFolder && *FileChooserPortalVersion < 3)) {
 		return std::nullopt;

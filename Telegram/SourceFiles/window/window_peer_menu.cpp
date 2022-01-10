@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_peer_menu.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
 #include "api/api_chat_participants.h"
 #include "lang/lang_keys.h"
@@ -825,7 +826,7 @@ void Filler::fillArchiveActions() {
 		return;
 	}
 	const auto controller = _controller;
-	if (DialogListLines() != 1) {
+	if (::Kotato::JsonSettings::GetInt("chat_list_lines") != 1) {
 		const auto hidden = controller->session().settings().archiveCollapsed();
 		const auto text = hidden
 			? tr::lng_context_archive_expand(tr::now)
@@ -1303,7 +1304,8 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 				checkAndClose();
 			});
 		}
-		if (data->submitCallback && !cForwardRetainSelection()) {
+		if (data->submitCallback
+			&& !::Kotato::JsonSettings::GetBool("forward_retain_selection")) {
 			data->submitCallback();
 		}
 	};
@@ -1314,7 +1316,8 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		? Fn<void()>(std::move(copyCallback))
 		: Fn<void()>();
 	auto goToChatCallback = [navigation, data](PeerData *peer, Data::ForwardDraft &&newDraft) {
-		if (data->submitCallback && !cForwardRetainSelection()) {
+		if (data->submitCallback
+			&& !::Kotato::JsonSettings::GetBool("forward_retain_selection")) {
 			data->submitCallback();
 		}
 		data->draft.options = newDraft.options;
@@ -1345,7 +1348,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		MessageIdsList &&items,
 		FnMut<void()> &&successCallback) {
 	const auto options = [] {
-		switch (ForwardMode()) {
+		switch (::Kotato::JsonSettings::GetInt("forward_mode")) {
 			case 1: return Data::ForwardOptions::NoSenderNames;
 			case 2: return Data::ForwardOptions::NoNamesAndCaptions;
 			default: return Data::ForwardOptions::PreserveInfo;
@@ -1353,7 +1356,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	}();
 
 	const auto groupOptions = [] {
-		switch (ForwardGroupingMode()) {
+		switch (::Kotato::JsonSettings::GetInt("forward_grouping_mode")) {
 			case 1: return Data::GroupingOptions::RegroupAll;
 			case 2: return Data::GroupingOptions::Separate;
 			default: return Data::GroupingOptions::GroupAsIs;

@@ -7,6 +7,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #include "kotato/boxes/kotato_radio_box.h"
 
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/padding_wrap.h"
@@ -16,7 +17,6 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
-#include "kotato/json_settings.h"
 #include "app.h"
 
 namespace Kotato {

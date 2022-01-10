@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/filters/edit_filter_box.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "boxes/filters/edit_filter_chats_list.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "ui/layers/generic_box.h"
@@ -27,7 +28,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "core/application.h"
 #include "core/core_settings.h"
-#include "kotato/json_settings.h"
 #include "settings/settings_common.h"
 #include "base/event_filter.h"
 #include "lang/lang_keys.h"
@@ -825,7 +825,7 @@ void EditExistingFilter(
 
 		if (result.isLocal()) {
 			filters->set(result);
-			filters->saveLocal(id);
+			filters->saveLocal();
 			needSave = true;
 		} else {
 			const auto tl = result.tl();

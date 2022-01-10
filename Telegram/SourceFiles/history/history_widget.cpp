@@ -7,8 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
-#include "kotato/json_settings.h"
 #include "api/api_editing.h"
 #include "api/api_bot.h"
 #include "api/api_chat_participants.h"
@@ -609,28 +609,32 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
-	BigEmojiOutlineChanges(
+	::Kotato::JsonSettings::Events(
+		"big_emoji_outline"
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {
 			updateHistoryGeometry();
 		});
 	}, lifetime());
 
-	StickerHeightChanges(
+	::Kotato::JsonSettings::Events(
+		"sticker_height"
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {
 			updateHistoryGeometry();
 		});
 	}, lifetime());
 
-	StickerScaleBothChanges(
+	::Kotato::JsonSettings::Events(
+		"sticker_scale_both"
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {
 			updateHistoryGeometry();
 		});
 	}, lifetime());
 
-	AdaptiveBubblesChanges(
+	::Kotato::JsonSettings::Events(
+		"adaptive_bubbles"
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {
 			if (_history) {
@@ -644,7 +648,8 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
-	MonospaceLargeBubblesChanges(
+	::Kotato::JsonSettings::Events(
+		"monospace_large_bubbles"
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {
 			if (_history) {
@@ -658,7 +663,8 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
-	HoverEmojiPanelChanges(
+	::Kotato::JsonSettings::Events(
+		"hover_emoji_panel"
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {
 			refreshTabbedPanel();
@@ -1091,7 +1097,9 @@ void HistoryWidget::initTabbedSelector() {
 	});
 
 	base::install_event_filter(_tabbedSelectorToggle, [=](not_null<QEvent*> e) {
-		if (e->type() == QEvent::ContextMenu && !HoverEmojiPanel() && _tabbedPanel) {
+		if (e->type() == QEvent::ContextMenu
+			&& !::Kotato::JsonSettings::GetBool("hover_emoji_panel")
+			&& _tabbedPanel) {
 			_tabbedPanel->toggleAnimated();
 			return base::EventFilterResult::Cancel;
 		}
@@ -2594,7 +2602,7 @@ void HistoryWidget::refreshScheduledToggle() {
 		if (_scheduled) {
 			_scheduled.destroy();
 		}
-		if (cAlwaysShowScheduled() || has){
+		if (::Kotato::JsonSettings::GetBool("always_show_scheduled") || has){
 			_scheduled.create(this, (has ? st::historyScheduledToggle : st::historyScheduledToggleEmpty));
 			_scheduled->show();
 			_scheduled->addClickHandler([=] {
@@ -2626,7 +2634,7 @@ void HistoryWidget::refreshSendAsToggle() {
 	} else if (_sendAs) {
 		return;
 	}
-	_sendAs.create(this, st::sendAsButton, cUserpicCornersType());
+	_sendAs.create(this, st::sendAsButton, ::Kotato::JsonSettings::GetInt("userpic_corner_type"));
 	Ui::SetupSendAsButton(_sendAs.data(), controller());
 }
 
@@ -4607,7 +4615,7 @@ void HistoryWidget::createTabbedPanel() {
 void HistoryWidget::setTabbedPanel(std::unique_ptr<TabbedPanel> panel) {
 	_tabbedPanel = std::move(panel);
 	if (const auto raw = _tabbedPanel.get()) {
-		_tabbedPanel->setPreventHover(!HoverEmojiPanel());
+		_tabbedPanel->setPreventHover(!::Kotato::JsonSettings::GetBool("hover_emoji_panel"));
 		_tabbedSelectorToggle->installEventFilter(raw);
 		_tabbedSelectorToggle->setColorOverrides(nullptr, nullptr, nullptr);
 	} else {
@@ -5933,9 +5941,9 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 							.groupOptions = _toForward.groupOptions,
 						});
 						updateField();
-						if (cForwardRememberMode()) {
-							SetForwardMode(settingsKey);
-							Kotato::JsonSettings::Write();
+						if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+							::Kotato::JsonSettings::Set("forward_mode", settingsKey);
+							::Kotato::JsonSettings::Write();
 						}
 					});
 				}
@@ -5964,9 +5972,9 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 							});
 							updateForwardingTexts();
 							updateField();
-							if (cForwardRememberMode()) {
-								SetForwardGroupingMode(settingsKey);
-								Kotato::JsonSettings::Write();
+							if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+								::Kotato::JsonSettings::Set("forward_grouping_mode", settingsKey);
+								::Kotato::JsonSettings::Write();
 							}
 						});
 					}
@@ -5999,7 +6007,7 @@ void HistoryWidget::keyPressEvent(QKeyEvent *e) {
 	} else if (e->key() == Qt::Key_Down && !commonModifiers) {
 		_scroll->keyPressEvent(e);
 	} else if (e->key() == Qt::Key_Up && !commonModifiers) {
-		if (!cDisableUpEdit()) {
+		if (!::Kotato::JsonSettings::GetBool("disable_up_edit")) {
 			const auto item = _history
 				? _history->lastEditableMessage()
 				: nullptr;
@@ -6420,7 +6428,7 @@ void HistoryWidget::setupGroupCallBar() {
 			peer,
 			st::historyGroupCallUserpics.size),
 		Core::App().appDeactivatedValue(),
-		cUserpicCornersType());
+		::Kotato::JsonSettings::GetInt("userpic_corner_type"));
 
 	controller()->adaptive().oneColumnValue(
 	) | rpl::start_with_next([=](bool one) {
@@ -6472,7 +6480,7 @@ void HistoryWidget::setupRequestsBar() {
 		HistoryView::RequestsBarContentByPeer(
 			peer,
 			st::historyRequestsUserpics.size),
-		cUserpicCornersType());
+		::Kotato::JsonSettings::GetInt("userpic_corner_type"));
 
 	controller()->adaptive().oneColumnValue(
 	) | rpl::start_with_next([=](bool one) {

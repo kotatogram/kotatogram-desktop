@@ -106,22 +106,25 @@ void Userpic::paint() {
 			_mutePosition.y() - _muteSize / 2,
 			_muteSize,
 			_muteSize);
-		switch (cUserpicCornersType()) {
-			case 0:
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
 				p.drawRoundedRect(rect, 0, 0);
 				break;
 
-			case 1:
-				p.drawRoundedRect(rect, st::buttonRadius, st::buttonRadius);
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(rect,
+					st::buttonRadius, st::buttonRadius);
 				break;
 
-			case 2:
-				p.drawRoundedRect(rect, st::dateRadius, st::dateRadius);
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(rect,
+					st::dateRadius, st::dateRadius);
 				break;
 
 			default:
 				p.drawEllipse(rect);
 		}
+
 		st::callMutedPeerIcon.paintInCenter(p, rect);
 	}
 }
@@ -182,7 +185,7 @@ void Userpic::refreshPhoto() {
 void Userpic::createCache(Image *image) {
 	const auto size = this->size();
 	const auto real = size * cIntRetinaFactor();
-	auto options = Images::Option::Smooth | Images::Option::Circled;
+	// auto options = Images::Option::Smooth | Images::Option::Circled;
 	// _useTransparency ? (Images::Option::RoundedLarge | Images::Option::RoundedTopLeft | Images::Option::RoundedTopRight | Images::Option::Smooth) : Images::Option::None;
 	if (image) {
 		auto width = image->width();
@@ -197,25 +200,7 @@ void Userpic::createCache(Image *image) {
 		const auto callRounded = [=](const ImageRoundRadius radius) {
 			return image->pixRounded(width, height, radius, RectPart::AllCorners, size, size);
 		};
-		switch (cUserpicCornersType()) {
-			case 0:
-				_userPhoto = callRounded(ImageRoundRadius::None);
-				break;
-			case 1:
-				_userPhoto = callRounded(ImageRoundRadius::Small);
-				break;
-			case 2:
-				_userPhoto = callRounded(ImageRoundRadius::Large);
-				break;
-			default:
-				_userPhoto = image->pixNoCache(
-					width,
-					height,
-					options,
-					size,
-					size);
-				_userPhoto.setDevicePixelRatio(cRetinaFactor());
-		}
+		_userPhoto = callRounded(KotatoImageRoundRadius());
 	} else {
 		auto filled = QImage(QSize(real, real), QImage::Format_ARGB32_Premultiplied);
 		filled.setDevicePixelRatio(cRetinaFactor());

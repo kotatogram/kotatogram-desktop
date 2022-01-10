@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/main_window_linux.h"
 
+#include "kotato/kotato_settings.h"
 #include "styles/style_window.h"
 #include "platform/linux/specific_linux.h"
 #include "platform/linux/linux_wayland_integration.h"
@@ -190,15 +191,16 @@ void SkipTaskbar(QWindow *window, bool skip) {
 }
 
 QString GetPanelIconName(int counter, bool muted) {
-	const auto iconName = cUseTelegramPanelIcon()
+	const auto useTelegramPanelIcon = ::Kotato::JsonSettings::GetBool("use_telegram_panel_icon");
+	const auto iconName = useTelegramPanelIcon
 		? kTelegramPanelTrayIconName.utf16()
 		: kPanelTrayIconName.utf16();
 
-	const auto muteIconName = cUseTelegramPanelIcon()
+	const auto muteIconName = useTelegramPanelIcon
 		? kTelegramMutePanelTrayIconName.utf16()
 		: kMutePanelTrayIconName.utf16();
 
-	const auto attentionIconName = cUseTelegramPanelIcon()
+	const auto attentionIconName = useTelegramPanelIcon
 		? kTelegramAttentionPanelTrayIconName.utf16()
 		: kAttentionPanelTrayIconName.utf16();
 
@@ -229,9 +231,9 @@ int GetCounterSlice(int counter) {
 }
 
 bool UseIconFromTheme(const QString &iconName) {
-	return cDisableTrayCounter()
+	return ::Kotato::JsonSettings::GetBool("disable_tray_counter")
 		&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")
-		&& cCustomAppIcon() == 0
+		&& ::Kotato::JsonSettings::GetInt("custom_app_icon") == 0
 		&& !iconName.isEmpty();
 }
 
@@ -247,8 +249,8 @@ bool IsIconRegenerationNeeded(
 		|| iconName != TrayIconName
 		|| muted != TrayIconMuted
 		|| counterSlice != TrayIconCount
-		|| cCustomAppIcon() != TrayIconCustomId
-		|| cDisableTrayCounter() != TrayIconCounterDisabled;
+		|| ::Kotato::JsonSettings::GetInt("custom_app_icon") != TrayIconCustomId
+		|| ::Kotato::JsonSettings::GetBool("disable_tray_counter") != TrayIconCounterDisabled;
 }
 
 void UpdateIconRegenerationNeeded(
@@ -264,8 +266,8 @@ void UpdateIconRegenerationNeeded(
 	TrayIconCount = counterSlice;
 	TrayIconThemeName = iconThemeName;
 	TrayIconName = iconName;
-	TrayIconCustomId = cCustomAppIcon();
-	TrayIconCounterDisabled = cDisableTrayCounter();
+	TrayIconCustomId = ::Kotato::JsonSettings::GetInt("custom_app_icon");
+	TrayIconCounterDisabled = ::Kotato::JsonSettings::GetBool("disable_tray_counter");
 }
 
 QIcon TrayIconGen(int counter, bool muted) {
@@ -298,6 +300,9 @@ QIcon TrayIconGen(int counter, bool muted) {
 		return image.size() / image.devicePixelRatio();
 	};
 
+	const auto customAppIcon = ::Kotato::JsonSettings::GetInt("custom_app_icon");
+	const auto disableTrayCounter = ::Kotato::JsonSettings::GetInt("disable_tray_counter");
+
 	for (const auto iconSize : iconSizes) {
 		auto &currentImageBack = TrayIconImageBack[iconSize];
 		const auto desiredSize = QSize(iconSize, iconSize);
@@ -305,12 +310,12 @@ QIcon TrayIconGen(int counter, bool muted) {
 		if (currentImageBack.isNull()
 			|| iconThemeName != TrayIconThemeName
 			|| iconName != TrayIconName
-			|| cCustomAppIcon() != TrayIconCustomId
-			|| cDisableTrayCounter() != TrayIconCounterDisabled) {
+			|| customAppIcon != TrayIconCustomId
+			|| disableTrayCounter != TrayIconCounterDisabled) {
 			if (QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
 				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
-			} else if (cCustomAppIcon() != 0) {
-				currentImageBack = Window::Logo(cCustomAppIcon());
+			} else if (customAppIcon != 0) {
+				currentImageBack = Window::Logo(customAppIcon);
 			} else if (!iconName.isEmpty()) {
 				if (systemIcon.isNull()) {
 					systemIcon = QIcon::fromTheme(iconName);
@@ -354,7 +359,7 @@ QIcon TrayIconGen(int counter, bool muted) {
 
 		auto iconImage = currentImageBack;
 
-		if (!cDisableTrayCounter()
+		if (!disableTrayCounter
 			&& counter > 0) {
 			const auto &bg = muted
 				? st::trayCounterBgMute

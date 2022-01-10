@@ -319,16 +319,16 @@ void PeerData::paintUserpic(
 		int x,
 		int y,
 		int size) const {
-	switch (cUserpicCornersType()) {
-		case 0:
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
 			paintUserpicSquare(p, view, x, y, size);
 			break;
 
-		case 1:
+		case ImageRoundRadius::Small:
 			paintUserpicRounded(p, view, x, y, size);
 			break;
 
-		case 2:
+		case ImageRoundRadius::Large:
 			paintUserpicRoundedLarge(p, view, x, y, size);
 			break;
 
@@ -443,12 +443,7 @@ QPixmap PeerData::genUserpic(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const {
 	if (const auto userpic = currentUserpic(view)) {
-		switch (cUserpicCornersType()) {
-			case 0: return userpic->pixRounded(size, size, ImageRoundRadius::None);
-			case 1: return userpic->pixRounded(size, size, ImageRoundRadius::Small);
-			case 2: return userpic->pixRounded(size, size, ImageRoundRadius::Large);
-			default: return userpic->pixCircled(size, size);
-		}
+		return userpic->pixRounded(size, size, KotatoImageRoundRadius());
 	}
 	auto result = QImage(QSize(size, size) * cIntRetinaFactor(), QImage::Format_ARGB32_Premultiplied);
 	result.setDevicePixelRatio(cRetinaFactor());
@@ -463,16 +458,7 @@ QPixmap PeerData::genUserpic(
 QImage PeerData::generateUserpicImage(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const {
-	const auto rounding = [] {
-		switch (cUserpicCornersType()) {
-			case 0: return ImageRoundRadius::None;
-			case 1: return ImageRoundRadius::Small;
-			case 2: return ImageRoundRadius::Large;
-			default: return ImageRoundRadius::Ellipse;
-		}
-	}();
-	
-	return generateUserpicImage(view, size, rounding);
+	return generateUserpicImage(view, size, KotatoImageRoundRadius());
 }
 
 QImage PeerData::generateUserpicImage(

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "apiwrap.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_authorizations.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_blocked_peers.h"
@@ -3116,7 +3117,7 @@ void ApiWrap::forwardMessages(
 		FnMut<void()> &&successCallback) {
 	if (draft.options != Data::ForwardOptions::PreserveInfo
 		&& (draft.groupOptions == Data::GroupingOptions::RegroupAll
-			|| cForwardForceOld())) {
+			|| ::Kotato::JsonSettings::GetBool("forward_force_old_unquoted"))) {
 		forwardMessagesUnquoted(std::move(draft), action, std::move(successCallback));
 		return;
 	}

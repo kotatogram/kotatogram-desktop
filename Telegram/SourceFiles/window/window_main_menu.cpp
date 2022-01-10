@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_main_menu.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
 #include "window/themes/window_theme.h"
 #include "window/window_peer_menu.h"
@@ -1157,7 +1158,7 @@ void MainMenu::paintEvent(QPaintEvent *e) {
 			p.fillRect(cover, st::mainMenuCoverBg);
 		}
 		p.setPen(st::mainMenuCoverFg);
-		if (cShowPhoneInDrawer()) {
+		if (::Kotato::JsonSettings::GetBool("show_phone_in_drawer")) {
 			p.setFont(st::semiboldFont);
 			_controller->session().user()->nameText().drawLeftElided(
 				p,

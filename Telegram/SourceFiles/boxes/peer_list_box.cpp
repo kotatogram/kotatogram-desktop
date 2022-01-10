@@ -821,22 +821,18 @@ void PeerListRow::paintDisabledCheckUserpic(
 
 		p.setPen(userpicBorderPen);
 		p.setBrush(Qt::NoBrush);
-		switch (cUserpicCornersType()) {
-			case 0:
-				p.drawRoundedRect(
-					userpicEllipse,
-					0, 0);
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				p.drawRoundedRect(userpicEllipse, 0, 0);
 				break;
 
-			case 1:
-				p.drawRoundedRect(
-					userpicEllipse,
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(userpicEllipse,
 					st::buttonRadius, st::buttonRadius);
 				break;
 
-			case 2:
-				p.drawRoundedRect(
-					userpicEllipse,
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(userpicEllipse,
 					st::dateRadius, st::dateRadius);
 				break;
 

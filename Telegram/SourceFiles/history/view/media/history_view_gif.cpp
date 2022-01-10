@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_gif.h"
 
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
 #include "main/main_session.h"
@@ -144,10 +145,10 @@ QSize Gif::countOptimalSize() {
 	const auto size = style::ConvertScale(videoSize());
 	auto tw = size.width();
 	auto th = size.height();
-	if ((!AdaptiveBubbles() || captionWithPaddings <= maxSize) && tw > maxSize) {
+	if ((!::Kotato::JsonSettings::GetBool("adaptive_bubbles") || captionWithPaddings <= maxSize) && tw > maxSize) {
 		th = (maxSize * th) / tw;
 		tw = maxSize;
-	} else if (AdaptiveBubbles() && captionWithPaddings > maxSize && tw > captionWithPaddings) {
+	} else if (::Kotato::JsonSettings::GetBool("adaptive_bubbles") && captionWithPaddings > maxSize && tw > captionWithPaddings) {
 		th = (captionWithPaddings * th) / tw;
 		tw = captionWithPaddings;
 	}
@@ -171,7 +172,7 @@ QSize Gif::countOptimalSize() {
 	if (_parent->hasBubble()) {
 		accumulate_max(maxWidth, _parent->minWidthForMedia());
 		if (!_caption.isEmpty()) {
-			if (AdaptiveBubbles()) {
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 				accumulate_max(maxWidth, captionWithPaddings);
 			}
 			auto captionw = maxWidth - st::msgPadding.left() - st::msgPadding.right();
@@ -207,10 +208,10 @@ QSize Gif::countCurrentSize(int newWidth) {
 	const auto size = style::ConvertScale(videoSize());
 	auto tw = size.width();
 	auto th = size.height();
-	if ((!AdaptiveBubbles() || captionWithPaddings <= maxSize) && tw > maxSize) {
+	if ((!::Kotato::JsonSettings::GetBool("adaptive_bubbles") || captionWithPaddings <= maxSize) && tw > maxSize) {
 		th = (maxSize * th) / tw;
 		tw = maxSize;
-	} else if (AdaptiveBubbles() && captionWithPaddings > maxSize && tw > captionWithPaddings) {
+	} else if (::Kotato::JsonSettings::GetBool("adaptive_bubbles") && captionWithPaddings > maxSize && tw > captionWithPaddings) {
 		th = (captionWithPaddings * th) / tw;
 		tw = captionWithPaddings;
 	}
@@ -240,7 +241,7 @@ QSize Gif::countCurrentSize(int newWidth) {
 	if (_parent->hasBubble()) {
 		accumulate_max(newWidth, _parent->minWidthForMedia());
 		if (!_caption.isEmpty()) {
-			if (AdaptiveBubbles()) {
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 				accumulate_max(newWidth, captionWithPaddings);
 				accumulate_min(newWidth, availableWidth);
 			}

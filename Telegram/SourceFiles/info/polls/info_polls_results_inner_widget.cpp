@@ -90,20 +90,17 @@ void PeerListDummy::paintEvent(QPaintEvent *e) {
 	p.setPen(Qt::NoPen);
 	for (auto i = from; i != till; ++i) {
 		p.setBrush(st::windowBgOver);
-		switch (cUserpicCornersType()) {
-			case 0:
-				p.drawRoundedRect(
-					QRect{
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				p.drawRoundedRect(QRect{
 						_st.item.photoPosition.x(),
 						_st.item.photoPosition.y(),
 						_st.item.photoSize,
-						_st.item.photoSize },
-					0, 0);
+						_st.item.photoSize }, 0, 0);
 				break;
 
-			case 1:
-				p.drawRoundedRect(
-					QRect{
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(QRect{
 						_st.item.photoPosition.x(),
 						_st.item.photoPosition.y(),
 						_st.item.photoSize,
@@ -111,9 +108,8 @@ void PeerListDummy::paintEvent(QPaintEvent *e) {
 					st::buttonRadius, st::buttonRadius);
 				break;
 
-			case 2:
-				p.drawRoundedRect(
-					QRect{
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(QRect{
 						_st.item.photoPosition.x(),
 						_st.item.photoPosition.y(),
 						_st.item.photoSize,
@@ -122,11 +118,10 @@ void PeerListDummy::paintEvent(QPaintEvent *e) {
 				break;
 
 			default:
-				p.drawEllipse(
-					_st.item.photoPosition.x(),
-					_st.item.photoPosition.y(),
-					_st.item.photoSize,
-					_st.item.photoSize);
+				p.drawEllipse(_st.item.photoPosition.x(),
+						_st.item.photoPosition.y(),
+						_st.item.photoSize,
+						_st.item.photoSize);
 		}
 
 		const auto small = int(1.5 * _st.item.photoSize);

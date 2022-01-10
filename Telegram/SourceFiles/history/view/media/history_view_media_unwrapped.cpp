@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_media_unwrapped.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/view/media/history_view_media_common.h"
 #include "history/view/media/history_view_sticker.h"
 #include "history/view/history_view_element.h"
@@ -39,12 +40,14 @@ UnwrappedMedia::UnwrappedMedia(
 	std::unique_ptr<Content> content)
 : Media(parent)
 , _content(std::move(content)) {
-	StickerHeightChanges(
+	::Kotato::JsonSettings::Events(
+		"sticker_height"
 	) | rpl::start_with_next([=] {
 		history()->owner().requestItemViewRefresh(_parent->data());
 	}, _lifetime);
 
-	StickerScaleBothChanges(
+	::Kotato::JsonSettings::Events(
+		"sticker_scale_both"
 	) | rpl::start_with_next([=] {
 		history()->owner().requestItemViewRefresh(_parent->data());
 	}, _lifetime);

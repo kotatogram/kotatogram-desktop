@@ -317,31 +317,23 @@ void UserpicButton::paintEvent(QPaintEvent *e) {
 			p.setBrush(_userpicHasImage
 				? st::msgDateImgBg
 				: _st.changeButton.textBgOver);
-			switch (cUserpicCornersType()) {
-				case 0:
-					p.drawRoundedRect(
-						QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
-						0, 0);
+			switch (KotatoImageRoundRadius()) {
+				case ImageRoundRadius::None:
+					p.drawRoundedRect(QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize }, 0, 0);
 					break;
 
-				case 1:
-					p.drawRoundedRect(
-						QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+				case ImageRoundRadius::Small:
+					p.drawRoundedRect(QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
 						st::buttonRadius, st::buttonRadius);
 					break;
 
-				case 2:
-					p.drawRoundedRect(
-						QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+				case ImageRoundRadius::Large:
+					p.drawRoundedRect(QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
 						st::dateRadius, st::dateRadius);
 					break;
 
 				default:
-					p.drawEllipse(
-						photoLeft,
-						photoTop,
-						_st.photoSize,
-						_st.photoSize);
+					p.drawEllipse(photoLeft, photoTop, _st.photoSize, _st.photoSize);
 			}
 		}
 		paintRipple(
@@ -384,31 +376,23 @@ void UserpicButton::paintEvent(QPaintEvent *e) {
 				PainterHighQualityEnabler hq(p);
 				p.setPen(Qt::NoPen);
 				p.setBrush(_st.uploadBg);
-				switch (cUserpicCornersType()) {
-					case 0:
-						p.drawRoundedRect(
-							QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
-							0, 0);
+				switch (KotatoImageRoundRadius()) {
+					case ImageRoundRadius::None:
+						p.drawRoundedRect(QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize }, 0, 0);
 						break;
 
-					case 1:
-						p.drawRoundedRect(
-							QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+					case ImageRoundRadius::Small:
+						p.drawRoundedRect(QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
 							st::buttonRadius, st::buttonRadius);
 						break;
 
-					case 2:
-						p.drawRoundedRect(
-							QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
+					case ImageRoundRadius::Large:
+						p.drawRoundedRect(QRect{ photoLeft, photoTop, _st.photoSize, _st.photoSize },
 							st::dateRadius, st::dateRadius);
 						break;
 
 					default:
-						p.drawEllipse(
-							photoLeft,
-							photoTop,
-							_st.photoSize,
-							_st.photoSize);
+						p.drawEllipse(photoLeft, photoTop, _st.photoSize, _st.photoSize);
 				}
 			}
 			auto iconLeft = (_st.uploadIconPosition.x() < 0)
@@ -441,13 +425,7 @@ void UserpicButton::paintUserpicFrame(Painter &p, QPoint photoPosition) {
 		auto size = QSize{ _st.photoSize, _st.photoSize };
 		request.outer = size * cIntRetinaFactor();
 		request.resize = size * cIntRetinaFactor();
-		request.radius = (cUserpicCornersType() == 3)
-			? ImageRoundRadius::Ellipse
-			: (cUserpicCornersType() == 2)
-			? ImageRoundRadius::Large
-			: (cUserpicCornersType() == 1)
-			? ImageRoundRadius::Small
-			: ImageRoundRadius::None;
+		request.radius = KotatoImageRoundRadius();
 		p.drawImage(QRect(photoPosition, size), _streamed->frame(request));
 		if (!paused) {
 			_streamed->markFrameShown();
@@ -470,14 +448,14 @@ QPoint UserpicButton::countPhotoPosition() const {
 QImage UserpicButton::prepareRippleMask() const {
 	const auto size = QSize(_st.photoSize, _st.photoSize);
 
-	switch (cUserpicCornersType()) {
-		case 0:
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
 			return Ui::RippleAnimation::rectMask(size);
 
-		case 1:
+		case ImageRoundRadius::Small:
 			return Ui::RippleAnimation::roundRectMask(size, st::buttonRadius);
 
-		case 2:
+		case ImageRoundRadius::Large:
 			return Ui::RippleAnimation::roundRectMask(size, st::dateRadius);
 
 		default:
@@ -756,22 +734,7 @@ void UserpicButton::setImage(QImage &&image) {
 		size * cIntRetinaFactor(),
 		Qt::IgnoreAspectRatio,
 		Qt::SmoothTransformation);
-	switch (cUserpicCornersType()) {
-		case 0:
-			Images::prepareRound(small, ImageRoundRadius::None);
-			break;
-
-		case 1:
-			Images::prepareRound(small, ImageRoundRadius::Small);
-			break;
-
-		case 2:
-			Images::prepareRound(small, ImageRoundRadius::Large);
-			break;
-
-		default:
-			Images::prepareCircle(small);
-	}
+	Images::prepareRound(small, KotatoImageRoundRadius());
 
 	_userpic = Ui::PixmapFromImage(std::move(small));
 	_userpic.setDevicePixelRatio(cRetinaFactor());
@@ -790,22 +753,18 @@ void UserpicButton::prepareUserpicPixmap() {
 		PainterHighQualityEnabler hq(p);
 		p.setBrush(color);
 		p.setPen(Qt::NoPen);
-		switch (cUserpicCornersType()) {
-			case 0:
-				p.drawRoundedRect(
-					QRect{ 0, 0, size, size },
-					0, 0);
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				p.drawRoundedRect(QRect{ 0, 0, size, size }, 0, 0);
 				break;
 
-			case 1:
-				p.drawRoundedRect(
-					QRect{ 0, 0, size, size },
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(QRect{ 0, 0, size, size },
 					st::buttonRadius, st::buttonRadius);
 				break;
 
-			case 2:
-				p.drawRoundedRect(
-					QRect{ 0, 0, size, size },
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(QRect{ 0, 0, size, size },
 					st::dateRadius, st::dateRadius);
 				break;
 

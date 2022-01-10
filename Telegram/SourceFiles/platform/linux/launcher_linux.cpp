@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/launcher_linux.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/crash_reports.h"
 #include "core/update_checker.h"
 #include "webview/platform/linux/webview_linux_webkit2gtk.h"
@@ -137,15 +138,15 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 		}
 	}
 
-	if (!cUseEnvApi()) {
+	if (!::Kotato::JsonSettings::GetBool("api_use_env")) {
 		argumentsList.push("-no-env-api");
 	}
 
-	if (cApiFromStartParams()) {
+	if (::Kotato::JsonSettings::GetBool("api_start_params")) {
 		argumentsList.push("-api-id");
-		argumentsList.push(QFile::encodeName(QString::number(cApiId())));
+		argumentsList.push(QFile::encodeName(QString::number(::Kotato::JsonSettings::GetInt("api_id"))));
 		argumentsList.push("-api-hash");
-		argumentsList.push(QFile::encodeName(cApiHash()));
+		argumentsList.push(QFile::encodeName(::Kotato::JsonSettings::GetString("api_hash")));
 	}
 
 	Logs::closeMain();

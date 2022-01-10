@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/controls/history_view_compose_controls.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/event_filter.h"
 #include "base/platform/base_platform_info.h"
 #include "base/qt_signal_producer.h"
@@ -1074,7 +1075,8 @@ void ComposeControls::init() {
 		}, _wrap->lifetime());
 	}
 
-	HoverEmojiPanelChanges(
+	::Kotato::JsonSettings::Events(
+		"hover_emoji_panel"
 	) | rpl::start_with_next([=] {
 		if (_window->hasTabbedSelectorOwnership()) {
 			createTabbedPanel();
@@ -1130,7 +1132,9 @@ void ComposeControls::initKeyHandler() {
 			_attachRequests.fire({});
 			return;
 		}
-		if (key == Qt::Key_Up && !hasModifiers && !cDisableUpEdit()) {
+		if (key == Qt::Key_Up
+				&& !hasModifiers
+				&& !::Kotato::JsonSettings::GetBool("disable_up_edit")) {
 			if (!isEditingMessage() && _field->empty()) {
 				_editLastMessageRequests.fire(std::move(keyEvent));
 				return;
@@ -1573,7 +1577,9 @@ void ComposeControls::initTabbedSelector() {
 	}
 
 	base::install_event_filter(_tabbedSelectorToggle, [=](not_null<QEvent*> e) {
-		if (e->type() == QEvent::ContextMenu && !HoverEmojiPanel() && _tabbedPanel) {
+		if (e->type() == QEvent::ContextMenu
+			&& !::Kotato::JsonSettings::GetBool("hover_emoji_panel")
+			&& _tabbedPanel) {
 			_tabbedPanel->toggleAnimated();
 			return base::EventFilterResult::Cancel;
 		}
@@ -1988,7 +1994,7 @@ bool ComposeControls::updateSendAsButton() {
 	_sendAs = std::make_unique<Ui::SendAsButton>(
 		_wrap.get(),
 		st::sendAsButton,
-		cUserpicCornersType());
+		::Kotato::JsonSettings::GetInt("userpic_corner_type"));
 	Ui::SetupSendAsButton(
 		_sendAs.get(),
 		rpl::single(peer.get()),
@@ -2049,7 +2055,7 @@ void ComposeControls::setTabbedPanel(
 		std::unique_ptr<ChatHelpers::TabbedPanel> panel) {
 	_tabbedPanel = std::move(panel);
 	if (const auto raw = _tabbedPanel.get()) {
-		_tabbedPanel->setPreventHover(!HoverEmojiPanel());
+		_tabbedPanel->setPreventHover(!::Kotato::JsonSettings::GetBool("hover_emoji_panel"));
 		_tabbedSelectorToggle->installEventFilter(raw);
 		_tabbedSelectorToggle->setColorOverrides(nullptr, nullptr, nullptr);
 	} else {

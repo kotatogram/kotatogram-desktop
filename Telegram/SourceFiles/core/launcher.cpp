@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/launcher.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_version.h"
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
@@ -18,7 +19,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/update_checker.h"
 #include "core/sandbox.h"
 #include "base/concurrent_timer.h"
-#include "kotato/json_settings.h"
 
 #include <QtCore/QLoggingCategory>
 
@@ -319,6 +319,9 @@ void Launcher::init() {
 }
 
 int Launcher::exec() {
+	// This should be called before init to load default
+	// values and set some options that are not stored in JSON.
+	Kotato::JsonSettings::Start();
 	init();
 
 	if (cLaunchMode() == LaunchModeFixPrevious) {
@@ -329,12 +332,14 @@ int Launcher::exec() {
 
 	// Must be started before Platform is started.
 	Logs::start(this);
-	Kotato::JsonSettings::Start();
+	Kotato::JsonSettings::Load();
 
-	if (cQtScale()) {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	if (::Kotato::JsonSettings::GetBool("qt_scale")) {
 		QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
 		QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
 	}
+#endif
 
 	if (Logs::DebugEnabled()) {
 		const auto openalLogPath = QDir::toNativeSeparators(
@@ -356,12 +361,12 @@ int Launcher::exec() {
 	// Must be started before Sandbox is created.
 	Platform::start();
 
-	if (cUseEnvApi()
+	if (::Kotato::JsonSettings::GetBool("api_use_env")
 		&& qEnvironmentVariableIsSet(kApiIdVarName.utf8().constData())
 		&& qEnvironmentVariableIsSet(kApiHashVarName.utf8().constData())) {
-		cSetApiId(qgetenv(kApiIdVarName.utf8().constData()).toInt());
-		cSetApiHash(QString::fromLatin1(qgetenv(kApiHashVarName.utf8().constData())));
-		cSetApiFromStartParams(false);
+		::Kotato::JsonSettings::Set("api_id", qgetenv(kApiIdVarName.utf8().constData()).toInt());
+		::Kotato::JsonSettings::Set("api_hash", QString::fromLatin1(qgetenv(kApiHashVarName.utf8().constData())));
+		::Kotato::JsonSettings::Set("api_start_params", false);
 	}
 
 	auto result = executeApplication();
@@ -561,13 +566,13 @@ void Launcher::processArguments() {
 			: value;
 	}
 
-	gUseEnvApi = !parseResult.contains("-no-env-api");
+	::Kotato::JsonSettings::Set("api_use_env", !parseResult.contains("-no-env-api"));
 	auto customApiId = parseResult.value("-api-id", {}).join(QString()).toInt();
 	auto customApiHash = parseResult.value("-api-hash", {}).join(QString());
 	if (customApiId > 0 && !customApiHash.isEmpty()) {
-		gApiId = customApiId;
-		gApiHash = customApiHash;
-		gApiFromStartParams = true;
+		::Kotato::JsonSettings::Set("api_id", customApiId);
+		::Kotato::JsonSettings::Set("api_hash", customApiHash);
+		::Kotato::JsonSettings::Set("api_start_params", true);
 	}
 }
 

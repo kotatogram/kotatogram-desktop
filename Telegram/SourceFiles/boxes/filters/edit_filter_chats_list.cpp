@@ -312,22 +312,18 @@ void PaintFilterChatsTypeIcon(
 	auto hq = PainterHighQualityEnabler(p);
 	p.setBrush(color->b);
 	p.setPen(Qt::NoPen);
-	switch (cUserpicCornersType()) {
-		case 0:
-			p.drawRoundedRect(
-				rect,
-				0, 0);
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
+			p.drawRoundedRect(rect, 0, 0);
 			break;
 
-		case 1:
-			p.drawRoundedRect(
-				rect,
+		case ImageRoundRadius::Small:
+			p.drawRoundedRect(rect,
 				st::buttonRadius, st::buttonRadius);
 			break;
 
-		case 2:
-			p.drawRoundedRect(
-				rect,
+		case ImageRoundRadius::Large:
+			p.drawRoundedRect(rect,
 				st::dateRadius, st::dateRadius);
 			break;
 

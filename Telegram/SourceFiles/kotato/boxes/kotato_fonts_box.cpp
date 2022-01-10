@@ -8,6 +8,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "kotato/boxes/kotato_fonts_box.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "base/platform/base_platform_info.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/padding_wrap.h"
@@ -21,7 +22,6 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"
-#include "kotato/json_settings.h"
 #include "lang/lang_keys.h"
 #include "app.h"
 
@@ -86,8 +86,7 @@ public:
 
 	void prepare(
 			Ui::InputField *field,
-			const QStringList &fontList,
-			const QString &defaultValue) {
+			const QStringList &fontList) {
 		_view->model()->setStringList(fontList);
 		resize(0, _view->sizeHintForRow(0) * 10);
 		_view->highlighted(
@@ -108,6 +107,7 @@ public:
 						return fontName.startsWith(field->getLastText());
 					})));
 		});
+		const auto defaultValue = field->getLastText().trimmed();
 		if (!defaultValue.isEmpty()) {
 			_view->setCurrentItem(fontList.indexOf(defaultValue));
 		}
@@ -121,7 +121,7 @@ private:
 FontsBox::FontsBox(QWidget* parent)
 : _owned(this)
 , _content(_owned.data())
-, _fontSize(cFontSize())
+, _fontSize(::Kotato::JsonSettings::GetIntWithPending("fonts/size"))
 {
 }
 
@@ -134,14 +134,18 @@ void FontsBox::prepare() {
 	addLeftButton(rktr("ktg_fonts_reset"), [=] { resetToDefault(); });
 
 	_useSystemFont = _content->add(
-		object_ptr<Ui::Checkbox>(_content, ktr("ktg_fonts_use_system_font"), cUseSystemFont()),
+		object_ptr<Ui::Checkbox>(_content,
+			ktr("ktg_fonts_use_system_font"),
+			::Kotato::JsonSettings::GetBoolWithPending("fonts/use_system_font")),
 		QMargins(
 			st::boxPadding.left(),
 			0,
 			st::boxPadding.right(),
 			st::boxPadding.bottom()));
 	_useOriginalMetrics = _content->add(
-		object_ptr<Ui::Checkbox>(_content, ktr("ktg_fonts_use_original_metrics"), cUseOriginalMetrics()),
+		object_ptr<Ui::Checkbox>(_content,
+			ktr("ktg_fonts_use_original_metrics"),
+			::Kotato::JsonSettings::GetBoolWithPending("fonts/use_original_metrics")),
 		QMargins(
 			st::boxPadding.left(),
 			st::boxPadding.bottom(),
@@ -176,7 +180,9 @@ void FontsBox::prepare() {
 			st::boxPadding.right(),
 			st::boxPadding.bottom()));
 	_semiboldIsBold = _content->add(
-		object_ptr<Ui::Checkbox>(_content, ktr("ktg_fonts_semibold_is_bold"), cSemiboldFontIsBold()),
+		object_ptr<Ui::Checkbox>(_content,
+			ktr("ktg_fonts_semibold_is_bold"),
+			::Kotato::JsonSettings::GetBoolWithPending("fonts/semibold_is_bold")),
 		QMargins(
 			st::boxPadding.left(),
 			0,
@@ -231,22 +237,14 @@ void FontsBox::prepare() {
 			st::boxPadding.right(),
 			st::boxPadding.bottom()));
 
-	if (!cMainFont().isEmpty()) {
-		_mainFontName->setText(cMainFont());
-	}
-
-	if (!cSemiboldFont().isEmpty()) {
-		_semiboldFontName->setText(cSemiboldFont());
-	}
-
-	if (!cMonospaceFont().isEmpty()) {
-		_monospacedFontName->setText(cMonospaceFont());
-	}
+	_mainFontName->setText(::Kotato::JsonSettings::GetStringWithPending("fonts/main"));
+	_semiboldFontName->setText(::Kotato::JsonSettings::GetStringWithPending("fonts/semibold"));
+	_monospacedFontName->setText(::Kotato::JsonSettings::GetStringWithPending("fonts/monospaced"));
 
 	const auto fontNames = QFontDatabase().families();
-	_mainFontList->prepare(_mainFontName, fontNames, cMainFont());
-	_semiboldFontList->prepare(_semiboldFontName, fontNames, cSemiboldFont());
-	_monospacedFontList->prepare(_monospacedFontName, fontNames, cMonospaceFont());
+	_mainFontList->prepare(_mainFontName, fontNames);
+	_semiboldFontList->prepare(_semiboldFontName, fontNames);
+	_monospacedFontList->prepare(_monospacedFontName, fontNames);
 
 	auto wrap = object_ptr<Ui::OverrideMargins>(this, std::move(_owned));
 	setDimensionsToContent(st::boxWidth, wrap.data());
@@ -267,14 +265,14 @@ void FontsBox::save() {
 	const auto monospacedFont = _monospacedFontName->getLastText().trimmed();
 
 	const auto changeFonts = [=] {
-		cSetUseSystemFont(useSystemFont);
-		cSetUseOriginalMetrics(useOriginalMetrics);
-		cSetMainFont(mainFont);
-		cSetSemiboldFont(semiboldFont);
-		cSetSemiboldFontIsBold(semiboldIsBold);
-		cSetMonospaceFont(monospacedFont);
-		cSetFontSize(_fontSize);
-		Kotato::JsonSettings::Write();
+		::Kotato::JsonSettings::SetAfterRestart("fonts/main", mainFont);
+		::Kotato::JsonSettings::SetAfterRestart("fonts/semibold", semiboldFont);
+		::Kotato::JsonSettings::SetAfterRestart("fonts/monospaced", monospacedFont);
+		::Kotato::JsonSettings::SetAfterRestart("fonts/semibold_is_bold", semiboldIsBold);
+		::Kotato::JsonSettings::SetAfterRestart("fonts/use_system_font", useSystemFont);
+		::Kotato::JsonSettings::SetAfterRestart("fonts/use_original_metrics", useOriginalMetrics);
+		::Kotato::JsonSettings::SetAfterRestart("fonts/size", _fontSize);
+		::Kotato::JsonSettings::Write();
 		App::restart();
 	};
 
@@ -290,18 +288,14 @@ void FontsBox::save() {
 
 void FontsBox::resetToDefault() {
 	const auto resetFonts = [=] {
-		cSetMainFont(QString());
-		cSetSemiboldFont(QString());
-		cSetSemiboldFontIsBold(false);
-		cSetMonospaceFont(QString());
-		cSetFontSize(0);
-#ifdef DESKTOP_APP_USE_PACKAGED_FONTS
-		cSetUseSystemFont(true);
-#else
-		cSetUseSystemFont(Platform::IsLinux());
-#endif
-		cSetUseOriginalMetrics(false);
-		Kotato::JsonSettings::Write();
+		::Kotato::JsonSettings::ResetAfterRestart("fonts/main");
+		::Kotato::JsonSettings::ResetAfterRestart("fonts/semibold");
+		::Kotato::JsonSettings::ResetAfterRestart("fonts/monospaced");
+		::Kotato::JsonSettings::ResetAfterRestart("fonts/semibold_is_bold");
+		::Kotato::JsonSettings::ResetAfterRestart("fonts/size");
+		::Kotato::JsonSettings::ResetAfterRestart("fonts/use_system_font");
+		::Kotato::JsonSettings::ResetAfterRestart("fonts/use_original_metrics");
+		::Kotato::JsonSettings::Write();
 		App::restart();
 	};
 

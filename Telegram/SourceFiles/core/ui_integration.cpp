@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/ui_integration.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/local_url_handlers.h"
 #include "core/file_utilities.h"
 #include "core/application.h"
@@ -49,7 +50,7 @@ const auto kBadPrefix = u"http://"_q;
 	const auto domains = config.get<std::vector<QString>>(
 		"autologin_domains",
 		{});
-	if (!cTelegramSitesAutologin()
+	if (!::Kotato::JsonSettings::GetBool("telegram_sites_autologin")
 		|| token.isEmpty()
 		|| domain.isEmpty()
 		|| !ranges::contains(domains, domain)) {
@@ -132,13 +133,13 @@ void UiIntegration::activationFromTopPanel() {
 
 style::CustomFontSettings UiIntegration::fontSettings() {
 	return {
-		cMainFont(),
-		cSemiboldFont(),
-		cMonospaceFont(),
-		cFontSize(),
-		cSemiboldFontIsBold(),
-		cUseSystemFont(),
-		cUseOriginalMetrics(),
+		::Kotato::JsonSettings::GetString("fonts/main"),
+		::Kotato::JsonSettings::GetString("fonts/semibold"),
+		::Kotato::JsonSettings::GetString("fonts/monospaced"),
+		::Kotato::JsonSettings::GetInt("fonts/size"),
+		::Kotato::JsonSettings::GetBool("fonts/semibold_is_bold"),
+		::Kotato::JsonSettings::GetBool("fonts/use_system_font"),
+		::Kotato::JsonSettings::GetBool("fonts/use_original_metrics"),
 	};
 }
 

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_session_controller.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
 #include "boxes/add_contact_box.h"
 #include "boxes/peers/edit_peer_info_box.h"
@@ -984,7 +985,7 @@ void SessionController::floatPlayerAreaUpdated() {
 }
 
 int SessionController::dialogsSmallColumnWidth() const {
-	return st::dialogsPadding.x() + (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) + st::dialogsPadding.x();
+	return st::dialogsPadding.x() + (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) + st::dialogsPadding.x();
 }
 
 int SessionController::minimalThreeColumnWidth() const {
@@ -1524,7 +1525,11 @@ not_null<MainWidget*> SessionController::content() const {
 }
 
 int SessionController::filtersWidth() const {
-	return _filters ? (cHideFilterNames() ? st::windowFiltersWidthNoText : st::windowFiltersWidth) : 0;
+	return _filters
+			? (::Kotato::JsonSettings::GetBool("folders/hide_names")
+				? st::windowFiltersWidthNoText
+				: st::windowFiltersWidth)
+			: 0;
 }
 
 rpl::producer<FilterId> SessionController::activeChatsFilter() const {

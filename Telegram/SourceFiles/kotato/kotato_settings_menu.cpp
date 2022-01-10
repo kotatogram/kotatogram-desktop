@@ -5,9 +5,10 @@ the unofficial app based on Telegram Desktop.
 For license and copyright information please follow this link:
 https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
-#include "kotato/settings_menu.h"
+#include "kotato/kotato_settings_menu.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "base/platform/base_platform_info.h"
 #include "settings/settings_common.h"
 #include "settings/settings_chat.h"
@@ -28,7 +29,6 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
 #include "core/update_checker.h"
-#include "kotato/json_settings.h"
 #include "core/application.h"
 #include "storage/localstorage.h"
 #include "data/data_session.h"
@@ -192,48 +192,34 @@ QString ChatIdLabel(int option) {
 
 } // namespace
 
-#define SettingsMenuCSwitch(LangKey, Option) AddButton( \
+#define SettingsMenuJsonSwitch(LangKey, Option) AddButton( \
 	container, \
 	rktr(#LangKey), \
 	st::settingsButton \
 )->toggleOn( \
-	rpl::single(c##Option()) \
+	rpl::single(::Kotato::JsonSettings::GetBool(#Option)) \
 )->toggledValue( \
 ) | rpl::filter([](bool enabled) { \
-	return (enabled != c##Option()); \
+	return (enabled != ::Kotato::JsonSettings::GetBool(#Option)); \
 }) | rpl::start_with_next([](bool enabled) { \
-	cSet##Option(enabled); \
+	::Kotato::JsonSettings::Set(#Option, enabled); \
 	::Kotato::JsonSettings::Write(); \
 }, container->lifetime());
 
-#define SettingsMenuCFilterSwitch(LangKey, Option) AddButton( \
+#define SettingsMenuJsonFilterSwitch(LangKey, Option) AddButton( \
 	container, \
 	rktr(#LangKey), \
 	st::settingsButton \
 )->toggleOn( \
-	rpl::single(c##Option()) \
+	rpl::single(::Kotato::JsonSettings::GetBool(#Option)) \
 )->toggledValue( \
 ) | rpl::filter([](bool enabled) { \
-	return (enabled != c##Option()); \
+	return (enabled != ::Kotato::JsonSettings::GetBool(#Option)); \
 }) | rpl::start_with_next([controller](bool enabled) { \
-	cSet##Option(enabled); \
+	::Kotato::JsonSettings::Set(#Option, enabled); \
 	::Kotato::JsonSettings::Write(); \
 	controller->reloadFiltersMenu(); \
 	App::wnd()->fixOrder(); \
-}, container->lifetime());
-
-#define SettingsMenuSwitch(LangKey, Option) AddButton( \
-	container, \
-	rktr(#LangKey), \
-	st::settingsButton \
-)->toggleOn( \
-	rpl::single(Option()) \
-)->toggledValue( \
-) | rpl::filter([](bool enabled) { \
-	return (enabled != Option()); \
-}) | rpl::start_with_next([](bool enabled) { \
-	Set##Option(enabled); \
-	::Kotato::JsonSettings::Write(); \
 }, container->lifetime());
 
 void SetupKotatoChats(
@@ -263,22 +249,22 @@ void SetupKotatoChats(
 	};
 	const auto updateRecentStickersLimitHeight = [=](int value) {
 		updateRecentStickersLimitLabel(value);
-		SetRecentStickersLimit(value);
+		::Kotato::JsonSettings::Set("recent_stickers_limit", value);
 		::Kotato::JsonSettings::Write();
 	};
 	recentStickersLimitSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 	recentStickersLimitSlider->setPseudoDiscrete(
 		201,
 		[](int val) { return val; },
-		RecentStickersLimit(),
+		::Kotato::JsonSettings::GetInt("recent_stickers_limit"),
 		updateRecentStickersLimitHeight);
-	updateRecentStickersLimitLabel(RecentStickersLimit());
+	updateRecentStickersLimitLabel(::Kotato::JsonSettings::GetInt("recent_stickers_limit"));
 
-	SettingsMenuCSwitch(ktg_settings_top_bar_mute, ProfileTopBarNotifications);
-	SettingsMenuCSwitch(ktg_settings_disable_up_edit, DisableUpEdit);
+	SettingsMenuJsonSwitch(ktg_settings_top_bar_mute, profile_top_mute);
+	SettingsMenuJsonSwitch(ktg_settings_disable_up_edit, disable_up_edit);
 
 	if (Ui::Platform::IsOverlapped(container, QRect()).has_value()) {
-		SettingsMenuCSwitch(ktg_settings_auto_scroll_unfocused, AutoScrollUnfocused);
+		SettingsMenuJsonSwitch(ktg_settings_auto_scroll_unfocused, auto_scroll_unfocused);
 	}
 
 	AddButton(
@@ -286,12 +272,12 @@ void SetupKotatoChats(
 		rktr("ktg_settings_chat_list_compact"),
 		st::settingsButton
 	)->toggleOn(
-		rpl::single(DialogListLines() == 1)
+		rpl::single(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1)
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != (DialogListLines() == 1));
+		return (enabled != (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1));
 	}) | rpl::start_with_next([](bool enabled) {
-		SetDialogListLines(enabled ? 1 : 2);
+		::Kotato::JsonSettings::Set("chat_list_lines", enabled ? 1 : 2);
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
@@ -300,17 +286,17 @@ void SetupKotatoChats(
 		rktr("ktg_settings_always_show_scheduled"),
 		st::settingsButton
 	)->toggleOn(
-		rpl::single(cAlwaysShowScheduled())
+		rpl::single(::Kotato::JsonSettings::GetBool("always_show_scheduled"))
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != cAlwaysShowScheduled());
+		return (enabled != ::Kotato::JsonSettings::GetBool("always_show_scheduled"));
 	}) | rpl::start_with_next([controller](bool enabled) {
-		cSetAlwaysShowScheduled(enabled);
+		::Kotato::JsonSettings::Set("always_show_scheduled", enabled);
 		Notify::showScheduledButtonChanged(&controller->session());
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
-	SettingsMenuSwitch(ktg_emoji_panel_hover, HoverEmojiPanel);
+	SettingsMenuJsonSwitch(ktg_emoji_panel_hover, hover_emoji_panel);
 
 	AddButton(
 		container,
@@ -323,17 +309,17 @@ void SetupKotatoChats(
 	AddButtonWithLabel(
 		container,
 		rktr("ktg_settings_userpic_rounding"),
-		rpl::single(UserpicRoundingLabel(cUserpicCornersType())),
+		rpl::single(UserpicRoundingLabel(::Kotato::JsonSettings::GetInt("userpic_corner_type"))),
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
 			ktr("ktg_settings_userpic_rounding"),
 			ktr("ktg_settings_userpic_rounding_desc"),
-			cUserpicCornersType(),
+			::Kotato::JsonSettings::GetInt("userpic_corner_type"),
 			4,
 			UserpicRoundingLabel,
 			[=] (int value) {
-				cSetUserpicCornersType(value);
+				::Kotato::JsonSettings::Set("userpic_corner_type", value);
 				::Kotato::JsonSettings::Write();
 			}, true));
 	});
@@ -343,12 +329,12 @@ void SetupKotatoChats(
 		rktr("ktg_disable_chat_themes"),
 		st::settingsButton
 	)->toggleOn(
-		rpl::single(cDisableChatThemes())
+		rpl::single(::Kotato::JsonSettings::GetBool("disable_chat_themes"))
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != cDisableChatThemes());
+		return (enabled != ::Kotato::JsonSettings::GetBool("disable_chat_themes"));
 	}) | rpl::start_with_next([controller](bool enabled) {
-		cSetDisableChatThemes(enabled);
+		::Kotato::JsonSettings::Set("disable_chat_themes", enabled);
 		controller->session().data().cloudThemes().refreshChatThemes();
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
@@ -378,29 +364,29 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	};
 	const auto updateStickerHeight = [=](int value) {
 		updateStickerHeightLabel(value);
-		SetStickerHeight(value);
+		::Kotato::JsonSettings::Set("sticker_height", value);
 		::Kotato::JsonSettings::Write();
 	};
 	stickerHeightSlider->resize(st::settingsAudioVolumeSlider.seekSize);
 	stickerHeightSlider->setPseudoDiscrete(
 		193,
 		[](int val) { return val + 64; },
-		StickerHeight(),
+		::Kotato::JsonSettings::GetInt("sticker_height"),
 		updateStickerHeight);
-	updateStickerHeightLabel(StickerHeight());
+	updateStickerHeightLabel(::Kotato::JsonSettings::GetInt("sticker_height"));
 
 	container->add(
 		object_ptr<Ui::Checkbox>(
 			container,
 			ktr("ktg_settings_sticker_scale_both"),
-			StickerScaleBoth(),
+			::Kotato::JsonSettings::GetBool("sticker_scale_both"),
 			st::settingsCheckbox),
 		st::settingsCheckboxPadding
 	)->checkedChanges(
 	) | rpl::filter([](bool checked) {
-		return (checked != StickerScaleBoth());
+		return (checked != ::Kotato::JsonSettings::GetBool("sticker_scale_both"));
 	}) | rpl::start_with_next([](bool checked) {
-		SetStickerScaleBoth(checked);
+		::Kotato::JsonSettings::Set("sticker_scale_both", checked);
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
@@ -423,23 +409,23 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 				st::settingsButton)));
 
 	adaptiveBubblesButton->toggleOn(
-		rpl::single(AdaptiveBubbles())
+		rpl::single(::Kotato::JsonSettings::GetBool("adaptive_bubbles"))
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != AdaptiveBubbles());
+		return (enabled != ::Kotato::JsonSettings::GetBool("adaptive_bubbles"));
 	}) | rpl::start_with_next([monospaceLargeBubblesButton](bool enabled) {
 		monospaceLargeBubblesButton->toggle(!enabled, anim::type::normal);
-		SetAdaptiveBubbles(enabled);
+		::Kotato::JsonSettings::Set("adaptive_bubbles", enabled);
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
 	monospaceLargeBubblesButton->entity()->toggleOn(
-		rpl::single(MonospaceLargeBubbles())
+		rpl::single(::Kotato::JsonSettings::GetBool("monospace_large_bubbles"))
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != MonospaceLargeBubbles());
+		return (enabled != ::Kotato::JsonSettings::GetBool("monospace_large_bubbles"));
 	}) | rpl::start_with_next([](bool enabled) {
-		SetMonospaceLargeBubbles(enabled);
+		::Kotato::JsonSettings::Set("monospace_large_bubbles", enabled);
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
@@ -447,7 +433,7 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 		monospaceLargeBubblesButton->hide(anim::type::instant);
 	}
 
-	SettingsMenuSwitch(ktg_settings_emoji_outline, BigEmojiOutline);
+	SettingsMenuJsonSwitch(ktg_settings_emoji_outline, big_emoji_outline);
 
 	AddSkip(container);
 }
@@ -457,15 +443,17 @@ void SetupKotatoForward(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_forward"));
 
-	SettingsMenuCSwitch(ktg_forward_remember_mode, ForwardRememberMode);
+	SettingsMenuJsonSwitch(ktg_forward_remember_mode, forward_remember_mode);
 
 	auto forwardModeText = rpl::single(
-		ForwardMode()
+		ForwardModeLabel(::Kotato::JsonSettings::GetInt("forward_mode"))
 	) | rpl::then(
-		ForwardModeChanges()
-	) | rpl::map([] {
-		return ForwardModeLabel(ForwardMode());
-	});
+		::Kotato::JsonSettings::Events(
+			"forward_mode"
+		) | rpl::map([] {
+			return ForwardModeLabel(::Kotato::JsonSettings::GetInt("forward_mode"));
+		})
+	);
 
 	AddButtonWithLabel(
 		container,
@@ -475,22 +463,24 @@ void SetupKotatoForward(not_null<Ui::VerticalLayout*> container) {
 	)->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
 			ktr("ktg_forward_mode"),
-			ForwardMode(),
+			::Kotato::JsonSettings::GetInt("forward_mode"),
 			3,
 			ForwardModeLabel,
 			[=] (int value) {
-				SetForwardMode(value);
+				::Kotato::JsonSettings::Set("forward_mode", value);
 				::Kotato::JsonSettings::Write();
 			}, false));
 	});
 
 	auto forwardGroupingModeText = rpl::single(
-		ForwardGroupingMode()
+		GroupingModeLabel(::Kotato::JsonSettings::GetInt("forward_grouping_mode"))
 	) | rpl::then(
-		ForwardGroupingModeChanges()
-	) | rpl::map([] {
-		return GroupingModeLabel(ForwardGroupingMode());
-	});
+		::Kotato::JsonSettings::Events(
+			"forward_grouping_mode"
+		) | rpl::map([] {
+			return GroupingModeLabel(::Kotato::JsonSettings::GetInt("forward_grouping_mode"));
+		})
+	);
 
 	AddButtonWithLabel(
 		container,
@@ -500,24 +490,24 @@ void SetupKotatoForward(not_null<Ui::VerticalLayout*> container) {
 	)->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
 			ktr("ktg_forward_grouping_mode"),
-			ForwardGroupingMode(),
+			::Kotato::JsonSettings::GetInt("forward_grouping_mode"),
 			3,
 			GroupingModeLabel,
 			GroupingModeDescription,
 			[=] (int value) {
-				SetForwardGroupingMode(value);
+				::Kotato::JsonSettings::Set("forward_grouping_mode", value);
 				::Kotato::JsonSettings::Write();
 			}, false));
 	});
 
-	SettingsMenuCSwitch(ktg_forward_force_old_unquoted, ForwardForceOld);
+	SettingsMenuJsonSwitch(ktg_forward_force_old_unquoted, forward_force_old_unquoted);
 
 	AddSkip(container);
 	AddDividerText(container, rktr("ktg_forward_force_old_unquoted_desc"));
 	AddSkip(container);
 
-	SettingsMenuCSwitch(ktg_settings_forward_retain_selection, ForwardRetainSelection);
-	SettingsMenuCSwitch(ktg_settings_forward_chat_on_click, ForwardChatOnClick);
+	SettingsMenuJsonSwitch(ktg_settings_forward_retain_selection, forward_retain_selection);
+	SettingsMenuJsonSwitch(ktg_settings_forward_chat_on_click, forward_on_click);
 
 	AddSkip(container);
 	AddDividerText(container, rktr("ktg_settings_forward_chat_on_click_description"));
@@ -530,22 +520,22 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddButtonWithLabel(
 		container,
 		rktr("ktg_settings_net_speed_boost"),
-		rpl::single(NetBoostLabel(cNetSpeedBoost())),
+		rpl::single(NetBoostLabel(::Kotato::JsonSettings::GetIntWithPending("net_speed_boost"))),
 		st::settingsButton
 	)->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
 			ktr("ktg_net_speed_boost_title"),
 			ktr("ktg_net_speed_boost_desc"),
-			cNetSpeedBoost(),
+			::Kotato::JsonSettings::GetIntWithPending("net_speed_boost"),
 			4,
 			NetBoostLabel,
 			[=] (int value) {
-				SetNetworkBoost(value);
+				::Kotato::JsonSettings::SetAfterRestart("net_speed_boost", value);
 				::Kotato::JsonSettings::Write();
 			}, true));
 	});
 
-	SettingsMenuCSwitch(ktg_settings_telegram_sites_autologin, TelegramSitesAutologin);
+	SettingsMenuJsonSwitch(ktg_settings_telegram_sites_autologin, telegram_sites_autologin);
 
 	AddSkip(container);
 }
@@ -557,10 +547,10 @@ void SetupKotatoFolders(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_filters"));
 
-	SettingsMenuCFilterSwitch(ktg_settings_filters_only_unmuted_counter, UnmutedFilterCounterOnly);
-	SettingsMenuCFilterSwitch(ktg_settings_filters_hide_all, HideFilterAllChats);
-	SettingsMenuCFilterSwitch(ktg_settings_filters_hide_edit, HideFilterEditButton);
-	SettingsMenuCFilterSwitch(ktg_settings_filters_hide_folder_names, HideFilterNames);
+	SettingsMenuJsonFilterSwitch(ktg_settings_filters_only_unmuted_counter, folders/count_unmuted_only);
+	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_all, folders/hide_all_chats);
+	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_edit, folders/hide_edit_button);
+	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_folder_names, folders/hide_names);
 
 	AddSkip(container);
 }
@@ -580,18 +570,18 @@ void SetupKotatoSystem(
 		rktr("ktg_settings_qt_scale"),
 		st::settingsButton
 	)->toggleOn(
-		qtScaleToggled->events_starting_with_copy(cQtScale())
+		qtScaleToggled->events_starting_with_copy(::Kotato::JsonSettings::GetBool("qt_scale"))
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != cQtScale());
+		return (enabled != ::Kotato::JsonSettings::GetBool("qt_scale"));
 	}) | rpl::start_with_next([=](bool enabled) {
 		const auto confirmed = [=] {
-			cSetQtScale(enabled);
+			::Kotato::JsonSettings::Set("qt_scale", enabled);
 			::Kotato::JsonSettings::Write();
 			App::restart();
 		};
 		const auto cancelled = [=] {
-			qtScaleToggled->fire(cQtScale() == true);
+			qtScaleToggled->fire(::Kotato::JsonSettings::GetBool("qt_scale") == true);
 		};
 		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
@@ -603,12 +593,14 @@ void SetupKotatoSystem(
 
 	if (Platform::IsLinux()) {
 		auto fileDialogTypeText = rpl::single(
-			FileDialogType()
+			FileDialogTypeLabel(::Kotato::JsonSettings::GetInt("file_dialog_type"))
 		) | rpl::then(
-			FileDialogTypeChanges()
-		) | rpl::map([] {
-			return FileDialogTypeLabel(int(FileDialogType()));
-		});
+			::Kotato::JsonSettings::Events(
+				"file_dialog_type"
+			) | rpl::map([] {
+				return FileDialogTypeLabel(::Kotato::JsonSettings::GetInt("file_dialog_type"));
+			})
+		);
 
 		AddButtonWithLabel(
 			container,
@@ -618,44 +610,15 @@ void SetupKotatoSystem(
 		)->addClickHandler([=] {
 			Ui::show(Box<::Kotato::RadioBox>(
 				ktr("ktg_settings_file_dialog_type"),
-				int(FileDialogType()),
+				::Kotato::JsonSettings::GetInt("file_dialog_type"),
 				int(Platform::FileDialog::ImplementationType::Count),
 				FileDialogTypeLabel,
 				FileDialogTypeDescription,
 				[=](int value) {
-					SetFileDialogType(Platform::FileDialog::ImplementationType(value));
+					::Kotato::JsonSettings::Set("file_dialog_type", value);
 					::Kotato::JsonSettings::Write();
 				}, false));
 		});
-	}
-
-	if (Platform::IsMac()) {
-		const auto useNativeDecorationsToggled = Ui::CreateChild<rpl::event_stream<bool>>(
-			container.get());
-		AddButton(
-			container,
-			tr::lng_settings_native_frame(),
-			st::settingsButton
-		)->toggleOn(
-			useNativeDecorationsToggled->events_starting_with_copy(cUseNativeDecorations())
-		)->toggledValue(
-		) | rpl::filter([](bool enabled) {
-			return (enabled != cUseNativeDecorations());
-		}) | rpl::start_with_next([=](bool enabled) {
-			const auto confirmed = [=] {
-				cSetUseNativeDecorations(enabled);
-				::Kotato::JsonSettings::Write();
-				App::restart();
-			};
-			const auto cancelled = [=] {
-				useNativeDecorationsToggled->fire(cUseNativeDecorations() == true);
-			};
-			Ui::show(Box<Ui::ConfirmBox>(
-				tr::lng_settings_need_restart(tr::now),
-				tr::lng_settings_restart_now(tr::now),
-				confirmed,
-				cancelled));
-		}, container->lifetime());
 	}
 
 	AddButton(
@@ -663,12 +626,12 @@ void SetupKotatoSystem(
 		rktr("ktg_settings_disable_tray_counter"),
 		st::settingsButton
 	)->toggleOn(
-		rpl::single(cDisableTrayCounter())
+		rpl::single(::Kotato::JsonSettings::GetBool("disable_tray_counter"))
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != cDisableTrayCounter());
+		return (enabled != ::Kotato::JsonSettings::GetBool("disable_tray_counter"));
 	}) | rpl::start_with_next([controller](bool enabled) {
-		cSetDisableTrayCounter(enabled);
+		::Kotato::JsonSettings::Set("disable_tray_counter", enabled);
 		controller->session().data().notifyUnreadBadgeChanged();
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
@@ -679,12 +642,12 @@ void SetupKotatoSystem(
 			rktr("ktg_settings_use_telegram_panel_icon"),
 			st::settingsButton
 		)->toggleOn(
-			rpl::single(cUseTelegramPanelIcon())
+			rpl::single(::Kotato::JsonSettings::GetBool("use_telegram_panel_icon"))
 		)->toggledValue(
 		) | rpl::filter([](bool enabled) {
-			return (enabled != cUseTelegramPanelIcon());
+			return (enabled != ::Kotato::JsonSettings::GetBool("use_telegram_panel_icon"));
 		}) | rpl::start_with_next([controller](bool enabled) {
-			cSetUseTelegramPanelIcon(enabled);
+			::Kotato::JsonSettings::Set("use_telegram_panel_icon", enabled);
 			controller->session().data().notifyUnreadBadgeChanged();
 			::Kotato::JsonSettings::Write();
 		}, container->lifetime());
@@ -695,7 +658,7 @@ void SetupKotatoSystem(
 	) | rpl::then(
 		controller->session().data().unreadBadgeChanges()
 	) | rpl::map([] {
-		return TrayIconLabel(cCustomAppIcon());
+		return TrayIconLabel(::Kotato::JsonSettings::GetInt("custom_app_icon"));
 	});
 
 	AddButtonWithLabel(
@@ -707,11 +670,11 @@ void SetupKotatoSystem(
 		Ui::show(Box<::Kotato::RadioBox>(
 			ktr("ktg_settings_tray_icon"),
 			ktr("ktg_settings_tray_icon_desc"),
-			cCustomAppIcon(),
+			::Kotato::JsonSettings::GetInt("custom_app_icon"),
 			6,
 			TrayIconLabel,
 			[=] (int value) {
-				cSetCustomAppIcon(value);
+				::Kotato::JsonSettings::Set("custom_app_icon", value);
 				controller->session().data().notifyUnreadBadgeChanged();
 				::Kotato::JsonSettings::Write();
 			}, false));
@@ -727,7 +690,7 @@ void SetupKotatoOther(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_other"));
 
-	SettingsMenuCSwitch(ktg_settings_show_phone_number, ShowPhoneInDrawer);
+	SettingsMenuJsonSwitch(ktg_settings_show_phone_number, show_phone_in_drawer);
 
 	const auto chatIdButton = container->add(
 		object_ptr<Button>(
@@ -735,11 +698,12 @@ void SetupKotatoOther(
 			rktr("ktg_settings_chat_id"),
 			st::settingsButton));
 	auto chatIdText = rpl::single(
-		ChatIdLabel(ShowChatId())
+		ChatIdLabel(::Kotato::JsonSettings::GetInt("show_chat_id"))
 	) | rpl::then(
-		ShowChatIdChanges(
-		) | rpl::map([] (int chatIdType) {
-			return ChatIdLabel(chatIdType);
+		::Kotato::JsonSettings::Events(
+			"show_chat_id"
+		) | rpl::map([] {
+			return ChatIdLabel(::Kotato::JsonSettings::GetInt("show_chat_id"));
 		})
 	);
 	CreateRightLabel(
@@ -751,17 +715,17 @@ void SetupKotatoOther(
 		Ui::show(Box<::Kotato::RadioBox>(
 			ktr("ktg_settings_chat_id"),
 			ktr("ktg_settings_chat_id_desc"),
-			ShowChatId(),
+			::Kotato::JsonSettings::GetInt("show_chat_id"),
 			3,
 			ChatIdLabel,
 			[=] (int value) {
-				SetShowChatId(value);
+				::Kotato::JsonSettings::Set("show_chat_id", value);
 				::Kotato::JsonSettings::Write();
 			}));
 	});
 
-	SettingsMenuCSwitch(ktg_settings_call_confirm, ConfirmBeforeCall);
-	SettingsMenuCSwitch(ktg_settings_remember_compress_images, RememberCompressImages);
+	SettingsMenuJsonSwitch(ktg_settings_call_confirm, confirm_before_calls);
+	SettingsMenuJsonSwitch(ktg_settings_remember_compress_images, remember_compress_images);
 	AddButton(
 		container,
 		rktr("ktg_settings_compress_images_default"),
@@ -777,7 +741,7 @@ void SetupKotatoOther(
 		Core::App().settings().setSendFilesWay(way);
 		Core::App().saveSettingsDelayed();
 	}, container->lifetime());
-	SettingsMenuCSwitch(ktg_settings_ffmpeg_multithread, FFmpegMultithread);
+	SettingsMenuJsonSwitch(ktg_settings_ffmpeg_multithread, ffmpeg_multithread);
 
 	AddSkip(container);
 	AddDividerText(container, rktr("ktg_settings_ffmpeg_multithread_about"));

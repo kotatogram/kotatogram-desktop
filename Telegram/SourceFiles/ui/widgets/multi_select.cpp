@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/multi_select.h"
 
 #include "styles/style_widgets.h"
+#include "ui/image/image.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/widgets/scroll_area.h"
@@ -72,16 +73,16 @@ void MultiSelect::Item::paintOnce(Painter &p, int x, int y, int outerWidth) {
 	}
 
 	auto radius = _st.height / 2;
-	switch (cUserpicCornersType()) {
-		case 0:
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
 			radius = 0;
 			break;
 
-		case 1:
+		case ImageRoundRadius::Small:
 			radius = st::buttonRadius;
 			break;
 
-		case 2:
+		case ImageRoundRadius::Large:
 			radius = st::dateRadius;
 			break;
 	}
@@ -126,22 +127,18 @@ void MultiSelect::Item::paintDeleteButton(Painter &p, int x, int y, int outerWid
 	p.setBrush(_color);
 	{
 		PainterHighQualityEnabler hq(p);
-		switch (cUserpicCornersType()) {
-			case 0:
-				p.drawRoundedRect(
-					style::rtlrect(x, y, _st.height, _st.height, outerWidth),
-					0, 0);
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				p.drawRoundedRect(style::rtlrect(x, y, _st.height, _st.height, outerWidth), 0, 0);
 				break;
 
-			case 1:
-				p.drawRoundedRect(
-					style::rtlrect(x, y, _st.height, _st.height, outerWidth),
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(style::rtlrect(x, y, _st.height, _st.height, outerWidth),
 					st::buttonRadius, st::buttonRadius);
 				break;
 
-			case 2:
-				p.drawRoundedRect(
-					style::rtlrect(x, y, _st.height, _st.height, outerWidth),
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(style::rtlrect(x, y, _st.height, _st.height, outerWidth),
 					st::dateRadius, st::dateRadius);
 				break;
 

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_filters_menu.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
 #include "mainwindow.h"
 #include "window/window_session_controller.h"
@@ -25,7 +26,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/boxes/confirm_box.h"
 #include "boxes/filters/edit_filter_box.h"
-#include "kotato/json_settings.h"
 #include "settings/settings_common.h"
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
@@ -102,7 +102,9 @@ void FiltersMenu::setup() {
 
 	_parent->heightValue(
 	) | rpl::start_with_next([=](int height) {
-		const auto width = (cHideFilterNames() ? st::windowFiltersWidthNoText : st::windowFiltersWidth);
+		const auto width = (::Kotato::JsonSettings::GetBool("folders/hide_names")
+							? st::windowFiltersWidthNoText
+							: st::windowFiltersWidth);
 		_outer.setGeometry({ 0, 0, width, height });
 		_menu.resizeToWidth(width);
 		_menu.move(0, 0);
@@ -219,7 +221,7 @@ void FiltersMenu::refresh() {
 	const auto i = _filters.find(_activeFilterId);
 	if (i != end(_filters)) {
 		scrollToButton(i->second);
-	} else if (!cHideFilterAllChats()) {
+	} else if (!::Kotato::JsonSettings::GetBool("folders/hide_all_chats")) {
 		scrollToButton(_all);
 	}
 
@@ -230,7 +232,7 @@ void FiltersMenu::refresh() {
 }
 
 void FiltersMenu::setupList() {
-	if (!cHideFilterAllChats()) {
+	if (!::Kotato::JsonSettings::GetBool("folders/hide_all_chats")) {
 		_all = prepareButton(
 			_container,
 			0,
@@ -238,7 +240,7 @@ void FiltersMenu::setupList() {
 			Ui::FilterIcon::All);
 	}
 	_list = _container->add(object_ptr<Ui::VerticalLayout>(_container));
-	if (!cHideFilterEditButton()) {
+	if (!::Kotato::JsonSettings::GetBool("folders/hide_edit_button")) {
 		_setup = prepareButton(
 			_container,
 			-1,
@@ -271,7 +273,7 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 	auto button = base::unique_qptr<Ui::SideBarButton>(container->add(
 		object_ptr<Ui::SideBarButton>(
 			container,
-			(cHideFilterNames() ? QString() : title),
+			(::Kotato::JsonSettings::GetBool("folders/hide_names") ? QString() : title),
 			st::windowFiltersButton)));
 	const auto raw = button.get();
 	const auto &icons = Ui::LookupFilterIcon(icon);
@@ -283,7 +285,7 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 		) | rpl::start_with_next([=](const Dialogs::UnreadState &state) {
 			const auto count = (state.chats + state.marks);
 			const auto muted = (state.chatsMuted + state.marksMuted);
-			if (cUnmutedFilterCounterOnly()) {
+			if (::Kotato::JsonSettings::GetBool("folders/count_unmuted_only")) {
 				const auto unmuted = count - muted;
 				const auto string = !unmuted
 					? QString()
@@ -419,8 +421,8 @@ void FiltersMenu::showAllMenu(QPoint position) {
 	_popupMenu->addAction(
 		ktr("ktg_filters_hide_folder"),
 		crl::guard(&_outer, [=] {
-			cSetHideFilterAllChats(true);
-			Kotato::JsonSettings::Write();
+			::Kotato::JsonSettings::Set("folders/hide_all_chats", true);
+			::Kotato::JsonSettings::Write();
 			_all = nullptr;
 			Ui::Toast::Show(Ui::Toast::Config{
 				.text = { ktr("ktg_filters_hide_all_chats_toast") },
@@ -443,8 +445,8 @@ void FiltersMenu::showEditMenu(QPoint position) {
 	_popupMenu->addAction(
 		ktr("ktg_filters_hide_button"),
 		crl::guard(&_outer, [=] {
-			cSetHideFilterEditButton(true);
-			Kotato::JsonSettings::Write();
+			::Kotato::JsonSettings::Set("folders/hide_edit_button", true);
+			::Kotato::JsonSettings::Write();
 			_setup = nullptr;
 			Ui::Toast::Show(Ui::Toast::Config{
 				.text = { ktr("ktg_filters_hide_edit_toast") },
@@ -483,14 +485,8 @@ void FiltersMenu::remove(FilterId id) {
 	Assert(i != end(list));
 	bool needSave = false;
 	if (i->isLocal()) {
-		const auto account = &_session->session().account();
-		auto &localFolders = cRefLocalFolders();
-		const auto j = ranges::find_if(localFolders, [id, account](LocalFolder localFolder) {
-			return (id == localFolder.id
-				&& account->isCurrent(localFolder.ownerId, localFolder.isTest));
-		});
 		filters->remove(id);
-		localFolders.erase(j);
+		filters->saveLocal();
 		needSave = true;
 	} else {
 		_session->session().data().chatsFilters().apply(MTP_updateDialogFilter(
@@ -542,6 +538,7 @@ void FiltersMenu::applyReorder(
 	_ignoreRefresh = true;
 	filters->saveOrder(order);
 	_ignoreRefresh = false;
+	filters->saveLocal();
 	Kotato::JsonSettings::Write();
 }
 

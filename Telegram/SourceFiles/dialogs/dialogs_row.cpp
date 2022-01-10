@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_row.h"
 
+#include "kotato/kotato_settings.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/text/text_options.h"
 #include "dialogs/dialogs_entry.h"
@@ -135,7 +136,7 @@ void BasicRow::updateCornerBadgeShown(
 		not_null<PeerData*> peer,
 		Fn<void()> updateCallback) const {
 	const auto shown = [&] {
-		if (DialogListLines() == 1) {
+		if (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
 			return false;
 		}
 		if (const auto user = peer->asUser()) {
@@ -167,7 +168,9 @@ void BasicRow::PaintCornerBadgeFrame(
 		view,
 		0,
 		0,
-		(DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize));
+		(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+			? st::dialogsUnreadHeight
+			: st::dialogsPhotoSize));
 
 	PainterHighQualityEnabler hq(q);
 	q.setCompositionMode(QPainter::CompositionMode_Source);
@@ -188,8 +191,12 @@ void BasicRow::PaintCornerBadgeFrame(
 		? st::dialogsOnlineBadgeFgActive
 		: st::dialogsOnlineBadgeFg);
 	q.drawEllipse(QRectF(
-		st::dialogsPhotoSize - size - (cUserpicCornersType() == 3 ? skip.x() : -(stroke / 2)),
-		st::dialogsPhotoSize - size - (cUserpicCornersType() == 3 ? skip.y() : -(stroke / 2)),
+		st::dialogsPhotoSize - size -
+			(KotatoImageRoundRadius() == ImageRoundRadius::Ellipse
+				? skip.x() : -(stroke / 2)),
+		st::dialogsPhotoSize - size -
+			(KotatoImageRoundRadius() == ImageRoundRadius::Ellipse
+				? skip.y() : -(stroke / 2)),
 		size,
 		size
 	).marginsRemoved({ shrink, shrink, shrink, shrink }));
@@ -214,7 +221,9 @@ void BasicRow::paintUserpic(
 			st::dialogsPadding.x(),
 			st::dialogsPadding.y(),
 			fullWidth,
-			(DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize));
+			(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+				? st::dialogsUnreadHeight
+				: st::dialogsPhotoSize));
 		if (!historyForCornerBadge || !_cornerBadgeShown) {
 			_cornerBadgeUserpic = nullptr;
 		}
@@ -222,9 +231,10 @@ void BasicRow::paintUserpic(
 	}
 	ensureCornerBadgeUserpic();
 	if (_cornerBadgeUserpic->frame.isNull()) {
-		_cornerBadgeUserpic->frame = QImage(
-			(DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) * cRetinaFactor(),
-			(DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) * cRetinaFactor(),
+		const auto frameSize = (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+				? st::dialogsUnreadHeight
+				: st::dialogsPhotoSize) * cRetinaFactor();
+		_cornerBadgeUserpic->frame = QImage(frameSize, frameSize,
 			QImage::Format_ARGB32_Premultiplied);
 		_cornerBadgeUserpic->frame.setDevicePixelRatio(cRetinaFactor());
 	}
@@ -252,8 +262,12 @@ void BasicRow::paintUserpic(
 	p.translate(st::dialogsPadding);
 	actionPainter->paintSpeaking(
 		p,
-		st::dialogsPhotoSize - size - (cUserpicCornersType() == 3 ? skip.x() : -(stroke / 2)),
-		st::dialogsPhotoSize - size - (cUserpicCornersType() == 3 ? skip.y() : -(stroke / 2)),
+		st::dialogsPhotoSize - size -
+			(KotatoImageRoundRadius() == ImageRoundRadius::Ellipse
+				? skip.x() : -(stroke / 2)),
+		st::dialogsPhotoSize - size -
+			(KotatoImageRoundRadius() == ImageRoundRadius::Ellipse
+				? skip.y() : -(stroke / 2)),
 		fullWidth,
 		bg,
 		now);

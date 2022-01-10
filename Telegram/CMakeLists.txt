@@ -792,14 +792,12 @@ PRIVATE
     kotato/boxes/kotato_radio_box.h
     kotato/boxes/kotato_unpin_box.cpp
     kotato/boxes/kotato_unpin_box.h
-    kotato/json_settings.cpp
-    kotato/json_settings.h
-    kotato/settings_menu.cpp
-    kotato/settings_menu.h
-    kotato/settings.cpp
-    kotato/settings.h
     kotato/kotato_lang.cpp
     kotato/kotato_lang.h
+    kotato/kotato_settings.cpp
+    kotato/kotato_settings.h
+    kotato/kotato_settings_menu.cpp
+    kotato/kotato_settings_menu.h
     kotato/kotato_version.h
     lang/lang_cloud_manager.cpp
     lang/lang_cloud_manager.h

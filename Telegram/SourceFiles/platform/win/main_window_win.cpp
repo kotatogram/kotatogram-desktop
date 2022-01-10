@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/win/main_window_win.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "styles/style_window.h"
 #include "platform/platform_specific.h"
 #include "platform/platform_notifications_manager.h"
@@ -109,15 +110,17 @@ using namespace Microsoft::WRL;
 
 	auto &scaled = smallIcon ? ScaledLogoNoMargin : ScaledLogo;
 	auto result = [&] {
-		const auto idx = CustomIcon.isNull() ? cCustomAppIcon() : kLogoCount - 1;
+		const auto idx = CustomIcon.isNull()
+			? ::Kotato::JsonSettings::GetInt("custom_app_icon")
+			: kLogoCount - 1;
 		auto &image = scaled[idx * kCount + d.index];
 
 		if (image.isNull()) {
 			image = !CustomIcon.isNull()
 				? CustomIcon.scaledToWidth(d.size, Qt::SmoothTransformation)
 				: (smallIcon
-					? Window::LogoNoMargin(cCustomAppIcon())
-					: Window::Logo(cCustomAppIcon())).scaledToWidth(
+					? Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon"))
+					: Window::Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))).scaledToWidth(
 						d.size,
 						Qt::SmoothTransformation);
 		}
@@ -243,7 +246,7 @@ void MainWindow::psSetupTrayIcon() {
 		auto icon = QIcon(cWorkingDir() + "tdata/icon.png");
 		if (icon.isNull()) {
 			icon = QIcon(Ui::PixmapFromImage(
-				QImage(Window::LogoNoMargin(cCustomAppIcon()))));
+				QImage(Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon")))));
 		}
 
 		trayIcon->setIcon(icon);
@@ -407,10 +410,11 @@ void MainWindow::updateIconCounters() {
 	if (trayIcon) {
 		// Force Qt to use right icon size, not the larger one.
 		QIcon forTrayIcon;
-		auto forTrayIcon16 = cDisableTrayCounter()
+		const auto disableTrayCounter = ::Kotato::JsonSettings::GetBool("disable_tray_counter");
+		auto forTrayIcon16 = disableTrayCounter
 			? iconWithCounter(16, 0, true)
 			: iconSmallPixmap16;
-		auto forTrayIcon32 = cDisableTrayCounter()
+		auto forTrayIcon32 = disableTrayCounter
 			? iconWithCounter(32, 0, true)
 			: iconSmallPixmap32;
 		forTrayIcon.addPixmap(iconSizeSmall.width() >= 20

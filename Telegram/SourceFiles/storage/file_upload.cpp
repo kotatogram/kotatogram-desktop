@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "storage/file_upload.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_editing.h"
 #include "api/api_send_progress.h"
 #include "storage/localimageloader.h"
@@ -54,6 +55,16 @@ constexpr auto kKillSessionTimeout = 15 * crl::time(000);
 
 [[nodiscard]] const char *ThumbnailFormat(const QString &mime) {
 	return Core::IsMimeSticker(mime) ? "WEBP" : "JPG";
+}
+
+int UploadSessionsCount() {
+	static const auto count = 2 + (2 * ::Kotato::JsonSettings::GetInt("net_speed_boost"));
+	return count;
+}
+
+int UploadSessionsInterval() {
+	static const auto interval = 500 - (100 * ::Kotato::JsonSettings::GetInt("net_speed_boost"));
+	return interval;
 }
 
 } // namespace
@@ -381,7 +392,7 @@ void Uploader::currentFailed() {
 	dcMap.clear();
 	uploadingId = FullMsgId();
 	sentSize = 0;
-	for (int i = 0; i < cNetUploadSessionsCount(); ++i) {
+	for (int i = 0; i < UploadSessionsCount(); ++i) {
 		sentSizes[i] = 0;
 	}
 
@@ -389,13 +400,13 @@ void Uploader::currentFailed() {
 }
 
 void Uploader::stopSessions() {
-	for (int i = 0; i < cNetUploadSessionsCount(); ++i) {
+	for (int i = 0; i < UploadSessionsCount(); ++i) {
 		_api->instance().stopSession(MTP::uploadDcId(i));
 	}
 }
 
 void Uploader::sendNext() {
-	if (sentSize >= (cNetUploadSessionsCount() * 512 * 1024) || _pausedId.msg) {
+	if (sentSize >= (UploadSessionsCount() * 512 * 1024) || _pausedId.msg) {
 		return;
 	}
 
@@ -420,7 +431,7 @@ void Uploader::sendNext() {
 	auto &uploadingData = i->second;
 
 	auto todc = 0;
-	for (auto dc = 1; dc != cNetUploadSessionsCount(); ++dc) {
+	for (auto dc = 1; dc != UploadSessionsCount(); ++dc) {
 		if (sentSizes[dc] < sentSizes[todc]) {
 			todc = dc;
 		}
@@ -613,7 +624,7 @@ void Uploader::sendNext() {
 
 		parts.erase(part);
 	}
-	_nextTimer.callOnce(crl::time(cNetUploadRequestInterval()));
+	_nextTimer.callOnce(crl::time(UploadSessionsInterval()));
 }
 
 void Uploader::cancel(const FullMsgId &msgId) {
@@ -650,7 +661,7 @@ void Uploader::clear() {
 	docRequestsSent.clear();
 	dcMap.clear();
 	sentSize = 0;
-	for (int i = 0; i < cNetUploadSessionsCount(); ++i) {
+	for (int i = 0; i < UploadSessionsCount(); ++i) {
 		_api->instance().stopSession(MTP::uploadDcId(i));
 		sentSizes[i] = 0;
 	}

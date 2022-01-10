@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_sticker.h"
 
+#include "kotato/kotato_settings.h"
 #include "boxes/sticker_set_box.h"
 #include "history/history.h"
 #include "history/history_item_components.h"
@@ -94,8 +95,10 @@ bool Sticker::isEmojiSticker() const {
 }
 
 void Sticker::initSize() {
-	const auto maxHeight = int(st::maxStickerSize / 256.0 * StickerHeight());
-	const auto maxWidth = StickerScaleBoth() ? maxHeight : st::maxStickerSize;
+	const auto currentStickerHeight = ::Kotato::JsonSettings::GetInt("sticker_height");
+	const auto currentScaleBoth = ::Kotato::JsonSettings::GetBool("sticker_scale_both");
+	const auto maxHeight = int(st::maxStickerSize / 256.0 * currentStickerHeight);
+	const auto maxWidth = currentScaleBoth ? maxHeight : st::maxStickerSize;
 	if (isEmojiSticker() || _diceIndex >= 0) {
 		_size = Sticker::EmojiSize();
 		if (_diceIndex > 0) {
@@ -137,7 +140,8 @@ QSize Sticker::Size() {
 }
 
 QSize Sticker::EmojiSize() {
-	const auto maxHeight = int(st::maxStickerSize / 256.0 * StickerHeight() / 2);
+	const auto currentStickerHeight = ::Kotato::JsonSettings::GetInt("sticker_height");
+	const auto maxHeight = int(st::maxStickerSize / 256.0 * currentStickerHeight / 2);
 	const auto side = std::min(maxHeight, kMaxEmojiSizeFixed);
 	return { side, side };
 }

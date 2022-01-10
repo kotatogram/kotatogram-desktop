@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/send_files_box.h"
 
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
 #include "storage/localstorage.h"
 #include "storage/storage_media_prepare.h"
@@ -977,7 +978,7 @@ void SendFilesBox::saveSendWaySettings() {
 	}
 	if (_list.overrideSendImagesAsPhotos == way.sendImagesAsPhotos()
 		|| _sendImagesAsPhotos->isHidden()
-		|| !cRememberCompressImages()) {
+		|| !::Kotato::JsonSettings::GetBool("remember_compress_images")) {
 		way.setSendImagesAsPhotos(oldWay.sendImagesAsPhotos());
 	}
 	if (way != oldWay) {

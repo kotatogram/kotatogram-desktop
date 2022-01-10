@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "chat_helpers/stickers_emoji_pack.h"
 
+#include "kotato/kotato_settings.h"
 #include "chat_helpers/stickers_emoji_image_loader.h"
 #include "history/history_item.h"
 #include "lottie/lottie_common.h"
@@ -106,7 +107,8 @@ EmojiPack::EmojiPack(not_null<Main::Session*> session)
 		refreshAll();
 	}, _lifetime);
 
-	BigEmojiOutlineChanges(
+	::Kotato::JsonSettings::Events(
+		"big_emoji_outline"
 	) | rpl::start_with_next([=] {
 		_images.clear();
 		refreshAll();

@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
 #include "data/data_document_media.h"
@@ -599,7 +600,7 @@ bool MainWindow::doWeMarkAsRead() {
 	if (!_main || Ui::isLayerShown()) {
 		return false;
 	}
-	if (cAutoScrollUnfocused()) {
+	if (::Kotato::JsonSettings::GetBool("auto_scroll_unfocused")) {
 		// for tile grid in case other windows have shadows
 		// i've seen some windows with >70px shadow margins
 		const auto margin = style::ConvertScale(100);

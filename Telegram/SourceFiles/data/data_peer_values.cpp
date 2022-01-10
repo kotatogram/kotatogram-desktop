@@ -456,14 +456,7 @@ bool ChannelHasActiveCall(not_null<ChannelData*> channel) {
 rpl::producer<QImage> PeerUserpicImageValue(
 		not_null<PeerData*> peer,
 		int size) {
-	return PeerUserpicImageValue(peer, size,
-		cUserpicCornersType() == 0
-			? ImageRoundRadius::None
-			: cUserpicCornersType() == 1
-			? ImageRoundRadius::Small
-			: cUserpicCornersType() == 2
-			? ImageRoundRadius::Large
-			: ImageRoundRadius::Ellipse);
+	return PeerUserpicImageValue(peer, size, KotatoImageRoundRadius());
 }
 
 rpl::producer<QImage> PeerUserpicImageValue(

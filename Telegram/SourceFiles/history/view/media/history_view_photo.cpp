@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_photo.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/history_item_components.h"
 #include "history/history_item.h"
 #include "history/history.h"
@@ -156,10 +157,10 @@ QSize Photo::countOptimalSize() {
 	if (!tw || !th) {
 		tw = th = 1;
 	}
-	if ((!AdaptiveBubbles() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
+	if ((!::Kotato::JsonSettings::GetBool("adaptive_bubbles") || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
 		th = (st::maxMediaSize * th) / tw;
 		tw = st::maxMediaSize;
-	} else if (AdaptiveBubbles() && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
+	} else if (::Kotato::JsonSettings::GetBool("adaptive_bubbles") && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
 		th = (captionWithPaddings * th) / tw;
 		tw = captionWithPaddings;
 	}
@@ -179,7 +180,7 @@ QSize Photo::countOptimalSize() {
 	maxWidth = qMax(maxActualWidth, th);
 	minHeight = qMax(th, st::minPhotoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
-		if (AdaptiveBubbles()) {
+		if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 			maxActualWidth = qMax(maxActualWidth, captionWithPaddings);
 			maxWidth = qMax(maxWidth, captionWithPaddings);
 		}
@@ -201,10 +202,10 @@ QSize Photo::countCurrentSize(int newWidth) {
 	auto inWebPage = (_parent->media() != this);
 	auto tw = style::ConvertScale(_data->width());
 	auto th = style::ConvertScale(_data->height());
-	if ((!AdaptiveBubbles() || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
+	if ((!::Kotato::JsonSettings::GetBool("adaptive_bubbles") || (captionWithPaddings <= st::maxMediaSize && !inWebPage)) && tw > st::maxMediaSize) {
 		th = (st::maxMediaSize * th) / tw;
 		tw = st::maxMediaSize;
-	} else if (AdaptiveBubbles() && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
+	} else if (::Kotato::JsonSettings::GetBool("adaptive_bubbles") && captionWithPaddings > st::maxMediaSize && tw > captionWithPaddings) {
 		th = (captionWithPaddings * th) / tw;
 		tw = captionWithPaddings;
 	}
@@ -234,7 +235,7 @@ QSize Photo::countCurrentSize(int newWidth) {
 	newWidth = qMax(_pixw, minWidth);
 	auto newHeight = qMax(_pixh, st::minPhotoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
-		if (AdaptiveBubbles()) {
+		if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 			newWidth = qMax(newWidth, captionWithPaddings);
 			newWidth = qMin(newWidth, availableWidth);
 		}

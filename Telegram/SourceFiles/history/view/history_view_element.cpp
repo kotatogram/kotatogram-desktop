@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "api/api_chat_invite.h"
 #include "history/view/history_view_service_message.h"
 #include "history/view/history_view_message.h"
@@ -304,7 +305,7 @@ void UnreadBar::paint(
 	p.setPen(st->historyUnreadBarFg());
 
 	int maxwidth = w;
-	if (chatWide && !AdaptiveBubbles()) {
+	if (chatWide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		maxwidth = qMin(
 			maxwidth,
 			st::msgMaxWidth

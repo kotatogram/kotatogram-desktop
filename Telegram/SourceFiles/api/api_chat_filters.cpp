@@ -7,10 +7,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_chat_filters.h"
 
+#include "kotato/kotato_settings.h"
 #include "data/data_session.h"
 #include "data/data_chat_filters.h"
 #include "main/main_session.h"
-#include "kotato/json_settings.h"
 #include "apiwrap.h"
 
 namespace Api {
@@ -26,7 +26,7 @@ void SaveNewFilterPinned(
 		filterId,
 		order);
 	if (filter.isLocal()) {
-		filters.saveLocal(filterId);
+		filters.saveLocal();
 		Kotato::JsonSettings::Write();
 	} else {
 		session->api().request(MTPmessages_UpdateDialogFilter(

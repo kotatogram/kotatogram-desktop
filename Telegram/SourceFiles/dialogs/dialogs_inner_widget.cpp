@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_inner_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "dialogs/dialogs_indexed_list.h"
 #include "dialogs/ui/dialogs_layout.h"
 #include "dialogs/dialogs_widget.h"
@@ -65,11 +66,15 @@ constexpr auto kHashtagResultsLimit = 5;
 constexpr auto kStartReorderThreshold = 30;
 
 inline int DialogsRowHeight() {
-	return (DialogListLines() == 1 ? st::dialogsImportantBarHeight : st::dialogsRowHeight);
+	return (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+		? st::dialogsImportantBarHeight
+		: st::dialogsRowHeight);
 }
 
 inline int DialogsPhotoSize() {
-	return (DialogListLines() == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize);
+	return (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+		? st::dialogsUnreadHeight
+		: st::dialogsPhotoSize);
 }
 
 int FixedOnTopDialogsCount(not_null<Dialogs::IndexedList*> list) {
@@ -210,7 +215,8 @@ InnerWidget::InnerWidget(
 		refresh();
 	}, lifetime());
 
-	DialogListLinesChanges(
+	::Kotato::JsonSettings::Events(
+		"chat_list_lines"
 	) | rpl::start_with_next([=] {
 		refresh();
 	}, lifetime());
@@ -304,7 +310,10 @@ void InnerWidget::refreshWithCollapsedRows(bool toTop) {
 		? (*list->begin())->folder()
 		: nullptr;
 	const auto inMainMenu = session().settings().archiveInMainMenu();
-	if (archive && (session().settings().archiveCollapsed() || inMainMenu || DialogListLines() == 1)) {
+	if (archive &&
+		(session().settings().archiveCollapsed()
+			|| inMainMenu
+			|| ::Kotato::JsonSettings::GetInt("chat_list_lines") == 1)) {
 		if (_selected && _selected->folder() == archive) {
 			_selected = nullptr;
 		}
@@ -736,7 +745,9 @@ void InnerWidget::paintPeerSearchResult(
 	auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
 	QRect rectForName(
 		nameleft,
-		(DialogListLines() == 1) ? st::dialogsPadding.y() : st::dialogsPadding.y() + st::dialogsNameTop,
+		(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1)
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y() + st::dialogsNameTop,
 		namewidth,
 		st::msgNameFont->height);
 
@@ -765,7 +776,7 @@ void InnerWidget::paintPeerSearchResult(
 		badgeStyle);
 	rectForName.setWidth(rectForName.width() - badgeWidth);
 
-	if (DialogListLines() == 1) {
+	if (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
 		QString text = peer->nameText().toString();
 		p.setPen(active
 			? st::dialogsNameFgActive
@@ -2183,7 +2194,8 @@ bool InnerWidget::needCollapsedRowsRefresh() const {
 	const auto collapsedHasArchive = !_collapsedRows.empty()
 		&& (_collapsedRows.back()->folder != nullptr);
 	const auto archiveIsCollapsed = (archive != nullptr)
-		&& (session().settings().archiveCollapsed() || DialogListLines() == 1);
+		&& (session().settings().archiveCollapsed()
+			|| ::Kotato::JsonSettings::GetInt("chat_list_lines") == 1);
 	const auto archiveIsInMainMenu = (archive != nullptr)
 		&& session().settings().archiveInMainMenu();
 	return archiveIsInMainMenu

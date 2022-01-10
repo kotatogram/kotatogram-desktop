@@ -222,16 +222,16 @@ void EmptyUserpic::paint(
 		int y,
 		int outerWidth,
 		int size) const {
-	switch (cUserpicCornersType()) {
-		case 0:
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
 			paintSquare(p, x, y, outerWidth, size);
 			break;
 
-		case 1:
+		case ImageRoundRadius::Small:
 			paintRounded(p, x, y, outerWidth, size);
 			break;
 
-		case 2:
+		case ImageRoundRadius::Large:
 			paintRoundedLarge(p, x, y, outerWidth, size);
 			break;
 
@@ -266,16 +266,16 @@ void EmptyUserpic::PaintSavedMessages(
 		int y,
 		int outerWidth,
 		int size) {
-	switch (cUserpicCornersType()) {
-		case 0:
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
 			PaintSavedMessagesSquared(p, x, y, outerWidth, size);
 			break;
 
-		case 1:
+		case ImageRoundRadius::Small:
 			PaintSavedMessagesRounded(p, x, y, outerWidth, size);
 			break;
 
-		case 2:
+		case ImageRoundRadius::Large:
 			PaintSavedMessagesRoundedLarge(p, x, y, outerWidth, size);
 			break;
 
@@ -327,16 +327,16 @@ void EmptyUserpic::PaintSavedMessages(
 		int size,
 		const style::color &bg,
 		const style::color &fg) {
-	switch (cUserpicCornersType()) {
-		case 0:
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
 			PaintSavedMessagesSquared(p, x, y, outerWidth, size, bg, fg);
 			break;
 
-		case 1:
+		case ImageRoundRadius::Small:
 			PaintSavedMessagesRounded(p, x, y, outerWidth, size, bg, fg);
 			break;
 
-		case 2:
+		case ImageRoundRadius::Large:
 			PaintSavedMessagesRoundedLarge(p, x, y, outerWidth, size, bg, fg);
 			break;
 
@@ -424,16 +424,16 @@ void EmptyUserpic::PaintRepliesMessages(
 		int y,
 		int outerWidth,
 		int size) {
-	switch (cUserpicCornersType()) {
-		case 0:
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
 			PaintRepliesMessagesSquared(p, x, y, outerWidth, size);
 			break;
 
-		case 1:
+		case ImageRoundRadius::Small:
 			PaintRepliesMessagesRounded(p, x, y, outerWidth, size);
 			break;
 
-		case 2:
+		case ImageRoundRadius::Large:
 			PaintRepliesMessagesRoundedLarge(p, x, y, outerWidth, size);
 			break;
 

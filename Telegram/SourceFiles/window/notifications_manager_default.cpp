@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/notifications_manager_default.h"
 
+#include "kotato/kotato_settings.h"
 #include "platform/platform_notifications_manager.h"
 #include "platform/platform_specific.h"
 #include "core/application.h"
@@ -88,7 +89,7 @@ Manager::QueuedNotification::QueuedNotification(
 QPixmap Manager::hiddenUserpicPlaceholder() const {
 	if (_hiddenUserpicPlaceholder.isNull()) {
 		_hiddenUserpicPlaceholder = Ui::PixmapFromImage(
-			LogoNoMargin(cCustomAppIcon()).scaled(
+			LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon")).scaled(
 				st::notifyPhotoSize,
 				st::notifyPhotoSize,
 				Qt::IgnoreAspectRatio,

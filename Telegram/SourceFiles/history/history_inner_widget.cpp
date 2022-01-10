@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_inner_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
 #include "core/file_utilities.h"
 #include "core/crash_reports.h"
@@ -2422,7 +2423,7 @@ void HistoryInner::recountHistoryGeometry() {
 	updateBotInfo(false);
 	if (_botAbout && !_botAbout->info->text.isEmpty()) {
 		int32 tw = _scroll->width() - st::msgMargin.left() - st::msgMargin.right();
-		if (!AdaptiveBubbles() && tw > st::msgMaxWidth) tw = st::msgMaxWidth;
+		if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles") && tw > st::msgMaxWidth) tw = st::msgMaxWidth;
 		tw -= st::msgPadding.left() + st::msgPadding.right();
 		const auto descriptionWidth = _history->peer->isRepliesChat()
 			? 0
@@ -2438,7 +2439,7 @@ void HistoryInner::recountHistoryGeometry() {
 			: (st::msgNameFont->height + st::botDescSkip);
 		int32 descH = st::msgMargin.top() + st::msgPadding.top() + descriptionHeight + _botAbout->height + st::msgPadding.bottom() + st::msgMargin.bottom();
 		int32 descMaxWidth = _scroll->width();
-		if (_isChatWide && !AdaptiveBubbles()) {
+		if (_isChatWide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 			descMaxWidth = qMin(descMaxWidth, int32(st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left()));
 		}
 		int32 descAtX = (descMaxWidth - _botAbout->width) / 2 - st::msgPadding.left();
@@ -2475,7 +2476,7 @@ void HistoryInner::updateBotInfo(bool recount) {
 				Ui::ItemTextBotNoMonoOptions());
 			if (recount) {
 				int32 tw = _scroll->width() - st::msgMargin.left() - st::msgMargin.right();
-				if (!AdaptiveBubbles() && tw > st::msgMaxWidth) tw = st::msgMaxWidth;
+				if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles") && tw > st::msgMaxWidth) tw = st::msgMaxWidth;
 				tw -= st::msgPadding.left() + st::msgPadding.right();
 				const auto descriptionWidth = _history->peer->isRepliesChat()
 					? 0
@@ -2657,7 +2658,7 @@ void HistoryInner::updateSize() {
 			: (st::msgNameFont->height + st::botDescSkip);
 		int32 descH = st::msgMargin.top() + st::msgPadding.top() + descriptionHeight + _botAbout->height + st::msgPadding.bottom() + st::msgMargin.bottom();
 		int32 descMaxWidth = _scroll->width();
-		if (_isChatWide && !AdaptiveBubbles()) {
+		if (_isChatWide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 			descMaxWidth = qMin(descMaxWidth, int32(st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left()));
 		}
 		int32 descAtX = (descMaxWidth - _botAbout->width) / 2 - st::msgPadding.left();
@@ -3111,7 +3112,7 @@ void HistoryInner::mouseActionUpdate() {
 					dateWidth += st::msgServicePadding.left() + st::msgServicePadding.right();
 					auto dateLeft = st::msgServiceMargin.left();
 					auto maxwidth = _contentWidth;
-					if (_isChatWide && !AdaptiveBubbles()) {
+					if (_isChatWide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 						maxwidth = qMin(maxwidth, int32(st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left()));
 					}
 					auto widthForDate = maxwidth - st::msgServiceMargin.left() - st::msgServiceMargin.left();

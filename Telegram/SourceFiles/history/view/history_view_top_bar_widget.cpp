@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <rpl/combine.h>
 #include <rpl/combine_previous.h>
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "history/history.h"
 #include "history/view/history_view_send_action.h"
 #include "boxes/add_contact_box.h"
@@ -240,7 +241,7 @@ void TopBarWidget::search() {
 void TopBarWidget::call() {
 	if (const auto peer = _activeChat.key.peer()) {
 		if (const auto user = peer->asUser()) {
-			if (cConfirmBeforeCall()) {
+			if (::Kotato::JsonSettings::GetBool("confirm_before_calls")) {
 				Ui::show(Box<Ui::ConfirmBox>(ktr("ktg_call_sure"), ktr("ktg_call_button"), [=] {
 					Ui::hideLayer();
 					Core::App().calls().startOutgoingCall(user, false);
@@ -813,7 +814,7 @@ void TopBarWidget::updateControlsGeometry() {
 		_cancelChoose->moveToLeft(_leftTaken, otherButtonsTop);
 		_leftTaken += _cancelChoose->width();
 	} else if (_back->isHidden()) {
-		if (cShowTopBarUserpic()) {
+		if (::Kotato::JsonSettings::GetBool("always_show_top_userpic")) {
 			_leftTaken = st::topBarActionSkip;
 		} else {
 			_leftTaken = st::topBarArrowPadding.right();
@@ -826,7 +827,7 @@ void TopBarWidget::updateControlsGeometry() {
 		_leftTaken += _back->width();
 	}
 
-	if (!_back->isHidden() || cShowTopBarUserpic()) {
+	if (!_back->isHidden() || ::Kotato::JsonSettings::GetBool("always_show_top_userpic")) {
 		if (_info && !_info->isHidden()) {
 			_info->moveToLeft(_leftTaken, otherButtonsTop);
 			_leftTaken += _info->width();
@@ -889,7 +890,8 @@ void TopBarWidget::updateControlsVisibility() {
 	_back->setVisible(backVisible && !_chooseForReportReason);
 	_cancelChoose->setVisible(_chooseForReportReason.has_value());
 	if (_info) {
-		_info->setVisible(cShowTopBarUserpic() || (isOneColumn && !_chooseForReportReason));
+		_info->setVisible(::Kotato::JsonSettings::GetBool("always_show_top_userpic")
+			|| (isOneColumn && !_chooseForReportReason));
 	}
 	if (_unreadBadge) {
 		_unreadBadge->setVisible(!_chooseForReportReason);

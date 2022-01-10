@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_actions.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "data/data_peer_values.h"
 #include "data/data_session.h"
 #include "data/data_folder.h"
@@ -312,7 +313,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		return result;
 	};
 	if (const auto user = _peer->asUser()) {
-		if (ShowChatId() != 0) {
+		if (::Kotato::JsonSettings::GetInt("show_chat_id") != 0) {
 			auto idDrawableText = IDValue(
 				user
 			) | rpl::map([](TextWithEntities &&text) {
@@ -407,7 +408,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			[=] { controller->window().show(Box(EditContactBox, controller, user)); },
 			tracker);
 	} else {
-		if (ShowChatId() != 0) {
+		if (::Kotato::JsonSettings::GetInt("show_chat_id") != 0) {
 			auto idDrawableText = IDValue(
 				_peer
 			) | rpl::map([](TextWithEntities &&text) {
@@ -495,7 +496,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				tracker);
 		}
 	}
-	if (!_peer->isSelf() && !cProfileTopBarNotifications()) {
+	if (!_peer->isSelf() && !::Kotato::JsonSettings::GetBool("profile_top_mute")) {
 		// No notifications toggle for Self => no separator.
 		result->add(object_ptr<Ui::SlideWrap<>>(
 			result,
@@ -640,7 +641,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::fill() {
 	add(object_ptr<Ui::BoxContentDivider>(_wrap));
 	add(CreateSkipWidget(_wrap));
 	add(setupInfo());
-	if (!_peer->isSelf() && !cProfileTopBarNotifications()) {
+	if (!_peer->isSelf() && !::Kotato::JsonSettings::GetBool("profile_top_mute")) {
 		add(setupMuteToggle());
 	}
 	setupMainButtons();

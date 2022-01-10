@@ -58,22 +58,18 @@ void GenerateUserpicsInRow(
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		q.setBrush(Qt::NoBrush);
 		q.setPen(pen);
-		switch (cUserpicCornersType()) {
-			case 0:
-				q.drawRoundedRect(
-					QRect{ x, 0, single, single },
-					0, 0);
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				q.drawRoundedRect(QRect{ x, 0, single, single }, 0, 0);
 				break;
 
-			case 1:
-				q.drawRoundedRect(
-					QRect{ x, 0, single, single },
+			case ImageRoundRadius::Small:
+				q.drawRoundedRect(QRect{ x, 0, single, single },
 					st::buttonRadius, st::buttonRadius);
 				break;
 
-			case 2:
-				q.drawRoundedRect(
-					QRect{ x, 0, single, single },
+			case ImageRoundRadius::Large:
+				q.drawRoundedRect(QRect{ x, 0, single, single },
 					st::dateRadius, st::dateRadius);
 				break;
 

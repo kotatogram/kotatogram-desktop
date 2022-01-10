@@ -56,7 +56,7 @@ namespace {
 [[nodiscard]] std::wstring NotificationTemplate(
 		QString id,
 		Window::Notifications::Manager::DisplayOptions options) {
-	const auto crop = (cUserpicCornersType() == 3) ? L"circle" : L"none";
+	const auto crop = (KotatoImageRoundRadius() == ImageRoundRadius::Ellipse) ? L"circle" : L"none";
 	const auto wid = id.replace('&', "&amp;").toStdWString();
 	const auto fastReply = LR"(
 		<input id="fastReply" type="text" placeHolderContent=""/>

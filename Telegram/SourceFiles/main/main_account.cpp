@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "main/main_account.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "core/shortcuts.h"
@@ -30,7 +31,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "main/main_domain.h"
 #include "main/main_session_settings.h"
-#include "kotato/json_settings.h"
 
 namespace Main {
 namespace {
@@ -192,20 +192,10 @@ void Account::createSession(
 
 	Ensures(_session != nullptr);
 
-	auto defaultFilterUserId = QString::number(session().userId().bare);
-
-	if (_mtp->isTestMode()) {
-		defaultFilterUserId.prepend("test_");
-	}
-
-	if (HasDefaultFilterId("0")) {
-		const auto newDefaultFilterId = DefaultFilterId("0");
-		ClearDefaultFilterId("0");
-		setDefaultFilterId(newDefaultFilterId);
-		Kotato::JsonSettings::Write();
-	} else {
-		_defaultFilterId = DefaultFilterId(defaultFilterUserId);
-	}
+	_defaultFilterId = ::Kotato::JsonSettings::GetInt(
+		"folders/default",
+		session().userId().bare,
+		_mtp->isTestMode());
 }
 
 void Account::destroySession(DestroyReason reason) {
@@ -620,17 +610,12 @@ void Account::setDefaultFilterId(uint64 id) {
 	Expects(_session != nullptr);
 
 	_defaultFilterId = id;
-	auto defaultFilterUserId = QString::number(session().userId().bare);
 
-	if (_mtp->isTestMode()) {
-		defaultFilterUserId.prepend("test_");
-	}
-
-	if (id == 0) {
-		ClearDefaultFilterId(defaultFilterUserId);
-	} else {
-		SetDefaultFilterId(defaultFilterUserId, id);
-	}
+	::Kotato::JsonSettings::Set(
+		"folders/default",
+		_defaultFilterId,
+		session().userId().bare,
+		_mtp->isTestMode());
 }
 
 bool Account::isCurrent(uint64 id, bool testMode) {
