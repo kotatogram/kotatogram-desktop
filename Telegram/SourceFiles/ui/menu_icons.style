@@ -89,6 +89,7 @@ menuIconSettings: icon {{ "menu/settings", menuSubmenuArrowFg }};
 menuIconSearch: icon {{ "menu/search", menuSubmenuArrowFg }};
 menuIconHide: icon {{ "menu/hide", menuSubmenuArrowFg }};
 menuIconMention: icon {{ "menu/mention", menuSubmenuArrowFg }};
+menuIconToBeginning: icon {{ "menu/to_beginning", menuSubmenuArrowFg }};
 
 mediaMenuIconStickers: icon {{ "menu/stickers", mediaviewMenuFg }};
 mediaMenuIconCancel: icon {{ "menu/cancel", mediaviewMenuFg }};

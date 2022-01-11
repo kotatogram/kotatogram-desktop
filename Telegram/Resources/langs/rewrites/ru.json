@@ -259,5 +259,9 @@
 	"ktg_settings_remember_compress_images": "Запоминать сжатие изображений",
 	"ktg_settings_compress_images_default": "Сжимать изображения по умолчанию",
 	"ktg_pip_not_supported": "К сожалению, режим «Картинка-в-картинке» здесь не поддерживается.",
+	"ktg_jump_to_date_title": "Перейти к...",
+	"ktg_jump_to_date_button": "Перейти",
+	"ktg_jump_to_beginning": "Перейти в начало",
+	"ktg_show_calendar": "Показать календарь",
 	"dummy_last_string": ""
 }

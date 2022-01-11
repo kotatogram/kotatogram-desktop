@@ -1932,7 +1932,7 @@ void HistoryWidget::setupShortcuts() {
 				return true;
 			});
 			request->check(Command::JumpToDate, 1) && request->handle([=] {
-				controller()->showCalendar(Dialogs::Key(_history), QDate());
+				controller()->showCalendar(Dialogs::Key(_history), QDateTime());
 				return true;
 			});
 		}
