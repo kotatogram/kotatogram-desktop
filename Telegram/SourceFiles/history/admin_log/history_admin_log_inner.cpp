@@ -1459,7 +1459,7 @@ void InnerWidget::suggestRestrictParticipant(
 				editRestrictions(false, ChatRestrictionsInfo());
 			}).send();
 		}
-	});
+	}, user ? &st::menuIconRestrict : &st::menuIconRemove);
 
 	if (user) {
 		_menu->addAction(tr::lng_context_remove_from_group(tr::now), [=] {
@@ -1511,7 +1511,7 @@ void InnerWidget::suggestRestrictParticipant(
 					editRestrictions(false, bannedRights);
 				}).send();
 			}
-		});
+		}, &st::menuIconRemove);
 	}
 }
 
