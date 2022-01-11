@@ -762,6 +762,7 @@ void Filler::fill() {
 
 void Filler::fillChatsListActions() {
 	addHidePromotion();
+	addInfo();
 	addToggleArchive();
 	addTogglePin();
 	addToggleMute();
