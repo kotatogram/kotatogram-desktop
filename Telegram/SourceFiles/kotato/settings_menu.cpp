@@ -572,6 +572,7 @@ void SetupKotatoSystem(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_system"));
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	const auto qtScaleToggled = Ui::CreateChild<rpl::event_stream<bool>>(
 		container.get());
 	AddButton(
@@ -598,6 +599,7 @@ void SetupKotatoSystem(
 			confirmed,
 			cancelled));
 	}, container->lifetime());
+#endif // Qt < 6.0.0
 
 	if (Platform::IsLinux()) {
 		auto fileDialogTypeText = rpl::single(
