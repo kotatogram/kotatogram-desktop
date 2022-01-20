@@ -433,6 +433,25 @@ QSize Message::performCountOptimalSize() {
 				} else if (replyWidth) {
 					namew += st::msgPadding.right() + replyWidth;
 				}
+				const auto hasChatTypeIcon = [&]() {
+					if (item->isSponsored()) {
+						return true;
+					} else if (!item->isPost() && item->displayFrom()) {
+						const auto from = item->displayFrom();
+						if (from->isChat() || from->isMegagroup() || from->isChannel()) {
+							return true;
+						} else if (const auto user = from->asUser()) {
+							if (user->isInaccessible()
+								|| (user->isBot() && !user->isSupport() && !user->isRepliesChat())) {
+								return true;
+							}
+						}
+					}
+					return false;
+				}();
+				if (hasChatTypeIcon) {
+					namew += st::dialogsChatTypeSkip;
+				}
 				accumulate_max(maxWidth, namew);
 			} else if (via && !displayForwardedFrom()) {
 				accumulate_max(maxWidth, st::msgPadding.left() + via->maxWidth + st::msgPadding.right());
