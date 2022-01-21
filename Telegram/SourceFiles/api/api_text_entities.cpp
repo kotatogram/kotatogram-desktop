@@ -130,7 +130,7 @@ MTPVector<MTPMessageEntity> EntitiesToMTP(
 					return MTP_inputUserEmpty();
 				}
 				bool success;
-				UserId uid = qstr_uid.toInt(&success);
+				UserId uid = qstr_uid.toLongLong(&success);
 				if (success && session) {
 					if (uid == session->userId()) {
 						return MTP_inputUserSelf();
