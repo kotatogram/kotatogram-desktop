@@ -57,6 +57,7 @@ public:
 
 	std::vector<not_null<PeerData*>> selected() const;
 	bool hasSelected() const;
+	Fn<void()> goToChatRequest() const;
 
 	void peopleReceived(
 		const QString &query,
@@ -277,6 +278,10 @@ void ShareBox::prepare() {
 		if ((modifiers.testFlag(Qt::ControlModifier) && !cForwardChatOnClick())
 			|| modifiers.testFlag(Qt::MetaModifier)) {
 			submit({});
+		} else if (modifiers.testFlag(Qt::ShiftModifier)) {
+			if (_inner->selected().size() == 1 && _inner->goToChatRequest()) {
+				_inner->goToChatRequest()();
+			}
 		} else {
 			_inner->selectActive();
 			if (!modifiers.testFlag(Qt::ControlModifier) || cForwardChatOnClick()) {
@@ -1196,6 +1201,10 @@ void ShareBox::Inner::changePeerCheckState(
 
 bool ShareBox::Inner::hasSelected() const {
 	return _selected.size();
+}
+
+Fn<void()> ShareBox::Inner::goToChatRequest() const {
+	return _goToChatRequest;
 }
 
 void ShareBox::Inner::updateFilter(QString filter) {
