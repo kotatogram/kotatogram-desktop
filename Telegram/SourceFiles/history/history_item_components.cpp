@@ -412,7 +412,9 @@ QString ReplyMarkupClickHandler::copyToClipboardContextItemText() const {
 	return button
 		? ((button->type == Type::Url || button->type == Type::Auth) 
 			? tr::lng_context_copy_link(tr::now)
-			: ktr("ktg_copy_btn_callback"))
+			: (button->type == Type::Callback || button->type == Type::CallbackWithPassword)
+			? ktr("ktg_copy_btn_callback")
+			: QString())
 		: QString();
 }
 
