@@ -1249,7 +1249,9 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 				const auto error = GetErrorTextForSending(
 					peer,
 					items,
-					comment);
+					comment,
+					false, /* ignoreSlowmodeCountdown */
+					newDraft.options != Data::ForwardOptions::PreserveInfo);
 				if (!error.isEmpty()) {
 					return std::make_pair(error, peer);
 				}

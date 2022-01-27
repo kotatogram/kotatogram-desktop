@@ -43,12 +43,14 @@ void RequestDependentMessageData(
 [[nodiscard]] QString GetErrorTextForSending(
 	not_null<PeerData*> peer,
 	const HistoryItemsList &items,
-	bool ignoreSlowmodeCountdown = false);
+	bool ignoreSlowmodeCountdown = false,
+	bool unquoted = false);
 [[nodiscard]] QString GetErrorTextForSending(
 	not_null<PeerData*> peer,
 	const HistoryItemsList &items,
 	const TextWithTags &comment,
-	bool ignoreSlowmodeCountdown = false);
+	bool ignoreSlowmodeCountdown = false,
+	bool unquoted = false);
 void FastShareMessage(not_null<HistoryItem*> item);
 
 class HistoryMessage final : public HistoryItem {
