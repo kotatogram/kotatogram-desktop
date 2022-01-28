@@ -49,7 +49,9 @@ public:
 		int w = 0,
 		int h = 0,
 		ImageRoundRadius radius = ImageRoundRadius::None,
-		RectParts corners = RectPart::AllCorners) const;
+		RectParts corners = RectPart::AllCorners,
+		int outerw = -1,
+		int outerh = -1) const;
 	[[nodiscard]] const QPixmap &pixBlurred(int w = 0, int h = 0) const;
 	[[nodiscard]] const QPixmap &pixColored(style::color add, int w = 0, int h = 0) const;
 	[[nodiscard]] const QPixmap &pixBlurredColored(

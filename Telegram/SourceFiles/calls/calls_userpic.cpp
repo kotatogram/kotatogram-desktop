@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_photo_media.h"
 #include "data/data_file_origin.h"
 #include "ui/empty_userpic.h"
+#include "ui/rect_part.h"
 #include "apiwrap.h" // requestFullPeer.
 #include "styles/style_calls.h"
 #include "styles/style_widgets.h"
@@ -193,13 +194,28 @@ void Userpic::createCache(Image *image) {
 			height = qMax((height * real) / width, 1);
 			width = real;
 		}
-		_userPhoto = image->pixNoCache(
-			width,
-			height,
-			options,
-			size,
-			size);
-		_userPhoto.setDevicePixelRatio(cRetinaFactor());
+		const auto callRounded = [=](const ImageRoundRadius radius) {
+			return image->pixRounded(width, height, radius, RectPart::AllCorners, size, size);
+		};
+		switch (cUserpicCornersType()) {
+			case 0:
+				_userPhoto = callRounded(ImageRoundRadius::None);
+				break;
+			case 1:
+				_userPhoto = callRounded(ImageRoundRadius::Small);
+				break;
+			case 2:
+				_userPhoto = callRounded(ImageRoundRadius::Large);
+				break;
+			default:
+				_userPhoto = image->pixNoCache(
+					width,
+					height,
+					options,
+					size,
+					size);
+				_userPhoto.setDevicePixelRatio(cRetinaFactor());
+		}
 	} else {
 		auto filled = QImage(QSize(real, real), QImage::Format_ARGB32_Premultiplied);
 		filled.setDevicePixelRatio(cRetinaFactor());
