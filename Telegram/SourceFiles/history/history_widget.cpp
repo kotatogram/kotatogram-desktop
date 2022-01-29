@@ -5915,6 +5915,17 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 					int settingsKey) {
 				if (_history && _toForward.options != newOptions) {
 					_menu->addAction(ktr(langKey), [=] {
+						const auto error = GetErrorTextForSending(
+							_history->peer,
+							_toForward.items,
+							true,
+							newOptions != Options::PreserveInfo);
+						if (!error.isEmpty()) {
+							Ui::ShowMultilineToast({
+								.text = error
+							});
+							return;
+						}
 						_toForward.options = newOptions;
 						_history->setForwardDraft({
 							.ids = session().data().itemsToIds(_toForward.items),

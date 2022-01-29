@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_media_types.h"
 
+#include "kotato/kotato_lang.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_location_manager.h"
@@ -411,7 +412,7 @@ bool Media::forceForwardedInfo() const {
 	return false;
 }
 
-QString Media::errorTextForForward(not_null<PeerData*> peer) const {
+QString Media::errorTextForForward(not_null<PeerData*> peer, bool unquoted) const {
 	return QString();
 }
 
@@ -603,7 +604,7 @@ bool MediaPhoto::allowsEditMedia() const {
 	return true;
 }
 
-QString MediaPhoto::errorTextForForward(not_null<PeerData*> peer) const {
+QString MediaPhoto::errorTextForForward(not_null<PeerData*> peer, bool unquoted) const {
 	return Data::RestrictionError(
 		peer,
 		ChatRestriction::SendMedia
@@ -911,7 +912,7 @@ bool MediaFile::dropForwardedInfo() const {
 	return _document->isSong();
 }
 
-QString MediaFile::errorTextForForward(not_null<PeerData*> peer) const {
+QString MediaFile::errorTextForForward(not_null<PeerData*> peer, bool unquoted) const {
 	if (const auto sticker = _document->sticker()) {
 		if (const auto error = Data::RestrictionError(
 				peer,
@@ -1425,7 +1426,7 @@ TextForMimeData MediaGame::clipboardText() const {
 	return TextForMimeData();
 }
 
-QString MediaGame::errorTextForForward(not_null<PeerData*> peer) const {
+QString MediaGame::errorTextForForward(not_null<PeerData*> peer, bool unquoted) const {
 	return Data::RestrictionError(
 		peer,
 		ChatRestriction::SendGames
@@ -1573,9 +1574,12 @@ TextForMimeData MediaPoll::clipboardText() const {
 	return TextForMimeData::Simple(text);
 }
 
-QString MediaPoll::errorTextForForward(not_null<PeerData*> peer) const {
+QString MediaPoll::errorTextForForward(not_null<PeerData*> peer, bool unquoted) const {
 	if (_poll->publicVotes() && peer->isChannel() && !peer->isMegagroup()) {
 		return tr::lng_restricted_send_public_polls(tr::now);
+	}
+	if (unquoted && _poll->quiz() && !_poll->voted() && !_poll->closed()) {
+		return ktr("ktg_forward_quiz_unquoted");
 	}
 	return Data::RestrictionError(
 		peer,

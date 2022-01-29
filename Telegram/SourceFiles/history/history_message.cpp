@@ -127,14 +127,15 @@ QString GetErrorTextForSending(
 		not_null<PeerData*> peer,
 		const HistoryItemsList &items,
 		const TextWithTags &comment,
-		bool ignoreSlowmodeCountdown) {
+		bool ignoreSlowmodeCountdown,
+		bool unquoted) {
 	if (!peer->canWrite()) {
 		return tr::lng_forward_cant(tr::now);
 	}
 
 	for (const auto &item : items) {
 		if (const auto media = item->media()) {
-			const auto error = media->errorTextForForward(peer);
+			const auto error = media->errorTextForForward(peer, unquoted);
 			if (!error.isEmpty() && error != qstr("skip")) {
 				return error;
 			}
@@ -415,8 +416,9 @@ MTPMessageReplyHeader NewMessageReplyHeader(const Api::SendAction &action) {
 QString GetErrorTextForSending(
 		not_null<PeerData*> peer,
 		const HistoryItemsList &items,
-		bool ignoreSlowmodeCountdown) {
-	return GetErrorTextForSending(peer, items, {}, ignoreSlowmodeCountdown);
+		bool ignoreSlowmodeCountdown,
+		bool unquoted) {
+	return GetErrorTextForSending(peer, items, {}, ignoreSlowmodeCountdown, unquoted);
 }
 
 struct HistoryMessage::CreateConfig {
