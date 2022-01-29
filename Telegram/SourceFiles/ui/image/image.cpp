@@ -352,7 +352,9 @@ const QPixmap &Image::pixRounded(
 		int w,
 		int h,
 		ImageRoundRadius radius,
-		RectParts corners) const {
+		RectParts corners,
+		int outerw,
+		int outerh) const {
 	if (w <= 0 || !width() || !height()) {
 		w = width();
 	} else {
@@ -376,7 +378,7 @@ const QPixmap &Image::pixRounded(
 	auto k = PixKey(w, h, options);
 	auto i = _cache.find(k);
 	if (i == _cache.cend()) {
-		auto p = pixNoCache(w, h, options);
+		auto p = pixNoCache(w, h, options, outerw, outerh);
 		p.setDevicePixelRatio(cRetinaFactor());
 		i = _cache.emplace_or_assign(k, p).first;
 	}
