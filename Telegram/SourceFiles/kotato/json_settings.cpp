@@ -93,7 +93,7 @@ bool ReadObjectOption(QJsonObject obj, QString key, std::function<void(QJsonObje
 	return (readValueResult && readResult);
 }
 
-bool ReadAccountObjectOption(QJsonObject obj, QString key, std::function<void(int, bool, QJsonValue)> callback, std::function<bool(QJsonValue)> test) {
+bool ReadAccountObjectOption(QJsonObject obj, QString key, std::function<void(uint64_t, bool, QJsonValue)> callback, std::function<bool(QJsonValue)> test) {
 	auto readResult = false;
 	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
 		if (!v.isObject()) {
@@ -120,7 +120,7 @@ bool ReadAccountObjectOption(QJsonObject obj, QString key, std::function<void(in
 				key = key.mid(5);
 			}
 
-			auto accountId = key.toInt(&isInt, 10);
+			auto accountId = key.toULongLong(&isInt, 10);
 
 			if (isInt) {
 				callback(accountId, isTestAccount, i.value());
