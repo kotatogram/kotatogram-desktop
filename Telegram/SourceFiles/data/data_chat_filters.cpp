@@ -316,18 +316,36 @@ bool ChatFilter::contains(not_null<History*> history) const {
 
 		const auto peer = history->peer;
 		if (const auto chat = peer->asChat()) {
-			if ((chat->amCreator() && (_flags & Flag::Owned) && !(_flags & Flag::NotOwned))
-				|| (chat->hasAdminRights() && (_flags & Flag::Admin) && !(_flags & Flag::NotAdmin))
-				|| (!chat->amCreator() && !(_flags & Flag::Owned) && (_flags & Flag::NotOwned))
-				|| (!chat->hasAdminRights() && !(_flags & Flag::Admin) && (_flags & Flag::NotAdmin))) {
-				return true;
+			// if i created the chat:
+			// // if the filter excludes owned chats, don't add in list
+			// // if the filter excludes non-admin chats, add only if filter includes owned chats
+			// else if i am admin in chat:
+			// // if the filter excludes admin chats, don't add in list
+			// // if the filter excludes non-owned chats, add only if filter includes admin chats
+			// else:
+			// // add in list only if filter doesn't exclude non-owned or non-admin chats
+			if (chat->amCreator()) {
+				return !(_flags & Flag::NotOwned) && ((_flags & Flag::Admin)
+					? (_flags & Flag::Owned)
+					: true);
+			} else if (chat->hasAdminRights()) {
+				return !(_flags & Flag::NotAdmin) && ((_flags & Flag::Owned)
+					? (_flags & Flag::Admin)
+					: true);
+			} else {
+				return !(_flags & Flag::Owned) && !(_flags & Flag::Admin);
 			}
 		} else if (const auto channel = peer->asChannel()) {
-			if ((channel->amCreator() && (_flags & Flag::Owned) && !(_flags & Flag::NotOwned))
-				|| (channel->hasAdminRights() && (_flags & Flag::Admin) && !(_flags & Flag::NotAdmin))
-				|| (!channel->amCreator() && !(_flags & Flag::Owned) && (_flags & Flag::NotOwned))
-				|| (!channel->hasAdminRights() && !(_flags & Flag::Admin) && (_flags & Flag::NotAdmin))) {
-				return true;
+			if (channel->amCreator()) {
+				return !(_flags & Flag::NotOwned) && ((_flags & Flag::Admin)
+					? (_flags & Flag::Owned)
+					: true);
+			} else if (channel->hasAdminRights()) {
+				return !(_flags & Flag::NotAdmin) && ((_flags & Flag::Owned)
+					? (_flags & Flag::Admin)
+					: true);
+			} else {
+				return !(_flags & Flag::Owned) && !(_flags & Flag::Admin);
 			}
 		}
 
