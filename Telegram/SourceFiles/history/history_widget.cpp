@@ -5930,7 +5930,7 @@ void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
 							newOptions != Options::PreserveInfo);
 						if (!error.isEmpty()) {
 							Ui::ShowMultilineToast({
-								.text = error
+								.text = { error }
 							});
 							return;
 						}
