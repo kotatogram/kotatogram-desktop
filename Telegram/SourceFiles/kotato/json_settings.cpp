@@ -649,9 +649,11 @@ bool Manager::readCustomFile() {
 		cSetShowTopBarUserpic(v);
 	});
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	ReadBoolOption(settings, "qt_scale", [&](auto v) {
 		cSetQtScale(v);
 	});
+#endif // Qt < 6.0.0
 
 	ReadIntOption(settings, "file_dialog_type", [&](auto v) {
 		using Platform::FileDialog::ImplementationType;
