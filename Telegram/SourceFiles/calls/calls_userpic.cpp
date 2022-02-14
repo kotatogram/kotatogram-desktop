@@ -182,7 +182,7 @@ void Userpic::refreshPhoto() {
 void Userpic::createCache(Image *image) {
 	const auto size = this->size();
 	const auto real = size * cIntRetinaFactor();
-	// auto options = Images::Option::Smooth | Images::Option::Circled;
+	auto options = Images::Option::Smooth | Images::Option::Circled;
 	// _useTransparency ? (Images::Option::RoundedLarge | Images::Option::RoundedTopLeft | Images::Option::RoundedTopRight | Images::Option::Smooth) : Images::Option::None;
 	if (image) {
 		auto width = image->width();
