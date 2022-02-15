@@ -44,6 +44,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "platform/platform_specific.h"
 #include "base/platform/base_platform_info.h"
+#include "base/power_save_blocker.h"
 #include "window/main_window.h"
 #include "webrtc/webrtc_video_track.h"
 #include "webrtc/webrtc_media_devices.h"
@@ -61,8 +62,8 @@ Panel::Panel(not_null<Call*> call)
 , _user(call->user())
 , _layerBg(std::make_unique<Ui::LayerManager>(widget()))
 #ifndef Q_OS_MAC
-, _controls(std::make_unique<Ui::Platform::TitleControls>(
-	widget(),
+, _controls(Ui::Platform::SetupSeparateTitleControls(
+	window(),
 	st::callTitle,
 	[=](bool maximized) { toggleFullScreen(maximized); }))
 #endif // !Q_OS_MAC
@@ -144,7 +145,7 @@ void Panel::initWindow() {
 			return Flag::None | Flag(0);
 		}
 #ifndef Q_OS_MAC
-		if (_controls->geometry().contains(widgetPoint)) {
+		if (_controls->controls.geometry().contains(widgetPoint)) {
 			return Flag::None | Flag(0);
 		}
 #endif // !Q_OS_MAC
@@ -357,6 +358,7 @@ void Panel::reinitWithCall(Call *call) {
 	if (!_call) {
 		_incoming = nullptr;
 		_outgoingVideoBubble = nullptr;
+		_powerSaveBlocker = nullptr;
 		return;
 	}
 
@@ -497,6 +499,11 @@ void Panel::reinitWithCall(Call *call) {
 	_camera->raise();
 	_mute->raise();
 
+	_powerSaveBlocker = std::make_unique<base::PowerSaveBlocker>(
+		base::PowerSaveBlockType::PreventDisplaySleep,
+		u"Video call is active"_q,
+		window()->windowHandle());
+
 	_incoming->widget()->lower();
 }
 
@@ -550,7 +557,7 @@ void Panel::initLayout() {
 	}, widget()->lifetime());
 
 #ifndef Q_OS_MAC
-	_controls->raise();
+	_controls->wrap.raise();
 #endif // !Q_OS_MAC
 }
 
@@ -628,7 +635,7 @@ void Panel::updateControlsGeometry() {
 	}
 	if (_fingerprint) {
 #ifndef Q_OS_MAC
-		const auto controlsGeometry = _controls->geometry();
+		const auto controlsGeometry = _controls->controls.geometry();
 		const auto halfWidth = widget()->width() / 2;
 		const auto minLeft = (controlsGeometry.center().x() < halfWidth)
 			? (controlsGeometry.width() + st::callFingerprintTop)
@@ -804,6 +811,10 @@ void Panel::stateChanged(State state) {
 		&& (state != State::EndedByOtherDevice)
 		&& (state != State::FailedHangingUp)
 		&& (state != State::Failed)) {
+		if (state == State::Busy) {
+			_powerSaveBlocker = nullptr;
+		}
+
 		auto toggleButton = [&](auto &&button, bool visible) {
 			button->toggle(
 				visible,

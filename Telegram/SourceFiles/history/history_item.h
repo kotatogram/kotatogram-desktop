@@ -16,7 +16,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <any>
 
-enum class UnreadMentionType;
 struct HistoryMessageReplyMarkup;
 class ReplyKeyboard;
 class HistoryMessage;
@@ -42,6 +41,7 @@ struct RippleAnimation;
 
 namespace Data {
 struct MessagePosition;
+struct RecentReaction;
 class Media;
 class MessageReactions;
 } // namespace Data
@@ -49,6 +49,10 @@ class MessageReactions;
 namespace Window {
 class SessionController;
 } // namespace Window
+
+namespace HistoryUnreadThings {
+enum class AddType;
+} // namespace HistoryUnreadThings
 
 namespace HistoryView {
 struct TextState;
@@ -140,9 +144,13 @@ public:
 	void markClientSideAsRead();
 	[[nodiscard]] bool mentionsMe() const;
 	[[nodiscard]] bool isUnreadMention() const;
+	[[nodiscard]] bool hasUnreadReaction() const;
 	[[nodiscard]] bool isUnreadMedia() const;
+	[[nodiscard]] bool isIncomingUnreadMedia() const;
 	[[nodiscard]] bool hasUnreadMediaFlag() const;
-	void markMediaRead();
+	void markReactionsRead();
+	void markMediaAndMentionRead();
+	bool markContentsRead(bool fromThisClient = false);
 	void setIsPinned(bool isPinned);
 
 	// For edit media in history_message.
@@ -274,7 +282,7 @@ public:
 	virtual void contributeToSlowmode(TimeId realDate = 0) {
 	}
 
-	virtual void addToUnreadMentions(UnreadMentionType type);
+	virtual void addToUnreadThings(HistoryUnreadThings::AddType type);
 	virtual void destroyHistoryEntry() {
 	}
 	[[nodiscard]] virtual Storage::SharedMediaTypesMask sharedMediaTypes() const = 0;
@@ -290,7 +298,7 @@ public:
 	[[nodiscard]] virtual QString notificationHeader() const {
 		return QString();
 	}
-	[[nodiscard]] virtual QString notificationText() const;
+	[[nodiscard]] virtual TextWithEntities notificationText() const;
 
 	using ToPreviewOptions = HistoryView::ToPreviewOptions;
 	using ItemPreview = HistoryView::ItemPreview;
@@ -299,7 +307,7 @@ public:
 	// Example: "[link1-start]You:[link1-end] [link1-start]Photo,[link1-end] caption text"
 	[[nodiscard]] virtual ItemPreview toPreview(
 		ToPreviewOptions options) const;
-	[[nodiscard]] virtual QString inReplyText() const;
+	[[nodiscard]] virtual TextWithEntities inReplyText() const;
 	[[nodiscard]] virtual Ui::Text::IsolatedEmoji isolatedEmoji() const;
 	[[nodiscard]] virtual TextWithEntities originalText() const {
 		return TextWithEntities();
@@ -359,8 +367,14 @@ public:
 	void updateReactions(const MTPMessageReactions *reactions);
 	void updateReactionsUnknown();
 	[[nodiscard]] const base::flat_map<QString, int> &reactions() const;
+	[[nodiscard]] auto recentReactions() const
+	-> const base::flat_map<
+		QString,
+		std::vector<Data::RecentReaction>> &;
 	[[nodiscard]] bool canViewReactions() const;
 	[[nodiscard]] QString chosenReaction() const;
+	[[nodiscard]] QString lookupUnreadReaction(
+		not_null<UserData*> from) const;
 	[[nodiscard]] crl::time lastReactionsRefreshTime() const;
 
 	[[nodiscard]] bool hasDirectLink() const;
@@ -440,6 +454,9 @@ protected:
 	void finishEdition(int oldKeyboardTop);
 	void finishEditionToEmpty();
 
+	void setReactions(const MTPMessageReactions *reactions);
+	[[nodiscard]] bool changeReactions(const MTPMessageReactions *reactions);
+
 	const not_null<History*> _history;
 	const not_null<PeerData*> _from;
 	MessageFlags _flags = 0;
@@ -467,7 +484,6 @@ protected:
 	crl::time _reactionsLastRefreshed = 0;
 
 private:
-
 	TimeId _date = 0;
 	TimeId _ttlDestroyAt = 0;
 

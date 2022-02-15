@@ -49,6 +49,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "base/qt_signal_producer.h"
 #include "base/timer_rpl.h"
+#include "base/power_save_blocker.h"
 #include "apiwrap.h" // api().kick.
 #include "api/api_chat_participants.h" // api().kick.
 #include "webrtc/webrtc_video_track.h"
@@ -88,10 +89,14 @@ Panel::Panel(not_null<GroupCall*> call)
 , _peer(call->peer())
 , _layerBg(std::make_unique<Ui::LayerManager>(widget()))
 #ifndef Q_OS_MAC
-, _controls(std::make_unique<Ui::Platform::TitleControls>(
-	widget(),
+, _controls(Ui::Platform::SetupSeparateTitleControls(
+	window(),
 	st::groupCallTitle))
 #endif // !Q_OS_MAC
+, _powerSaveBlocker(std::make_unique<base::PowerSaveBlocker>(
+	base::PowerSaveBlockType::PreventDisplaySleep,
+	u"Video chat is active"_q,
+	window()->windowHandle()))
 , _viewport(
 	std::make_unique<Viewport>(widget(), PanelMode::Wide, _window.backend()))
 , _mute(std::make_unique<Ui::CallMuteButton>(
@@ -302,9 +307,9 @@ void Panel::initWidget() {
 			updateControlsGeometry();
 		}
 
-		// title geometry depends on _controls->geometry,
+		// some geometries depends on _controls->controls.geometry,
 		// which is not updated here yet.
-		crl::on_main(widget(), [=] { refreshTitle(); });
+		crl::on_main(widget(), [=] { updateControlsGeometry(); });
 	}, lifetime());
 }
 
@@ -1368,7 +1373,7 @@ void Panel::initLayout() {
 	initGeometry();
 
 #ifndef Q_OS_MAC
-	_controls->raise();
+	_controls->wrap.raise();
 
 	Ui::Platform::TitleControlsLayoutChanged(
 	) | rpl::start_with_next([=] {
@@ -1413,7 +1418,7 @@ QRect Panel::computeTitleRect() const {
 #ifdef Q_OS_MAC
 	return QRect(70, 0, width - remove - 70, 28);
 #else // Q_OS_MAC
-	const auto controls = _controls->geometry();
+	const auto controls = _controls->controls.geometry();
 	const auto right = controls.x() + controls.width() + skip;
 	return (controls.center().x() < width / 2)
 		? QRect(right, 0, width - right - remove, controls.height())
@@ -1884,7 +1889,8 @@ void Panel::updateControlsGeometry() {
 #ifdef Q_OS_MAC
 	const auto controlsOnTheLeft = true;
 #else // Q_OS_MAC
-	const auto controlsOnTheLeft = _controls->geometry().center().x()
+	const auto center = _controls->controls.geometry().center();
+	const auto controlsOnTheLeft = center.x()
 		< widget()->width() / 2;
 #endif // Q_OS_MAC
 	const auto menux = st::groupCallMenuTogglePosition.x();

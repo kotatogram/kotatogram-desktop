@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/update_checker.h"
 #include "core/sandbox.h"
 #include "base/concurrent_timer.h"
+#include "base/options.h"
 
 #include <QtCore/QLoggingCategory>
 
@@ -66,7 +67,7 @@ FilteredCommandLineArguments::FilteredCommandLineArguments(
 #endif // !Q_OS_WIN
 	}
 #elif defined Q_OS_UNIX
-	if (Platform::DesktopEnvironment::IsGnome()) {
+	if (Platform::DesktopEnvironment::IsGnome() && qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
 		pushArgument("-platform");
 		pushArgument("xcb;wayland");
 	}
@@ -332,6 +333,7 @@ int Launcher::exec() {
 
 	// Must be started before Platform is started.
 	Logs::start(this);
+	base::options::init(cWorkingDir() + "tdata/experimental_options.json");
 	Kotato::JsonSettings::Load();
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)

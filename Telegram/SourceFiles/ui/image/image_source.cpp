@@ -15,7 +15,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "history/history.h"
 #include "main/main_session.h"
-#include "app.h"
 
 #include <QtCore/QBuffer>
 

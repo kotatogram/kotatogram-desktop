@@ -642,6 +642,8 @@ rpl::producer<QString> TitleValue(
 			return tr::lng_filters_title();
 		case Section::SettingsType::Calls:
 			return tr::lng_settings_section_call_settings();
+		case Section::SettingsType::Experimental:
+			return tr::lng_settings_experimental();
 		case Section::SettingsType::Kotato:
 			return rktr("ktg_settings_kotato");
 		}

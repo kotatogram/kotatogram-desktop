@@ -348,6 +348,23 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_notification_sample" = "This is a sample notification";
 "lng_notification_reminder" = "Reminder";
 
+"lng_reaction_text" = "{reaction} to your «{text}»";
+"lng_reaction_notext" = "{reaction} to your message";
+"lng_reaction_photo" = "{reaction} to your photo";
+"lng_reaction_video" = "{reaction} to your video";
+"lng_reaction_video_message" = "{reaction} to your video message";
+"lng_reaction_document" = "{reaction} to your file";
+"lng_reaction_sticker" = "{reaction} to your {emoji}sticker";
+"lng_reaction_voice_message" = "{reaction} to your voice message";
+"lng_reaction_contact" = "{reaction} to your contact {name}";
+"lng_reaction_location" = "{reaction} to your map";
+"lng_reaction_live_location" = "{reaction} to your live location";
+"lng_reaction_poll" = "{reaction} to your poll {title}";
+"lng_reaction_quiz" = "{reaction} to your quiz {title}";
+"lng_reaction_game" = "{reaction} to your game";
+"lng_reaction_invoice" = "{reaction} to your invoice";
+"lng_reaction_gif" = "{reaction} to your GIF";
+
 "lng_settings_section_general" = "General";
 "lng_settings_change_lang" = "Change language";
 "lng_languages" = "Languages";
@@ -372,8 +389,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_auto_start_disabled_uwp" = "Starting with the system was disabled in Windows Settings.\n\nPlease enable Telegram Desktop in the Startup Apps Settings.";
 "lng_settings_open_system_settings" = "Open Settings";
 "lng_settings_add_sendto" = "Place Telegram in \"Send to\" menu";
+"lng_settings_mac_warn_before_quit" = "Show warning before quitting with {text}";
 "lng_settings_section_scale" = "Interface Scale";
 "lng_settings_scale_auto" = "Auto ({cur})";
+
+"lng_settings_experimental" = "Experimental settings";
+"lng_settings_experimental_about" = "Warning! Those are experimental settings. Some may not work. Others may break the app. Any of them may disappear in the next version without a trace. Use at your own risk.";
+"lng_settings_experimental_restore" = "Restore default values";
+"lng_settings_experimental_irrelevant" = "This option isn't relevant for your system.";
 
 "lng_settings_section_chat_settings" = "Chat Settings";
 "lng_settings_replace_emojis" = "Replace emoji";
@@ -713,7 +736,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_sure_logout" = "Are you sure you want to log out?";
 
 "lng_settings_need_restart" = "You need to restart for applying some of the new settings. Restart now?";
-"lng_settings_restart_now" = "RESTART";
+"lng_settings_restart_now" = "Restart";
+"lng_settings_restart_later" = "Later";
 
 "lng_sessions_header" = "Current session";
 "lng_sessions_other_header" = "Active sessions";
@@ -1255,10 +1279,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_action_you_proximity_reached" = "You are now within {distance} from {user}";
 "lng_action_you_theme_changed" = "You changed chat theme to {emoji}";
 "lng_action_theme_changed" = "{from} changed chat theme to {emoji}";
-"lng_action_theme_changed_channel" = "Channel theme changed to {emoji}";
 "lng_action_you_theme_disabled" = "You disabled chat theme";
 "lng_action_theme_disabled" = "{from} disabled chat theme";
-"lng_action_theme_disabled_channel" = "Channel theme disabled";
 "lng_action_proximity_distance_m#one" = "{count} meter";
 "lng_action_proximity_distance_m#other" = "{count} metres";
 "lng_action_proximity_distance_km#one" = "{count} km";
@@ -1735,6 +1757,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_context_mark_read_all" = "Mark all chats as read";
 "lng_context_mark_read_all_sure" = "Are you sure you want to mark all chats as read?";
 "lng_context_mark_read_mentions_all" = "Mark all mentions as read";
+"lng_context_mark_read_reactions_all" = "Read all reactions";
 "lng_context_archive_expand" = "Expand";
 "lng_context_archive_collapse" = "Collapse";
 "lng_context_archive_to_menu" = "Move to main menu";
@@ -1806,6 +1829,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_context_seen_reacted#other" = "{count} Reacted";
 "lng_context_seen_reacted_none" = "Nobody Reacted";
 "lng_context_seen_reacted_all" = "Show All Reactions";
+"lng_context_set_as_quick" = "Set As Quick";
 
 "lng_send_image_empty" = "Could not send an empty file: {name}";
 "lng_send_image_too_large" = "Could not send a file, because it is larger than 1500 MB: {name}";
@@ -1827,7 +1851,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_forward_cant" = "Sorry, no way to forward here :(";
 "lng_forward_share_contact" = "Share contact to {recipient}?";
 "lng_forward_share_cant" = "Sorry, no way to share contact here :(";
-
 
 "lng_forward_send_files_cant" = "Sorry, no way to send media here :(";
 "lng_forward_send" = "Send";
@@ -1895,6 +1918,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_delete_for_me_chat_hint#other" = "This will delete them just for you, not for other participants of the chat.";
 "lng_delete_for_me_hint#one" = "This will delete it just for you.";
 "lng_delete_for_me_hint#other" = "This will delete them just for you.";
+"lng_delete_clear_for_me" = "This will clear history just for you, not for other participants of the chat.";
 "lng_edit_auto_delete_settings" = "Edit Auto-Delete Settings";
 "lng_enable_auto_delete" = "Enable Auto-Delete";
 "lng_selected_unsend_about_user_one" = "You can also delete the message you sent from {user}'s inbox by checking \"Unsend my messages\".";
@@ -1908,6 +1932,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_delete_for_other_my" = "Unsend my messages";
 "lng_box_delete" = "Delete";
 "lng_box_leave" = "Leave";
+
+"lng_upload_sure_stop" = "Are you sure you want to stop uploading your files?\n\nIf you do, you'll need to start over.";
+"lng_upload_show_file" = "Show file";
 
 "lng_about_version" = "version {version}";
 "lng_about_text1" = "Official free messaging app based on {api_link}\nfor speed and security.";
@@ -1975,6 +2002,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_formatting_link_text" = "Text";
 "lng_formatting_link_url" = "URL";
 "lng_formatting_link_create" = "Create";
+
+"lng_text_copied" = "Text copied to clipboard.";
 
 "lng_spellchecker_submenu" = "Spelling";
 "lng_spellchecker_add" = "Add to Dictionary";
@@ -3043,6 +3072,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_mac_menu_preferences" = "Preferences...";
 "lng_mac_menu_quit_telegram" = "Quit {telegram}";
 "lng_mac_menu_about_telegram" = "About {telegram}";
+//"lng_mac_menu_warn_before_quit" = "Warn Before Quitting ({text})";
 "lng_mac_menu_file" = "File";
 "lng_mac_menu_logout" = "Log Out";
 "lng_mac_menu_edit" = "Edit";
@@ -3068,5 +3098,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_mac_menu_player_stop" = "Stop";
 
 "lng_mac_touchbar_favorite_stickers" = "Favorite stickers";
+
+"lng_mac_hold_to_quit" = "Hold {text} to Quit";
 
 // Keys finished

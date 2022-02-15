@@ -17,6 +17,10 @@ class MainWidget;
 class FileUploader;
 class Translator;
 
+namespace Platform {
+class Integration;
+} // namespace Platform
+
 namespace Storage {
 class Databases;
 } // namespace Storage
@@ -34,10 +38,6 @@ class System;
 namespace ChatHelpers {
 class EmojiKeywords;
 } // namespace ChatHelpers
-
-namespace App {
-void quit();
-} // namespace App
 
 namespace Main {
 class Domain;
@@ -103,6 +103,17 @@ namespace Core {
 class Launcher;
 struct LocalUrlHandler;
 
+enum class LaunchState {
+	Running,
+	QuitRequested,
+	QuitProcessed,
+};
+
+enum class QuitReason {
+	Default,
+	QtQuitEvent,
+};
+
 class Application final : public QObject {
 public:
 	struct ProxyChange {
@@ -115,8 +126,11 @@ public:
 	Application &operator=(const Application &other) = delete;
 	~Application();
 
-	[[nodiscard]] not_null<Launcher*> launcher() const {
-		return _launcher;
+	[[nodiscard]] Launcher &launcher() const {
+		return *_launcher;
+	}
+	[[nodiscard]] Platform::Integration &platformIntegration() const {
+		return *_platformIntegration;
 	}
 
 	void run();
@@ -133,7 +147,13 @@ public:
 	// Windows interface.
 	bool hasActiveWindow(not_null<Main::Session*> session) const;
 	void saveCurrentDraftsToHistories();
+	[[nodiscard]] Window::Controller *primaryWindow() const;
 	[[nodiscard]] Window::Controller *activeWindow() const;
+	[[nodiscard]] Window::Controller *separateWindowForPeer(
+		not_null<PeerData*> peer) const;
+	Window::Controller *ensureSeparateWindowForPeer(
+		not_null<PeerData*> peer,
+		MsgId showAtMsgId);
 	bool closeActiveWindow();
 	bool minimizeActiveWindow();
 	[[nodiscard]] QWidget *getFileDialogParent();
@@ -147,9 +167,7 @@ public:
 	[[nodiscard]] QPoint getPointForCallPanelCenter() const;
 
 	void startSettingsAndBackground();
-	[[nodiscard]] Settings &settings() {
-		return _settings;
-	}
+	[[nodiscard]] Settings &settings();
 	void saveSettingsDelayed(crl::time delay = kDefaultSaveDelay);
 	void saveSettings();
 
@@ -228,9 +246,11 @@ public:
 	}
 
 	void logout(Main::Account *account = nullptr);
+	void logoutWithChecks(Main::Account *account);
 	void forceLogOut(
 		not_null<Main::Account*> account,
 		const TextWithEntities &explanation);
+	[[nodiscard]] bool uploadPreventsQuit();
 	void checkLocalTime();
 	void lockByPasscode();
 	void unlockPasscode();
@@ -241,6 +261,8 @@ public:
 	void checkAutoLock(crl::time lastNonIdleTime = 0);
 	void checkAutoLockIn(crl::time time);
 	void localPasscodeChanged();
+
+	[[nodiscard]] bool preventsQuit(QuitReason reason);
 
 	[[nodiscard]] crl::time lastNonIdleTime() const;
 	void updateNonIdle();
@@ -290,8 +312,7 @@ private:
 	void startEmojiImageLoader();
 	void startSystemDarkModeViewer();
 
-	friend void App::quit();
-	static void QuitAttempt();
+	friend void QuitAttempt();
 	void quitDelayed();
 	[[nodiscard]] bool readyToQuit();
 
@@ -314,13 +335,13 @@ private:
 	};
 	InstanceSetter _setter = { this };
 
-	not_null<Launcher*> _launcher;
+	const not_null<Launcher*> _launcher;
 	rpl::event_stream<ProxyChange> _proxyChanges;
 
 	// Some fields are just moved from the declaration.
 	struct Private;
 	const std::unique_ptr<Private> _private;
-	Settings _settings;
+	const std::unique_ptr<Platform::Integration> _platformIntegration;
 
 	const std::unique_ptr<Storage::Databases> _databases;
 	const std::unique_ptr<Ui::Animations::Manager> _animationsManager;
@@ -336,7 +357,12 @@ private:
 	const std::unique_ptr<Main::Domain> _domain;
 	const std::unique_ptr<Export::Manager> _exportManager;
 	const std::unique_ptr<Calls::Instance> _calls;
-	std::unique_ptr<Window::Controller> _window;
+	std::unique_ptr<Window::Controller> _primaryWindow;
+	base::flat_map<
+		not_null<History*>,
+		std::unique_ptr<Window::Controller>> _secondaryWindows;
+	Window::Controller *_lastActiveWindow = nullptr;
+
 	std::unique_ptr<Media::View::OverlayWidget> _mediaView;
 	const std::unique_ptr<Lang::Instance> _langpack;
 	const std::unique_ptr<Lang::CloudManager> _langCloudManager;
@@ -370,5 +396,13 @@ private:
 
 [[nodiscard]] bool IsAppLaunched();
 [[nodiscard]] Application &App();
+
+[[nodiscard]] LaunchState CurrentLaunchState();
+void SetLaunchState(LaunchState state);
+
+void Quit(QuitReason reason = QuitReason::Default);
+[[nodiscard]] bool Quitting();
+
+void Restart();
 
 } // namespace Core

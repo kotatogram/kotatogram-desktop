@@ -32,7 +32,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "media/audio/media_audio_track.h"
 #include "settings/settings_common.h"
 #include "api/api_updates.h"
-#include "base/qt_adapters.h"
+#include "base/qt/qt_common_adapters.h"
+#include "base/custom_app_icon.h"
 
 #include "zlib.h"
 
@@ -286,6 +287,29 @@ auto GenerateCodes() {
 			Lang::GetInstance().id());
 		Ui::Toast::Show(ktr("ktg_language_reloaded"));
 	});
+
+#ifdef Q_OS_MAC
+	codes.emplace(qsl("customicon"), [](SessionController *window) {
+		const auto iconFilters = qsl("Icon files (*.icns *.png);;") + FileDialog::AllFilesFilter();
+		const auto change = [](const QString &path) {
+			const auto success = path.isEmpty()
+				? base::ClearCustomAppIcon()
+				: base::SetCustomAppIcon(path);
+			Ui::Toast::Show(success
+				? (path.isEmpty()
+					? "Icon cleared. Restarting the Dock."
+					: "Icon updated. Restarting the Dock.")
+				: (path.isEmpty()
+					? "Icon clear failed. See log.txt for details."
+					: "Icon update failed. See log.txt for details."));
+		};
+		FileDialog::GetOpenPath(Core::App().getFileDialogParent(), "Choose custom icon", iconFilters, [=](const FileDialog::OpenResult &result) {
+			change(result.paths.isEmpty() ? QString() : result.paths.front());
+		}, [=] {
+			change(QString());
+		});
+	});
+#endif // Q_OS_MAC
 
 	return codes;
 }

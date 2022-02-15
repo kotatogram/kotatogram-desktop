@@ -101,7 +101,7 @@ public:
 	// Returns text with link-start and link-end commands for service-color highlighting.
 	// Example: "[link1-start]You:[link1-end] [link1-start]Photo,[link1-end] caption text"
 	virtual ItemPreview toPreview(ToPreviewOptions way) const;
-	virtual QString notificationText() const = 0;
+	virtual TextWithEntities notificationText() const = 0;
 	virtual QString pinnedTextSubstring() const = 0;
 	virtual TextForMimeData clipboardText() const = 0;
 	virtual bool allowsForward() const;
@@ -162,7 +162,7 @@ public:
 	Image *replyPreview() const override;
 	bool replyPreviewLoaded() const override;
 	ItemPreview toPreview(ToPreviewOptions options) const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	bool allowsEditCaption() const override;
@@ -200,7 +200,7 @@ public:
 	Image *replyPreview() const override;
 	bool replyPreviewLoaded() const override;
 	ItemPreview toPreview(ToPreviewOptions options) const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	bool allowsEditCaption() const override;
@@ -235,7 +235,7 @@ public:
 	std::unique_ptr<Media> clone(not_null<HistoryItem*> parent) override;
 
 	const SharedContact *sharedContact() const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 
@@ -267,7 +267,7 @@ public:
 	Data::CloudImage *location() const override;
 	const LocationPoint *geoPoint() const override;
 	ItemPreview toPreview(ToPreviewOptions options) const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 
@@ -294,7 +294,7 @@ public:
 	std::unique_ptr<Media> clone(not_null<HistoryItem*> parent) override;
 
 	const Call *call() const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	bool allowsForward() const override;
@@ -333,7 +333,7 @@ public:
 	Image *replyPreview() const override;
 	bool replyPreviewLoaded() const override;
 	ItemPreview toPreview(ToPreviewOptions options) const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	bool allowsEdit() const override;
@@ -363,7 +363,7 @@ public:
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
 	bool replyPreviewLoaded() const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	QString errorTextForForward(not_null<PeerData*> peer, bool unquoted = false) const override;
@@ -398,7 +398,7 @@ public:
 	bool hasReplyPreview() const override;
 	Image *replyPreview() const override;
 	bool replyPreviewLoaded() const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 
@@ -425,7 +425,7 @@ public:
 
 	PollData *poll() const override;
 
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	QString errorTextForForward(not_null<PeerData*> peer, bool unquoted = false) const override;
@@ -452,7 +452,7 @@ public:
 	[[nodiscard]] int value() const;
 
 	bool allowsRevoke(TimeId now) const override;
-	QString notificationText() const override;
+	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;
 	TextForMimeData clipboardText() const override;
 	bool forceForwardedInfo() const override;

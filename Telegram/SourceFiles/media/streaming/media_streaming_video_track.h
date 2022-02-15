@@ -58,6 +58,9 @@ public:
 	[[nodiscard]] QImage frame(
 		const FrameRequest &request,
 		const Instance *instance);
+	[[nodiscard]] FrameWithInfo frameWithInfo(
+		const FrameRequest &request,
+		const Instance *instance);
 	[[nodiscard]] FrameWithInfo frameWithInfo(const Instance *instance);
 	[[nodiscard]] QImage currentFrameImage();
 	void unregisterInstance(not_null<const Instance*> instance);
@@ -88,6 +91,7 @@ private:
 
 		base::flat_map<const Instance*, Prepared> prepared;
 
+		int index = 0;
 		bool alpha = false;
 	};
 	struct FrameWithIndex {
@@ -110,7 +114,7 @@ private:
 		};
 
 		// Called from the wrapped object queue.
-		void init(QImage &&cover, crl::time position);
+		void init(QImage &&cover, bool hasAlpha, crl::time position);
 		[[nodiscard]] bool initialized() const;
 
 		[[nodiscard]] PrepareState prepareState(
@@ -141,9 +145,6 @@ private:
 		static constexpr auto kCounterUninitialized = -1;
 		std::atomic<int> _counter = kCounterUninitialized;
 
-		// Main thread.
-		int _counterCycle = 0;
-
 		static constexpr auto kFramesCount = 4;
 		std::array<Frame, kFramesCount> _frames;
 
@@ -159,6 +160,11 @@ private:
 	[[nodiscard]] static bool IsStale(
 		not_null<const Frame*> frame,
 		crl::time trackTime);
+
+	[[nodiscard]] QImage frameImage(
+		not_null<Frame*> frame,
+		const FrameRequest &request,
+		const Instance *instance);
 
 	const int _streamIndex = 0;
 	const AVRational _streamTimeBase;

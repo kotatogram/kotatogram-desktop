@@ -25,6 +25,14 @@ class HistoryItem;
 class HistoryMessage;
 class HistoryService;
 struct HistoryMessageMarkupData;
+class HistoryMainElementDelegateMixin;
+
+namespace HistoryUnreadThings {
+enum class AddType;
+struct All;
+class Proxy;
+class ConstProxy;
+} // namespace HistoryUnreadThings
 
 namespace Main {
 class Session;
@@ -78,9 +86,20 @@ enum class NewMessageType {
 	Existing,
 };
 
-enum class UnreadMentionType {
-	New, // when new message is added to history
-	Existing, // when some messages slice was received
+enum class ItemNotificationType {
+	Message,
+	Reaction,
+};
+struct ItemNotification {
+	not_null<HistoryItem*> item;
+	UserData *reactionSender = nullptr;
+	ItemNotificationType type = ItemNotificationType::Message;
+
+	friend inline bool operator==(ItemNotification a, ItemNotification b) {
+		return (a.item == b.item)
+			&& (a.reactionSender == b.reactionSender)
+			&& (a.type == b.type);
+	}
 };
 
 class History final : public Dialogs::Entry {
@@ -91,6 +110,11 @@ public:
 	History(const History &) = delete;
 	History &operator=(const History &) = delete;
 	~History();
+
+	[[nodiscard]] auto delegateMixin() const
+			-> not_null<HistoryMainElementDelegateMixin*> {
+		return _delegateMixin.get();
+	}
 
 	not_null<History*> migrateToOrMe() const;
 	History *migrateFrom() const;
@@ -308,10 +332,11 @@ public:
 	void itemRemoved(not_null<HistoryItem*> item);
 	void itemVanished(not_null<HistoryItem*> item);
 
-	HistoryItem *currentNotification();
+	[[nodiscard]] std::optional<ItemNotification> currentNotification() const;
 	bool hasNotification() const;
 	void skipNotification();
-	void popNotification(HistoryItem *item);
+	void pushNotification(ItemNotification notification);
+	void popNotification(ItemNotification notification);
 
 	bool hasPendingResizedItems() const;
 	void setHasPendingResizedItems();
@@ -323,25 +348,11 @@ public:
 
 	void clearLastKeyboard();
 
-	int getUnreadMentionsLoadedCount() const {
-		return _unreadMentions.size();
-	}
-	MsgId getMinLoadedUnreadMention() const {
-		return _unreadMentions.empty() ? 0 : _unreadMentions.front();
-	}
-	MsgId getMaxLoadedUnreadMention() const {
-		return _unreadMentions.empty() ? 0 : _unreadMentions.back();
-	}
-	int getUnreadMentionsCount(int notLoadedValue = -1) const {
-		return _unreadMentionsCount ? *_unreadMentionsCount : notLoadedValue;
-	}
-	bool hasUnreadMentions() const {
-		return (getUnreadMentionsCount() > 0);
-	}
-	void setUnreadMentionsCount(int count);
-	bool addToUnreadMentions(MsgId msgId, UnreadMentionType type);
-	void eraseFromUnreadMentions(MsgId msgId);
-	void addUnreadMentionsSlice(const MTPmessages_Messages &result);
+	void setUnreadThingsKnown();
+	[[nodiscard]] HistoryUnreadThings::Proxy unreadMentions();
+	[[nodiscard]] HistoryUnreadThings::ConstProxy unreadMentions() const;
+	[[nodiscard]] HistoryUnreadThings::Proxy unreadReactions();
+	[[nodiscard]] HistoryUnreadThings::ConstProxy unreadReactions() const;
 
 	Data::Draft *draft(Data::DraftKey key) const;
 	void setDraft(Data::DraftKey key, std::unique_ptr<Data::Draft> &&draft);
@@ -486,7 +497,8 @@ private:
 	friend class HistoryBlock;
 
 	enum class Flag {
-		f_has_pending_resized_items = (1 << 0),
+		HasPendingResizedItems = (1 << 0),
+		UnreadThingsKnown = (1 << 1),
 	};
 	using Flags = base::flags<Flag>;
 	friend inline constexpr auto is_flag_type(Flag) {
@@ -598,6 +610,8 @@ private:
 
 	void setFolderPointer(Data::Folder *folder);
 
+	const std::unique_ptr<HistoryMainElementDelegateMixin> _delegateMixin;
+
 	Flags _flags = 0;
 	bool _mute = false;
 	int _width = 0;
@@ -613,12 +627,11 @@ private:
 	std::optional<MsgId> _inboxReadBefore;
 	std::optional<MsgId> _outboxReadBefore;
 	std::optional<int> _unreadCount;
-	std::optional<int> _unreadMentionsCount;
-	base::flat_set<MsgId> _unreadMentions;
 	std::optional<HistoryItem*> _lastMessage;
 	std::optional<HistoryItem*> _lastServerMessage;
 	base::flat_set<not_null<HistoryItem*>> _clientSideMessages;
 	std::unordered_set<std::unique_ptr<HistoryItem>> _messages;
+	std::unique_ptr<HistoryUnreadThings::All> _unreadThings;
 
 	// This almost always is equal to _lastMessage. The only difference is
 	// for a group that migrated to a supergroup. Then _lastMessage can
@@ -650,7 +663,7 @@ private:
 
 	HistoryView::SendActionPainter _sendActionPainter;
 
-	std::deque<not_null<HistoryItem*>> _notifications;
+	std::deque<ItemNotification> _notifications;
 
  };
 

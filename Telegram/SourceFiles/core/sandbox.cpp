@@ -25,10 +25,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/invoke_queued.h"
 #include "base/qthelp_url.h"
 #include "base/qthelp_regex.h"
-#include "base/qt_adapters.h"
+#include "base/qt/qt_common_adapters.h"
 #include "ui/ui_utility.h"
 #include "ui/effects/animations.h"
-#include "app.h"
 
 #include <QtCore/QLockFile>
 #include <QtGui/QSessionManager>
@@ -197,7 +196,7 @@ void Sandbox::QuitWhenStarted() {
 
 void Sandbox::launchApplication() {
 	InvokeQueued(this, [=] {
-		if (App::quitting()) {
+		if (Quitting()) {
 			quit();
 		} else if (_application) {
 			return;
@@ -270,8 +269,12 @@ void Sandbox::setupScreenScale() {
 Sandbox::~Sandbox() = default;
 
 bool Sandbox::event(QEvent *e) {
-	if (e->type() == QEvent::Close || e->type() == QEvent::Quit) {
-		App::quit();
+	if (e->type() == QEvent::Quit && !Quitting()) {
+		Quit(QuitReason::QtQuitEvent);
+		e->ignore();
+		return false;
+	} else if (e->type() == QEvent::Close) {
+		Quit();
 	}
 	return QApplication::event(e);
 }
@@ -323,16 +326,16 @@ void Sandbox::socketReading() {
 			psActivateProcess(pid);
 		}
 		LOG(("Show command response received, pid = %1, activating and quitting...").arg(pid));
-		return App::quit();
+		return Quit();
 	}
 }
 
 void Sandbox::socketError(QLocalSocket::LocalSocketError e) {
-	if (App::quitting()) return;
+	if (Quitting()) return;
 
 	if (_secondInstance) {
 		LOG(("Could not write show command, error %1, quitting...").arg(e));
-		return App::quit();
+		return Quit();
 	}
 
 	if (e == QLocalSocket::ServerNotFoundError) {
@@ -348,7 +351,7 @@ void Sandbox::socketError(QLocalSocket::LocalSocketError e) {
 
 	if (!_localServer.listen(_localServerName)) {
 		LOG(("Failed to start listening to %1 server: %2").arg(_localServerName, _localServer.errorString()));
-		return App::quit();
+		return Quit();
 	}
 #endif // !Q_OS_WINRT
 
@@ -357,11 +360,11 @@ void Sandbox::socketError(QLocalSocket::LocalSocketError e) {
 		&& Core::checkReadyUpdate()) {
 		cSetRestartingUpdate(true);
 		DEBUG_LOG(("Sandbox Info: installing update instead of starting app..."));
-		return App::quit();
+		return Quit();
 	}
 
 	if (cQuit()) {
-		return App::quit();
+		return Quit();
 	}
 
 	singleInstanceChecked();
@@ -417,7 +420,7 @@ void Sandbox::singleInstanceChecked() {
 void Sandbox::socketDisconnected() {
 	if (_secondInstance) {
 		DEBUG_LOG(("Sandbox Error: socket disconnected before command response received, quitting..."));
-		return App::quit();
+		return Quit();
 	}
 }
 
@@ -509,7 +512,7 @@ void Sandbox::removeClients() {
 }
 
 void Sandbox::checkForQuit() {
-	if (App::quitting()) {
+	if (Quitting()) {
 		quit();
 	}
 }
@@ -643,10 +646,10 @@ MTP::ProxyData Sandbox::sandboxProxy() const {
 }
 
 void Sandbox::closeApplication() {
-	if (App::launchState() == App::QuitProcessed) {
+	if (CurrentLaunchState() == LaunchState::QuitProcessed) {
 		return;
 	}
-	App::setLaunchState(App::QuitProcessed);
+	SetLaunchState(LaunchState::QuitProcessed);
 
 	_application = nullptr;
 
@@ -670,7 +673,7 @@ void Sandbox::execExternal(const QString &cmd) {
 			PreLaunchWindow::instance()->activate();
 		}
 	} else if (cmd == "quit") {
-		App::quit();
+		Quit();
 	}
 }
 

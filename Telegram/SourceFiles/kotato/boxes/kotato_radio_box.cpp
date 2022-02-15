@@ -17,7 +17,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
-#include "app.h"
+#include "core/application.h"
 
 namespace Kotato {
 
@@ -160,7 +160,7 @@ void RadioBox::save() {
 	if (_warnRestart) {
 		const auto saveAfterWarn = [=] {
 			_saveCallback(_group->value());
-			App::restart();
+			Core::Restart();
 		};
 
 		const auto box = std::make_shared<QPointer<BoxContent>>();

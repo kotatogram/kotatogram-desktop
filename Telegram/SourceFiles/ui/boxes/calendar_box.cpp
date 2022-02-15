@@ -988,9 +988,9 @@ void CalendarBox::jump(QPointer<IconButton> button) {
 		_context->showMonth(_context->dateFromIndex(index));
 		setExactScroll();
 	};
-	if (_jumpButton == _previous.data() && _previousEnabled) {
+	if (button == _previous.data() && _previousEnabled) {
 		jumpToIndex(_context->minDayIndex());
-	} else if (_jumpButton == _next.data() && _nextEnabled) {
+	} else if (button == _next.data() && _nextEnabled) {
 		jumpToIndex(_context->maxDayIndex());
 	}
 	_jumpButton = nullptr;
@@ -1156,11 +1156,15 @@ void CalendarBox::resizeEvent(QResizeEvent *e) {
 
 void CalendarBox::keyPressEvent(QKeyEvent *e) {
 	if (e->key() == Qt::Key_Escape) {
-		e->ignore();
+		if (_context->selectionMode()) {
+			_context->toggleSelectionMode(false);
+		} else {
+			e->ignore();
+		}
 	} else if (e->key() == Qt::Key_Home) {
-		_inner->selectBeginning();
+		jump(_previous.data());
 	} else if (e->key() == Qt::Key_End) {
-		_inner->selectEnd();
+		jump(_next.data());
 	} else if (e->key() == Qt::Key_PageUp) {
 		goPreviousMonth();
 	} else if (e->key() == Qt::Key_PageDown) {

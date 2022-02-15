@@ -8,11 +8,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item_components.h"
 
 #include "kotato/kotato_lang.h"
+#include "base/qt/qt_key_modifiers.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/image/image.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_options.h"
+#include "ui/text/text_utilities.h"
 #include "ui/chat/chat_style.h"
 #include "ui/chat/chat_theme.h"
 #include "history/history.h"
@@ -53,7 +55,7 @@ void HistoryMessageVia::create(
 		tr::lng_inline_bot_via(tr::now, lt_inline_bot, '@' + bot->username));
 	link = std::make_shared<LambdaClickHandler>([bot = this->bot](
 			ClickContext context) {
-		if (QGuiApplication::keyboardModifiers() == Qt::ControlModifier) {
+		if (base::IsCtrlPressed()) {
 			if (const auto window = App::wnd()) {
 				if (const auto controller = window->sessionController()) {
 					controller->showPeerInfo(bot);
@@ -107,20 +109,21 @@ HiddenSenderInfo::HiddenSenderInfo(const QString &name, bool external)
 }
 
 void HistoryMessageForwarded::create(const HistoryMessageVia *via) const {
-	auto phrase = QString();
+	auto phrase = TextWithEntities();
 	const auto fromChannel = originalSender
 		&& originalSender->isChannel()
 		&& !originalSender->isMegagroup();
-	const auto name = originalSender
-		? originalSender->name
-		: hiddenSenderInfo->name;
+	const auto name = TextWithEntities{
+		.text = originalSender ? originalSender->name : hiddenSenderInfo->name
+	};
 	if (!originalAuthor.isEmpty()) {
 		phrase = tr::lng_forwarded_signed(
 			tr::now,
 			lt_channel,
 			name,
 			lt_user,
-			originalAuthor);
+			{ .text = originalAuthor },
+			Ui::Text::WithEntities);
 	} else {
 		phrase = name;
 	}
@@ -129,16 +132,18 @@ void HistoryMessageForwarded::create(const HistoryMessageVia *via) const {
 			phrase = tr::lng_forwarded_channel_via(
 				tr::now,
 				lt_channel,
-				textcmdLink(1, phrase),
+				Ui::Text::Link(phrase.text, 1), // Link 1.
 				lt_inline_bot,
-				textcmdLink(2, '@' + via->bot->username));
+				Ui::Text::Link('@' + via->bot->username, 2),  // Link 2.
+				Ui::Text::WithEntities);
 		} else {
 			phrase = tr::lng_forwarded_via(
 				tr::now,
 				lt_user,
-				textcmdLink(1, phrase),
+				Ui::Text::Link(phrase.text, 1), // Link 1.
 				lt_inline_bot,
-				textcmdLink(2, '@' + via->bot->username));
+				Ui::Text::Link('@' + via->bot->username, 2),  // Link 2.
+				Ui::Text::WithEntities);
 		}
 	} else {
 		if (fromChannel || !psaType.isEmpty()) {
@@ -146,28 +151,32 @@ void HistoryMessageForwarded::create(const HistoryMessageVia *via) const {
 				? QString()
 				: Lang::GetNonDefaultValue(
 					kPsaForwardedPrefix + psaType.toUtf8());
-			phrase = !custom.isEmpty()
-				? custom.replace("{channel}", textcmdLink(1, phrase))
-				: (psaType.isEmpty()
+			if (!custom.isEmpty()) {
+				custom = custom.replace("{channel}", phrase.text);
+				const auto index = int(custom.indexOf(phrase.text));
+				const auto size = int(phrase.text.size());
+				phrase = TextWithEntities{
+					.text = custom,
+					.entities = {{ EntityType::CustomUrl, index, size, {} }},
+				};
+			} else {
+				phrase = (psaType.isEmpty()
 					? tr::lng_forwarded_channel
 					: tr::lng_forwarded_psa_default)(
 						tr::now,
 						lt_channel,
-						textcmdLink(1, phrase));
+						Ui::Text::Link(phrase.text, QString()), // Link 1.
+						Ui::Text::WithEntities);
+			}
 		} else {
 			phrase = tr::lng_forwarded(
 				tr::now,
 				lt_user,
-				textcmdLink(1, phrase));
+				Ui::Text::Link(phrase.text, QString()), // Link 1.
+				Ui::Text::WithEntities);
 		}
 	}
-	TextParseOptions opts = {
-		TextParseRichText,
-		0,
-		0,
-		Qt::LayoutDirectionAuto
-	};
-	text.setText(st::fwdTextStyle, phrase, opts);
+	text.setMarkedText(st::fwdTextStyle, phrase);
 	static const auto hidden = std::make_shared<LambdaClickHandler>([] {
 		Ui::Toast::Show(tr::lng_forwarded_hidden(tr::now));
 	});
@@ -211,7 +220,7 @@ bool HistoryMessageReply::updateData(
 	}
 
 	if (replyToMsg) {
-		replyToText.setText(
+		replyToText.setMarkedText(
 			st::messageTextStyle,
 			replyToMsg->inReplyText(),
 			Ui::DialogTextOptions());
@@ -335,16 +344,15 @@ void HistoryMessageReply::paint(
 			if (hasPreview) {
 				if (const auto image = replyToMsg->media()->replyPreview()) {
 					auto to = style::rtlrect(x + st::msgReplyBarSkip, y + st::msgReplyPadding.top() + st::msgReplyBarPos.y(), st::msgReplyBarSize.height(), st::msgReplyBarSize.height(), w + 2 * x);
-					auto previewWidth = image->width() / cIntRetinaFactor();
-					auto previewHeight = image->height() / cIntRetinaFactor();
-					auto preview = image->pixSingle(
-						previewWidth,
-						previewHeight,
-						to.width(),
-						to.height(),
-						ImageRoundRadius::Small,
-						RectPart::AllCorners,
-						context.selected() ? &st->msgStickerOverlay() : nullptr);
+					const auto preview = image->pixSingle(
+						image->size() / style::DevicePixelRatio(),
+						{
+							.colored = (context.selected()
+								? &st->msgStickerOverlay()
+								: nullptr),
+							.options = Images::Option::RoundSmall,
+							.outer = to.size(),
+						});
 					p.drawPixmap(to.x(), to.y(), preview);
 				}
 			}

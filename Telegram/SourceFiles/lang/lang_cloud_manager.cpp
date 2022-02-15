@@ -22,7 +22,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "core/file_utilities.h"
 #include "core/click_handler_types.h"
-#include "app.h"
 #include "styles/style_layers.h"
 
 namespace Lang {
@@ -549,7 +548,7 @@ void CloudManager::performSwitchToCustom() {
 					+ getValue(tr::lng_sure_save_language.base);
 				const auto change = [=] {
 					_langpack.switchToCustomFile(filePath);
-					App::restart();
+					Core::Restart();
 				};
 				Ui::show(
 					Box<Ui::ConfirmBox>(
@@ -596,7 +595,7 @@ void CloudManager::restartAfterSwitch() {
 	if (_langPackRequestId || _langPackBaseRequestId) {
 		_restartAfterSwitch = true;
 	} else {
-		App::restart();
+		Core::Restart();
 	}
 }
 

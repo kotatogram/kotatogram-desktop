@@ -39,15 +39,15 @@ Location::Location(
 	if (!title.isEmpty()) {
 		_title.setText(
 			st::webPageTitleStyle,
-			TextUtilities::Clean(title),
+			title,
 			Ui::WebpageTextTitleOptions());
 	}
 	if (!description.isEmpty()) {
 		_description.setMarkedText(
 			st::webPageDescriptionStyle,
 			TextUtilities::ParseEntities(
-				TextUtilities::Clean(description),
-				TextParseLinks | TextParseMultiline | TextParseRichText),
+				description,
+				TextParseLinks | TextParseMultiline),
 			Ui::WebpageTextDescriptionOptions());
 	}
 }
@@ -203,8 +203,12 @@ void Location::draw(Painter &p, const PaintContext &context) const {
 	auto rthumb = QRect(paintx, painty, paintw, painth);
 	ensureMediaCreated();
 	if (const auto thumbnail = _media->image()) {
-		const auto &pix = thumbnail->pixSingle(paintw, painth, paintw, painth, roundRadius, roundCorners);
-		p.drawPixmap(rthumb.topLeft(), pix);
+		p.drawPixmap(rthumb.topLeft(), thumbnail->pixSingle(
+			rthumb.size(),
+			{
+				.options = Images::RoundOptions(roundRadius, roundCorners),
+				.outer = rthumb.size(),
+			}));
 	} else {
 		Ui::FillComplexLocationRect(p, st, rthumb, roundRadius, roundCorners);
 	}
@@ -352,6 +356,12 @@ bool Location::needsBubble() const {
 		|| _parent->displayedReply()
 		|| _parent->displayForwardedFrom()
 		|| _parent->displayFromName();
+}
+
+QPoint Location::resolveCustomInfoRightBottom() const {
+	const auto skipx = (st::msgDateImgDelta + st::msgDateImgPadding.x());
+	const auto skipy = (st::msgDateImgDelta + st::msgDateImgPadding.y());
+	return QPoint(width() - skipx, height() - skipy);
 }
 
 int Location::fullWidth() const {

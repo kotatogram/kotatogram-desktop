@@ -32,7 +32,7 @@ constexpr auto kMessagesPerPage = 50;
 		history->nextNonHistoryEntryId(),
 		MessageFlag::FakeHistoryItem,
 		date,
-		HistoryService::PreparedText{ text },
+		HistoryService::PreparedText{ { .text = text } },
 		PeerId(0),
 		nullptr,
 		false);
@@ -291,7 +291,7 @@ void RepliesList::injectRootDivider(
 	} else if (_dividerWithComments != withComments) {
 		_dividerWithComments = withComments;
 		_divider->setNeedTime(false);
-		_divider->setServiceText(HistoryService::PreparedText{ text() });
+		_divider->setServiceText(HistoryService::PreparedText{ { text() } });
 	}
 	slice->ids.push_back(_divider->fullId());
 }

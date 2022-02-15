@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "base/flags.h"
 #include "base/object_ptr.h"
+#include "base/unique_qptr.h"
 #include "calls/group/calls_group_call.h"
 #include "calls/group/calls_group_common.h"
 #include "calls/group/calls_choose_join_as.h"
@@ -20,6 +21,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/rp_widget.h"
 
 class Image;
+
+namespace base {
+class PowerSaveBlocker;
+} // namespace base
 
 namespace Data {
 class PhotoMedia;
@@ -51,7 +56,7 @@ namespace Toast {
 class Instance;
 } // namespace Toast
 namespace Platform {
-class TitleControls;
+struct SeparateTitleControls;
 } // namespace Platform
 } // namespace Ui
 
@@ -194,8 +199,10 @@ private:
 	rpl::variable<PanelMode> _mode;
 
 #ifndef Q_OS_MAC
-	std::unique_ptr<Ui::Platform::TitleControls> _controls;
+	std::unique_ptr<Ui::Platform::SeparateTitleControls> _controls;
 #endif // !Q_OS_MAC
+
+	const std::unique_ptr<base::PowerSaveBlocker> _powerSaveBlocker;
 
 	rpl::lifetime _callLifetime;
 

@@ -60,7 +60,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "facades.h"
 #include "styles/style_info.h"
 #include "styles/style_boxes.h"
-#include "app.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>

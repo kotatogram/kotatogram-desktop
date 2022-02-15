@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_privacy_security.h"
 #include "settings/settings_folders.h"
 #include "settings/settings_calls.h"
+#include "settings/settings_experimental.h"
 #include "kotato/kotato_settings_menu.h"
 #include "core/application.h"
 #include "ui/wrap/padding_wrap.h"
@@ -32,7 +33,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "core/file_utilities.h"
 #include "mainwindow.h"
-#include "app.h"
 #include "main/main_session.h"
 #include "main/main_domain.h"
 #include "styles/style_layers.h"
@@ -64,6 +64,8 @@ object_ptr<Section> CreateSection(
 		return object_ptr<Chat>(parent, controller);
 	case Type::Calls:
 		return object_ptr<Calls>(parent, controller);
+	case Type::Experimental:
+		return object_ptr<Experimental>(parent, controller);
 	case Type::Kotato:
 		return object_ptr<Kotato>(parent, controller);
 	}
@@ -253,7 +255,7 @@ void FillMenu(
 			&st::menuIconSettings);
 		addAction(
 			ktr("ktg_settings_restart"),
-			[=] { App::restart(); },
+			[=] { Core::Restart(); },
 			&st::menuIconRestore);
 		if (type != Type::Kotato) {
 			addAction(

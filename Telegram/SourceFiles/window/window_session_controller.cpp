@@ -22,7 +22,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/view/history_view_replies_section.h"
+#include "history/view/history_view_react_button.h"
 #include "history/view/history_view_reactions.h"
+#include "history/view/history_view_scheduled_section.h"
 #include "media/player/media_player_instance.h"
 #include "media/view/media_view_open_common.h"
 #include "data/data_document_resolver.h"
@@ -554,20 +556,14 @@ void SessionNavigation::showPeerHistory(
 		not_null<PeerData*> peer,
 		const SectionShow &params,
 		MsgId msgId) {
-	showPeerHistory(
-		peer->id,
-		params,
-		msgId);
+	showPeerHistory(peer->id, params, msgId);
 }
 
 void SessionNavigation::showPeerHistory(
 		not_null<History*> history,
 		const SectionShow &params,
 		MsgId msgId) {
-	showPeerHistory(
-		history->peer->id,
-		params,
-		msgId);
+	showPeerHistory(history->peer->id, params, msgId);
 }
 
 void SessionNavigation::showSettings(
@@ -612,7 +608,8 @@ SessionController::SessionController(
 		this))
 , _invitePeekTimer([=] { checkInvitePeek(); })
 , _defaultChatTheme(std::make_shared<Ui::ChatTheme>())
-, _chatStyle(std::make_unique<Ui::ChatStyle>()) {
+, _chatStyle(std::make_unique<Ui::ChatStyle>())
+, _cachedReactionIconFactory(std::make_unique<ReactionIconFactory>()) {
 	init();
 
 	_chatStyleTheme = _defaultChatTheme;
@@ -694,6 +691,14 @@ void SessionController::suggestArchiveAndMute() {
 	}));
 }
 
+PeerData *SessionController::singlePeer() const {
+	return _window->singlePeer();
+}
+
+bool SessionController::isPrimary() const {
+	return _window->isPrimary();
+}
+
 not_null<::MainWindow*> SessionController::widget() const {
 	return _window->widget();
 }
@@ -748,7 +753,7 @@ void SessionController::initSupportMode() {
 }
 
 void SessionController::toggleFiltersMenu(bool enabled) {
-	if (!enabled == !_filters) {
+	if (!isPrimary() || (!enabled == !_filters)) {
 		return;
 	} else if (enabled) {
 		_filters = std::make_unique<FiltersMenu>(
@@ -901,6 +906,16 @@ bool SessionController::jumpToChatListEntry(Dialogs::RowDescriptor row) {
 		return true;
 	}
 	return false;
+}
+
+Dialogs::RowDescriptor SessionController::resolveChatNext(
+		Dialogs::RowDescriptor from) const {
+	return content()->resolveChatNext(from);
+}
+
+Dialogs::RowDescriptor SessionController::resolveChatPrevious(
+		Dialogs::RowDescriptor from) const {
+	return content()->resolveChatPrevious(from);
 }
 
 void SessionController::pushToChatEntryHistory(Dialogs::RowDescriptor row) {
@@ -1439,10 +1454,7 @@ void SessionController::showPeerHistory(
 		PeerId peerId,
 		const SectionShow &params,
 		MsgId msgId) {
-	content()->ui_showPeerHistory(
-		peerId,
-		params,
-		msgId);
+	content()->ui_showPeerHistory(peerId, params, msgId);
 }
 
 void SessionController::showPeerHistoryAtItem(
@@ -1450,10 +1462,16 @@ void SessionController::showPeerHistoryAtItem(
 	_window->invokeForSessionController(
 		&item->history()->peer->session().account(),
 		[=](not_null<SessionController*> controller) {
-			controller->showPeerHistory(
-				item->history()->peer,
-				SectionShow::Way::ClearStack,
-				item->id);
+			if (item->isScheduled()) {
+				controller->showSection(
+					std::make_shared<HistoryView::ScheduledMemento>(
+						item->history()));
+			} else {
+				controller->showPeerHistory(
+					item->history()->peer,
+					SectionShow::Way::ClearStack,
+					item->id);
+			}
 		});
 }
 
@@ -1759,6 +1777,7 @@ void SessionController::cacheChatTheme(
 			this,
 			result = std::make_shared<Ui::ChatTheme>(std::move(descriptor))
 		]() mutable {
+			result->finishCreateOnMain();
 			cacheChatThemeDone(std::move(result));
 		});
 	});

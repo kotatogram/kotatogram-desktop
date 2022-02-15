@@ -9,6 +9,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "base/timer.h"
 
+namespace Lottie {
+class Icon;
+} // namespace Lottie
+
 namespace Data {
 
 class DocumentMedia;
@@ -20,14 +24,17 @@ struct Reaction {
 	not_null<DocumentData*> staticIcon;
 	not_null<DocumentData*> appearAnimation;
 	not_null<DocumentData*> selectAnimation;
-	not_null<DocumentData*> activateAnimation;
-	not_null<DocumentData*> activateEffects;
+	//not_null<DocumentData*> activateAnimation;
+	//not_null<DocumentData*> activateEffects;
+	DocumentData *centerIcon = nullptr;
+	DocumentData *aroundAnimation = nullptr;
 	bool active = false;
 };
 
 class Reactions final {
 public:
 	explicit Reactions(not_null<Session*> owner);
+	~Reactions();
 
 	void refresh();
 
@@ -36,15 +43,10 @@ public:
 		All,
 	};
 	[[nodiscard]] const std::vector<Reaction> &list(Type type) const;
-	[[nodiscard]] std::vector<Reaction> list(not_null<PeerData*> peer) const;
+	[[nodiscard]] QString favorite() const;
+	void setFavorite(const QString &emoji);
 
-	[[nodiscard]] static std::vector<Reaction> Filtered(
-		const std::vector<Reaction> &reactions,
-		const std::vector<QString> &emoji);
-	[[nodiscard]] std::vector<Reaction> filtered(
-		const std::vector<QString> &emoji) const;
-
-	[[nodiscard]] static std::vector<QString> ParseAllowed(
+	[[nodiscard]] static base::flat_set<QString> ParseAllowed(
 		const MTPVector<MTPstring> *list);
 
 	[[nodiscard]] rpl::producer<> updates() const;
@@ -54,6 +56,7 @@ public:
 		InlineList,
 	};
 	void preloadImageFor(const QString &emoji);
+	void preloadAnimationsFor(const QString &emoji);
 	[[nodiscard]] QImage resolveImageFor(
 		const QString &emoji,
 		ImageSize size);
@@ -65,20 +68,31 @@ public:
 
 	void updateAllInHistory(not_null<PeerData*> peer, bool enabled);
 
+	[[nodiscard]] static bool HasUnread(const MTPMessageReactions &data);
+	static void CheckUnknownForUnread(
+		not_null<Session*> owner,
+		const MTPMessage &message);
+
 private:
 	struct ImageSet {
 		QImage bottomInfo;
 		QImage inlineList;
 		std::shared_ptr<DocumentMedia> media;
+		std::unique_ptr<Lottie::Icon> icon;
+		bool fromAppearAnimation = false;
 	};
 
 	void request();
+	void updateFromData(const MTPDmessages_availableReactions &data);
 
 	[[nodiscard]] std::optional<Reaction> parse(
 		const MTPAvailableReaction &entry);
 
-	void loadImage(ImageSet &set, not_null<DocumentData*> document);
-	void setImage(ImageSet &set, QImage large);
+	void loadImage(
+		ImageSet &set,
+		not_null<DocumentData*> document,
+		bool fromAppearAnimation);
+	void setLottie(ImageSet &set);
 	void resolveImages();
 	void downloadTaskFinished();
 
@@ -89,6 +103,10 @@ private:
 
 	std::vector<Reaction> _active;
 	std::vector<Reaction> _available;
+	QString _favorite;
+	base::flat_map<
+		not_null<DocumentData*>,
+		std::shared_ptr<Data::DocumentMedia>> _iconsCache;
 	rpl::event_stream<> _updated;
 
 	mtpRequestId _requestId = 0;
@@ -106,8 +124,24 @@ private:
 	base::flat_set<not_null<HistoryItem*>> _pollingItems;
 	mtpRequestId _pollRequestId = 0;
 
+	mtpRequestId _saveFaveRequestId = 0;
+
 	rpl::lifetime _lifetime;
 
+};
+
+struct RecentReaction {
+	not_null<PeerData*> peer;
+	bool unread = false;
+	bool big = false;
+
+	inline friend constexpr bool operator==(
+			const RecentReaction &a,
+			const RecentReaction &b) noexcept {
+		return (a.peer.get() == b.peer.get())
+			&& (a.unread == b.unread)
+			&& (a.big == b.big);
+	}
 };
 
 class MessageReactions final {
@@ -116,16 +150,28 @@ public:
 
 	void add(const QString &reaction);
 	void remove();
-	void set(const QVector<MTPReactionCount> &list, bool ignoreChosen);
+	bool change(
+		const QVector<MTPReactionCount> &list,
+		const QVector<MTPMessagePeerReaction> &recent,
+		bool ignoreChosen);
+	[[nodiscard]] bool checkIfChanged(
+		const QVector<MTPReactionCount> &list,
+		const QVector<MTPMessagePeerReaction> &recent) const;
 	[[nodiscard]] const base::flat_map<QString, int> &list() const;
+	[[nodiscard]] auto recent() const
+		-> const base::flat_map<QString, std::vector<RecentReaction>> &;
 	[[nodiscard]] QString chosen() const;
 	[[nodiscard]] bool empty() const;
+
+	[[nodiscard]] bool hasUnread() const;
+	void markRead();
 
 private:
 	const not_null<HistoryItem*> _item;
 
 	QString _chosen;
 	base::flat_map<QString, int> _list;
+	base::flat_map<QString, std::vector<RecentReaction>> _recent;
 
 };
 

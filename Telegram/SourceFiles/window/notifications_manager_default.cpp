@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/input_fields.h"
 #include "ui/platform/ui_platform_utility.h"
 #include "ui/text/text_options.h"
+#include "ui/text/text_utilities.h"
 #include "ui/emoji_config.h"
 #include "ui/empty_userpic.h"
 #include "ui/ui_utility.h"
@@ -44,7 +45,7 @@ namespace {
 
 QPoint notificationStartPosition() {
 	const auto corner = Core::App().settings().notificationsCorner();
-	const auto window = Core::App().activeWindow();
+	const auto window = Core::App().primaryWindow();
 	const auto r = window
 		? window->widget()->desktopRect()
 		: QGuiApplication::primaryScreen()->availableGeometry();
@@ -75,15 +76,19 @@ Manager::Manager(System *system)
 	}, _lifetime);
 }
 
-Manager::QueuedNotification::QueuedNotification(
-	not_null<HistoryItem*> item,
-	int forwardedCount)
-: history(item->history())
+Manager::QueuedNotification::QueuedNotification(NotificationFields &&fields)
+: history(fields.item->history())
 , peer(history->peer)
-, author(item->notificationHeader())
-, item((forwardedCount < 2) ? item.get() : nullptr)
-, forwardedCount(forwardedCount)
-, fromScheduled((item->out() || peer->isSelf()) && item->isFromScheduled()) {
+, reaction(fields.reactionEmoji)
+, author(!fields.reactionFrom
+	? fields.item->notificationHeader()
+	: (fields.reactionFrom != peer)
+	? fields.reactionFrom->name
+	: QString())
+, item((fields.forwardedCount < 2) ? fields.item.get() : nullptr)
+, forwardedCount(fields.forwardedCount)
+, fromScheduled(reaction.isEmpty() && (fields.item->out() || peer->isSelf())
+	&& fields.item->isFromScheduled()) {
 }
 
 QPixmap Manager::hiddenUserpicPlaceholder() const {
@@ -230,6 +235,7 @@ void Manager::showNextFromQueue() {
 			queued.peer,
 			queued.author,
 			queued.item,
+			queued.reaction,
 			queued.forwardedCount,
 			queued.fromScheduled,
 			startPosition,
@@ -343,10 +349,8 @@ void Manager::removeWidget(internal::Widget *remove) {
 	showNextFromQueue();
 }
 
-void Manager::doShowNotification(
-		not_null<HistoryItem*> item,
-		int forwardedCount) {
-	_queuedNotifications.emplace_back(item, forwardedCount);
+void Manager::doShowNotification(NotificationFields &&fields) {
+	_queuedNotifications.emplace_back(std::move(fields));
 	showNextFromQueue();
 }
 
@@ -596,6 +600,7 @@ Notification::Notification(
 	not_null<PeerData*> peer,
 	const QString &author,
 	HistoryItem *item,
+	const QString &reaction,
 	int forwardedCount,
 	bool fromScheduled,
 	QPoint startPosition,
@@ -607,6 +612,7 @@ Notification::Notification(
 , _history(history)
 , _userpicView(_peer->createUserpicView())
 , _author(author)
+, _reaction(reaction)
 , _item(item)
 , _forwardedCount(forwardedCount)
 , _fromScheduled(fromScheduled)
@@ -746,7 +752,11 @@ void Notification::actionsOpacityCallback() {
 void Notification::updateNotifyDisplay() {
 	if (!_history || (!_item && _forwardedCount < 2)) return;
 
-	const auto options = manager()->getNotificationOptions(_item);
+	const auto options = manager()->getNotificationOptions(
+		_item,
+		(_reaction.isEmpty()
+			? ItemNotificationType::Message
+			: ItemNotificationType::Reaction));
 	_hideReplyButton = options.hideReplyButton;
 
 	int32 w = width(), h = height();
@@ -796,7 +806,9 @@ void Notification::updateNotifyDisplay() {
 			}
 		}
 
-		if (!options.hideMessageText) {
+		const auto composeText = !options.hideMessageText
+			|| (!_reaction.isEmpty() && !options.hideNameAndPhoto);
+		if (composeText) {
 			auto itemTextCache = Ui::Text::String(itemWidth);
 			auto r = QRect(
 				st::notifyPhotoPos.x() + st::notifyPhotoSize + st::notifyTextLeft,
@@ -806,28 +818,36 @@ void Notification::updateNotifyDisplay() {
 			p.setTextPalette(st::dialogsTextPalette);
 			p.setPen(st::dialogsTextFg);
 			p.setFont(st::dialogsTextFont);
-			const auto text = _item
+			const auto text = !_reaction.isEmpty()
+				? (!_author.isEmpty()
+					? Ui::Text::PlainLink(_author).append(' ')
+					: TextWithEntities()
+				).append(Manager::ComposeReactionNotification(
+					_item,
+					_reaction,
+					options.hideMessageText))
+				: _item
 				? _item->toPreview({
 					.hideSender = reminder,
 					.generateImages = false,
 				}).text
 				: ((!_author.isEmpty()
-					? textcmdLink(1, _author)
-					: QString())
-					+ (_forwardedCount > 1
+						? Ui::Text::PlainLink(_author)
+						: TextWithEntities()
+					).append(_forwardedCount > 1
 						? ('\n' + tr::lng_forward_messages(
 							tr::now,
 							lt_count,
 							_forwardedCount))
 						: QString()));
-			const auto Options = TextParseOptions{
-				TextParseRichText
-				| (_forwardedCount > 1 ? TextParseMultiline : 0),
+			const auto options = TextParseOptions{
+				TextParsePlainLinks
+					| (_forwardedCount > 1 ? TextParseMultiline : 0),
 				0,
 				0,
 				Qt::LayoutDirectionAuto,
 			};
-			itemTextCache.setText(st::dialogsTextStyle, text, Options);
+			itemTextCache.setMarkedText(st::dialogsTextStyle, text, options);
 			itemTextCache.drawElided(
 				p,
 				r.left(),

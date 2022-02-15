@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/abstract_box.h"
 #include "base/observer.h"
 #include "base/timer.h"
+#include "ui/chat/forward_options_box.h"
 #include "ui/effects/animations.h"
 #include "ui/effects/round_checkbox.h"
 #include "mtproto/sender.h"
@@ -32,10 +33,6 @@ namespace Api {
 struct SendOptions;
 } // namespace Api
 
-namespace Data {
-struct ForwardDraft;
-} // namespace Data
-
 namespace Main {
 class Session;
 } // namespace Main
@@ -45,6 +42,11 @@ class Row;
 class IndexedList;
 } // namespace Dialogs
 
+namespace Data {
+enum class ForwardOptions;
+enum class GroupingOptions;
+} // namespace Data
+
 namespace Ui {
 class MultiSelect;
 class InputField;
@@ -52,6 +54,7 @@ class DropdownMenu;
 struct ScrollToRequest;
 template <typename Widget>
 class SlideWrap;
+class PopupMenu;
 } // namespace Ui
 
 QString AppendShareGameScoreUrl(
@@ -69,9 +72,13 @@ public:
 		std::vector<not_null<PeerData*>>&&,
 		TextWithTags&&,
 		Api::SendOptions,
-		Data::ForwardDraft&&)>;
+		Data::ForwardOptions option,
+		Data::GroupingOptions groupOption)>;
 	using FilterCallback = Fn<bool(PeerData*)>;
-	using GoToChatCallback = Fn<void(PeerData *peer, Data::ForwardDraft&&)>;
+	using GoToChatCallback = Fn<void(
+		PeerData*,
+		Data::ForwardOptions option,
+		Data::GroupingOptions groupOption)>;
 
 	struct Descriptor {
 		not_null<Main::Session*> session;
@@ -87,9 +94,13 @@ public:
 		const style::MultiSelect *stMultiSelect = nullptr;
 		const style::InputField *stComment = nullptr;
 		const style::PeerList *st = nullptr;
-		bool hasMedia = false;
-		bool isShare = true;
-		std::unique_ptr<Data::ForwardDraft> draft;
+		struct {
+			int messagesCount = 0;
+			bool show = false;
+			bool hasCaptions = false;
+			bool hasMedia = false;
+			bool isShare = true;
+		} forwardOptions;
 	};
 	ShareBox(QWidget*, Descriptor &&descriptor);
 
@@ -118,7 +129,7 @@ private:
 	void applyFilterUpdate(const QString &query);
 	void selectedChanged();
 	void createButtons();
-	bool showMenu(not_null<Ui::IconButton*> button);
+	bool showForwardMenu(not_null<Ui::IconButton*> button);
 	void updateAdditionalTitle();
 	int getTopScrollSkip() const;
 	int getBottomScrollSkip() const;
@@ -133,12 +144,19 @@ private:
 		mtpRequestId requestId);
 	void peopleFail(const MTP::Error &error, mtpRequestId requestId);
 
+	void showMenu(not_null<Ui::RpWidget*> parent);
+
 	Descriptor _descriptor;
 	MTP::Sender _api;
 
 	object_ptr<Ui::MultiSelect> _select;
 	object_ptr<Ui::SlideWrap<Ui::InputField>> _comment;
 	object_ptr<Ui::RpWidget> _bottomWidget;
+
+	base::unique_qptr<Ui::PopupMenu> _menu;
+	base::unique_qptr<Ui::DropdownMenu> _topMenu;
+	Ui::ForwardOptions _forwardOptions;
+	Data::GroupingOptions _groupOptions;
 
 	class Inner;
 	QPointer<Inner> _inner;
@@ -158,6 +176,4 @@ private:
 	PeopleQueries _peopleQueries;
 
 	Ui::Animations::Simple _scrollAnimation;
-
-	base::unique_qptr<Ui::DropdownMenu> _menu;
 };

@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_user_privacy.h"
 #include "api/api_views.h"
 #include "api/api_confirm_phone.h"
+#include "api/api_unread_things.h"
 #include "data/stickers/data_stickers.h"
 #include "data/data_drafts.h"
 #include "data/data_changes.h"
@@ -53,7 +54,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "base/unixtime.h"
 #include "base/random.h"
-#include "base/qt_adapters.h"
+#include "base/qt/qt_common_adapters.h"
 #include "base/call_delayed.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
@@ -75,6 +76,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "inline_bots/inline_bot_result.h"
 #include "chat_helpers/message_field.h"
 #include "ui/item_text_options.h"
+#include "ui/text/text_utilities.h"
 #include "ui/emoji_config.h"
 #include "ui/chat/attach/attach_prepare.h"
 #include "ui/toasts/common_toasts.h"
@@ -88,7 +90,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_media_prepare.h"
 #include "storage/storage_account.h"
 #include "facades.h"
-#include "app.h" // App::quitting
 
 namespace {
 
@@ -98,9 +99,6 @@ constexpr auto kSaveCloudDraftTimeout = 1000;
 constexpr auto kTopPromotionInterval = TimeId(60 * 60);
 constexpr auto kTopPromotionMinDelay = TimeId(10);
 constexpr auto kSmallDelayMs = 5;
-constexpr auto kUnreadMentionsPreloadIfLess = 5;
-constexpr auto kUnreadMentionsFirstRequestLimit = 10;
-constexpr auto kUnreadMentionsNextRequestLimit = 100;
 constexpr auto kSharedMediaLimit = 100;
 constexpr auto kReadFeaturedSetsTimeout = crl::time(1000);
 constexpr auto kFileLoaderQueueStopTimeout = crl::time(5000);
@@ -144,7 +142,8 @@ ApiWrap::ApiWrap(not_null<Main::Session*> session)
 , _confirmPhone(std::make_unique<Api::ConfirmPhone>(this))
 , _peerPhoto(std::make_unique<Api::PeerPhoto>(this))
 , _polls(std::make_unique<Api::Polls>(this))
-, _chatParticipants(std::make_unique<Api::ChatParticipants>(this)) {
+, _chatParticipants(std::make_unique<Api::ChatParticipants>(this))
+, _unreadThings(std::make_unique<Api::UnreadThings>(this)) {
 	crl::on_main(session, [=] {
 		// You can't use _session->lifetime() in the constructor,
 		// only queued, because it is not constructed yet.
@@ -472,13 +471,14 @@ void ApiWrap::sendMessageFail(
 		Ui::show(Box<Ui::InformBox>(
 			PeerFloodErrorText(&session(), PeerFloodType::Send)));
 	} else if (error.type() == qstr("USER_BANNED_IN_CHANNEL")) {
-		const auto link = textcmdLink(
-			session().createInternalLinkFull(qsl("spambot")),
-			tr::lng_cant_more_info(tr::now));
+		const auto link = Ui::Text::Link(
+			tr::lng_cant_more_info(tr::now),
+			session().createInternalLinkFull(qsl("spambot")));
 		Ui::show(Box<Ui::InformBox>(tr::lng_error_public_groups_denied(
 			tr::now,
 			lt_more_info,
-			link)));
+			link,
+			Ui::Text::WithEntities)));
 	} else if (error.type().startsWith(qstr("SLOWMODE_WAIT_"))) {
 		const auto chop = qstr("SLOWMODE_WAIT_").size();
 		const auto left = base::StringViewMid(error.type(), chop).toInt();
@@ -1288,7 +1288,7 @@ void ApiWrap::migrateFail(not_null<PeerData*> peer, const QString &error) {
 	}
 }
 
-void ApiWrap::markMediaRead(
+void ApiWrap::markContentsRead(
 		const base::flat_set<not_null<HistoryItem*>> &items) {
 	auto markedIds = QVector<MTPint>();
 	auto channelMarkedIds = base::flat_map<
@@ -1296,12 +1296,7 @@ void ApiWrap::markMediaRead(
 		QVector<MTPint>>();
 	markedIds.reserve(items.size());
 	for (const auto &item : items) {
-		if ((!item->isUnreadMedia() || item->out())
-			&& !item->isUnreadMention()) {
-			continue;
-		}
-		item->markMediaRead();
-		if (!item->isRegular()) {
+		if (!item->markContentsRead(true) || !item->isRegular()) {
 			continue;
 		}
 		if (const auto channel = item->history()->peer->asChannel()) {
@@ -1325,13 +1320,8 @@ void ApiWrap::markMediaRead(
 	}
 }
 
-void ApiWrap::markMediaRead(not_null<HistoryItem*> item) {
-	if ((!item->isUnreadMedia() || item->out())
-		&& !item->isUnreadMention()) {
-		return;
-	}
-	item->markMediaRead();
-	if (!item->isRegular()) {
+void ApiWrap::markContentsRead(not_null<HistoryItem*> item) {
+	if (!item->markContentsRead(true) || !item->isRegular()) {
 		return;
 	}
 	const auto ids = MTP_vector<MTPint>(1, MTP_int(item->id));
@@ -2127,7 +2117,7 @@ bool ApiWrap::isQuitPrevent() {
 
 void ApiWrap::checkQuitPreventFinished() {
 	if (_draftsSaveRequestIds.empty()) {
-		if (App::quitting()) {
+		if (Core::Quitting()) {
 			LOG(("ApiWrap doesn't prevent quit any more."));
 		}
 		Core::App().quitPreventFinished();
@@ -2908,45 +2898,6 @@ void ApiWrap::jumpToHistoryDate(not_null<PeerData*> peer, const QDateTime &date)
 		});
 	} else {
 		jumpToDateInPeer();
-	}
-}
-
-void ApiWrap::preloadEnoughUnreadMentions(not_null<History*> history) {
-	auto fullCount = history->getUnreadMentionsCount();
-	auto loadedCount = history->getUnreadMentionsLoadedCount();
-	auto allLoaded = (fullCount >= 0) ? (loadedCount >= fullCount) : false;
-	if (fullCount < 0 || loadedCount >= kUnreadMentionsPreloadIfLess || allLoaded) {
-		return;
-	}
-	if (_unreadMentionsRequests.contains(history)) {
-		return;
-	}
-	auto offsetId = loadedCount ? history->getMaxLoadedUnreadMention() : 1;
-	auto limit = loadedCount ? kUnreadMentionsNextRequestLimit : kUnreadMentionsFirstRequestLimit;
-	auto addOffset = loadedCount ? -(limit + 1) : -limit;
-	auto maxId = 0;
-	auto minId = 0;
-	auto requestId = request(MTPmessages_GetUnreadMentions(history->peer->input, MTP_int(offsetId), MTP_int(addOffset), MTP_int(limit), MTP_int(maxId), MTP_int(minId))).done([this, history](const MTPmessages_Messages &result) {
-		_unreadMentionsRequests.remove(history);
-		history->addUnreadMentionsSlice(result);
-	}).fail([this, history] {
-		_unreadMentionsRequests.remove(history);
-	}).send();
-	_unreadMentionsRequests.emplace(history, requestId);
-}
-
-void ApiWrap::checkForUnreadMentions(
-		const base::flat_set<MsgId> &possiblyReadMentions,
-		ChannelData *channel) {
-	for (const auto &msgId : possiblyReadMentions) {
-		requestMessageData(channel, msgId, [=] {
-			const auto item = channel
-				? _session->data().message(channel->id, msgId)
-				: _session->data().nonChannelMessage(msgId);
-			if (item && item->mentionsMe()) {
-				item->markMediaRead();
-			}
-		});
 	}
 }
 
@@ -4655,4 +4606,8 @@ Api::Polls &ApiWrap::polls() {
 
 Api::ChatParticipants &ApiWrap::chatParticipants() {
 	return *_chatParticipants;
+}
+
+Api::UnreadThings &ApiWrap::unreadThings() {
+	return *_unreadThings;
 }

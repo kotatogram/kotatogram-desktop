@@ -125,6 +125,7 @@ public:
 	void addWindow(not_null<Window::SessionController*> controller);
 	[[nodiscard]] auto windows() const
 		-> const base::flat_set<not_null<Window::SessionController*>> &;
+	[[nodiscard]] Window::SessionController *tryResolveWindow() const;
 
 	// Shortcuts.
 	void notifyDownloaderTaskFinished();
@@ -146,12 +147,21 @@ public:
 
 	[[nodiscard]] QString createInternalLink(const QString &query) const;
 	[[nodiscard]] QString createInternalLinkFull(const QString &query) const;
+	[[nodiscard]] TextWithEntities createInternalLink(
+		const TextWithEntities &query) const;
+	[[nodiscard]] TextWithEntities createInternalLinkFull(
+		TextWithEntities query) const;
 
 	void setTmpPassword(const QByteArray &password, TimeId validUntil);
 	[[nodiscard]] QByteArray validTmpPassword() const;
 
 	// Can be called only right before ~Session.
 	void finishLogout();
+
+	// Uploads cancel with confirmation.
+	[[nodiscard]] bool uploadsInProgress() const;
+	void uploadsStopWithConfirmation(Fn<void()> done);
+	void uploadsStop();
 
 	[[nodiscard]] rpl::lifetime &lifetime() {
 		return _lifetime;

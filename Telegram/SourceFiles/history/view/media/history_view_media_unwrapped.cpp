@@ -55,9 +55,7 @@ UnwrappedMedia::UnwrappedMedia(
 
 QSize UnwrappedMedia::countOptimalSize() {
 	_content->refreshLink();
-	_contentSize = NonEmptySize(DownscaledSize(
-		_content->size(),
-		Sticker::Size()));
+	_contentSize = DownscaledSize(_content->size(), Sticker::Size());
 	auto maxWidth = _contentSize.width();
 	const auto minimal = st::largeEmojiSize + 2 * st::largeEmojiOutline;
 	auto minHeight = std::max(_contentSize.height(), minimal);
@@ -71,6 +69,7 @@ QSize UnwrappedMedia::countOptimalSize() {
 		}
 		const auto additional = additionalWidth(via, reply, forwarded);
 		maxWidth += additional;
+		accumulate_max(maxWidth, _parent->reactionsOptimalWidth());
 		if (const auto surrounding = surroundingInfo(via, reply, forwarded, additional - st::msgReplyPadding.left())) {
 			const auto infoHeight = st::msgDateImgPadding.y() * 2
 				+ st::msgDateFont->height;
@@ -91,6 +90,7 @@ QSize UnwrappedMedia::countOptimalSize() {
 QSize UnwrappedMedia::countCurrentSize(int newWidth) {
 	const auto item = _parent->data();
 	accumulate_min(newWidth, maxWidth());
+	accumulate_max(newWidth, _parent->reactionsOptimalWidth());
 	const auto isPageAttach = (_parent->media() != this);
 	if (!isPageAttach) {
 		const auto via = item->Get<HistoryMessageVia>();
@@ -430,9 +430,10 @@ QRect UnwrappedMedia::contentRectForReactions() const {
 	auto usew = maxWidth();
 	if (!inWebPage) {
 		usew -= additionalWidth(via, reply, forwarded);
-		if (rightAligned) {
-			usex = width() - usew;
-		}
+	}
+	accumulate_max(usew, _parent->reactionsOptimalWidth());
+	if (rightAligned) {
+		usex = width() - usew;
 	}
 	if (rtl()) {
 		usex = width() - usex - usew;
@@ -453,6 +454,15 @@ std::optional<int> UnwrappedMedia::reactionButtonCenterOverride() const {
 		- st::msgDateImgPadding.x() * 2
 		- st::msgReplyPadding.left();
 	return right - st::reactionCornerSize.width() / 2;
+}
+
+QPoint UnwrappedMedia::resolveCustomInfoRightBottom() const {
+	const auto inner = contentRectForReactions();
+	const auto fullBottom = inner.y() + inner.height();
+	const auto fullRight = calculateFullRight(inner);
+	const auto skipx = st::msgDateImgPadding.x();
+	const auto skipy = st::msgDateImgPadding.y();
+	return QPoint(fullRight - skipx, fullBottom - skipy);
 }
 
 std::unique_ptr<Lottie::SinglePlayer> UnwrappedMedia::stickerTakeLottie(

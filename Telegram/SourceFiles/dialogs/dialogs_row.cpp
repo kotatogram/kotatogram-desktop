@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "kotato/kotato_settings.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/text/text_options.h"
+#include "ui/text/text_utilities.h"
 #include "dialogs/dialogs_entry.h"
 #include "data/data_folder.h"
 #include "data/data_peer_values.h"
@@ -21,10 +22,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Dialogs {
 namespace {
 
-QString ComposeFolderListEntryText(not_null<Data::Folder*> folder) {
+[[nodiscard]] TextWithEntities ComposeFolderListEntryText(
+		not_null<Data::Folder*> folder) {
 	const auto &list = folder->lastHistories();
 	if (list.empty()) {
-		return QString();
+		return {};
 	}
 
 	const auto count = std::max(
@@ -39,12 +41,16 @@ QString ComposeFolderListEntryText(not_null<Data::Folder*> folder) {
 		list.size() - (throwAwayLastName ? 1 : 0)
 	);
 	const auto wrapName = [](not_null<History*> history) {
-		const auto name = TextUtilities::Clean(history->peer->name);
-		return (history->unreadCount() > 0)
-			? (textcmdStartSemibold()
-				+ textcmdLink(1, name)
-				+ textcmdStopSemibold())
-			: name;
+		const auto name = history->peer->name;
+		return TextWithEntities{
+			.text = name,
+			.entities = (history->unreadCount() > 0)
+				? EntitiesInText{
+					{ EntityType::Semibold, 0, int(name.size()), QString() },
+					{ EntityType::PlainLink, 0, int(name.size()), QString() },
+				}
+				: EntitiesInText{}
+		};
 	};
 	const auto shown = int(peers.size());
 	const auto accumulated = [&] {
@@ -58,12 +64,19 @@ QString ComposeFolderListEntryText(not_null<Data::Folder*> folder) {
 				lt_accumulated,
 				result,
 				lt_chat,
-				wrapName(*i));
+				wrapName(*i),
+				Ui::Text::WithEntities);
 		}
 		return result;
 	}();
 	return (shown < count)
-		? tr::lng_archived_last(tr::now, lt_count, (count - shown), lt_chats, accumulated)
+		? tr::lng_archived_last(
+			tr::now,
+			lt_count,
+			(count - shown),
+			lt_chats,
+			accumulated,
+			Ui::Text::WithEntities)
 		: accumulated;
 }
 
@@ -295,10 +308,11 @@ void Row::validateListEntryCache() const {
 		return;
 	}
 	_listEntryCacheVersion = version;
-	_listEntryCache.setText(
+	_listEntryCache.setMarkedText(
 		st::dialogsTextStyle,
 		ComposeFolderListEntryText(folder),
-		Ui::DialogTextOptions());
+		// Use rich options as long as the entry text does not have user text.
+		Ui::ItemTextDefaultOptions());
 }
 
 FakeRow::FakeRow(Key searchInChat, not_null<HistoryItem*> item)

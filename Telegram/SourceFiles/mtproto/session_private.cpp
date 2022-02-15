@@ -41,7 +41,6 @@ constexpr auto kPingSendAfter = 30 * crl::time(1000);
 constexpr auto kPingSendAfterForce = 45 * crl::time(1000);
 constexpr auto kTemporaryExpiresIn = TimeId(86400);
 constexpr auto kBindKeyAdditionalExpiresTimeout = TimeId(30);
-constexpr auto kTestModeDcIdShift = 10000;
 constexpr auto kKeyOldEnoughForDestroy = 60 * crl::time(1000);
 constexpr auto kSentContainerLives = 600 * crl::time(1000);
 constexpr auto kFastRequestDuration = crl::time(500);
@@ -1256,14 +1255,10 @@ void SessionPrivate::handleReceived() {
 		auto ints = intsBuffer.constData();
 		if ((intsCount < kMinimalIntsCount) || (intsCount > kMaxMessageLength / kIntSize)) {
 			LOG(("TCP Error: bad message received, len %1").arg(intsCount * kIntSize));
-			TCP_LOG(("TCP Error: bad message %1").arg(Logs::mb(ints, intsCount * kIntSize).str()));
-
 			return restart();
 		}
 		if (_keyId != *(uint64*)ints) {
 			LOG(("TCP Error: bad auth_key_id %1 instead of %2 received").arg(_keyId).arg(*(uint64*)ints));
-			TCP_LOG(("TCP Error: bad message %1").arg(Logs::mb(ints, intsCount * kIntSize).str()));
-
 			return restart();
 		}
 
@@ -1301,8 +1296,6 @@ void SessionPrivate::handleReceived() {
 		constexpr auto kMsgKeyShift = 8U;
 		if (ConstTimeIsDifferent(&msgKey, sha256Buffer.data() + kMsgKeyShift, sizeof(msgKey))) {
 			LOG(("TCP Error: bad SHA256 hash after aesDecrypt in message"));
-			TCP_LOG(("TCP Error: bad message %1").arg(Logs::mb(encryptedInts, encryptedBytesCount).str()));
-
 			return restart();
 		}
 
@@ -1311,17 +1304,19 @@ void SessionPrivate::handleReceived() {
 			|| (paddingSize < kMinPaddingSize)
 			|| (paddingSize > kMaxPaddingSize)) {
 			LOG(("TCP Error: bad msg_len received %1, data size: %2").arg(messageLength).arg(encryptedBytesCount));
-			TCP_LOG(("TCP Error: bad message %1").arg(Logs::mb(encryptedInts, encryptedBytesCount).str()));
-
 			return restart();
 		}
 
-		TCP_LOG(("TCP Info: decrypted message %1,%2,%3 is %4 len").arg(msgId).arg(seqNo).arg(Logs::b(needAck)).arg(fullDataLength));
+		if (Logs::DebugEnabled()) {
+			_connection->logInfo(u"Decrypted message %1,%2,%3 is %4 len"_q
+				.arg(msgId)
+				.arg(seqNo)
+				.arg(Logs::b(needAck))
+				.arg(fullDataLength));
+		}
 
 		if (session != _sessionId) {
 			LOG(("MTP Error: bad server session received"));
-			TCP_LOG(("MTP Error: bad server session %1 instead of %2 in message received").arg(session).arg(_sessionId));
-
 			return restart();
 		}
 
@@ -1364,8 +1359,8 @@ void SessionPrivate::handleReceived() {
 		auto sfrom = decryptedInts + 4U; // msg_id + seq_no + length + message
 		MTP_LOG(_shiftedDcId, ("Recv: ")
 			+ DumpToText(sfrom, end)
-			+ QString(" (protocolDcId:%1,key:%2)"
-			).arg(getProtocolDcId()
+			+ QString(" (dc:%1,key:%2)"
+			).arg(AbstractConnection::ProtocolDcDebugId(getProtocolDcId())
 			).arg(_encryptionKey->keyId()));
 
 		const auto registered = _receivedMessageIds.registerMsgId(
@@ -2623,8 +2618,8 @@ bool SessionPrivate::sendSecureRequest(
 	auto from = request->constData() + 4;
 	MTP_LOG(_shiftedDcId, ("Send: ")
 		+ DumpToText(from, from + messageSize)
-		+ QString(" (protocolDcId:%1,key:%2)"
-		).arg(getProtocolDcId()
+		+ QString(" (dc:%1,key:%2)"
+		).arg(AbstractConnection::ProtocolDcDebugId(getProtocolDcId())
 		).arg(_encryptionKey->keyId()));
 
 	uchar encryptedSHA256[32];

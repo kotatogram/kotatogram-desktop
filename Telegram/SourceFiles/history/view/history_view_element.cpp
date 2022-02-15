@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/media/history_view_media_grouped.h"
 #include "history/view/media/history_view_sticker.h"
 #include "history/view/media/history_view_large_emoji.h"
+#include "history/view/history_view_react_animation.h"
 #include "history/view/history_view_react_button.h"
 #include "history/view/history_view_cursor_state.h"
 #include "history/history.h"
@@ -37,8 +38,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_groups.h"
 #include "data/data_media_types.h"
 #include "data/data_sponsored_messages.h"
+#include "data/data_message_reactions.h"
 #include "lang/lang_keys.h"
-#include "app.h"
 #include "styles/style_chat.h"
 
 namespace HistoryView {
@@ -46,6 +47,12 @@ namespace {
 
 // A new message from the same sender is attached to previous within 15 minutes.
 constexpr int kAttachMessageToPreviousSecondsDelta = 900;
+
+Element *HoveredElement/* = nullptr*/;
+Element *PressedElement/* = nullptr*/;
+Element *HoveredLinkElement/* = nullptr*/;
+Element *PressedLinkElement/* = nullptr*/;
+Element *MousedElement/* = nullptr*/;
 
 [[nodiscard]] bool IsAttachedToPreviousInSavedMessages(
 		not_null<HistoryItem*> previous,
@@ -71,16 +78,11 @@ constexpr int kAttachMessageToPreviousSecondsDelta = 900;
 		const ClickHandlerContext &context,
 		not_null<Main::Session*> session) {
 	if (const auto controller = context.sessionWindow.get()) {
-		return controller;
-	}
-	const auto &windows = session->windows();
-	if (windows.empty()) {
-		session->domain().activate(&session->account());
-		if (windows.empty()) {
-			return nullptr;
+		if (&controller->session() == session) {
+			return controller;
 		}
 	}
-	return windows.front();
+	return session->tryResolveWindow();
 }
 
 } // namespace
@@ -346,6 +348,15 @@ void DateBadge::paint(
 	ServiceMessagePainter::PaintDate(p, st, text, width, y, w, chatWide);
 }
 
+ReactionAnimationArgs ReactionAnimationArgs::translated(
+		QPoint point) const {
+	return {
+		.emoji = emoji,
+		.flyIcon = flyIcon,
+		.flyFrom = flyFrom.translated(point),
+	};
+}
+
 Element::Element(
 	not_null<ElementDelegate*> delegate,
 	not_null<HistoryItem*> data,
@@ -395,6 +406,10 @@ void Element::setY(int y) {
 }
 
 void Element::refreshDataIdHook() {
+}
+
+void Element::repaint() const {
+	history()->owner().requestViewRepaint(this);
 }
 
 void Element::paintHighlight(
@@ -483,10 +498,6 @@ int Element::skipBlockWidth() const {
 
 int Element::skipBlockHeight() const {
 	return st::msgDateFont->height - st::msgDateDelta.y();
-}
-
-QString Element::skipBlock() const {
-	return textcmdSkipBlock(skipBlockWidth(), skipBlockHeight());
 }
 
 int Element::infoWidth() const {
@@ -1024,6 +1035,10 @@ Reactions::ButtonParameters Element::reactionButtonParameters(
 	return {};
 }
 
+int Element::reactionsOptimalWidth() const {
+	return 0;
+}
+
 void Element::clickHandlerActiveChanged(
 		const ClickHandlerPtr &handler,
 		bool active) {
@@ -1032,8 +1047,8 @@ void Element::clickHandlerActiveChanged(
 			keyboard->clickHandlerActiveChanged(handler, active);
 		}
 	}
-	App::hoveredLinkItem(active ? this : nullptr);
-	history()->owner().requestViewRepaint(this);
+	HoveredLink(active ? this : nullptr);
+	repaint();
 	if (const auto media = this->media()) {
 		media->clickHandlerActiveChanged(handler, active);
 	}
@@ -1047,11 +1062,28 @@ void Element::clickHandlerPressedChanged(
 			keyboard->clickHandlerPressedChanged(handler, pressed);
 		}
 	}
-	App::pressedLinkItem(pressed ? this : nullptr);
-	history()->owner().requestViewRepaint(this);
+	PressedLink(pressed ? this : nullptr);
+	repaint();
 	if (const auto media = this->media()) {
 		media->clickHandlerPressedChanged(handler, pressed);
 	}
+}
+
+void Element::animateReaction(ReactionAnimationArgs &&args) {
+}
+
+void Element::animateUnreadReactions() {
+	const auto &recent = data()->recentReactions();
+	for (const auto &[emoji, list] : recent) {
+		if (ranges::contains(list, true, &Data::RecentReaction::unread)) {
+			animateReaction({ .emoji = emoji });
+		}
+	}
+}
+
+auto Element::takeReactionAnimations()
+-> base::flat_map<QString, std::unique_ptr<Reactions::Animation>> {
+	return {};
 }
 
 Element::~Element() {
@@ -1064,6 +1096,54 @@ Element::~Element() {
 		history()->owner().notifyViewRemoved(this);
 	}
 	history()->owner().unregisterItemView(this);
+}
+
+void Element::Hovered(Element *view) {
+	HoveredElement = view;
+}
+
+Element *Element::Hovered() {
+	return HoveredElement;
+}
+
+void Element::Pressed(Element *view) {
+	PressedElement = view;
+}
+
+Element *Element::Pressed() {
+	return PressedElement;
+}
+
+void Element::HoveredLink(Element *view) {
+	HoveredLinkElement = view;
+}
+
+Element *Element::HoveredLink() {
+	return HoveredLinkElement;
+}
+
+void Element::PressedLink(Element *view) {
+	PressedLinkElement = view;
+}
+
+Element *Element::PressedLink() {
+	return PressedLinkElement;
+}
+
+void Element::Moused(Element *view) {
+	MousedElement = view;
+}
+
+Element *Element::Moused() {
+	return MousedElement;
+}
+
+void Element::ClearGlobal() {
+	HoveredElement = nullptr;
+	PressedElement = nullptr;
+	HoveredLinkElement = nullptr;
+	PressedLinkElement = nullptr;
+	MousedElement = nullptr;
 }
 
 } // namespace HistoryView

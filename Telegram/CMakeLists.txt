@@ -147,6 +147,8 @@ PRIVATE
     api/api_text_entities.h
     api/api_toggling_media.cpp
     api/api_toggling_media.h
+    api/api_unread_things.cpp
+    api/api_unread_things.h
     api/api_updates.cpp
     api/api_updates.h
     api/api_user_privacy.cpp
@@ -525,33 +527,16 @@ PRIVATE
     editor/controllers/controllers.h
     editor/controllers/stickers_panel_controller.cpp
     editor/controllers/stickers_panel_controller.h
-    editor/controllers/undo_controller.cpp
-    editor/controllers/undo_controller.h
-    editor/editor_crop.cpp
-    editor/editor_crop.h
     editor/editor_paint.cpp
     editor/editor_paint.h
     editor/photo_editor.cpp
     editor/photo_editor.h
-    editor/photo_editor_common.cpp
-    editor/photo_editor_common.h
     editor/photo_editor_content.cpp
     editor/photo_editor_content.h
     editor/photo_editor_controls.cpp
     editor/photo_editor_controls.h
-    editor/photo_editor_inner_common.h
     editor/photo_editor_layer_widget.cpp
     editor/photo_editor_layer_widget.h
-    editor/scene/scene.cpp
-    editor/scene/scene.h
-    editor/scene/scene_item_base.cpp
-    editor/scene/scene_item_base.h
-    editor/scene/scene_item_canvas.cpp
-    editor/scene/scene_item_canvas.h
-    editor/scene/scene_item_image.cpp
-    editor/scene/scene_item_image.h
-    editor/scene/scene_item_line.cpp
-    editor/scene/scene_item_line.h
     editor/scene/scene_item_sticker.cpp
     editor/scene/scene_item_sticker.h
     export/export_manager.cpp
@@ -655,6 +640,8 @@ PRIVATE
     history/view/history_view_pinned_section.h
     history/view/history_view_pinned_tracker.cpp
     history/view/history_view_pinned_tracker.h
+    history/view/history_view_react_animation.cpp
+    history/view/history_view_react_animation.h
     history/view/history_view_react_button.cpp
     history/view/history_view_react_button.h
     history/view/history_view_reactions.cpp
@@ -701,6 +688,8 @@ PRIVATE
     history/history_message.h
     history/history_service.cpp
     history/history_service.h
+    history/history_unread_things.cpp
+    history/history_unread_things.h
     history/history_widget.cpp
     history/history_widget.h
     info/info_content_widget.cpp
@@ -963,6 +952,8 @@ PRIVATE
     platform/linux/file_utilities_linux.h
     platform/linux/launcher_linux.cpp
     platform/linux/launcher_linux.h
+    platform/linux/integration_linux.cpp
+    platform/linux/integration_linux.h
     platform/linux/main_window_linux.cpp
     platform/linux/main_window_linux.h
     platform/linux/notifications_manager_linux_dummy.cpp
@@ -974,6 +965,8 @@ PRIVATE
     platform/mac/file_utilities_mac.h
     platform/mac/launcher_mac.mm
     platform/mac/launcher_mac.h
+    platform/mac/integration_mac.mm
+    platform/mac/integration_mac.h
     platform/mac/mac_iconv_helper.c
     platform/mac/main_window_mac.mm
     platform/mac/main_window_mac.h
@@ -1008,6 +1001,8 @@ PRIVATE
     platform/win/file_utilities_win.h
     platform/win/launcher_win.cpp
     platform/win/launcher_win.h
+    platform/win/integration_win.cpp
+    platform/win/integration_win.h
     platform/win/main_window_win.cpp
     platform/win/main_window_win.h
     platform/win/notifications_manager_win.cpp
@@ -1018,8 +1013,6 @@ PRIVATE
     platform/win/windows_app_user_model_id.h
     platform/win/windows_dlls.cpp
     platform/win/windows_dlls.h
-    platform/win/windows_event_filter.cpp
-    platform/win/windows_event_filter.h
     platform/win/windows_autostart_task.cpp
     platform/win/windows_autostart_task.h
     platform/win/windows_toast_activator.cpp
@@ -1027,6 +1020,8 @@ PRIVATE
     platform/platform_audio.h
     platform/platform_file_utilities.h
     platform/platform_launcher.h
+    platform/platform_integration.cpp
+    platform/platform_integration.h
     platform/platform_main_window.h
     platform/platform_notifications_manager.h
     platform/platform_specific.h
@@ -1051,6 +1046,8 @@ PRIVATE
     settings/settings_codes.h
     settings/settings_common.cpp
     settings/settings_common.h
+    settings/settings_experimental.cpp
+    settings/settings_experimental.h
     settings/settings_folders.cpp
     settings/settings_folders.h
     settings/settings_information.cpp
@@ -1115,6 +1112,8 @@ PRIVATE
     support/support_common.h
     support/support_helper.cpp
     support/support_helper.h
+    support/support_preload.cpp
+    support/support_preload.h
     support/support_templates.cpp
     support/support_templates.h
     ui/chat/attach/attach_item_single_file_preview.cpp
@@ -1217,8 +1216,6 @@ PRIVATE
     window/themes/window_themes_generate_name.h
     apiwrap.cpp
     apiwrap.h
-    app.cpp
-    app.h
     config.h
     facades.cpp
     facades.h
@@ -1370,8 +1367,6 @@ else()
     if (NOT DESKTOP_APP_DISABLE_DBUS_INTEGRATION)
         target_link_libraries(Telegram
         PRIVATE
-            desktop-app::external_statusnotifieritem
-            desktop-app::external_dbusmenu_qt
             desktop-app::external_glibmm
             desktop-app::external_glib
         )

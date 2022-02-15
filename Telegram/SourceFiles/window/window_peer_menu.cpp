@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "kotato/kotato_lang.h"
 #include "api/api_chat_participants.h"
 #include "lang/lang_keys.h"
+#include "base/options.h"
 #include "boxes/delete_messages_box.h"
 #include "boxes/max_invite_box.h"
 #include "boxes/mute_settings_box.h"
@@ -83,10 +84,20 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QAction>
 
 namespace Window {
+
+const char kOptionViewProfileInChatsListContextMenu[] =
+	"view-profile-in-chats-list-context-menu";
+
 namespace {
 
 constexpr auto kArchivedToastDuration = crl::time(5000);
 constexpr auto kMaxUnreadWithoutConfirmation = 10000;
+
+base::options::toggle ViewProfileInChatsListContextMenu({
+	.id = kOptionViewProfileInChatsListContextMenu,
+	.name = "Add \"View Profile\"",
+	.description = "Add \"View Profile\" to context menu in chats list",
+});
 
 void SetActionText(not_null<QAction*> action, rpl::producer<QString> &&text) {
 	const auto lifetime = Ui::CreateChild<rpl::lifetime>(action.get());
@@ -766,6 +777,9 @@ void Filler::fillChatsListActions() {
 	addInfo();
 	addToggleArchive();
 	addTogglePin();
+	if (ViewProfileInChatsListContextMenu.value()) {
+		addInfo();
+	}
 	addToggleMute();
 	addToggleUnreadMark();
 	// addToFolder();
@@ -1174,6 +1188,19 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	const auto isGame = firstItem->getMessageBot()
 		&& firstItem->media()
 		&& (firstItem->media()->game() != nullptr);
+
+	const auto items = history->owner().idsToItems(draft.ids);
+	const auto hasCaptions = ranges::any_of(items, [](auto item) {
+		return item->media()
+			&& !item->originalText().text.isEmpty()
+			&& item->media()->allowsEditCaption();
+	});
+	const auto hasOnlyForcedForwardedInfo = hasCaptions
+		? false
+		: ranges::all_of(items, [](auto item) {
+			return item->media() && item->media()->forceForwardedInfo();
+		});
+
 	const auto canCopyLink = [=] {
 		if (draft.ids.size() > 10) {
 			return false;
@@ -1181,7 +1208,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 
 		const auto groupId = firstItem->groupId();
 
-		for (const auto item : history->owner().idsToItems(draft.ids)) {
+		for (const auto item : items) {
 			if (groupId != item->groupId()) {
 				return false;
 			}
@@ -1193,7 +1220,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	const auto hasMediaForGrouping = [=] {
 		if (draft.ids.size() > 1) {
 			auto grouppableMediaCount = 0;
-			for (const auto item : history->owner().idsToItems(draft.ids)) {
+			for (const auto item : items) {
 				if (item->media() && item->media()->canBeGrouped()) {
 					grouppableMediaCount++;
 				} else {
@@ -1236,7 +1263,8 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 			std::vector<not_null<PeerData*>> &&result,
 			TextWithTags &&comment,
 			Api::SendOptions options,
-			Data::ForwardDraft &&newDraft) {
+			Data::ForwardOptions forwardOptions,
+			Data::GroupingOptions groupOptions) {
 		if (data->requestsLeft > 0) {
 			return; // Share clicked already.
 		}
@@ -1252,7 +1280,7 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 					items,
 					comment,
 					false, /* ignoreSlowmodeCountdown */
-					newDraft.options != Data::ForwardOptions::PreserveInfo);
+					forwardOptions != Data::ForwardOptions::PreserveInfo);
 				if (!error.isEmpty()) {
 					return std::make_pair(error, peer);
 				}
@@ -1282,8 +1310,8 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 		};
 		auto &api = owner->session().api();
 
-		data->draft.options = newDraft.options;
-		data->draft.groupOptions = newDraft.groupOptions;
+		data->draft.options = forwardOptions;
+		data->draft.groupOptions = groupOptions;
 
 		for (const auto peer : result) {
 			const auto history = owner->history(peer);
@@ -1315,13 +1343,16 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 	auto copyLinkCallback = canCopyLink
 		? Fn<void()>(std::move(copyCallback))
 		: Fn<void()>();
-	auto goToChatCallback = [navigation, data](PeerData *peer, Data::ForwardDraft &&newDraft) {
+	auto goToChatCallback = [navigation, data](
+			PeerData *peer,
+			Data::ForwardOptions forwardOptions,
+			Data::GroupingOptions groupOptions) {
 		if (data->submitCallback
 			&& !::Kotato::JsonSettings::GetBool("forward_retain_selection")) {
 			data->submitCallback();
 		}
-		data->draft.options = newDraft.options;
-		data->draft.groupOptions = newDraft.groupOptions;
+		data->draft.options = forwardOptions;
+		data->draft.groupOptions = groupOptions;
 		navigation->parentController()->content()->setForwardDraft(peer->id, std::move(data->draft));
 	};
 	*weak = Ui::show(
@@ -1332,12 +1363,13 @@ QPointer<Ui::RpWidget> ShowForwardMessagesBox(
 			.filterCallback = std::move(filterCallback),
 			.goToChatCallback = std::move(goToChatCallback),
 			.navigation = navigation,
-			.hasMedia = hasMediaForGrouping,
-			.isShare = false,
-			.draft = std::make_unique<Data::ForwardDraft>(Data::ForwardDraft{
-				.options = data->draft.options,
-				.groupOptions = data->draft.groupOptions,
-			}),
+			.forwardOptions = {
+				.messagesCount = int(draft.ids.size()),
+				.show = !hasOnlyForcedForwardedInfo,
+				.hasCaptions = hasCaptions,
+				.hasMedia = hasMediaForGrouping,
+				.isShare = false,
+			},
 		}),
 		Ui::LayerOption::KeepOther);
 	return weak->data();

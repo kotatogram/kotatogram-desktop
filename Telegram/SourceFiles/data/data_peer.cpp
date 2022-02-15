@@ -344,7 +344,11 @@ void PeerData::paintUserpicCircled(
 		int y,
 		int size) const {
 	if (const auto userpic = currentUserpic(view)) {
-		p.drawPixmap(x, y, userpic->pixCircled(size, size));
+		const auto circled = Images::Option::RoundCircle;
+		p.drawPixmap(
+			x,
+			y,
+			userpic->pix(size, size, { .options = circled }));
 	} else {
 		ensureEmptyUserpic()->paint(p, x, y, x + size + x, size);
 	}
@@ -357,7 +361,8 @@ void PeerData::paintUserpicRoundedLarge(
 		int y,
 		int size) const {
 	if (const auto userpic = currentUserpic(view)) {
-		p.drawPixmap(x, y, userpic->pixRounded(size, size, ImageRoundRadius::Large));
+		const auto rounded = Images::Option::RoundLarge;
+		p.drawPixmap(x, y, userpic->pix(size, size, { .options = rounded }));
 	} else {
 		ensureEmptyUserpic()->paintRoundedLarge(p, x, y, x + size + x, size);
 	}
@@ -370,7 +375,8 @@ void PeerData::paintUserpicRounded(
 		int y,
 		int size) const {
 	if (const auto userpic = currentUserpic(view)) {
-		p.drawPixmap(x, y, userpic->pixRounded(size, size, ImageRoundRadius::Small));
+		const auto rounded = Images::Option::RoundSmall;
+		p.drawPixmap(x, y, userpic->pix(size, size, { .options = rounded }));
 	} else {
 		ensureEmptyUserpic()->paintRounded(p, x, y, x + size + x, size);
 	}
@@ -443,10 +449,14 @@ QPixmap PeerData::genUserpic(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const {
 	if (const auto userpic = currentUserpic(view)) {
-		return userpic->pixRounded(size, size, KotatoImageRoundRadius());
+		const auto circle = KotatoImageRoundOption();
+		return userpic->pix(size, size, { .options = circle });
 	}
-	auto result = QImage(QSize(size, size) * cIntRetinaFactor(), QImage::Format_ARGB32_Premultiplied);
-	result.setDevicePixelRatio(cRetinaFactor());
+	const auto ratio = style::DevicePixelRatio();
+	auto result = QImage(
+		QSize(size, size) * ratio,
+		QImage::Format_ARGB32_Premultiplied);
+	result.setDevicePixelRatio(ratio);
 	result.fill(Qt::transparent);
 	{
 		Painter p(&result);
@@ -467,17 +477,15 @@ QImage PeerData::generateUserpicImage(
 		ImageRoundRadius radius) const {
 	if (const auto userpic = currentUserpic(view)) {
 		const auto options = (radius == ImageRoundRadius::Ellipse)
-			? (Images::Option::RoundedAll | Images::Option::Circled)
+			? Images::Option::RoundCircle
 			: (radius == ImageRoundRadius::Large)
-			? (Images::Option::RoundedAll | Images::Option::RoundedLarge)
+			? Images::Option::RoundLarge
 			: (radius == ImageRoundRadius::None)
-			? Images::Options()
-			: (Images::Option::RoundedAll | Images::Option::RoundedSmall);
+			? Images::Option()
+			: Images::Option::RoundSmall;
 		return userpic->pixNoCache(
-			size,
-			size,
-			Images::Option::Smooth | options
-		).toImage();
+			{ size, size },
+			{ .options = options }).toImage();
 	}
 	auto result = QImage(
 		QSize(size, size),

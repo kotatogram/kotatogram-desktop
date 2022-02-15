@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_folder.h"
 #include "data/data_histories.h"
 #include "dialogs/dialogs_main_list.h"
+#include "history/history_unread_things.h"
 #include "ui/ui_utility.h"
 #include "main/main_session.h"
 #include "main/main_account.h"
@@ -572,13 +573,13 @@ bool ChatFilter::contains(not_null<History*> history) const {
 				|| history->owner().session().account().isRecent(history->peer->id))
 			&& (!(_flags & Flag::NoMuted)
 				|| !history->mute()
-				|| (history->hasUnreadMentions()
+				|| (history->unreadMentions().has()
 					&& history->folderKnown()
 					&& !history->folder()))
 			&& (!(_flags & Flag::NoRead)
 				|| history->unreadCount()
 				|| history->unreadMark()
-				|| history->hasUnreadMentions()
+				|| history->unreadMentions().has()
 				|| history->fakeUnreadWhileOpened())
 			&& (!(_flags & Flag::NoArchived)
 				|| (history->folderKnown() && !history->folder()))

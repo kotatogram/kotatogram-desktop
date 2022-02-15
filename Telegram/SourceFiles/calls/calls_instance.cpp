@@ -33,7 +33,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "base/unixtime.h"
 #include "mtproto/mtproto_config.h"
-#include "app.h" // App::quitting
 
 #include <tgcalls/VideoCaptureInterface.h>
 #include <tgcalls/StaticThreads.h>
@@ -248,7 +247,7 @@ void Instance::destroyCall(not_null<Call*> call) {
 		_currentCallChanges.fire(nullptr);
 		taken.reset();
 
-		if (App::quitting()) {
+		if (Core::Quitting()) {
 			LOG(("Calls::Instance doesn't prevent quit any more."));
 		}
 		Core::App().quitPreventFinished();
@@ -286,7 +285,7 @@ void Instance::destroyGroupCall(not_null<GroupCall*> call) {
 		_currentGroupCallChanges.fire(nullptr);
 		taken.reset();
 
-		if (App::quitting()) {
+		if (Core::Quitting()) {
 			LOG(("Calls::Instance doesn't prevent quit any more."));
 		}
 		Core::App().quitPreventFinished();

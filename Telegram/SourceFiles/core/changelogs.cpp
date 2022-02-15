@@ -17,7 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "storage/storage_domain.h"
 #include "data/data_session.h"
-#include "base/qt_adapters.h"
+#include "base/qt/qt_common_adapters.h"
 #include "mainwindow.h"
 #include "apiwrap.h"
 
@@ -70,6 +70,18 @@ std::map<int, const char*> BetaLogs() {
 
 		"- Spoiler formatting hides text in chat, "
 		"as well as in the chat list and notifications.\n"
+	},
+	{
+		3004005,
+		"- Fix crash in monospace blocks processing.\n"
+
+		"- Fix reaction animations stopping after an hour uptime.\n"
+	},
+	{
+		3004006,
+		"- Add snap layouts support on Windows 11.\n"
+		
+		"- Fix crash in drafts after accounts switching.\n"
 	}
 	};
 };

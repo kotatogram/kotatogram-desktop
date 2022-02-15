@@ -91,6 +91,7 @@ public:
 	Reactions::ButtonParameters reactionButtonParameters(
 		QPoint position,
 		const TextState &reactionState) const override;
+	int reactionsOptimalWidth() const override;
 
 	bool hasHeavyPart() const override;
 	void unloadHeavyPart() override;
@@ -134,6 +135,10 @@ public:
 
 	void applyGroupAdminChanges(
 		const base::flat_set<UserId> &changes) override;
+
+	void animateReaction(ReactionAnimationArgs &&args) override;
+	auto takeReactionAnimations()
+		-> base::flat_map<QString, std::unique_ptr<Reactions::Animation>> override;
 
 protected:
 	void refreshDataIdHook() override;

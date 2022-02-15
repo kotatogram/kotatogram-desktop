@@ -277,7 +277,7 @@ void FieldHeader::init() {
 	) | rpl::start_with_next([=](const auto &d) {
 		_preview.description.setText(
 			st::messageTextStyle,
-			TextUtilities::Clean(d),
+			d,
 			Ui::DialogTextOptions());
 	}, lifetime());
 
@@ -326,7 +326,7 @@ void FieldHeader::init() {
 void FieldHeader::updateShownMessageText() {
 	Expects(_shownMessage != nullptr);
 
-	_shownMessageText.setText(
+	_shownMessageText.setMarkedText(
 		st::messageTextStyle,
 		_shownMessage->inReplyText(),
 		Ui::DialogTextOptions());
@@ -1587,7 +1587,11 @@ void ComposeControls::initTabbedSelector() {
 	});
 
 	_tabbedSelectorToggle->addClickHandler([=] {
-		toggleTabbedSelectorMode();
+		if (_tabbedPanel && _tabbedPanel->isHidden()) {
+			_tabbedPanel->showAnimated();
+		} else {
+			toggleTabbedSelectorMode();
+		}
 	});
 
 	const auto selector = _window->tabbedSelector();

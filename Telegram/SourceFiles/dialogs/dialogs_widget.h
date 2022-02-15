@@ -91,14 +91,14 @@ public:
 
 	[[nodiscard]] rpl::producer<> closeForwardBarRequests() const;
 
+	[[nodiscard]] RowDescriptor resolveChatNext(RowDescriptor from = {}) const;
+	[[nodiscard]] RowDescriptor resolveChatPrevious(RowDescriptor from = {}) const;
+
 	// Float player interface.
 	bool floatPlayerHandleWheelEvent(QEvent *e) override;
 	QRect floatPlayerAvailableRect() override;
 
 	~Widget();
-
-Q_SIGNALS:
-	void cancelled();
 
 public Q_SLOTS:
 	void onDraggingScrollDelta(int delta);

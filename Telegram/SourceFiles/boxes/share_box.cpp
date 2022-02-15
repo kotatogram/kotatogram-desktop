@@ -17,11 +17,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_account.h"
 #include "ui/boxes/confirm_box.h"
 #include "apiwrap.h"
+#include "ui/chat/forward_options_box.h"
 #include "ui/toast/toast.h"
+#include "ui/widgets/checkbox.h"
 #include "ui/widgets/multi_select.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/input_fields.h"
+#include "ui/widgets/menu/menu_action.h"
+#include "ui/widgets/popup_menu.h"
 #include "ui/widgets/dropdown_menu.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/text/text_options.h"
@@ -44,6 +48,47 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_chat.h"
 #include "styles/style_info.h"
+#include "styles/style_menu_icons.h"
+#include "styles/style_media_player.h"
+
+namespace {
+
+class ForwardOptionItem final : public Ui::Menu::Action {
+public:
+	using Ui::Menu::Action::Action;
+
+	void init(bool checked) {
+		enableMouseSelecting();
+
+		AbstractButton::setDisabled(true);
+
+		_checkView = std::make_unique<Ui::ToggleView>(st::defaultToggle, false);
+		_checkView->checkedChanges(
+		) | rpl::start_with_next([=](bool checked) {
+			setIcon(checked ? &st::mediaPlayerMenuCheck : nullptr);
+		}, lifetime());
+
+		_checkView->setLocked(checked);
+		_checkView->setChecked(checked, anim::type::normal);
+		AbstractButton::clicks(
+		) | rpl::start_with_next([=] {
+			if (!_checkView->isLocked()) {
+				_checkView->setChecked(
+					!_checkView->checked(),
+					anim::type::normal);
+			}
+		}, lifetime());
+	}
+
+	not_null<Ui::ToggleView*> checkView() const {
+		return _checkView.get();
+	}
+
+private:
+	std::unique_ptr<Ui::ToggleView> _checkView;
+};
+
+} // namespace
 
 class ShareBox::Inner final : public Ui::RpWidget {
 public:
@@ -193,9 +238,6 @@ ShareBox::ShareBox(QWidget*, Descriptor &&descriptor)
 		_bottomWidget->resizeToWidth(st::boxWideWidth);
 		_bottomWidget->show();
 	}
-	if (!_descriptor.draft) {
-		_descriptor.draft = std::make_unique<Data::ForwardDraft>();
-	}
 }
 
 void ShareBox::prepareCommentField() {
@@ -251,7 +293,29 @@ void ShareBox::prepare() {
 	_select->resizeToWidth(st::boxWideWidth);
 	Ui::SendPendingMoveResizeEvents(_select);
 
-	setTitle(_descriptor.isShare ? tr::lng_share_title() : tr::lng_selected_forward());
+	setTitle(_descriptor.forwardOptions.isShare ? tr::lng_share_title() : tr::lng_selected_forward());
+
+	const auto forwardOptions = [] {
+		switch (::Kotato::JsonSettings::GetInt("forward_mode")) {
+			case 1: return Data::ForwardOptions::NoSenderNames;
+			case 2: return Data::ForwardOptions::NoNamesAndCaptions;
+			default: return Data::ForwardOptions::PreserveInfo;
+		}
+	}();
+
+	const auto groupOptions = [] {
+		switch (::Kotato::JsonSettings::GetInt("forward_grouping_mode")) {
+			case 1: return Data::GroupingOptions::RegroupAll;
+			case 2: return Data::GroupingOptions::Separate;
+			default: return Data::GroupingOptions::GroupAsIs;
+		}
+	}();
+
+	_forwardOptions.hasCaptions = _descriptor.forwardOptions.hasCaptions;
+	_forwardOptions.dropNames = (forwardOptions != Data::ForwardOptions::PreserveInfo);
+	_forwardOptions.dropCaptions = (forwardOptions == Data::ForwardOptions::NoNamesAndCaptions);
+	_groupOptions = groupOptions;
+
 	updateAdditionalTitle();
 
 	_inner = setInnerWidget(
@@ -480,11 +544,30 @@ SendMenu::Type ShareBox::sendMenuType() const {
 		: SendMenu::Type::Scheduled;
 }
 
+void ShareBox::showMenu(not_null<Ui::RpWidget*> parent) {
+	if (_menu) {
+		_menu = nullptr;
+		return;
+	}
+	_menu.emplace(parent, st::popupMenuWithIcons);
+
+	const auto result = SendMenu::FillSendMenu(
+		_menu.get(),
+		sendMenuType(),
+		[=] { submitSilent(); },
+		[=] { submitScheduled(); });
+	const auto success = (result == SendMenu::FillMenuResult::Success);
+	if (_descriptor.forwardOptions.show || success) {
+		_menu->setForcedOrigin(Ui::PanelAnimation::Origin::BottomRight);
+		_menu->popup(QCursor::pos());
+	}
+}
+
 void ShareBox::createButtons() {
 	clearButtons();
-	if (!_descriptor.isShare) {
+	if (!_descriptor.forwardOptions.isShare && _descriptor.forwardOptions.show) {
 		const auto moreButton = addTopButton(st::infoTopBarMenu);
-		moreButton->setClickedCallback([=] { showMenu(moreButton.data()); });
+		moreButton->setClickedCallback([=] { showForwardMenu(moreButton.data()); });
 	}
 
 	if (_hasSelected) {
@@ -496,97 +579,189 @@ void ShareBox::createButtons() {
 		const auto send = addButton(tr::lng_share_confirm(), [=] {
 			submit({});
 		});
-		SendMenu::SetupMenuAndShortcuts(
-			send,
-			[=] { return sendMenuType(); },
-			[=] { submitSilent(); },
-			[=] { submitScheduled(); });
+
+		send->setAcceptBoth();
+		send->clicks(
+		) | rpl::start_with_next([=](Qt::MouseButton button) {
+			if (button == Qt::RightButton) {
+				showMenu(send);
+			}
+		}, send->lifetime());
 	} else if (_descriptor.copyCallback) {
 		addButton(_copyLinkText.value(), [=] { copyLink(); });
 	}
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 }
 
-bool ShareBox::showMenu(not_null<Ui::IconButton*> button) {
-	if (_menu) {
-		_menu->hideAnimated(Ui::InnerDropdown::HideOption::IgnoreShow);
+bool ShareBox::showForwardMenu(not_null<Ui::IconButton*> button) {
+	if (_topMenu) {
+		_topMenu->hideAnimated(Ui::InnerDropdown::HideOption::IgnoreShow);
 		return true;
 	}
 
-	_menu = base::make_unique_q<Ui::DropdownMenu>(window());
-	const auto weak = _menu.get();
-	_menu->setHiddenCallback([=] {
+	_topMenu = base::make_unique_q<Ui::DropdownMenu>(window());
+	const auto weak = _topMenu.get();
+	_topMenu->setHiddenCallback([=] {
 		weak->deleteLater();
-		if (_menu == weak) {
+		if (_topMenu == weak) {
 			button->setForceRippled(false);
 		}
 	});
-	_menu->setShowStartCallback([=] {
-		if (_menu == weak) {
+	_topMenu->setShowStartCallback([=] {
+		if (_topMenu == weak) {
 			button->setForceRippled(true);
 		}
 	});
-	_menu->setHideStartCallback([=] {
-		if (_menu == weak) {
+	_topMenu->setHideStartCallback([=] {
+		if (_topMenu == weak) {
 			button->setForceRippled(false);
 		}
 	});
-	button->installEventFilter(_menu);
+	button->installEventFilter(_topMenu);
 
-	const auto addForwardOption = [this] (Data::ForwardOptions option, const QString &langKey, int settingsKey) {
-		if (_descriptor.draft->options != option) {
-			_menu->addAction(ktr(langKey), [this, option, settingsKey] {
-				_descriptor.draft->options = option;
-				updateAdditionalTitle();
-				if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
-					::Kotato::JsonSettings::Set("forward_mode", settingsKey);
-					::Kotato::JsonSettings::Write();
-				}
-			});
+	auto createView = [&](rpl::producer<QString> &&text, bool checked) {
+		auto item = base::make_unique_q<ForwardOptionItem>(
+			_topMenu->menu(),
+			st::popupMenuWithIcons.menu,
+			new QAction(QString(), _topMenu->menu()),
+			nullptr,
+			nullptr);
+		std::move(
+			text
+		) | rpl::start_with_next([action = item->action()](QString text) {
+			action->setText(text);
+		}, item->lifetime());
+		item->init(checked);
+		const auto view = item->checkView();
+		_topMenu->addAction(std::move(item));
+		return view;
+	};
+
+	const auto forwardOptions = (_forwardOptions.dropCaptions)
+		? Data::ForwardOptions::NoNamesAndCaptions
+		: _forwardOptions.dropNames
+		? Data::ForwardOptions::NoSenderNames
+		: Data::ForwardOptions::PreserveInfo;
+
+	const auto quoted = createView(
+		rktr("ktg_forward_menu_quoted"),
+		forwardOptions == Data::ForwardOptions::PreserveInfo);
+	const auto noNames = createView(
+		rktr("ktg_forward_menu_unquoted"),
+		forwardOptions == Data::ForwardOptions::NoSenderNames);
+	const auto noCaptions = createView(
+		rktr("ktg_forward_menu_uncaptioned"),
+		forwardOptions == Data::ForwardOptions::NoNamesAndCaptions);
+
+	const auto onForwardOptionChange = [=, this](int mode, bool value) {
+		if (value) {
+			quoted->setLocked(mode == 0 && value);
+			noNames->setLocked(mode == 1 && value);
+			noCaptions->setLocked(mode == 2 && value);
+			quoted->setChecked(quoted->isLocked(), anim::type::normal);
+			noNames->setChecked(noNames->isLocked(), anim::type::normal);
+			noCaptions->setChecked(noCaptions->isLocked(), anim::type::normal);
+			_forwardOptions.dropNames = (mode != 0 && value);
+			_forwardOptions.dropCaptions = (mode == 2 && value);
+			if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+				::Kotato::JsonSettings::Set("forward_mode", mode);
+				::Kotato::JsonSettings::Write();
+			}
+			updateAdditionalTitle();
 		}
 	};
 
-	addForwardOption(Data::ForwardOptions::PreserveInfo, "ktg_forward_menu_quoted", 0);
-	addForwardOption(Data::ForwardOptions::NoSenderNames, "ktg_forward_menu_unquoted", 1);
-	addForwardOption(Data::ForwardOptions::NoNamesAndCaptions, "ktg_forward_menu_uncaptioned", 2);
+	quoted->checkedChanges(
+	) | rpl::start_with_next([=](bool value) {
+		onForwardOptionChange(0, value);
+	}, _topMenu->lifetime());
 
-	if (_descriptor.hasMedia) {
-		_menu->addSeparator();
+	noNames->checkedChanges(
+	) | rpl::start_with_next([=, this](bool value) {
+		onForwardOptionChange(1, value);
+	}, _topMenu->lifetime());
 
-		const auto addGroupingOption = [this] (Data::GroupingOptions option, const QString &langKey, int settingsKey) {
-			if (_descriptor.draft->groupOptions != option) {
-				_menu->addAction(ktr(langKey), [this, option, settingsKey] {
-					_descriptor.draft->groupOptions = option;
-					updateAdditionalTitle();
-					if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
-						::Kotato::JsonSettings::Set("forward_grouping_mode", settingsKey);
-						::Kotato::JsonSettings::Write();
-					}
-				});
+	noCaptions->checkedChanges(
+	) | rpl::start_with_next([=, this](bool value) {
+		onForwardOptionChange(2, value);
+	}, _topMenu->lifetime());
+
+	if (_descriptor.forwardOptions.hasMedia) {
+		_topMenu->addSeparator();
+
+		const auto groupAsIs = createView(
+			rktr("ktg_forward_menu_default_albums"),
+			_groupOptions == Data::GroupingOptions::GroupAsIs);
+		const auto groupAll = createView(
+			rktr("ktg_forward_menu_group_all_media"),
+			_groupOptions == Data::GroupingOptions::RegroupAll);
+		const auto groupNone = createView(
+			rktr("ktg_forward_menu_separate_messages"),
+			_groupOptions == Data::GroupingOptions::Separate);
+
+		const auto onGroupOptionChange = [=, this](int mode, bool value) {
+			if (value) {
+				groupAsIs->setLocked(mode == 0 && value);
+				groupAll->setLocked(mode == 1 && value);
+				groupNone->setLocked(mode == 2 && value);
+				groupAsIs->setChecked(groupAsIs->isLocked(), anim::type::normal);
+				groupAll->setChecked(groupAll->isLocked(), anim::type::normal);
+				groupNone->setChecked(groupNone->isLocked(), anim::type::normal);
+				_groupOptions = (mode == 2)
+						? Data::GroupingOptions::Separate
+						: (mode == 1)
+						? Data::GroupingOptions::RegroupAll
+						: Data::GroupingOptions::GroupAsIs;
+				if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+					::Kotato::JsonSettings::Set("forward_grouping_mode", mode);
+					::Kotato::JsonSettings::Write();
+				}
+				updateAdditionalTitle();
 			}
 		};
 
-		addGroupingOption(Data::GroupingOptions::GroupAsIs, "ktg_forward_menu_default_albums", 0);
-		addGroupingOption(Data::GroupingOptions::RegroupAll, "ktg_forward_menu_group_all_media", 1);
-		addGroupingOption(Data::GroupingOptions::Separate, "ktg_forward_menu_separate_messages", 2);
+		groupAsIs->checkedChanges(
+		) | rpl::start_with_next([=, this](bool value) {
+			onGroupOptionChange(0, value);
+		}, _topMenu->lifetime());
+
+		groupAll->checkedChanges(
+		) | rpl::start_with_next([=, this](bool value) {
+			onGroupOptionChange(1, value);
+		}, _topMenu->lifetime());
+
+		groupNone->checkedChanges(
+		) | rpl::start_with_next([=, this](bool value) {
+			onGroupOptionChange(2, value);
+		}, _topMenu->lifetime());
 	}
 
 	const auto parentTopLeft = window()->mapToGlobal(QPoint());
 	const auto buttonTopLeft = button->mapToGlobal(QPoint());
 	const auto parentRect = QRect(parentTopLeft, window()->size());
 	const auto buttonRect = QRect(buttonTopLeft, button->size());
-	_menu->move(
-		buttonRect.x() + buttonRect.width() - _menu->width() - parentRect.x(),
+	_topMenu->move(
+		buttonRect.x() + buttonRect.width() - _topMenu->width() - parentRect.x(),
 		buttonRect.y() + buttonRect.height() - parentRect.y() - style::ConvertScale(18));
-	_menu->showAnimated(Ui::PanelAnimation::Origin::TopRight);
+	_topMenu->showAnimated(Ui::PanelAnimation::Origin::TopRight);
 
 	return true;
 }
 
 void ShareBox::updateAdditionalTitle() {
+	if (!_descriptor.forwardOptions.show || _descriptor.forwardOptions.isShare) {
+		return;
+	}
+
 	QString result;
 
-	switch (_descriptor.draft->options) {
+	const auto forwardOptions = (_forwardOptions.dropCaptions)
+		? Data::ForwardOptions::NoNamesAndCaptions
+		: _forwardOptions.dropNames
+		? Data::ForwardOptions::NoSenderNames
+		: Data::ForwardOptions::PreserveInfo;
+
+	switch (forwardOptions) {
 		case Data::ForwardOptions::NoSenderNames:
 			result += ktr("ktg_forward_subtitle_unquoted");
 			break;
@@ -596,13 +771,13 @@ void ShareBox::updateAdditionalTitle() {
 			break;
 	}
 
-	if (_descriptor.hasMedia
-		&& _descriptor.draft->groupOptions != Data::GroupingOptions::GroupAsIs) {
+	if (_descriptor.forwardOptions.hasMedia
+		&& _groupOptions != Data::GroupingOptions::GroupAsIs) {
 		if (!result.isEmpty()) {
 			result += ", ";
 		}
 
-		switch (_descriptor.draft->groupOptions) {
+		switch (_groupOptions) {
 			case Data::GroupingOptions::RegroupAll:
 				result += ktr("ktg_forward_subtitle_group_all_media");
 				break;
@@ -645,14 +820,18 @@ void ShareBox::innerSelectedChanged(PeerData *peer, bool checked) {
 
 void ShareBox::submit(Api::SendOptions options) {
 	if (const auto onstack = _descriptor.submitCallback) {
+		const auto forwardOptions = (_forwardOptions.hasCaptions
+			&& _forwardOptions.dropCaptions)
+			? Data::ForwardOptions::NoNamesAndCaptions
+			: _forwardOptions.dropNames
+			? Data::ForwardOptions::NoSenderNames
+			: Data::ForwardOptions::PreserveInfo;
 		onstack(
 			_inner->selected(),
 			_comment->entity()->getTextWithAppliedMarkdown(),
 			options,
-			{
-				.options = _descriptor.draft->options,
-				.groupOptions = _descriptor.draft->groupOptions,
-			});
+			forwardOptions,
+			_groupOptions);
 	}
 }
 
@@ -675,10 +854,16 @@ void ShareBox::copyLink() {
 
 void ShareBox::goToChat(not_null<PeerData*> peer) {
 	if (_descriptor.goToChatCallback) {
-		_descriptor.goToChatCallback(peer, {
-			.options = _descriptor.draft->options,
-			.groupOptions = _descriptor.draft->groupOptions,
-		});
+		const auto forwardOptions = (_forwardOptions.hasCaptions
+			&& _forwardOptions.dropCaptions)
+			? Data::ForwardOptions::NoNamesAndCaptions
+			: _forwardOptions.dropNames
+			? Data::ForwardOptions::NoSenderNames
+			: Data::ForwardOptions::PreserveInfo;
+		_descriptor.goToChatCallback(
+			peer,
+			forwardOptions,
+			_groupOptions);
 	}
 }
 

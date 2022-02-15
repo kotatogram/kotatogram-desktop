@@ -61,10 +61,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "base/platform/base_platform_info.h"
+#include "base/power_save_blocker.h"
 #include "base/random.h"
 #include "base/unixtime.h"
 #include "base/qt_signal_producer.h"
-#include "base/qt_adapters.h"
+#include "base/qt/qt_common_adapters.h"
 #include "base/event_filter.h"
 #include "main/main_account.h"
 #include "main/main_domain.h" // Domain::activeSessionValue.
@@ -148,9 +149,9 @@ QWidget *PipDelegate::pipParentWidget() {
 }
 
 [[nodiscard]] Images::Options VideoThumbOptions(DocumentData *document) {
-	const auto result = Images::Option::Smooth | Images::Option::Blurred;
+	const auto result = Images::Option::Blur;
 	return (document && document->isVideoMessage())
-		? (result | Images::Option::Circled)
+		? (result | Images::Option::RoundCircle)
 		: result;
 }
 
@@ -228,6 +229,7 @@ struct OverlayWidget::Streamed {
 
 	Streaming::Instance instance;
 	PlaybackControls controls;
+	std::unique_ptr<base::PowerSaveBlocker> powerSaveBlocker;
 
 	bool withSound = false;
 	bool pausedBySeek = false;
@@ -320,7 +322,7 @@ OverlayWidget::OverlayWidget()
 			tr::lng_mediaview_downloads(tr::now),
 			"internal:show_saved_message"),
 		Ui::Text::WithEntities);
-	_saveMsgText.setMarkedText(st::mediaviewSaveMsgStyle, text, Ui::DialogTextOptions());
+	_saveMsgText.setMarkedText(st::mediaviewSaveMsgStyle, text);
 	_saveMsg = QRect(0, 0, _saveMsgText.maxWidth() + st::mediaviewSaveMsgPadding.left() + st::mediaviewSaveMsgPadding.right(), st::mediaviewSaveMsgStyle.font->height + st::mediaviewSaveMsgPadding.top() + st::mediaviewSaveMsgPadding.bottom());
 	_saveMsgImage = QImage(
 		_saveMsg.size() * cIntRetinaFactor(),
@@ -609,9 +611,10 @@ Streaming::FrameWithInfo OverlayWidget::videoFrameWithInfo() const {
 	return _streamed->instance.player().ready()
 		? _streamed->instance.frameWithInfo()
 		: Streaming::FrameWithInfo{
-			.original = _streamed->instance.info().video.cover,
+			.image = _streamed->instance.info().video.cover,
 			.format = Streaming::FrameFormat::ARGB32,
 			.index = -2,
+			.alpha = _streamed->instance.info().video.alpha,
 		};
 }
 
@@ -657,7 +660,9 @@ bool OverlayWidget::opaqueContentShown() const {
 	return contentShown()
 		&& (!_staticContentTransparent
 			|| !_document
-			|| (!_document->isVideoMessage() && !_document->sticker()));
+			|| (!_document->isVideoMessage()
+				&& !_document->sticker()
+				&& (!_streamed || !_streamed->instance.info().video.alpha)));
 }
 
 void OverlayWidget::clearStreaming(bool savePosition) {
@@ -2454,9 +2459,9 @@ void OverlayWidget::displayDocument(
 			if (const auto image = _documentMedia->getStickerLarge()) {
 				setStaticContent(image->original());
 			} else if (const auto thumbnail = _documentMedia->thumbnail()) {
-				setStaticContent(thumbnail->pixBlurred(
-					_document->dimensions.width(),
-					_document->dimensions.height()
+				setStaticContent(thumbnail->pix(
+					_document->dimensions,
+					{ .options = Images::Option::Blur }
 				).toImage());
 			}
 		} else {
@@ -2713,10 +2718,8 @@ void OverlayWidget::initStreamingThumbnail() {
 	} else if (size.isEmpty()) {
 		return;
 	}
-	const auto w = size.width();
-	const auto h = size.height();
 	const auto options = VideoThumbOptions(_document);
-	const auto goodOptions = (options & ~Images::Option::Blurred);
+	const auto goodOptions = (options & ~Images::Option::Blur);
 	setStaticContent((good
 		? good
 		: thumbnail
@@ -2724,11 +2727,11 @@ void OverlayWidget::initStreamingThumbnail() {
 		: blurred
 		? blurred
 		: Image::BlankMedia().get())->pixNoCache(
-			w,
-			h,
-			good ? goodOptions : options,
-			w / cIntRetinaFactor(),
-			h / cIntRetinaFactor()
+			size,
+			{
+				.options = good ? goodOptions : options,
+				.outer = size / style::DevicePixelRatio(),
+			}
 		).toImage());
 }
 
@@ -2789,6 +2792,22 @@ bool OverlayWidget::createStreamingObjects() {
 		_streamed->controls.show();
 	// }
 	return true;
+}
+
+void OverlayWidget::updatePowerSaveBlocker(
+		const Player::TrackState &state) {
+	Expects(_streamed != nullptr);
+
+	const auto block = (_document != nullptr)
+		&& _document->isVideoFile()
+		&& !IsPausedOrPausing(state.state)
+		&& !IsStoppedOrStopping(state.state);
+	base::UpdatePowerSaveBlocker(
+		_streamed->powerSaveBlocker,
+		block,
+		base::PowerSaveBlockType::PreventDisplaySleep,
+		[] { return u"Video playback is active"_q; },
+		[=] { return window(); });
 }
 
 QImage OverlayWidget::transformedShownContent() const {
@@ -3266,6 +3285,7 @@ void OverlayWidget::updatePlaybackState() {
 	const auto state = _streamed->instance.player().prepareLegacyState();
 	if (state.position != kTimeUnknown && state.length != kTimeUnknown) {
 		_streamed->controls.updatePlayback(state);
+		updatePowerSaveBlocker(state);
 		_touchbarTrackState.fire_copy(state);
 	}
 }
@@ -3279,10 +3299,8 @@ void OverlayWidget::validatePhotoImage(Image *image, bool blurred) {
 	const auto use = flipSizeByRotation({ _width, _height })
 		* cIntRetinaFactor();
 	setStaticContent(image->pixNoCache(
-		use.width(),
-		use.height(),
-		Images::Option::Smooth
-		| (blurred ? Images::Option::Blurred : Images::Option(0))
+		use,
+		{ .options = (blurred ? Images::Option::Blur : Images::Option()) }
 	).toImage());
 	_blurred = blurred;
 }

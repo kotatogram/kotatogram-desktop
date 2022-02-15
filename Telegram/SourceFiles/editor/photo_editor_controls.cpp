@@ -90,12 +90,10 @@ QImage EdgeButton::rounded(std::optional<QColor> color) const {
 	result.setDevicePixelRatio(cIntRetinaFactor());
 	result.fill(color.value_or(Qt::white));
 
-	using Option = Images::Option;
-	const auto options = Option::Smooth
-		| Option::RoundedLarge
-		| (_left ? Option::RoundedTopLeft : Option::RoundedTopRight)
-		| (_left ? Option::RoundedBottomLeft : Option::RoundedBottomRight);
-	return Images::prepare(std::move(result), 0, 0, options, 0, 0);
+	const auto parts = RectPart::None
+		| (_left ? RectPart::TopLeft : RectPart::TopRight)
+		| (_left ? RectPart::BottomLeft : RectPart::BottomRight);
+	return Images::Round(std::move(result), ImageRoundRadius::Large, parts);
 }
 
 QImage EdgeButton::prepareRippleMask() const {
@@ -151,10 +149,9 @@ ButtonBar::ButtonBar(
 		result.setDevicePixelRatio(cIntRetinaFactor());
 		result.fill(bg->c);
 
-		const auto options = Images::Option::Smooth
-			| Images::Option::RoundedLarge
-			| Images::Option::RoundedAll;
-		_roundedBg = Images::prepare(std::move(result), 0, 0, options, 0, 0);
+		_roundedBg = Images::Round(
+			std::move(result),
+			ImageRoundRadius::Large);
 	}, lifetime());
 
 	paintRequest(
@@ -293,7 +290,23 @@ PhotoEditorControls::PhotoEditorControls(
 
 	controllers->undoController->setPerformRequestChanges(rpl::merge(
 		_undoButton->clicks() | rpl::map_to(Undo::Undo),
-		_redoButton->clicks() | rpl::map_to(Undo::Redo)));
+		_redoButton->clicks() | rpl::map_to(Undo::Redo),
+		_keyPresses.events(
+		) | rpl::filter([=](not_null<QKeyEvent*> e) {
+			using Mode = PhotoEditorMode::Mode;
+			return (e->matches(QKeySequence::Undo)
+					&& !_undoButton->isHidden()
+					&& !_undoButton->testAttribute(
+						Qt::WA_TransparentForMouseEvents)
+					&& (_mode.current().mode == Mode::Paint))
+				|| (e->matches(QKeySequence::Redo)
+					&& !_redoButton->isHidden()
+					&& !_redoButton->testAttribute(
+						Qt::WA_TransparentForMouseEvents)
+					&& (_mode.current().mode == Mode::Paint));
+		}) | rpl::map([=](not_null<QKeyEvent*> e) {
+			return e->matches(QKeySequence::Undo) ? Undo::Undo : Undo::Redo;
+		})));
 
 	controllers->undoController->canPerformChanges(
 	) | rpl::start_with_next([=](const UndoController::EnableRequest &r) {
@@ -368,7 +381,8 @@ rpl::producer<> PhotoEditorControls::doneRequests() const {
 		_transformDone->clicks() | rpl::to_empty,
 		_paintDone->clicks() | rpl::to_empty,
 		_keyPresses.events(
-		) | rpl::filter([=](int key) {
+		) | rpl::filter([=](not_null<QKeyEvent*> e) {
+			const auto key = e->key();
 			return ((key == Qt::Key_Enter) || (key == Qt::Key_Return))
 				&& !_toggledBarAnimation.animating();
 		}) | rpl::to_empty);
@@ -379,7 +393,8 @@ rpl::producer<> PhotoEditorControls::cancelRequests() const {
 		_transformCancel->clicks() | rpl::to_empty,
 		_paintCancel->clicks() | rpl::to_empty,
 		_keyPresses.events(
-		) | rpl::filter([=](int key) {
+		) | rpl::filter([=](not_null<QKeyEvent*> e) {
+			const auto key = e->key();
 			return (key == Qt::Key_Escape)
 				&& !_toggledBarAnimation.animating();
 		}) | rpl::to_empty);
@@ -478,7 +493,7 @@ rpl::producer<bool> PhotoEditorControls::colorLineShownValue() const {
 }
 
 bool PhotoEditorControls::handleKeyPress(not_null<QKeyEvent*> e) const {
-	_keyPresses.fire(e->key());
+	_keyPresses.fire(std::move(e));
 	return true;
 }
 

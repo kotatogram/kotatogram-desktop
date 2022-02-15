@@ -1117,7 +1117,8 @@ void ShareInviteLinkBox(not_null<PeerData*> peer, const QString &link) {
 			std::vector<not_null<PeerData*>> &&result,
 			TextWithTags &&comment,
 			Api::SendOptions options,
-			Data::ForwardDraft&&) {
+			Data::ForwardOptions,
+			Data::GroupingOptions) {
 		if (*sending || result.empty()) {
 			return;
 		}

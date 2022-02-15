@@ -23,7 +23,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"
 #include "lang/lang_keys.h"
-#include "app.h"
+#include "core/application.h"
 
 #include <QFontDatabase>
 #include <QListView>
@@ -273,7 +273,7 @@ void FontsBox::save() {
 		::Kotato::JsonSettings::SetAfterRestart("fonts/use_original_metrics", useOriginalMetrics);
 		::Kotato::JsonSettings::SetAfterRestart("fonts/size", _fontSize);
 		::Kotato::JsonSettings::Write();
-		App::restart();
+		Core::Restart();
 	};
 
 	const auto box = std::make_shared<QPointer<BoxContent>>();
@@ -296,7 +296,7 @@ void FontsBox::resetToDefault() {
 		::Kotato::JsonSettings::ResetAfterRestart("fonts/use_system_font");
 		::Kotato::JsonSettings::ResetAfterRestart("fonts/use_original_metrics");
 		::Kotato::JsonSettings::Write();
-		App::restart();
+		Core::Restart();
 	};
 
 	const auto box = std::make_shared<QPointer<BoxContent>>();

@@ -185,8 +185,11 @@ void Userpic::refreshPhoto() {
 void Userpic::createCache(Image *image) {
 	const auto size = this->size();
 	const auto real = size * cIntRetinaFactor();
-	// auto options = Images::Option::Smooth | Images::Option::Circled;
-	// _useTransparency ? (Images::Option::RoundedLarge | Images::Option::RoundedTopLeft | Images::Option::RoundedTopRight | Images::Option::Smooth) : Images::Option::None;
+	//_useTransparency
+	//	? (Images::Option::RoundLarge
+	//		| Images::Option::RoundSkipBottomLeft
+	//		| Images::Option::RoundSkipBottomRight)
+	//	: Images::Option::None;
 	if (image) {
 		auto width = image->width();
 		auto height = image->height();
@@ -197,12 +200,14 @@ void Userpic::createCache(Image *image) {
 			height = qMax((height * real) / width, 1);
 			width = real;
 		}
-		const auto callRounded = [=](const ImageRoundRadius radius) {
-			return image->pixRounded(width, height, radius, RectPart::AllCorners, size, size);
-		};
-		_userPhoto = callRounded(KotatoImageRoundRadius());
+		const auto roundOption = KotatoImageRoundOption();
+		_userPhoto = image->pix(size, size, {
+			.options = roundOption,
+			.outer = { size, size }});
 	} else {
-		auto filled = QImage(QSize(real, real), QImage::Format_ARGB32_Premultiplied);
+		auto filled = QImage(
+			QSize(real, real),
+			QImage::Format_ARGB32_Premultiplied);
 		filled.setDevicePixelRatio(cRetinaFactor());
 		filled.fill(Qt::transparent);
 		{
@@ -212,7 +217,10 @@ void Userpic::createCache(Image *image) {
 				_peer->name
 			).paint(p, 0, 0, size, size);
 		}
-		//Images::prepareRound(filled, ImageRoundRadius::Large, RectPart::TopLeft | RectPart::TopRight);
+		//_userPhoto = Images::PixmapFast(Images::Round(
+		//	std::move(filled),
+		//	ImageRoundRadius::Large,
+		//	RectPart::TopLeft | RectPart::TopRight));
 		_userPhoto = Images::PixmapFast(std::move(filled));
 	}
 

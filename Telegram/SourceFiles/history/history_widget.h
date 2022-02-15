@@ -234,6 +234,7 @@ public:
 		Ui::ReportReason reason,
 		Fn<void(MessageIdsList)> callback);
 	void clearAllLoadRequests();
+	void clearSupportPreloadRequest();
 	void clearDelayedShowAtRequest();
 	void clearDelayedShowAt();
 	void saveFieldToHistoryLocalDraft();
@@ -241,11 +242,6 @@ public:
 	void toggleChooseChatTheme(not_null<PeerData*> peer);
 
 	void applyCloudDraft(History *history);
-
-	void updateHistoryDownPosition();
-	void updateHistoryDownVisibility();
-	void updateUnreadMentionsPosition();
-	void updateUnreadMentionsVisibility();
 
 	void updateFieldSubmitSettings();
 
@@ -336,7 +332,15 @@ private:
 	};
 	using TextUpdateEvents = base::flags<TextUpdateEvent>;
 	friend inline constexpr bool is_flag_type(TextUpdateEvent) { return true; };
+	struct CornerButton {
+		template <typename ...Args>
+		CornerButton(Args &&...args) : widget(std::forward<Args>(args)...) {
+		}
 
+		Ui::Animations::Simple animation;
+		bool shown = false;
+		object_ptr<Ui::HistoryDownButton> widget;
+	};
 	void checkSuggestToGigagroup();
 
 	void initTabbedSelector();
@@ -390,6 +394,7 @@ private:
 	void recountChatWidth();
 	void historyDownClicked();
 	void showNextUnreadMention();
+	void showNextUnreadReaction();
 	void handlePeerUpdate();
 	void setMembersShowAreaActive(bool active);
 	void handleHistoryChange(not_null<const History*> history);
@@ -425,10 +430,15 @@ private:
 	void animationCallback();
 	void updateOverStates(QPoint pos);
 	void chooseAttach();
-	void historyDownAnimationFinish();
-	void unreadMentionsAnimationFinish();
+	void cornerButtonsAnimationFinish();
 	void sendButtonClicked();
 	void newItemAdded(not_null<HistoryItem*> item);
+	void maybeMarkReactionsRead(not_null<HistoryItem*> item);
+
+	void updateCornerButtonsPositions();
+	void updateHistoryDownVisibility();
+	void updateUnreadThingsVisibility();
+	void updateCornerButtonVisibility(CornerButton &button, bool shown);
 
 	bool canSendFiles(not_null<const QMimeData*> data) const;
 	bool confirmSendingFiles(
@@ -598,6 +608,7 @@ private:
 	bool readyToForward() const;
 	bool hasSilentToggle() const;
 
+	void checkSupportPreload(bool force = false);
 	void handleSupportSwitch(not_null<History*> updated);
 
 	void inlineBotResolveDone(const MTPcontacts_ResolvedPeer &result);
@@ -685,6 +696,9 @@ private:
 	MsgId _delayedShowAtMsgId = -1;
 	int _delayedShowAtRequest = 0; // Not real mtpRequestId.
 
+	History *_supportPreloadHistory = nullptr;
+	int _supportPreloadRequest = 0; // Not real mtpRequestId.
+
 	object_ptr<HistoryView::TopBarWidget> _topBar;
 	object_ptr<Ui::ContinuousScroll> _scroll;
 	QPointer<HistoryInner> _list;
@@ -703,13 +717,9 @@ private:
 	bool _synteticScrollEvent = false;
 	Ui::Animations::Simple _scrollToAnimation;
 
-	Ui::Animations::Simple _historyDownShown;
-	bool _historyDownIsShown = false;
-	object_ptr<Ui::HistoryDownButton> _historyDown;
-
-	Ui::Animations::Simple _unreadMentionsShown;
-	bool _unreadMentionsIsShown = false;
-	object_ptr<Ui::HistoryDownButton> _unreadMentions;
+	CornerButton _historyDown;
+	CornerButton _unreadMentions;
+	CornerButton _unreadReactions;
 
 	const object_ptr<FieldAutocomplete> _fieldAutocomplete;
 	object_ptr<Support::Autocomplete> _supportAutocomplete;

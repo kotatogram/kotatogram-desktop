@@ -46,6 +46,7 @@ struct ChosenRow {
 	Key key;
 	Data::MessagePosition message;
 	bool filteredRow = false;
+	bool newWindow = false;
 };
 
 enum class SearchRequestType {
@@ -95,7 +96,7 @@ public:
 	void refreshEmptyLabel();
 	void resizeEmptyLabel();
 
-	bool chooseRow();
+	bool chooseRow(Qt::KeyboardModifiers modifiers = {});
 
 	void scrollToEntry(const RowDescriptor &entry);
 
@@ -123,6 +124,9 @@ public:
 	[[nodiscard]] rpl::producer<> cancelSearchFromUserRequests() const;
 	[[nodiscard]] rpl::producer<ChosenRow> chosenRow() const;
 	[[nodiscard]] rpl::producer<> updated() const;
+
+	[[nodiscard]] RowDescriptor resolveChatNext(RowDescriptor from = {}) const;
+	[[nodiscard]] RowDescriptor resolveChatPrevious(RowDescriptor from = {}) const;
 
 	~InnerWidget();
 
@@ -192,7 +196,10 @@ private:
 	void refreshDialogRow(RowDescriptor row);
 
 	void clearMouseSelection(bool clearSelection = false);
-	void mousePressReleased(QPoint globalPosition, Qt::MouseButton button);
+	void mousePressReleased(
+		QPoint globalPosition,
+		Qt::MouseButton button,
+		Qt::KeyboardModifiers modifiers);
 	void clearIrrelevantState();
 	void selectByMouse(QPoint globalPosition);
 	void loadPeerPhotos();
@@ -234,7 +241,7 @@ private:
 	void setupShortcuts();
 	RowDescriptor computeJump(
 		const RowDescriptor &to,
-		JumpSkip skip);
+		JumpSkip skip) const;
 	bool jumpToDialogRow(RowDescriptor to);
 
 	RowDescriptor chatListEntryBefore(const RowDescriptor &which) const;

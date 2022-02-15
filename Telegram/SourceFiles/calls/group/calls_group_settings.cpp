@@ -131,7 +131,8 @@ object_ptr<ShareBox> ShareInviteLinkBox(
 			std::vector<not_null<PeerData*>> &&result,
 			TextWithTags &&comment,
 			Api::SendOptions options,
-			Data::ForwardDraft&&) {
+			Data::ForwardOptions,
+			Data::GroupingOptions) {
 		if (*sending || result.empty()) {
 			return;
 		}

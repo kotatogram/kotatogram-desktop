@@ -63,6 +63,7 @@ void SaveValidVideoInformation(
 	to.size = from.size;
 	to.cover = std::move(from.cover);
 	to.rotation = from.rotation;
+	to.alpha = from.alpha;
 }
 
 void SaveValidStartInformation(Information &to, Information &&from) {
@@ -231,6 +232,10 @@ void Player::videoPlayedTill(crl::time position) {
 	Expects(_video != nullptr);
 
 	trackPlayedTill(*_video, _information.video.state, position);
+}
+
+Mode Player::fileOpenMode() {
+	return _options.mode;
 }
 
 bool Player::fileReady(int headerSize, Stream &&video, Stream &&audio) {
@@ -877,6 +882,14 @@ QImage Player::frame(
 	Expects(_video != nullptr);
 
 	return _video->frame(request, instance);
+}
+
+FrameWithInfo Player::frameWithInfo(
+		const FrameRequest &request,
+		const Instance *instance) const {
+	Expects(_video != nullptr);
+
+	return _video->frameWithInfo(request, instance);
 }
 
 FrameWithInfo Player::frameWithInfo(const Instance *instance) const {

@@ -15,7 +15,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/mime_type.h"
 #include "base/unixtime.h"
 #include "base/random.h"
-#include "editor/scene/scene.h" // Editor::Scene::attachedStickers
+#include "editor/scene/scene_item_sticker.h"
+#include "editor/scene/scene.h"
 #include "media/audio/media_audio.h"
 #include "media/clip/media_clip_reader.h"
 #include "mtproto/facade.h"
@@ -148,6 +149,18 @@ MTPInputSingleMedia PrepareAlbumItemMedia(
 		sentEntities);
 }
 
+std::vector<not_null<DocumentData*>> ExtractStickersFromScene(
+		not_null<const Ui::PreparedFileInformation::Image*> info) {
+	const auto allItems = info->modifications.paint->items();
+
+	return ranges::views::all(
+		allItems
+	) | ranges::views::filter([](const Editor::Scene::ItemPtr &i) {
+		return i->isVisible() && (i->type() == Editor::ItemSticker::Type);
+	}) | ranges::views::transform([](const Editor::Scene::ItemPtr &i) {
+		return static_cast<Editor::ItemSticker*>(i.get())->sticker();
+	}) | ranges::to_vector;
+}
 
 } // namespace
 
@@ -606,6 +619,7 @@ bool FileLoadTask::CheckForVideo(
 	static const auto extensions = {
 		qstr(".mp4"),
 		qstr(".mov"),
+		qstr(".webm"),
 	};
 	if (!CheckMimeOrExtensions(filepath, result->filemime, mimes, extensions)) {
 		return false;
@@ -711,7 +725,7 @@ void FileLoadTask::process(Args &&args) {
 				&_information->media)) {
 			fullimage = base::take(image->data);
 			if (!Core::IsMimeSticker(filemime)) {
-				fullimage = Images::prepareOpaque(std::move(fullimage));
+				fullimage = Images::Opaque(std::move(fullimage));
 			}
 			isAnimation = image->animated;
 		}
@@ -730,7 +744,7 @@ void FileLoadTask::process(Args &&args) {
 			const auto mimeType = Core::MimeTypeForData(_content);
 			filemime = mimeType.name();
 			if (!Core::IsMimeSticker(filemime)) {
-				fullimage = Images::prepareOpaque(std::move(fullimage));
+				fullimage = Images::Opaque(std::move(fullimage));
 			}
 			if (filemime == "image/jpeg") {
 				filename = filedialogDefaultName(qsl("photo"), qsl(".jpg"), QString(), true);
@@ -771,7 +785,7 @@ void FileLoadTask::process(Args &&args) {
 				}
 				filesize = _content.size();
 			}
-			fullimage = Images::prepareOpaque(std::move(fullimage));
+			fullimage = Images::Opaque(std::move(fullimage));
 		}
 	}
 	_result->filesize = (int32)qMin(filesize, qint64(INT_MAX));
@@ -949,8 +963,7 @@ void FileLoadTask::process(Args &&args) {
 		if (auto image = std::get_if<Ui::PreparedFileInformation::Image>(
 				&_information->media)) {
 			if (image->modifications.paint) {
-				const auto documents
-					= image->modifications.paint->attachedStickers();
+				const auto documents = ExtractStickersFromScene(image);
 				_result->attachedStickers = documents
 					| ranges::view::transform(&DocumentData::mtpInput)
 					| ranges::to_vector;

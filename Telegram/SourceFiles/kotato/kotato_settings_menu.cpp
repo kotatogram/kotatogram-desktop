@@ -36,7 +36,6 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "main/main_session.h"
 #include "mainwindow.h"
 #include "facades.h"
-#include "app.h"
 #include "styles/style_settings.h"
 #include "ui/platform/ui_platform_utility.h"
 
@@ -578,7 +577,7 @@ void SetupKotatoSystem(
 		const auto confirmed = [=] {
 			::Kotato::JsonSettings::Set("qt_scale", enabled);
 			::Kotato::JsonSettings::Write();
-			App::restart();
+			Core::Restart();
 		};
 		const auto cancelled = [=] {
 			qtScaleToggled->fire(::Kotato::JsonSettings::GetBool("qt_scale") == true);

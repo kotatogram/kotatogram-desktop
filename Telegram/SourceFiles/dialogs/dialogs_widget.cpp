@@ -34,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peer_list_box.h"
 #include "boxes/peers/edit_participants_box.h"
 #include "window/window_adaptive.h"
+#include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "window/window_slide_animation.h"
 #include "window/window_connecting_widget.h"
@@ -49,12 +50,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_histories.h"
 #include "data/data_changes.h"
 #include "facades.h"
-#include "app.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_chat.h"
 #include "styles/style_info.h"
 #include "styles/style_window.h"
-#include "base/qt_adapters.h"
+#include "base/qt/qt_common_adapters.h"
 
 #include <QtCore/QMimeData>
 
@@ -229,11 +229,24 @@ Widget::Widget(
 		const auto openSearchResult = !controller->selectingPeer()
 			&& row.filteredRow;
 		if (const auto history = row.key.history()) {
-			controller->content()->choosePeer(
-				history->peer->id,
-				(controller->uniqueChatsInSearchResults()
-					? ShowAtUnreadMsgId
-					: row.message.fullId.msg));
+			const auto peer = history->peer;
+			const auto showAtMsgId = controller->uniqueChatsInSearchResults()
+				? ShowAtUnreadMsgId
+				: row.message.fullId.msg;
+			if (row.newWindow) {
+				const auto active = controller->activeChatCurrent();
+				if (const auto history = active.history()) {
+					if (history->peer == peer) {
+						controller->content()->ui_showPeerHistory(
+							0,
+							Window::SectionShow::Way::ClearStack,
+							0);
+					}
+				}
+				Core::App().ensureSeparateWindowForPeer(peer, showAtMsgId);
+			} else {
+				controller->content()->choosePeer(peer->id, showAtMsgId);
+			}
 		} else if (const auto folder = row.key.folder()) {
 			controller->openFolder(folder);
 		}
@@ -584,7 +597,9 @@ void Widget::checkUpdateStatus() {
 
 	using Checker = Core::UpdateChecker;
 	if (Checker().state() == Checker::State::Ready) {
-		if (_updateTelegram) return;
+		if (_updateTelegram) {
+			return;
+		}
 		_updateTelegram.create(
 			this,
 			ktr("ktg_update_telegram"),
@@ -594,11 +609,15 @@ void Widget::checkUpdateStatus() {
 		_updateTelegram->show();
 		_updateTelegram->setClickedCallback([] {
 			Core::checkReadyUpdate();
-			App::restart();
+			Core::Restart();
 		});
-		_connecting->raise();
+		if (_connecting) {
+			_connecting->raise();
+		}
 	} else {
-		if (!_updateTelegram) return;
+		if (!_updateTelegram) {
+			return;
+		}
 		_updateTelegram.destroy();
 	}
 	updateControlsGeometry();
@@ -748,13 +767,13 @@ void Widget::escape() {
 	} else if (!onCancelSearch()) {
 		const auto defaultFilterId = session().account().defaultFilterId();
 		if (controller()->activeChatEntryCurrent().key) {
-			cancelled();
+			controller()->content()->dialogsCancelled();
 		} else if (controller()->activeChatsFilterCurrent() != defaultFilterId) {
 			controller()->setActiveChatsFilter(defaultFilterId);
 		}
 	} else if (!_searchInChat && !controller()->selectingPeer()) {
 		if (controller()->activeChatEntryCurrent().key) {
-			cancelled();
+			controller()->content()->dialogsCancelled();
 		}
 	}
 }
@@ -1677,6 +1696,14 @@ void Widget::updateForwardBar() {
 	update();
 }
 
+RowDescriptor Widget::resolveChatNext(RowDescriptor from) const {
+	return _inner->resolveChatNext(from);
+}
+
+RowDescriptor Widget::resolveChatPrevious(RowDescriptor from) const {
+   return _inner->resolveChatPrevious(from);
+}
+
 void Widget::keyPressEvent(QKeyEvent *e) {
 	if (e->key() == Qt::Key_Escape) {
 		if (_openedFolder) {
@@ -1814,7 +1841,7 @@ void Widget::onCancelSearchInChat() {
 	}
 	applyFilterUpdate(true);
 	if (!isOneColumn && !controller()->selectingPeer()) {
-		cancelled();
+		controller()->content()->dialogsCancelled();
 	}
 }
 

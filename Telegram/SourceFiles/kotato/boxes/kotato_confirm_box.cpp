@@ -146,7 +146,7 @@ FnMut<void()> ConfirmBox::generateInformCallback(
 }
 
 void ConfirmBox::init(const QString &text) {
-	_text->setRichText(text);
+	_text->setText(text);
 }
 
 void ConfirmBox::init(const TextWithEntities &text) {

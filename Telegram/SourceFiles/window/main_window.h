@@ -27,6 +27,7 @@ class PlainShadow;
 
 namespace Core {
 struct WindowPosition;
+enum class QuitReason;
 } // namespace Core
 
 namespace Window {
@@ -38,7 +39,9 @@ struct TermsLock;
 
 [[nodiscard]] const QImage &Logo(int variant = 0);
 [[nodiscard]] const QImage &LogoNoMargin(int variant = 0);
-[[nodiscard]] QIcon CreateIcon(Main::Session *session = nullptr);
+[[nodiscard]] QIcon CreateIcon(
+	Main::Session *session = nullptr,
+	bool returnNullIfDefault = false);
 void ConvertIconToBlack(QImage &image);
 
 struct CounterLayerArgs {
@@ -62,6 +65,8 @@ public:
 	[[nodiscard]] Window::Controller &controller() const {
 		return *_controller;
 	}
+	[[nodiscard]] PeerData *singlePeer() const;
+	[[nodiscard]] bool isPrimary() const;
 	[[nodiscard]] Main::Account &account() const;
 	[[nodiscard]] Window::SessionController *sessionController() const;
 
@@ -131,6 +136,10 @@ public:
 	bool minimizeToTray();
 	void updateGlobalMenu() {
 		updateGlobalMenuHook();
+	}
+
+	[[nodiscard]] virtual bool preventsQuit(Core::QuitReason reason) {
+		return false;
 	}
 
 protected:

@@ -33,7 +33,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 #include "mainwidget.h" // session->content()->windowShown().
 #include "facades.h"
-#include "app.h"
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
 
@@ -137,28 +136,27 @@ void ConvertIconToBlack(QImage &image) {
 }
 
 QIcon CreateOfficialIcon(Main::Session *session) {
+	const auto support = (session && session->supportMode());
+	if (!support) {
+		return QIcon();
+	}
 	const auto customIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	auto image = customIcon.isNull()
 		? Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))
 		: customIcon;
 
-	if (session && session->supportMode()) {
-		ConvertIconToBlack(image);
-	}
+	ConvertIconToBlack(image);
 	return QIcon(Ui::PixmapFromImage(std::move(image)));
 }
 
-QIcon CreateIcon(Main::Session *session) {
-	if constexpr (Platform::IsMac()) {
-		if ((!session || !session->supportMode())
-			&& (::Kotato::JsonSettings::GetInt("custom_app_icon") == 0)
-			&& !QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
-			return QIcon();
-		}
+QIcon CreateIcon(Main::Session *session, bool returnNullIfDefault) {
+	const auto officialIcon = CreateOfficialIcon(session);
+	if (!officialIcon.isNull() || returnNullIfDefault) {
+		return officialIcon;
 	}
 
-	auto result = CreateOfficialIcon(session);
+	auto result = QIcon(Ui::PixmapFromImage(base::duplicate(Logo())));
 
 #if defined Q_OS_UNIX && !defined Q_OS_MAC
 	if ((session && session->supportMode())
@@ -391,12 +389,20 @@ Main::Account &MainWindow::account() const {
 	return _controller->account();
 }
 
+PeerData *MainWindow::singlePeer() const {
+	return _controller->singlePeer();
+}
+
+bool MainWindow::isPrimary() const {
+	return _controller->isPrimary();
+}
+
 Window::SessionController *MainWindow::sessionController() const {
 	return _controller->sessionController();
 }
 
 bool MainWindow::hideNoQuit() {
-	if (App::quitting()) {
+	if (Core::Quitting()) {
 		return false;
 	}
 	const auto workMode = Core::App().settings().workMode();
@@ -552,7 +558,7 @@ void MainWindow::showFromTray() {
 }
 
 void MainWindow::quitFromTray() {
-	App::quit();
+	Core::Quit();
 }
 
 void MainWindow::activate() {
@@ -775,7 +781,10 @@ void MainWindow::initGeometry() {
 	if (initGeometryFromSystem()) {
 		return;
 	}
-	const auto geometry = countInitialGeometry(positionFromSettings());
+	// #TODO windows
+	const auto geometry = countInitialGeometry(isPrimary()
+		? positionFromSettings()
+		: Core::WindowPosition());
 	DEBUG_LOG(("Window Pos: Setting first %1, %2, %3, %4"
 		).arg(geometry.x()
 		).arg(geometry.y()
@@ -838,7 +847,7 @@ void MainWindow::updateControlsGeometry() {
 }
 
 void MainWindow::updateUnreadCounter() {
-	if (App::quitting()) {
+	if (Core::Quitting()) {
 		return;
 	}
 
@@ -859,6 +868,7 @@ void MainWindow::savePosition(Qt::WindowState state) {
 
 	if (state == Qt::WindowMinimized
 		|| !isVisible()
+		|| !isPrimary() // #TODO windows
 		|| !positionInited()) {
 		return;
 	}
@@ -927,7 +937,9 @@ void MainWindow::savePosition(Qt::WindowState state) {
 }
 
 bool MainWindow::minimizeToTray() {
-	if (App::quitting() || !hasTrayIcon()) return false;
+	if (Core::Quitting() || !hasTrayIcon()) {
+		return false;
+	}
 
 	closeWithoutDestroy();
 	controller().updateIsActiveBlur();
