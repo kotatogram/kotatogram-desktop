@@ -306,30 +306,6 @@ jobs:
           cd -
           rm -rf openal-soft
 
-      - name: Wayland Protocols.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b 1.24 --depth=1 https://gitlab.freedesktop.org/wayland/wayland-protocols.git
-          cd wayland-protocols
-          meson build --buildtype=release -Dtests=false
-          meson compile -C build
-          meson install -C build
-          cd ..
-          rm -rf wayland-protocols
-
-      - name: Plasma Wayland Protocols.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v1.5.0 --depth=1 $GIT/KDE/plasma-wayland-protocols.git
-          cd plasma-wayland-protocols
-          cmake -B build -GNinja . -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
-          cmake --install build
-          cd ..
-          rm -rf plasma-wayland-protocols
-
       - name: Libepoxy.
         run: |
           cd $LibrariesPath
@@ -447,7 +423,7 @@ jobs:
           cd tg_owt
           git init
           git remote add origin $GIT/desktop-app/tg_owt.git
-          git fetch --depth=1 origin b02478677baac6d563589f216800ff9cea0fd65c
+          git fetch --depth=1 origin 4cba1acdd718b700bb33945c0258283689d4eac7
           git reset --hard FETCH_HEAD
           git submodule init
           git submodule update
