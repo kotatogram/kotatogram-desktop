@@ -60,6 +60,7 @@ jobs:
       GIT: "https://github.com"
       OPENALDIR: /usr/local/opt/openal-soft
       OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
+      PKG_CONFIG_PATH: /usr/local/opt/ffmpeg@4/lib/pkgconfig
       UPLOAD_ARTIFACT: "false"
       ONLY_CACHE: "false"
       MANUAL_CACHING: "1"
