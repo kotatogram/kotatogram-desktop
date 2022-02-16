@@ -156,11 +156,9 @@ jobs:
         run: |
           C:
           cd %TBUILD%\%REPO_NAME%
-          call vcvarsall.bat x86 %SDK%
 
           cmake -B build . ^
           -G Ninja ^
-          -A ${{ matrix.arch }} ^
           -D CMAKE_BUILD_TYPE=Debug ^
           -D CMAKE_C_COMPILER=cl ^
           -D CMAKE_CXX_COMPILER=cl ^

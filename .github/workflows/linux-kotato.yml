@@ -101,8 +101,8 @@ jobs:
           apt-get install clang libglibmm-2.4-dev libicu-dev libssl-dev liblzma-dev zlib1g-dev \
           git wget autoconf automake build-essential libtool pkg-config bison yasm unzip python3-pip \
           libasound2-dev libpulse-dev libfuse2 libgtk-3-dev libgtk2.0-dev libatspi2.0-dev \
-          libgl1-mesa-dev libegl1-mesa-dev libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev \
-          libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev \
+          libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev libxkbcommon-dev libxkbcommon-x11-dev \
+          libxcb1-dev libxcb-glx0-dev libxcb-icccm4-dev libxcb-image0-dev libxcb-keysyms1-dev \
           libxcb-randr0-dev libxcb-record0-dev libxcb-render0-dev libxcb-render-util0-dev \
           libxcb-res0-dev libxcb-screensaver0-dev libxcb-shape0-dev libxcb-shm0-dev \
           libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev \
