@@ -19,7 +19,7 @@ class Key;
 namespace Data {
 
 class Session;
-class LocalFolder;
+struct LocalFolder;
 
 class ChatFilter final {
 public:
