@@ -77,13 +77,13 @@ jobs:
 
       - name: First set up.
         run: |
-          brew install autoconf automake cmake ffmpeg openal-soft openssl@1.1 opus ninja pkg-config python qt yasm xz
+          brew install autoconf automake cmake ffmpeg@4 openal-soft openssl@1.1 opus ninja pkg-config python qt yasm xz
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
           xcodebuild -version > CACHE_KEY.txt
           echo $MANUAL_CACHING >> CACHE_KEY.txt
           echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
-          if [ "$AUTO_CACHING" == "1" ]; then
+          if [ "$AUTO_CACHING" = "1" ]; then
             thisFile=$REPO_NAME/.github/workflows/mac-kotato.yml
             echo `md5 -q $thisFile` >> CACHE_KEY.txt
           fi
