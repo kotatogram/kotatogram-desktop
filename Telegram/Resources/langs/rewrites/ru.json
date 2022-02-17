@@ -264,5 +264,6 @@
 	"ktg_jump_to_date_button": "Перейти",
 	"ktg_jump_to_beginning": "Перейти в начало",
 	"ktg_show_calendar": "Показать календарь",
+	"ktg_in_app_update_disabled": "Обновление внутри приложения отключено.",
 	"dummy_last_string": ""
 }

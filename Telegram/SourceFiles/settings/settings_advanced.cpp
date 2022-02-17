@@ -86,12 +86,9 @@ bool HasUpdate() {
 }
 
 void SetupUpdate(
+		not_null<Window::Controller*> controller,
 		not_null<Ui::VerticalLayout*> container,
 		Fn<void(Type)> showOther) {
-	if (!HasUpdate()) {
-		return;
-	}
-
 	const auto texts = Ui::CreateChild<rpl::event_stream<QString>>(
 		container.get());
 	const auto downloading = Ui::CreateChild<rpl::event_stream<bool>>(
@@ -114,27 +111,46 @@ void SetupUpdate(
 			container,
 			object_ptr<Ui::VerticalLayout>(container)));
 	const auto inner = options->entity();
-	const auto install = cAlphaVersion() ? nullptr : AddButton(
+	const auto install = (cAlphaVersion() || !HasUpdate()) ? nullptr : AddButton(
 		inner,
 		tr::lng_settings_install_beta(),
 		st::settingsButton).get();
 
 	if (showOther) {
-		const auto experimental = inner->add(
-			object_ptr<Ui::SlideWrap<Button>>(
-				inner,
+		const auto experimental = container->add(
 				object_ptr<Button>(
-					inner,
+					container,
 					tr::lng_settings_experimental(),
-					st::settingsButton)));
-		if (!install) {
-			experimental->toggle(true, anim::type::instant);
-		} else {
-			experimental->toggleOn(install->toggledValue());
-		}
-		experimental->entity()->setClickedCallback([=] {
+					st::settingsButton));
+		experimental->setClickedCallback([=] {
 			showOther(Type::Experimental);
 		});
+	}
+
+	rpl::combine(
+		toggle->widthValue(),
+		label->widthValue()
+	) | rpl::start_with_next([=] {
+		label->moveToLeft(
+			st::settingsUpdateStatePosition.x(),
+			st::settingsUpdateStatePosition.y());
+	}, label->lifetime());
+	label->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+	if (!HasUpdate()) {
+		texts->fire_copy(version);
+		auto &lifetime = container->lifetime();
+		const auto toggles = lifetime.make_state<rpl::event_stream<bool>>();
+		toggle->toggleOn(toggles->events_starting_with(false));
+		toggle->toggledChanges(
+		) | rpl::start_with_next([=](bool value) {
+			if (value) {
+				toggles->fire_copy(false);
+				controller->showToast(ktr("ktg_in_app_update_disabled"));
+				return;
+			}
+		}, container->lifetime());
+		return;
 	}
 
 	const auto check = AddButton(
@@ -150,16 +166,6 @@ void SetupUpdate(
 		update->resizeToWidth(width);
 		update->moveToLeft(0, 0);
 	}, update->lifetime());
-
-	rpl::combine(
-		toggle->widthValue(),
-		label->widthValue()
-	) | rpl::start_with_next([=] {
-		label->moveToLeft(
-			st::settingsUpdateStatePosition.x(),
-			st::settingsUpdateStatePosition.y());
-	}, label->lifetime());
-	label->setAttribute(Qt::WA_TransparentForMouseEvents);
 
 	const auto showDownloadProgress = [=](int64 ready, int64 total) {
 		texts->fire(tr::lng_settings_downloading_update(
@@ -742,15 +748,16 @@ void Advanced::setupContent(not_null<Window::SessionController*> controller) {
 		}
 	};
 	const auto addUpdate = [&] {
-		if (HasUpdate()) {
-			addDivider();
-			AddSkip(content);
-			AddSubsectionTitle(content, tr::lng_settings_version_info());
-			SetupUpdate(content, [=](Type type) {
+		addDivider();
+		AddSkip(content);
+		AddSubsectionTitle(content, tr::lng_settings_version_info());
+		SetupUpdate(
+			&controller->window(),
+			content,
+			[=](Type type) {
 				_showOther.fire_copy(type);
 			});
-			AddSkip(content);
-		}
+		AddSkip(content);
 	};
 	if (!cAutoUpdate()) {
 		addUpdate();

@@ -264,5 +264,6 @@
 	"ktg_jump_to_date_button": "Jump",
 	"ktg_jump_to_beginning": "Jump to beginning",
 	"ktg_show_calendar": "Show calendar",
+	"ktg_in_app_update_disabled": "In-app updater is disabled.",
 	"dummy_last_string": ""
 }
