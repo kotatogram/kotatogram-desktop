@@ -32,7 +32,10 @@ void Finish();
 	const QString &key,
 	uint64 accountId = 0,
 	bool isTestAccount = false);
-[[nodiscard]] rpl::producer<bool> RestartEvents();
+[[nodiscard]] rpl::producer<QString> EventsWithPending(
+	const QString &key,
+	uint64 accountId = 0,
+	bool isTestAccount = false);
 void Set(
 	const QString &key,
 	QVariant value,

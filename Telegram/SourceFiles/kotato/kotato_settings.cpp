@@ -51,7 +51,10 @@ public:
 		const QString &key,
 		uint64 accountId = 0,
 		bool isTestAccount = false);
-	[[nodiscard]] rpl::producer<bool> restartEvents();
+	[[nodiscard]] rpl::producer<QString> eventsWithPending(
+		const QString &key,
+		uint64 accountId = 0,
+		bool isTestAccount = false);
 	void set(
 		const QString &key,
 		QVariant value,
@@ -71,7 +74,6 @@ public:
 		uint64 accountId = 0,
 		bool isTestAccount = false);
 	void writeTimeout();
-	bool needRestart();
 
 private:
 	[[nodiscard]] QVariant getDefault(const QString &key);
@@ -84,7 +86,7 @@ private:
 	base::Timer _jsonWriteTimer;
 
 	rpl::event_stream<QString> _eventStream;
-	rpl::event_stream<bool> _restartEventStream;
+	rpl::event_stream<QString> _pendingEventStream;
 	QHash<QString, QVariant> _settingsHashMap;
 	QHash<QString, QVariant> _defaultSettingsHashMap;
 
@@ -785,8 +787,9 @@ rpl::producer<QString> Manager::events(const QString &key, uint64 accountId, boo
 	return _eventStream.events() | rpl::filter(rpl::mappers::_1 == mapKey);
 }
 
-rpl::producer<bool> Manager::restartEvents() {
-	return _restartEventStream.events();
+rpl::producer<QString> Manager::eventsWithPending(const QString &key, uint64 accountId, bool isTestAccount) {
+	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
+	return _pendingEventStream.events() | rpl::filter(rpl::mappers::_1 == mapKey);
 }
 
 void Manager::set(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {
@@ -797,7 +800,6 @@ void Manager::set(const QString &key, QVariant value, uint64 accountId, bool isT
 
 void Manager::setAfterRestart(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {
 	const auto mapKey = MakeMapKey(key, accountId, isTestAccount);
-	const auto oldNeedRestart = needRestart();
 	if (!_settingsHashMap.contains(mapKey)
 		|| _settingsHashMap.value(mapKey) != value) {
 		_defaultSettingsHashMap.insert(mapKey, value);
@@ -805,10 +807,7 @@ void Manager::setAfterRestart(const QString &key, QVariant value, uint64 account
 		&& _settingsHashMap.value(mapKey) == value) {
 		_defaultSettingsHashMap.remove(mapKey);
 	}
-	const auto newNeedRestart = needRestart();
-	if (oldNeedRestart != newNeedRestart) {
-		_restartEventStream.fire_copy(newNeedRestart);
-	}
+	_pendingEventStream.fire_copy(mapKey);
 }
 
 void Manager::reset(const QString &key, uint64 accountId, bool isTestAccount) {
@@ -1003,10 +1002,6 @@ void Manager::writeTimeout() {
 	writeCurrentSettings();
 }
 
-bool Manager::needRestart() {
-	return _defaultSettingsHashMap.size() > 0;
-}
-
 void Manager::writing() {
 	_jsonWriteTimer.cancel();
 }
@@ -1048,8 +1043,8 @@ rpl::producer<QString> Events(const QString &key, uint64 accountId, bool isTestA
 	return (Data) ? Data->events(key, accountId, isTestAccount) : rpl::single(QString());
 }
 
-rpl::producer<bool> RestartEvents() {
-	return (Data) ? Data->restartEvents() : rpl::single(false);
+rpl::producer<QString> EventsWithPending(const QString &key, uint64 accountId, bool isTestAccount) {
+	return (Data) ? Data->eventsWithPending(key, accountId, isTestAccount) : rpl::single(QString());
 }
 
 void Set(const QString &key, QVariant value, uint64 accountId, bool isTestAccount) {

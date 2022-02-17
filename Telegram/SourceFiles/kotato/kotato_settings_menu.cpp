@@ -305,20 +305,34 @@ void SetupKotatoChats(
 		Ui::show(Box<FontsBox>());
 	});
 
-	AddButtonWithLabel(
-		container,
-		rktr("ktg_settings_userpic_rounding"),
-		rpl::single(UserpicRoundingLabel(::Kotato::JsonSettings::GetInt("userpic_corner_type"))),
-		st::settingsButton
-	)->addClickHandler([=] {
+	const auto userpicCornerButton = container->add(
+		object_ptr<Button>(
+			container,
+			rktr("ktg_settings_userpic_rounding"),
+			st::settingsButton));
+	auto userpicCornerText = rpl::single(
+		UserpicRoundingLabel(::Kotato::JsonSettings::GetIntWithPending("userpic_corner_type"))
+	) | rpl::then(
+		::Kotato::JsonSettings::EventsWithPending(
+			"userpic_corner_type"
+		) | rpl::map([] {
+			return UserpicRoundingLabel(::Kotato::JsonSettings::GetIntWithPending("userpic_corner_type"));
+		})
+	);
+	CreateRightLabel(
+		userpicCornerButton,
+		std::move(userpicCornerText),
+		st::settingsButton,
+		rktr("ktg_settings_userpic_rounding"));
+	userpicCornerButton->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
 			ktr("ktg_settings_userpic_rounding"),
 			ktr("ktg_settings_userpic_rounding_desc"),
-			::Kotato::JsonSettings::GetInt("userpic_corner_type"),
+			::Kotato::JsonSettings::GetIntWithPending("userpic_corner_type"),
 			4,
 			UserpicRoundingLabel,
 			[=] (int value) {
-				::Kotato::JsonSettings::Set("userpic_corner_type", value);
+				::Kotato::JsonSettings::SetAfterRestart("userpic_corner_type", value);
 				::Kotato::JsonSettings::Write();
 			}, true));
 	});
@@ -541,12 +555,26 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_network"));
 
-	AddButtonWithLabel(
-		container,
-		rktr("ktg_settings_net_speed_boost"),
-		rpl::single(NetBoostLabel(::Kotato::JsonSettings::GetIntWithPending("net_speed_boost"))),
-		st::settingsButton
-	)->addClickHandler([=] {
+	const auto netBoostButton = container->add(
+		object_ptr<Button>(
+			container,
+			rktr("ktg_settings_net_speed_boost"),
+			st::settingsButton));
+	auto netBoostText = rpl::single(
+		NetBoostLabel(::Kotato::JsonSettings::GetIntWithPending("net_speed_boost"))
+	) | rpl::then(
+		::Kotato::JsonSettings::EventsWithPending(
+			"net_speed_boost"
+		) | rpl::map([] {
+			return NetBoostLabel(::Kotato::JsonSettings::GetIntWithPending("net_speed_boost"));
+		})
+	);
+	CreateRightLabel(
+		netBoostButton,
+		std::move(netBoostText),
+		st::settingsButton,
+		rktr("ktg_settings_net_speed_boost"));
+	netBoostButton->addClickHandler([=] {
 		Ui::show(Box<::Kotato::RadioBox>(
 			ktr("ktg_net_speed_boost_title"),
 			ktr("ktg_net_speed_boost_desc"),
@@ -587,31 +615,24 @@ void SetupKotatoSystem(
 	AddSubsectionTitle(container, rktr("ktg_settings_system"));
 
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	const auto qtScaleToggled = Ui::CreateChild<rpl::event_stream<bool>>(
-		container.get());
 	AddButton(
 		container,
 		rktr("ktg_settings_qt_scale"),
 		st::settingsButton
 	)->toggleOn(
-		qtScaleToggled->events_starting_with_copy(::Kotato::JsonSettings::GetBool("qt_scale"))
+		rpl::single(::Kotato::JsonSettings::GetBoolWithPending("qt_scale"))
 	)->toggledValue(
 	) | rpl::filter([](bool enabled) {
-		return (enabled != ::Kotato::JsonSettings::GetBool("qt_scale"));
+		return (enabled != ::Kotato::JsonSettings::GetBoolWithPending("qt_scale"));
 	}) | rpl::start_with_next([=](bool enabled) {
-		const auto confirmed = [=] {
-			::Kotato::JsonSettings::Set("qt_scale", enabled);
-			::Kotato::JsonSettings::Write();
-			Core::Restart();
-		};
-		const auto cancelled = [=] {
-			qtScaleToggled->fire(::Kotato::JsonSettings::GetBool("qt_scale") == true);
-		};
+		::Kotato::JsonSettings::SetAfterRestart("qt_scale", enabled);
+		::Kotato::JsonSettings::Write();
+
 		Ui::show(Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
-			confirmed,
-			cancelled));
+			tr::lng_settings_restart_later(tr::now),
+			[] { Core::Restart(); }));
 	}, container->lifetime());
 #endif // Qt < 6.0.0
 

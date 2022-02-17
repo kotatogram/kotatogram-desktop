@@ -257,24 +257,14 @@ void FontsBox::setInnerFocus() {
 }
 
 void FontsBox::save() {
-	const auto useSystemFont = _useSystemFont->checked();
-	const auto useOriginalMetrics = _useOriginalMetrics->checked();
-	const auto mainFont = _mainFontName->getLastText().trimmed();
-	const auto semiboldFont = _semiboldFontName->getLastText().trimmed();
-	const auto semiboldIsBold = _semiboldIsBold->checked();
-	const auto monospacedFont = _monospacedFontName->getLastText().trimmed();
-
-	const auto changeFonts = [=] {
-		::Kotato::JsonSettings::SetAfterRestart("fonts/main", mainFont);
-		::Kotato::JsonSettings::SetAfterRestart("fonts/semibold", semiboldFont);
-		::Kotato::JsonSettings::SetAfterRestart("fonts/monospaced", monospacedFont);
-		::Kotato::JsonSettings::SetAfterRestart("fonts/semibold_is_bold", semiboldIsBold);
-		::Kotato::JsonSettings::SetAfterRestart("fonts/use_system_font", useSystemFont);
-		::Kotato::JsonSettings::SetAfterRestart("fonts/use_original_metrics", useOriginalMetrics);
-		::Kotato::JsonSettings::SetAfterRestart("fonts/size", _fontSize);
-		::Kotato::JsonSettings::Write();
-		Core::Restart();
-	};
+	::Kotato::JsonSettings::SetAfterRestart("fonts/main", _mainFontName->getLastText().trimmed());
+	::Kotato::JsonSettings::SetAfterRestart("fonts/semibold", _semiboldFontName->getLastText().trimmed());
+	::Kotato::JsonSettings::SetAfterRestart("fonts/monospaced", _monospacedFontName->getLastText().trimmed());
+	::Kotato::JsonSettings::SetAfterRestart("fonts/semibold_is_bold", _semiboldIsBold->checked());
+	::Kotato::JsonSettings::SetAfterRestart("fonts/use_system_font", _useSystemFont->checked());
+	::Kotato::JsonSettings::SetAfterRestart("fonts/use_original_metrics", _useOriginalMetrics->checked());
+	::Kotato::JsonSettings::SetAfterRestart("fonts/size", _fontSize);
+	::Kotato::JsonSettings::Write();
 
 	const auto box = std::make_shared<QPointer<BoxContent>>();
 
@@ -282,22 +272,20 @@ void FontsBox::save() {
 		Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
-			tr::lng_cancel(tr::now),
-			changeFonts));
+			tr::lng_settings_restart_later(tr::now),
+			[] { Core::Restart(); },
+			[=] { closeBox(); }));
 }
 
 void FontsBox::resetToDefault() {
-	const auto resetFonts = [=] {
-		::Kotato::JsonSettings::ResetAfterRestart("fonts/main");
-		::Kotato::JsonSettings::ResetAfterRestart("fonts/semibold");
-		::Kotato::JsonSettings::ResetAfterRestart("fonts/monospaced");
-		::Kotato::JsonSettings::ResetAfterRestart("fonts/semibold_is_bold");
-		::Kotato::JsonSettings::ResetAfterRestart("fonts/size");
-		::Kotato::JsonSettings::ResetAfterRestart("fonts/use_system_font");
-		::Kotato::JsonSettings::ResetAfterRestart("fonts/use_original_metrics");
-		::Kotato::JsonSettings::Write();
-		Core::Restart();
-	};
+	::Kotato::JsonSettings::ResetAfterRestart("fonts/main");
+	::Kotato::JsonSettings::ResetAfterRestart("fonts/semibold");
+	::Kotato::JsonSettings::ResetAfterRestart("fonts/monospaced");
+	::Kotato::JsonSettings::ResetAfterRestart("fonts/semibold_is_bold");
+	::Kotato::JsonSettings::ResetAfterRestart("fonts/size");
+	::Kotato::JsonSettings::ResetAfterRestart("fonts/use_system_font");
+	::Kotato::JsonSettings::ResetAfterRestart("fonts/use_original_metrics");
+	::Kotato::JsonSettings::Write();
 
 	const auto box = std::make_shared<QPointer<BoxContent>>();
 
@@ -305,6 +293,7 @@ void FontsBox::resetToDefault() {
 		Box<Ui::ConfirmBox>(
 			tr::lng_settings_need_restart(tr::now),
 			tr::lng_settings_restart_now(tr::now),
-			tr::lng_cancel(tr::now),
-			resetFonts));
+			tr::lng_settings_restart_later(tr::now),
+			[] { Core::Restart(); },
+			[=] { closeBox(); }));
 }

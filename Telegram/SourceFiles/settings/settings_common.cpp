@@ -255,7 +255,7 @@ void FillMenu(
 			&st::menuIconSettings);
 		addAction(
 			ktr("ktg_settings_restart"),
-			[=] { Core::Restart(); },
+			[] { Core::Restart(); },
 			&st::menuIconRestore);
 		if (type != Type::Kotato) {
 			addAction(
