@@ -272,5 +272,7 @@
 	"ktg_experimental_linux_nvidia_opengl_description": "У Qt+OpenGL есть проблемы на Linux с драйверами NVIDIA.",
 	"ktg_settings_view_profile_on_top": "\"Показать профиль\" первым пунктом меню",
 	"ktg_settings_view_profile_on_top_about": "Эта настройка также включает \"Добавить \"Показать профиль\"\" из экспериментальных настроек TDesktop.",
+	"ktg_settings_emoji_sidebar": "Боковая панель эмодзи",
+	"ktg_settings_emoji_sidebar_right_click": "Открывать боковую панель эмодзи ПКМ",
 	"dummy_last_string": ""
 }
