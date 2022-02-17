@@ -9,6 +9,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 #include "kotato/kotato_lang.h"
 #include "kotato/kotato_settings.h"
+#include "base/options.h"
 #include "base/platform/base_platform_info.h"
 #include "settings/settings_common.h"
 #include "settings/settings_chat.h"
@@ -26,6 +27,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "platform/platform_specific.h"
 #include "platform/platform_file_utilities.h"
+#include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 #include "lang/lang_keys.h"
 #include "core/update_checker.h"
@@ -336,12 +338,30 @@ void SetupKotatoChats(
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
+	AddButton(
+		container,
+		rktr("ktg_settings_view_profile_on_top"),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("view_profile_on_top"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("view_profile_on_top"));
+	}) | rpl::start_with_next([](bool enabled) {
+		::Kotato::JsonSettings::Set("view_profile_on_top", enabled);
+		if (enabled) {
+			auto &option = ::base::options::lookup<bool>(Window::kOptionViewProfileInChatsListContextMenu);
+			option.set(true);
+		}
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	AddSkip(container);
+	AddDividerText(container, rktr("ktg_settings_view_profile_on_top_about"));
 	AddSkip(container);
 }
 
 void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
-	AddDivider(container);
-	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_messages"));
 
 	const auto stickerHeightLabel = container->add(

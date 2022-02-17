@@ -270,5 +270,7 @@
 	"ktg_experimental_view_profile_context_menu_description": "Добавить пункт \"Показать профиль\" в контекстное меню списка чатов.",
 	"ktg_experimental_linux_nvidia_opengl": "OpenGL на драйверах NVIDIA (Linux)",
 	"ktg_experimental_linux_nvidia_opengl_description": "У Qt+OpenGL есть проблемы на Linux с драйверами NVIDIA.",
+	"ktg_settings_view_profile_on_top": "\"Показать профиль\" первым пунктом меню",
+	"ktg_settings_view_profile_on_top_about": "Эта настройка также включает \"Добавить \"Показать профиль\"\" из экспериментальных настроек TDesktop.",
 	"dummy_last_string": ""
 }
