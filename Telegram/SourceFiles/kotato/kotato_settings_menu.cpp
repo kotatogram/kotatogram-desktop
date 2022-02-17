@@ -295,8 +295,6 @@ void SetupKotatoChats(
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
-	SettingsMenuJsonSwitch(ktg_emoji_panel_hover, hover_emoji_panel);
-
 	AddButton(
 		container,
 		rktr("ktg_settings_fonts"),

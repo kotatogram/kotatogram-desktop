@@ -1075,16 +1075,6 @@ void ComposeControls::init() {
 		}, _wrap->lifetime());
 	}
 
-	::Kotato::JsonSettings::Events(
-		"hover_emoji_panel"
-	) | rpl::start_with_next([=] {
-		if (_window->hasTabbedSelectorOwnership()) {
-			createTabbedPanel();
-		} else {
-			setTabbedPanel(nullptr);
-		}
-	}, _wrap->lifetime());
-
 	orderControls();
 }
 
@@ -1577,9 +1567,7 @@ void ComposeControls::initTabbedSelector() {
 	}
 
 	base::install_event_filter(_tabbedSelectorToggle, [=](not_null<QEvent*> e) {
-		if (e->type() == QEvent::ContextMenu
-			&& !::Kotato::JsonSettings::GetBool("hover_emoji_panel")
-			&& _tabbedPanel) {
+		if (e->type() == QEvent::ContextMenu && _tabbedPanel) {
 			_tabbedPanel->toggleAnimated();
 			return base::EventFilterResult::Cancel;
 		}
@@ -2059,7 +2047,6 @@ void ComposeControls::setTabbedPanel(
 		std::unique_ptr<ChatHelpers::TabbedPanel> panel) {
 	_tabbedPanel = std::move(panel);
 	if (const auto raw = _tabbedPanel.get()) {
-		_tabbedPanel->setPreventHover(!::Kotato::JsonSettings::GetBool("hover_emoji_panel"));
 		_tabbedSelectorToggle->installEventFilter(raw);
 		_tabbedSelectorToggle->setColorOverrides(nullptr, nullptr, nullptr);
 	} else {

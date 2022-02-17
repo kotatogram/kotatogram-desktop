@@ -425,9 +425,6 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "profile_top_mute", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
-	{ "hover_emoji_panel", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
 	{ "forward_retain_selection", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},

@@ -132,7 +132,6 @@
 	"ktg_settings_chat_id_telegram": "Telegram API",
 	"ktg_settings_chat_id_bot": "Bot API",
 	"ktg_message_id": "Message ID: {id}",
-	"ktg_emoji_panel_hover": "Emoji panel on hover",
 	"ktg_local_storage_limit_days": {
 		"zero": "{count} days",
 		"one": "{count} day",

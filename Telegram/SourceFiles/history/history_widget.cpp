@@ -682,14 +682,6 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
-	::Kotato::JsonSettings::Events(
-		"hover_emoji_panel"
-	) | rpl::start_with_next([=] {
-		crl::on_main(this, [=] {
-			refreshTabbedPanel();
-		});
-	}, lifetime());
-
 	session().data().animationPlayInlineRequest(
 	) | rpl::start_with_next([=](not_null<HistoryItem*> item) {
 		if (const auto view = item->mainView()) {
@@ -1135,9 +1127,7 @@ void HistoryWidget::initTabbedSelector() {
 	});
 
 	base::install_event_filter(_tabbedSelectorToggle, [=](not_null<QEvent*> e) {
-		if (e->type() == QEvent::ContextMenu
-			&& !::Kotato::JsonSettings::GetBool("hover_emoji_panel")
-			&& _tabbedPanel) {
+		if (e->type() == QEvent::ContextMenu && _tabbedPanel) {
 			_tabbedPanel->toggleAnimated();
 			return base::EventFilterResult::Cancel;
 		}
@@ -4757,7 +4747,6 @@ void HistoryWidget::createTabbedPanel() {
 void HistoryWidget::setTabbedPanel(std::unique_ptr<TabbedPanel> panel) {
 	_tabbedPanel = std::move(panel);
 	if (const auto raw = _tabbedPanel.get()) {
-		_tabbedPanel->setPreventHover(!::Kotato::JsonSettings::GetBool("hover_emoji_panel"));
 		_tabbedSelectorToggle->installEventFilter(raw);
 		_tabbedSelectorToggle->setColorOverrides(nullptr, nullptr, nullptr);
 	} else {
