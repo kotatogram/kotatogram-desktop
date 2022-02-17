@@ -216,6 +216,130 @@ style::color FromNameFg(
 	}
 }
 
+style::icon FromChatIcon(
+		const Ui::ChatPaintContext &context,
+		PeerId peerId) {
+	const auto st = context.st;
+	if (context.selected()) {
+		const style::icon icons[] = {
+			st->msgNameChat1IconSelected(),
+			st->msgNameChat2IconSelected(),
+			st->msgNameChat3IconSelected(),
+			st->msgNameChat4IconSelected(),
+			st->msgNameChat5IconSelected(),
+			st->msgNameChat6IconSelected(),
+			st->msgNameChat7IconSelected(),
+			st->msgNameChat8IconSelected(),
+		};
+		return icons[Data::PeerColorIndex(peerId)];
+	} else {
+		const style::icon icons[] = {
+			st->msgNameChat1Icon(),
+			st->msgNameChat2Icon(),
+			st->msgNameChat3Icon(),
+			st->msgNameChat4Icon(),
+			st->msgNameChat5Icon(),
+			st->msgNameChat6Icon(),
+			st->msgNameChat7Icon(),
+			st->msgNameChat8Icon(),
+		};
+		return icons[Data::PeerColorIndex(peerId)];
+	}
+}
+
+style::icon FromChannelIcon(
+		const Ui::ChatPaintContext &context,
+		PeerId peerId) {
+	const auto st = context.st;
+	if (context.selected()) {
+		const style::icon icons[] = {
+			st->msgNameChannel1IconSelected(),
+			st->msgNameChannel2IconSelected(),
+			st->msgNameChannel3IconSelected(),
+			st->msgNameChannel4IconSelected(),
+			st->msgNameChannel5IconSelected(),
+			st->msgNameChannel6IconSelected(),
+			st->msgNameChannel7IconSelected(),
+			st->msgNameChannel8IconSelected(),
+		};
+		return icons[Data::PeerColorIndex(peerId)];
+	} else {
+		const style::icon icons[] = {
+			st->msgNameChannel1Icon(),
+			st->msgNameChannel2Icon(),
+			st->msgNameChannel3Icon(),
+			st->msgNameChannel4Icon(),
+			st->msgNameChannel5Icon(),
+			st->msgNameChannel6Icon(),
+			st->msgNameChannel7Icon(),
+			st->msgNameChannel8Icon(),
+		};
+		return icons[Data::PeerColorIndex(peerId)];
+	}
+}
+
+style::icon FromDeletedIcon(
+		const Ui::ChatPaintContext &context,
+		PeerId peerId) {
+	const auto st = context.st;
+	if (context.selected()) {
+		const style::icon icons[] = {
+			st->msgNameDeleted1IconSelected(),
+			st->msgNameDeleted2IconSelected(),
+			st->msgNameDeleted3IconSelected(),
+			st->msgNameDeleted4IconSelected(),
+			st->msgNameDeleted5IconSelected(),
+			st->msgNameDeleted6IconSelected(),
+			st->msgNameDeleted7IconSelected(),
+			st->msgNameDeleted8IconSelected(),
+		};
+		return icons[Data::PeerColorIndex(peerId)];
+	} else {
+		const style::icon icons[] = {
+			st->msgNameDeleted1Icon(),
+			st->msgNameDeleted2Icon(),
+			st->msgNameDeleted3Icon(),
+			st->msgNameDeleted4Icon(),
+			st->msgNameDeleted5Icon(),
+			st->msgNameDeleted6Icon(),
+			st->msgNameDeleted7Icon(),
+			st->msgNameDeleted8Icon(),
+		};
+		return icons[Data::PeerColorIndex(peerId)];
+	}
+}
+
+style::icon FromBotIcon(
+		const Ui::ChatPaintContext &context,
+		PeerId peerId) {
+	const auto st = context.st;
+	if (context.selected()) {
+		const style::icon icons[] = {
+			st->msgNameBot1IconSelected(),
+			st->msgNameBot2IconSelected(),
+			st->msgNameBot3IconSelected(),
+			st->msgNameBot4IconSelected(),
+			st->msgNameBot5IconSelected(),
+			st->msgNameBot6IconSelected(),
+			st->msgNameBot7IconSelected(),
+			st->msgNameBot8IconSelected(),
+		};
+		return icons[Data::PeerColorIndex(peerId)];
+	} else {
+		const style::icon icons[] = {
+			st->msgNameBot1Icon(),
+			st->msgNameBot2Icon(),
+			st->msgNameBot3Icon(),
+			st->msgNameBot4Icon(),
+			st->msgNameBot5Icon(),
+			st->msgNameBot6Icon(),
+			st->msgNameBot7Icon(),
+			st->msgNameBot8Icon(),
+		};
+		return icons[Data::PeerColorIndex(peerId)];
+	}
+}
+
 } // namespace
 
 struct Message::CommentsButton {
@@ -1098,34 +1222,26 @@ void Message::paintFromName(
 		availableWidth -= st::msgPadding.right() + rightWidth;
 	}
 
-	const auto chatTypeIcon = [&]() -> const style::icon * {
+	const auto chatTypeIcon = [&]() -> std::optional<style::icon>  {
 		if (item->isSponsored()) {
 			return context.selected()
-					? &st::msgNameSponsoredIconSelected
-					: &st::msgNameSponsoredIcon;
+					? context.st->msgNameSponsoredIconSelected()
+					: context.st->msgNameSponsoredIcon();
 		} else if (!item->isPost() && item->displayFrom()) {
 			const auto from = item->displayFrom();
 			if (from->isChat() || from->isMegagroup()) {
-				return context.selected()
-						? &st::msgNameChatIconSelected
-						: &st::msgNameChatIcon;
+				return FromChatIcon(context, from->id);
 			} else if (from->isChannel()) {
-				return context.selected()
-						? &st::msgNameChannelIconSelected
-						: &st::msgNameChannelIcon;
+				return FromChannelIcon(context, from->id);
 			} else if (const auto user = from->asUser()) {
 				if (user->isInaccessible()) {
-					return context.selected()
-							? &st::msgNameDeletedIconSelected
-							: &st::msgNameDeletedIcon;
+					return FromDeletedIcon(context, from->id);
 				} else if (user->isBot() && !user->isSupport() && !user->isRepliesChat()) {
-					return context.selected()
-							? &st::msgNameBotIconSelected
-							: &st::msgNameBotIcon;
+					return FromBotIcon(context, from->id);
 				}
 			}
 		}
-		return nullptr;
+		return {};
 	}();
 
 	if (chatTypeIcon) {
