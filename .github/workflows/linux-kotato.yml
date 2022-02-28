@@ -106,8 +106,9 @@ jobs:
           libxcb-randr0-dev libxcb-record0-dev libxcb-render0-dev libxcb-render-util0-dev \
           libxcb-res0-dev libxcb-screensaver0-dev libxcb-shape0-dev libxcb-shm0-dev \
           libxcb-sync-dev libxcb-xfixes0-dev libxcb-xinerama0-dev libxcb-xkb-dev \
-          libxcb-util0-dev libx11-xcb-dev libxext-dev libxfixes-dev libxv-dev libwayland-dev \
-          libva-dev libvdpau-dev xutils-dev meson ninja-build subversion -y --force-yes && \
+          libxcb-util0-dev libx11-dev libx11-xcb-dev libxext-dev libxtst-dev libxfixes-dev \
+          libxrandr-dev libxrender-dev libxdamage-dev libxcomposite-dev libwayland-dev \
+          xutils-dev meson ninja-build subversion -y --force-yes && \
           add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
           apt-get update && \
           apt-get install gcc-10 g++-10 -y && \
@@ -174,18 +175,6 @@ jobs:
 
           cmake --version
 
-      - name: Extra CMake Modules.
-        run: |
-          cd $LibrariesPath
-
-          git clone -b v5.90.0 --depth=1 $GIT/KDE/extra-cmake-modules.git
-          cd extra-cmake-modules
-          cmake -B build -GNinja . -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --parallel
-          cmake --install build
-          cd ..
-          rm -rf extra-cmake-modules
-
       - name: Meson.
         run: |
           python3 -m pip install meson==0.54.0
@@ -239,6 +228,41 @@ jobs:
           cd $LibrariesPath/opus
           make install
 
+      - name: VPX cache.
+        id: cache-vpx
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/vpx-cache
+          key: ${{ runner.OS }}-vpx-${{ env.CACHE_KEY }}
+      - name: VPX build.
+        if: steps.cache-vpx.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v1.11.0 --depth=1 $GIT/webmproject/libvpx.git
+          cd libvpx
+          ./configure \
+          --prefix=/usr \
+          --disable-examples \
+          --disable-unit-tests \
+          --disable-tools \
+          --disable-docs \
+          --enable-shared \
+          --disable-static \
+          --enable-vp8 \
+          --enable-vp9 \
+          --enable-webm-io
+
+          make -j$(nproc)
+          make DESTDIR="$LibrariesPath/vpx-cache" install
+          cd ..
+          rm -rf libvpx
+      - name: VPX install.
+        run: |
+          cd $LibrariesPath
+          cp -R vpx-cache/. /
+          ldconfig
+
       - name: FFmpeg cache.
         id: cache-ffmpeg
         uses: actions/cache@v2
@@ -267,10 +291,7 @@ jobs:
           --disable-filters \
           --enable-shared \
           --enable-libopus \
-          --enable-vaapi \
-          --enable-vdpau \
-          --enable-xlib \
-          --enable-libdrm \
+          --enable-libvpx \
           --enable-protocol=file \
           --enable-encoder=libopus \
           --enable-muxer=ogg \
