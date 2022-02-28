@@ -677,12 +677,12 @@ bool ShareBox::showForwardMenu(not_null<Ui::IconButton*> button) {
 	}, _topMenu->lifetime());
 
 	noNames->checkedChanges(
-	) | rpl::start_with_next([=, this](bool value) {
+	) | rpl::start_with_next([=](bool value) {
 		onForwardOptionChange(1, value);
 	}, _topMenu->lifetime());
 
 	noCaptions->checkedChanges(
-	) | rpl::start_with_next([=, this](bool value) {
+	) | rpl::start_with_next([=](bool value) {
 		onForwardOptionChange(2, value);
 	}, _topMenu->lifetime());
 
@@ -721,17 +721,17 @@ bool ShareBox::showForwardMenu(not_null<Ui::IconButton*> button) {
 		};
 
 		groupAsIs->checkedChanges(
-		) | rpl::start_with_next([=, this](bool value) {
+		) | rpl::start_with_next([=](bool value) {
 			onGroupOptionChange(0, value);
 		}, _topMenu->lifetime());
 
 		groupAll->checkedChanges(
-		) | rpl::start_with_next([=, this](bool value) {
+		) | rpl::start_with_next([=](bool value) {
 			onGroupOptionChange(1, value);
 		}, _topMenu->lifetime());
 
 		groupNone->checkedChanges(
-		) | rpl::start_with_next([=, this](bool value) {
+		) | rpl::start_with_next([=](bool value) {
 			onGroupOptionChange(2, value);
 		}, _topMenu->lifetime());
 	}
