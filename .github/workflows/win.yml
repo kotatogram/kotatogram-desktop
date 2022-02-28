@@ -167,7 +167,7 @@ jobs:
           -DCMAKE_SYSTEM_VERSION=%SDK%
 
           cd ..\out
-          msbuild -m Telegram.sln /p:Configuration=Debug,Platform=${{ matrix.arch }},DebugSymbols=false,DebugType=none
+          msbuild -m Kotatogram.sln /p:Configuration=Debug,Platform=${{ matrix.arch }},DebugSymbols=false,DebugType=none
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
