@@ -2,8 +2,8 @@
 
 [![GitHub release (latest by date including pre-releases)](https://badgen.net/github/release/kotatogram/kotatogram-desktop?label=Latest%20release)][releases]
 [![GitHub Workflow Status: Windows](https://github.com/kotatogram/kotatogram-desktop/workflows/Windows./badge.svg?event=push)][actions]
-[![GitHub Workflow Status: Linux](https://github.com/kotatogram/kotatogram-desktop/workflows/Linux./badge.svg?event=push)][actions]
-[![GitHub Workflow Status: AppImage](https://github.com/kotatogram/kotatogram-desktop/workflows/AppImage./badge.svg?event=push)][actions]
+[![GitHub Workflow Status: Linux](https://github.com/kotatogram/kotatogram-desktop/workflows/Linux%20Kotato./badge.svg?event=push)][actions]
+[![GitHub Workflow Status: macOS](https://github.com/kotatogram/kotatogram-desktop/workflows/MacOS./badge.svg?event=push)][actions]
 [![Crowdin](https://badges.crowdin.net/kotatogram-desktop/localized.svg)](https://crowdin.com/project/kotatogram-desktop)
 
 [![Preview of Kotatogram Desktop][preview_image]][preview_image_url]
