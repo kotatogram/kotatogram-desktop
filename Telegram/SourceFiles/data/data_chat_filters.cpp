@@ -174,7 +174,8 @@ LocalFolder MakeLocalFolder(const QJsonObject &obj) {
 		result.emoticon = v;
 	});
 
-	for (const auto &[flag, option] : LocalFolderSettingsFlags) {
+	for (const auto &i : LocalFolderSettingsFlags) {
+		const auto flag = i.first;
 		ReadBoolOption(obj, option, [&](auto v) {
 			if (v) {
 				result.flags |= flag;
