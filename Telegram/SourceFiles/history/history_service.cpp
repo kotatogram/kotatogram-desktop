@@ -625,9 +625,13 @@ void HistoryService::setMessageByAction(const MTPmessageAction &action) {
 	}, [&](const MTPDmessageActionChatCreate &data) {
 		return prepareChatCreate(data);
 	}, [](const MTPDmessageActionChatMigrateTo &) {
-		return PreparedText{ tr::lng_action_group_migrate(tr::now) };
+		return PreparedText{
+			tr::lng_action_group_migrate(tr::now, Ui::Text::WithEntities)
+		};
 	}, [](const MTPDmessageActionChannelMigrateFrom &) {
-		return PreparedText{ tr::lng_action_group_migrate(tr::now) };
+		return PreparedText{
+			tr::lng_action_group_migrate(tr::now, Ui::Text::WithEntities)
+		};
 	}, [](const MTPDmessageActionHistoryClear &) {
 		return PreparedText();
 	}, [&](const MTPDmessageActionChannelCreate &data) {
