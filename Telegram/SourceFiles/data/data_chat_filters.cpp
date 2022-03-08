@@ -164,11 +164,13 @@ LocalFolder MakeLocalFolder(const QJsonObject &obj) {
 	});
 
 	for (const auto &[flag, option] : LocalFolderSettingsFlags) {
-		ReadOption(obj, option, [&](auto v) {
+		const auto it = obj.constFind(option);
+		if (it != obj.constEnd()) {
+			const auto v = *it;
 			if (v.isBool() && v.toBool()) {
 				result.flags |= flag;
 			}
-		});
+		}
 	}
 
 	const auto readChatsArray = [obj] (const QString &key, std::vector<uint64> &chats) {
