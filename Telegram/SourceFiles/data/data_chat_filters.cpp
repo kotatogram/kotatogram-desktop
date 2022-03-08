@@ -80,6 +80,17 @@ bool ReadIntOption(QJsonObject obj, QString key, std::function<void(int)> callba
 	return (readValueResult && readResult);
 }
 
+bool ReadBoolOption(QJsonObject obj, QString key, std::function<void(bool)> callback) {
+	auto readResult = false;
+	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
+		if (v.isBool()) {
+			callback(v.toBool());
+			readResult = true;
+		}
+	});
+	return (readValueResult && readResult);
+}
+
 bool ReadArrayOption(QJsonObject obj, QString key, std::function<void(QJsonArray)> callback) {
 	auto readResult = false;
 	auto readValueResult = ReadOption(obj, key, [&](QJsonValue v) {
@@ -164,8 +175,8 @@ LocalFolder MakeLocalFolder(const QJsonObject &obj) {
 	});
 
 	for (const auto &[flag, option] : LocalFolderSettingsFlags) {
-		ReadOption(obj, option, [&](auto v) {
-			if (v.isBool() && v.toBool()) {
+		ReadBoolOption(obj, option, [&](auto v) {
+			if (v) {
 				result.flags |= flag;
 			}
 		});
