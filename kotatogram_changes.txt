@@ -1,3 +1,20 @@
+1.4.9 (08.03.2022)
+- Updated TDesktop sources to 3.5.2.
+- Internal rework of Kotatogram Settings.
+- Allow select time when jumping to date in chat.
+- Always show TDesktop's experimental settings and allow their translation.
+- Make message icon color same as name color.
+- Fix avatar cropping in Windows system notifications.
+- Warn when trying to unquoted forward a quiz (by blank-x).
+- Show "Copy callback data" only for callback buttons (by blank-x).
+- Go to chat on Shift+Enter in Forward box (by blank-x).
+- Fix name icons (by blank-x).
+- Fix tg://user?id links for 64-bit IDs (by blank-x).
+- Fix showing "Mention user" for channels (by blank-x).
+- Fix profile pictures rounding (by blank-x).
+- Fix chat status filters by admin rights (by blank-x).
+- New Kotatogram macOS icon (by gershik).
+
 1.4.8 (31.12.2021)
 - Better font settings.
 - Fixed severe crash in Saved Messages.

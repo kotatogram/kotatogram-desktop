@@ -7,9 +7,9 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #pragma once
 
-constexpr auto AppKotatoVersion = 1004008;
-constexpr auto AppKotatoVersionStr = "1.4.8";
-constexpr auto AppKotatoBetaVersion = false;
+constexpr auto AppKotatoVersion = 1004009;
+constexpr auto AppKotatoVersionStr = "1.4.9";
+constexpr auto AppKotatoBetaVersion = true;
 
 //#define KTGDESKTOP_IS_TEST_VERSION
 constexpr auto AppKotatoTestBranch = "dev";
