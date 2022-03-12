@@ -471,6 +471,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "emoji_sidebar_right_click", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "disable_short_info_box", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;

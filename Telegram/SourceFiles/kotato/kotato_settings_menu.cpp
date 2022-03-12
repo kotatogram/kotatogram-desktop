@@ -770,6 +770,7 @@ void SetupKotatoOther(
 	});
 
 	SettingsMenuJsonSwitch(ktg_settings_call_confirm, confirm_before_calls);
+	SettingsMenuJsonSwitch(ktg_settings_disable_short_info_box, disable_short_info_box);
 	SettingsMenuJsonSwitch(ktg_settings_remember_compress_images, remember_compress_images);
 	AddButton(
 		container,

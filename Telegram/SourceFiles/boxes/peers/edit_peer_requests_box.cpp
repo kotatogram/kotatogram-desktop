@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/edit_peer_requests_box.h"
 
+#include "kotato/kotato_settings.h"
 #include "ui/effects/ripple_animation.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/peers/edit_participants_box.h" // SubscribeToMigration
@@ -355,6 +356,10 @@ void RequestsBoxController::refreshDescription() {
 }
 
 void RequestsBoxController::rowClicked(not_null<PeerListRow*> row) {
+	if (::Kotato::JsonSettings::GetBool("disable_short_info_box")) {
+		_navigation->showPeerInfo(row->peer());
+		return;
+	}
 	_navigation->parentController()->show(PrepareShortInfoBox(
 		row->peer(),
 		_navigation));

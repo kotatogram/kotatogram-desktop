@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/reactions/message_reactions_list.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/view/reactions/message_reactions_selector.h"
 #include "boxes/peer_list_box.h"
 #include "boxes/peers/prepare_short_info_box.h"
@@ -284,6 +285,10 @@ void Controller::rowClicked(not_null<PeerListRow*> row) {
 	const auto window = _window;
 	const auto peer = row->peer();
 	crl::on_main(window, [=] {
+		if (::Kotato::JsonSettings::GetBool("disable_short_info_box")) {
+			window->showPeerInfo(peer);
+			return;
+		}
 		window->show(PrepareShortInfoBox(peer, window));
 	});
 }
