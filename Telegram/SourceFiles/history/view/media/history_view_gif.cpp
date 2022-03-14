@@ -139,7 +139,7 @@ QSize Gif::countThumbSize(int &inOutWidthMax) const {
 			+ st::msgPadding.right()
 		: 0;
 	const auto maxSize = _data->sticker()
-		? Sticker::Size().width()
+		? Sticker::Size().height()
 		: _data->isVideoFile()
 		? st::maxMediaSize
 		: _data->isVideoMessage()
