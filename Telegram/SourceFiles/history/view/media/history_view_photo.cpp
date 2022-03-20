@@ -405,7 +405,7 @@ void Photo::paintUserpicFrame(
 		auto request = ::Media::Streaming::FrameRequest();
 		request.outer = size * cIntRetinaFactor();
 		request.resize = size * cIntRetinaFactor();
-		request.radius = ImageRoundRadius::Ellipse;
+		request.radius = KotatoImageRoundRadius();
 		if (_streamed->instance.playerLocked()) {
 			if (_streamed->frozenFrame.isNull()) {
 				_streamed->frozenFrame = _streamed->instance.frame(request);
@@ -423,7 +423,7 @@ void Photo::paintUserpicFrame(
 	const auto pix = [&] {
 		const auto size = QSize(_pixw, _pixh);
 		const auto args = Images::PrepareArgs{
-			.options = Images::Option::RoundCircle,
+			.options = KotatoImageRoundOption(),
 		};
 		if (const auto large = _dataMedia->image(PhotoSize::Large)) {
 			return large->pix(size, args);
@@ -453,7 +453,19 @@ void Photo::paintUserpicFrame(
 		}
 		{
 			PainterHighQualityEnabler hq(p);
-			p.drawEllipse(inner);
+			switch (KotatoImageRoundRadius()) {
+				case ImageRoundRadius::None:
+					p.drawRoundedRect(inner, 0, 0);
+					break;
+				case ImageRoundRadius::Small:
+					p.drawRoundedRect(inner, st::buttonRadius, st::buttonRadius);
+					break;
+				case ImageRoundRadius::Large:
+					p.drawRoundedRect(inner, st::dateRadius, st::dateRadius);
+					break;
+				default:
+					p.drawEllipse(inner);
+			}
 		}
 		sti->historyFileThumbPlay.paintInCenter(p, inner);
 	}
