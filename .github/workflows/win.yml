@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
@@ -23,6 +24,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
@@ -42,6 +44,11 @@ jobs:
 
   windows:
     name: Windows
+    if: >
+      !(github.event_name == 'push'
+        && contains(github.event.head_commit.message, '[skip ci]'))
+      && !(github.event_name == 'pull_request'
+        && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name) 
     runs-on: windows-2022
 
     strategy:
@@ -49,7 +56,7 @@ jobs:
         arch: [Win32, x64]
 
     env:
-      UPLOAD_ARTIFACT: "false"
+      UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
 
@@ -128,9 +135,9 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo "ARTIFACT_NAME=Telegram_${{ matrix.arch }}_${{ matrix.defines }}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Kotatogram_${{ matrix.arch }}_${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=Telegram_${{ matrix.arch }}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Kotatogram_${{ matrix.arch }}" >> $GITHUB_ENV
           fi
           echo "TDESKTOP_BUILD_DEFINE=$DEFINE" >> $GITHUB_ENV
 
@@ -140,7 +147,7 @@ jobs:
           del /S Libraries\*.pch
           del /S Libraries\*.obj
 
-      - name: Telegram Desktop build.
+      - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
           C:
@@ -154,14 +161,18 @@ jobs:
           %TDESKTOP_BUILD_DEFINE% ^
           -DCMAKE_SYSTEM_VERSION=%SDK%
 
-          cd ..\out
+          if "${{ matrix.arch }}" == "x64" (
+            cd ..\out64
+          ) else (
+            cd ..\out
+          )
           msbuild -m Telegram.sln /p:Configuration=Debug,Platform=${{ matrix.arch }},DebugSymbols=false,DebugType=none
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           mkdir artifact
-          move %TBUILD%\%REPO_NAME%\out\Debug\Telegram.exe artifact/
+          move %TBUILD%\%REPO_NAME%\out\Debug\Kotatogram.exe artifact/
       - uses: actions/upload-artifact@master
         name: Upload artifact.
         if: env.UPLOAD_ARTIFACT == 'true'

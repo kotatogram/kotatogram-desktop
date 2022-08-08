@@ -1,5 +1,5 @@
-name: telegram-desktop
-adopt-info: telegram
+name: kotatogram-desktop
+adopt-info: kotatogram
 icon: Telegram/Resources/art/icon512@2x.png
 
 base: core22
@@ -14,10 +14,10 @@ architectures:
   - build-on: ppc64el
 
 apps:
-  telegram-desktop:
-    command: bin/desktop-launch telegram-desktop
-    common-id: org.telegram.desktop
-    desktop: usr/share/applications/telegram-desktop_telegram-desktop.desktop
+  kotatogram-desktop:
+    command: bin/desktop-launch kotatogram-desktop
+    common-id: io.github.kotatogram
+    desktop: usr/share/applications/kotatogram-desktop_kotatogram-desktop.desktop
     environment:
       # Tell glib to use portals on file associations handling.
       GTK_USE_PORTAL: 1
@@ -81,11 +81,11 @@ layout:
     bind: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/webkit2gtk-4.1
 
 parts:
-  telegram:
+  kotatogram:
     plugin: cmake
     source: .
     source-type: git
-    parse-info: [usr/share/metainfo/telegram-desktop_telegram-desktop.metainfo.xml]
+    parse-info: [usr/share/metainfo/kotatogram-desktop_kotatogram-desktop.metainfo.xml]
     build-environment:
       - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib/$CRAFT_ARCH_TRIPLET${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
     build-packages:
@@ -126,23 +126,14 @@ parts:
       - -DTDESKTOP_API_ID=611335
       - -DTDESKTOP_API_HASH=d524b414d21f4d37f08684c1df41ac9c
       - -DDESKTOP_APP_USE_PACKAGED_LAZY=ON
-      - -DTDESKTOP_LAUNCHER_BASENAME=telegram-desktop_telegram-desktop
+      - -DTDESKTOP_LAUNCHER_BASENAME=kotatogram-desktop_kotatogram-desktop
     override-pull: |
       craftctl default
 
-      version_file=Telegram/build/version
-      version=$(sed -n "s/AppVersionStr[ ]\+\(.*\)\+/\1/p" $version_file)
-      beta=$(sed -n "s/BetaChannel[ ]\+\(.*\)\+/\1/p" $version_file)
+      version="$(git describe --tags | sed -r 's,^k([0-9]\.[0-9]),\1,')"
+      snapcraftctl set version "$version"
 
-      if [ "$beta" != "0" ]; then
-        version="$version-beta"
-      fi
-
-      version="${version}$(git describe --tags | sed 's,^v[^-]\+,,')"
-
-      craftctl set version="$version"
-
-      sed -i 's|^Icon=telegram$|Icon=${SNAP}/meta/gui/icon.png|g' lib/xdg/telegramdesktop.desktop
+      sed -i 's|^Icon=kotatogram$|Icon=${SNAP}/meta/gui/icon.png|g' lib/xdg/telegramdesktop.desktop
     override-build: |
       craftctl default
       rm -rf "$CRAFT_PART_INSTALL/usr/share/icons"

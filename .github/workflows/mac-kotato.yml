@@ -1,0 +1,179 @@
+name: MacOS Kotato.
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'kotatogram_changes.txt'
+      - 'changelog.txt'
+      - 'LEGAL'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/mac-kotato.yml'
+      - 'lib/xdg/**'
+      - 'snap/**'
+      - 'Telegram/build/**'
+      - 'Telegram/Patches/**'
+      - 'Telegram/Resources/uwp/**'
+      - 'Telegram/Resources/winrc/**'
+      - 'Telegram/SourceFiles/platform/win/**'
+      - 'Telegram/SourceFiles/platform/linux/**'
+      - 'Telegram/configure.bat'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'kotatogram_changes.txt'
+      - 'changelog.txt'
+      - 'LEGAL'
+      - 'LICENSE'
+      - '.github/**'
+      - '!.github/workflows/mac-kotato.yml'
+      - 'lib/xdg/**'
+      - 'snap/**'
+      - 'Telegram/build/**'
+      - 'Telegram/Patches/**'
+      - 'Telegram/Resources/uwp/**'
+      - 'Telegram/Resources/winrc/**'
+      - 'Telegram/SourceFiles/platform/win/**'
+      - 'Telegram/SourceFiles/platform/linux/**'
+      - 'Telegram/configure.bat'
+
+jobs:
+
+  macos:
+    name: MacOS
+    if: >
+      !(github.event_name == 'push'
+        && contains(github.event.head_commit.message, '[skip ci]'))
+      && !(github.event_name == 'pull_request'
+        && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name) 
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        defines:
+          - ""
+
+    env:
+      GIT: "https://github.com"
+      OPENALDIR: /usr/local/opt/openal-soft
+      OPENSSL_ROOT_DIR: /usr/local/opt/openssl@1.1
+      PKG_CONFIG_PATH: /usr/local/opt/ffmpeg@4/lib/pkgconfig
+      UPLOAD_ARTIFACT: "false"
+      ONLY_CACHE: "false"
+      MANUAL_CACHING: "1"
+      AUTO_CACHING: "1"
+
+    steps:
+      - name: Get repository name.
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Clone.
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - name: First set up.
+        run: |
+          brew install autoconf automake cmake ffmpeg@4 openal-soft openssl@1.1 opus ninja pkg-config python qt yasm xz
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+          xcodebuild -version > CACHE_KEY.txt
+          echo $MANUAL_CACHING >> CACHE_KEY.txt
+          echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
+          if [ "$AUTO_CACHING" = "1" ]; then
+            thisFile=$REPO_NAME/.github/workflows/mac-kotato.yml
+            echo `md5 -q $thisFile` >> CACHE_KEY.txt
+          fi
+          echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
+
+          mkdir -p Libraries/macos
+          cd Libraries/macos
+          echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
+
+          curl -o tg_owt-version.json https://api.github.com/repos/desktop-app/tg_owt/git/refs/heads/master
+
+      - name: Rnnoise.
+        run: |
+          cd $LibrariesPath
+
+          git clone --depth=1 https://gitlab.xiph.org/xiph/rnnoise.git
+          cd rnnoise
+          ./autogen.sh
+          ./configure --disable-examples --disable-doc
+          make -j$(sysctl -n hw.logicalcpu)
+          make install
+
+      - name: WebRTC cache.
+        id: cache-webrtc
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ hashFiles('**/tg_owt-version.json') }}
+      - name: WebRTC.
+        if: steps.cache-webrtc.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone --recursive --depth=1 $GIT/desktop-app/tg_owt.git
+          cd tg_owt
+
+          cmake -B build . \
+          -GNinja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DTG_OWT_BUILD_AUDIO_BACKENDS=OFF
+
+          cmake --build build --parallel
+
+      - name: Kotatogram Desktop build.
+        if: env.ONLY_CACHE == 'false'
+        env:
+          tg_owt_DIR: ${{ env.LibrariesPath }}/tg_owt/build
+        run: |
+          cd $REPO_NAME
+
+          DEFINE=""
+          if [ -n "${{ matrix.defines }}" ]; then
+            DEFINE="-D ${{ matrix.defines }}=ON"
+            echo Define from matrix: $DEFINE
+            echo "ARTIFACT_NAME=Kotatogram_${{ matrix.defines }}" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_NAME=Kotatogram" >> $GITHUB_ENV
+          fi
+
+          cmake -Bbuild -GNinja . \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_FIND_FRAMEWORK=LAST \
+          -DCMAKE_C_FLAGS="-Werror" \
+          -DCMAKE_CXX_FLAGS="-Werror" \
+          -DTDESKTOP_API_TEST=ON \
+          -DDESKTOP_APP_USE_PACKAGED_LAZY=ON \
+          $DEFINE
+
+          cmake --build build --parallel
+
+          cd build
+          macdeployqt Kotatogram.app
+          codesign --remove-signature Kotatogram.app
+          python ../Telegram/build/fix_paths_mac.py Kotatogram.app/Contents/MacOS/Kotatogram
+
+          mkdir dmgsrc
+          mv Kotatogram.app dmgsrc
+          hdiutil create -volname Kotatogram -srcfolder dmgsrc -ov -format UDZO Kotatogram.dmg
+
+      - name: Move artifact.
+        if: env.UPLOAD_ARTIFACT == 'true'
+        run: |
+          cd $REPO_NAME/build
+          mkdir artifact
+          mv Kotatogram.dmg artifact/
+      - uses: actions/upload-artifact@master
+        if: env.UPLOAD_ARTIFACT == 'true'
+        name: Upload artifact.
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.REPO_NAME }}/build/artifact/

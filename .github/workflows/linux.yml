@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
@@ -23,6 +24,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
@@ -42,6 +44,11 @@ jobs:
 
   linux:
     name: CentOS 7
+    if: >
+      !(github.event_name == 'push'
+        && contains(github.event.head_commit.message, '[skip ci]'))
+      && !(github.event_name == 'pull_request'
+        && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name) 
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/${{ github.repository }}/centos_env
@@ -57,9 +64,9 @@ jobs:
       matrix:
         defines:
           - ""
-          - "DESKTOP_APP_DISABLE_DBUS_INTEGRATION"
-          - "DESKTOP_APP_DISABLE_X11_INTEGRATION"
-          - "DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION"
+          #- "DESKTOP_APP_DISABLE_DBUS_INTEGRATION"
+          #- "DESKTOP_APP_DISABLE_X11_INTEGRATION"
+          #- "DESKTOP_APP_DISABLE_WAYLAND_INTEGRATION"
 
     env:
       UPLOAD_ARTIFACT: "false"
@@ -79,7 +86,7 @@ jobs:
           gcc --version
           ln -s /usr/src/Libraries
 
-      - name: Telegram Desktop build.
+      - name: Kotatogram Desktop build.
         run: |
           cd $REPO_NAME/Telegram
 
@@ -87,9 +94,9 @@ jobs:
           if [ -n "${{ matrix.defines }}" ]; then
             DEFINE="-D ${{ matrix.defines }}=ON"
             echo Define from matrix: $DEFINE
-            echo "ARTIFACT_NAME=Telegram_${{ matrix.defines }}" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Kotatogram_${{ matrix.defines }}" >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=Telegram" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=Kotatogram" >> $GITHUB_ENV
           fi
 
           ./configure.sh \
@@ -104,7 +111,7 @@ jobs:
 
       - name: Check.
         run: |
-          filePath="$REPO_NAME/out/Debug/Telegram"
+          filePath="$REPO_NAME/out/Debug/Kotatogram"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
 
@@ -120,7 +127,7 @@ jobs:
         run: |
           cd $REPO_NAME/out/Debug
           mkdir artifact
-          mv Telegram artifact/
+          mv Kotatogram artifact/
       - uses: actions/upload-artifact@master
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
