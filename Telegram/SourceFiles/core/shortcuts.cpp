@@ -431,7 +431,7 @@ void Manager::writeDefaultFile() {
 		return;
 	}
 	const char *defaultHeader = R"HEADER(
-// This is a list of default shortcuts for Telegram Desktop
+// This is a list of default shortcuts for Kotatogram Desktop
 // Please don't modify it, its content is not used in any way
 // You can place your own shortcuts in the 'shortcuts-custom.json' file
 
