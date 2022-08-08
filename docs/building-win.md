@@ -24,22 +24,30 @@ You will require **api_id** and **api_hash** to access the Telegram API servers.
 * Download **CMake 3.21 or later** installer from [https://cmake.org/download/](https://cmake.org/download/) and install it.
 * Download **Git** installer from [https://git-scm.com/download/win](https://git-scm.com/download/win) and install it.
 
+Open **x86 Native Tools Command Prompt for VS 2022.bat**, go to ***BuildPath*** and run
+
+    python -m pip install pywin32
+
 ## Clone source code and prepare libraries
 
 Open **x86 Native Tools Command Prompt for VS 2022.bat**, go to ***BuildPath*** and run
 
-    git clone --recursive https://github.com/telegramdesktop/tdesktop.git
-    tdesktop\Telegram\build\prepare\win.bat
+    SET PATH=%cd%\ThirdParty\NuGet;%cd%\ThirdParty\Python39;%PATH%
+
+    git clone --recursive https://github.com/kotatogram/kotatogram-desktop.git
+    kotatogram-desktop\Telegram\build\prepare\win.bat
 
 ## Build the project
 
-Go to ***BuildPath*\\tdesktop\\Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
+Go to ***BuildPath*\\kotatogram-desktop\\Telegram** and run (using [your **api_id** and **api_hash**](#obtain-your-api-credentials))
 
-    configure.bat -D TDESKTOP_API_ID=YOUR_API_ID -D TDESKTOP_API_HASH=YOUR_API_HASH
+    configure.bat -D TDESKTOP_API_ID=YOUR_API_ID -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
 
-* Open ***BuildPath*\\tdesktop\\out\\Telegram.sln** in Visual Studio 2022
+If you want to build with crash reporter, use `-D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF` instead of `-D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON`.
+
+* Open ***BuildPath*\\kotatogram-desktop\\out\\Telegram.sln** in Visual Studio 2022
 * Select Telegram project and press Build > Build Telegram (Debug and Release configurations)
-* The result Telegram.exe will be located in **D:\TBuild\tdesktop\out\Debug** (and **Release**)
+* The result Kotatogram.exe will be located in **D:\TBuild\kotatogram-desktop\out\Debug** (and **Release**)
 
 ### Qt Visual Studio Tools
 

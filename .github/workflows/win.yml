@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
@@ -23,6 +24,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**.md'
+      - 'kotatogram_changes.txt'
       - 'changelog.txt'
       - 'LEGAL'
       - 'LICENSE'
@@ -42,6 +44,11 @@ jobs:
 
   windows:
     name: Windows
+    if: >
+      !(github.event_name == 'push'
+        && contains(github.event.head_commit.message, '[skip ci]'))
+      && !(github.event_name == 'pull_request'
+        && github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name) 
     runs-on: windows-2022
 
     strategy:
@@ -50,7 +57,7 @@ jobs:
         generator: ["", "Ninja Multi-Config"]
 
     env:
-      UPLOAD_ARTIFACT: "false"
+      UPLOAD_ARTIFACT: "true"
       ONLY_CACHE: "false"
       PREPARE_PATH: "Telegram/build/prepare/prepare.py"
 
@@ -113,7 +120,7 @@ jobs:
       - name: Read configuration matrix.
         shell: bash
         run: |
-          ARTIFACT_NAME="Telegram"
+          ARTIFACT_NAME="Kotatogram"
 
           ARCH=""
           if [ -n "${{ matrix.arch }}" ]; then
@@ -160,7 +167,7 @@ jobs:
           del /S Libraries\*.pch
           del /S Libraries\*.obj
 
-      - name: Telegram Desktop build.
+      - name: Kotatogram Desktop build.
         if: env.ONLY_CACHE == 'false'
         run: |
           cd %TBUILD%\%REPO_NAME%\Telegram
@@ -174,14 +181,23 @@ jobs:
           -D DESKTOP_APP_NO_PDB=ON ^
           %TDESKTOP_BUILD_DEFINE%
 
-          cmake --build ..\out --config Debug --parallel
+          if "${{ matrix.arch }}" == "x64" (
+            cd ..\out64
+          ) else (
+            cd ..\out
+          )
+          cmake --build . --config Debug --parallel
 
       - name: Move artifact.
         if: (env.UPLOAD_ARTIFACT == 'true') || (github.ref == 'refs/heads/nightly')
         run: |
-          set OUT=%TBUILD%\%REPO_NAME%\out\Debug
+          if "${{ matrix.arch }}" == "x64" (
+            set OUT=%TBUILD%\%REPO_NAME%\out64\Debug
+          ) else (
+            set OUT=%TBUILD%\%REPO_NAME%\out\Debug
+          )
           mkdir artifact
-          move %OUT%\Telegram.exe artifact/
+          move %OUT%\Kotatogram.exe artifact/
           move %OUT%\Updater.exe artifact/
       - uses: actions/upload-artifact@master
         name: Upload artifact.
