@@ -1,0 +1,30 @@
+name: Language test.
+
+on:
+  push:
+    paths:
+      - 'Telegram/Resources/langs/rewrites/*.json'
+      - '.github/workflows/language-test.yml'
+  pull_request:
+    paths:
+      - 'Telegram/Resources/langs/rewrites/*.json'
+      - '.github/workflows/language-test.yml'
+
+jobs:
+  test:
+    name: Test languages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+      - name: Trim comments
+        shell: bash
+        run: sed -i -e 's/^\s*\/\/.*$//' Telegram/Resources/langs/rewrites/*.json
+      - name: Test JSON for validity
+        shell: bash
+        run: |
+          for f in Telegram/Resources/langs/rewrites/*.json; do
+            echo "::group::Testing $f"
+            cat "$f" | jq -e '.'
+            echo "::endgroup::"
+          done
