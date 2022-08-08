@@ -3,15 +3,19 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>@output_name@</string>
 	<key>CFBundleGetInfoString</key>
 	<string>Telegram Desktop messaging app</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<string>@bundle_identifier@</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<string>@desktop_app_version_string@</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -20,9 +24,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLIconFile</key>
-			<string>Icon.icns</string>
+			<string>AppIcon</string>
 			<key>CFBundleURLName</key>
-			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<string>@bundle_identifier@</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>tg</string>
@@ -30,11 +34,11 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<string>@desktop_app_version_string@</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.social-networking</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<string>@CMAKE_OSX_DEPLOYMENT_TARGET@</string>
 	<key>LSFileQuarantineEnabled</key>
 	<true/>
 	<key>NOTE</key>
