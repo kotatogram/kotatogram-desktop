@@ -57,8 +57,8 @@ using Platform::internal::WaylandIntegration;
 namespace Platform {
 namespace {
 
-constexpr auto kDesktopFile = ":/misc/telegramdesktop.desktop"_cs;
-constexpr auto kIconName = "telegram"_cs;
+constexpr auto kDesktopFile = ":/misc/kotatogramdesktop.desktop"_cs;
+constexpr auto kIconName = "kotatogram"_cs;
 
 #ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 void PortalAutostart(bool start, bool silent) {
@@ -253,7 +253,7 @@ bool GenerateDesktopFile(
 
 		fileText = fileText.replace(
 			QRegularExpression(
-				qsl("^Exec=telegram-desktop(.*)$"),
+				qsl("^Exec=kotatogram-desktop(.*)$"),
 				QRegularExpression::MultilineOption),
 			qsl("Exec=%1 -workdir %2\\1").arg(
 				EscapeShellInLauncher(cExeDir() + cExeName()),
@@ -271,8 +271,8 @@ bool GenerateDesktopFile(
 
 		if (!Core::UpdaterDisabled()) {
 			DEBUG_LOG(("App Info: removing old .desktop files"));
-			QFile::remove(qsl("%1telegram.desktop").arg(targetPath));
-			QFile::remove(qsl("%1telegramdesktop.desktop").arg(targetPath));
+			QFile::remove(qsl("%1kotatogram.desktop").arg(targetPath));
+			QFile::remove(qsl("%1kotatogramdesktop.desktop").arg(targetPath));
 		}
 
 		return true;
@@ -448,8 +448,8 @@ void psActivateProcess(uint64 pid) {
 }
 
 QString psAppDataPath() {
-	// Previously we used ~/.TelegramDesktop, so look there first.
-	// If we find data there, we should still use it.
+	// We should not use ~/.TelegramDesktop, since it's a fork.
+	/*
 	auto home = QDir::homePath();
 	if (!home.isEmpty()) {
 		auto oldPath = home + qsl("/.TelegramDesktop/");
@@ -460,6 +460,7 @@ QString psAppDataPath() {
 			return oldPath;
 		}
 	}
+	*/
 
 	return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + '/';
 }

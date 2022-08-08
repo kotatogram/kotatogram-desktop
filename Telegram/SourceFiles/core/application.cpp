@@ -1447,7 +1447,7 @@ void Application::RegisterUrlScheme() {
 		.arguments = qsl("-workdir \"%1\"").arg(cWorkingDir()),
 		.protocol = qsl("tg"),
 		.protocolName = qsl("Telegram Link"),
-		.shortAppName = qsl("tdesktop"),
+		.shortAppName = qsl("ktgdesktop"),
 		.longAppName = QCoreApplication::applicationName(),
 		.displayAppName = AppName.utf16(),
 		.displayAppDescription = AppName.utf16(),

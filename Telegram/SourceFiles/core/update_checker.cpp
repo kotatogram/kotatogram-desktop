@@ -1551,7 +1551,7 @@ bool checkReadyUpdate() {
 	QFileInfo updater(cWorkingDir() + qsl("tupdates/temp/Updater.exe"));
 #elif defined Q_OS_MAC // Q_OS_WIN
 	QString curUpdater = (cExeDir() + cExeName() + qsl("/Contents/Frameworks/Updater"));
-	QFileInfo updater(cWorkingDir() + qsl("tupdates/temp/Telegram.app/Contents/Frameworks/Updater"));
+	QFileInfo updater(cWorkingDir() + qsl("tupdates/temp/Kotatogram.app/Contents/Frameworks/Updater"));
 #elif defined Q_OS_UNIX // Q_OS_MAC
 	QString curUpdater = (cExeDir() + qsl("Updater"));
 	QFileInfo updater(cWorkingDir() + qsl("tupdates/temp/Updater"));
@@ -1636,13 +1636,13 @@ void UpdateApplication() {
 			return "https://itunes.apple.com/ae/app/telegram-desktop/id946399090";
 #elif defined Q_OS_UNIX && !defined Q_OS_MAC // OS_WIN_STORE || OS_MAC_STORE
 			if (Platform::InFlatpak()) {
-				return "https://flathub.org/apps/details/org.telegram.desktop";
-			} else if (Platform::InSnap()) {
-				return "https://snapcraft.io/telegram-desktop";
+				return "https://flathub.org/apps/details/io.github.kotatogram";
+			//} else if (Platform::InSnap()) {
+			//	return "https://snapcraft.io/telegram-desktop";
 			}
-			return "https://desktop.telegram.org";
+			return "https://github.com/kotatogram/kotatogram-desktop";
 #else // OS_WIN_STORE || OS_MAC_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
-			return "https://desktop.telegram.org";
+			return "https://github.com/kotatogram/kotatogram-desktop";
 #endif // OS_WIN_STORE || OS_MAC_STORE || (defined Q_OS_UNIX && !defined Q_OS_MAC)
 		}();
 		UrlClickHandler::Open(url);

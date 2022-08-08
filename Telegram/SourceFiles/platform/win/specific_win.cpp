@@ -88,7 +88,7 @@ BOOL CALLBACK ActivateProcessByPid(HWND hWnd, LPARAM lParam) {
 		WCHAR nameBuf[nameBufSize];
 		int32 len = GetWindowText(hWnd, nameBuf, nameBufSize);
 		if (len && len < nameBufSize) {
-			if (QRegularExpression(qsl("^Telegram(\\s*\\(\\d+\\))?$")).match(QString::fromStdWString(nameBuf)).hasMatch()) {
+			if (QRegularExpression(qsl("^Kotatogram(\\s*\\(\\d+\\))?$")).match(QString::fromStdWString(nameBuf)).hasMatch()) {
 				BOOL res = ::SetForegroundWindow(hWnd);
 				::SetFocus(hWnd);
 				return FALSE;
@@ -203,7 +203,7 @@ QString psAppDataPath() {
 	if (GetEnvironmentVariable(L"APPDATA", wstrPath, maxFileLen)) {
 		QDir appData(QString::fromStdWString(std::wstring(wstrPath)));
 #ifdef OS_WIN_STORE
-		return appData.absolutePath() + qsl("/Telegram Desktop UWP/");
+		return appData.absolutePath() + qsl("/Kotatogram Desktop UWP/");
 #else // OS_WIN_STORE
 		return appData.absolutePath() + '/' + AppName.utf16() + '/';
 #endif // OS_WIN_STORE
@@ -284,10 +284,10 @@ void psDoFixPrevious() {
 		HRESULT userDesktopRes = SHGetFolderPath(0, CSIDL_DESKTOPDIRECTORY, 0, SHGFP_TYPE_CURRENT, userDesktopFolder);
 		HRESULT commonDesktopRes = SHGetFolderPath(0, CSIDL_COMMON_DESKTOPDIRECTORY, 0, SHGFP_TYPE_CURRENT, commonDesktopFolder);
 		if (SUCCEEDED(userDesktopRes)) {
-			userDesktopLnk = QString::fromWCharArray(userDesktopFolder) + "\\Telegram.lnk";
+			userDesktopLnk = QString::fromWCharArray(userDesktopFolder) + "\\Kotatogram.lnk";
 		}
 		if (SUCCEEDED(commonDesktopRes)) {
-			commonDesktopLnk = QString::fromWCharArray(commonDesktopFolder) + "\\Telegram.lnk";
+			commonDesktopLnk = QString::fromWCharArray(commonDesktopFolder) + "\\Kotatogram.lnk";
 		}
 		QFile userDesktopFile(userDesktopLnk), commonDesktopFile(commonDesktopLnk);
 		if (QFile::exists(userDesktopLnk) && QFile::exists(commonDesktopLnk) && userDesktopLnk != commonDesktopLnk) {
@@ -415,7 +415,7 @@ void AutostartToggle(bool enabled, Fn<void(bool)> done) {
 		done ? Fn<void(bool)>(callback) : nullptr);
 #else // OS_WIN_STORE
 	const auto silent = !done;
-	ManageAppLink(enabled, silent, CSIDL_STARTUP, L"-autostart", L"Telegram autorun link.\nYou can disable autorun in Telegram settings.");
+	ManageAppLink(enabled, silent, CSIDL_STARTUP, L"-autostart", L"Kotatogram autorun link.\nYou can disable autorun in Kotatogram settings.");
 	if (done) {
 		done(enabled);
 	}
@@ -587,7 +587,7 @@ void psNewVersion() {
 }
 
 void psSendToMenu(bool send, bool silent) {
-	ManageAppLink(send, silent, CSIDL_SENDTO, L"-sendpath", L"Telegram send to link.\nYou can disable send to menu item in Telegram settings.");
+	ManageAppLink(send, silent, CSIDL_SENDTO, L"-sendpath", L"Kotatogram send to link.\nYou can disable send to menu item in Kotatogram settings.");
 }
 
 bool psLaunchMaps(const Data::LocationPoint &point) {

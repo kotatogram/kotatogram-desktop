@@ -293,7 +293,7 @@ void Launcher::init() {
 	prepareSettings();
 	initQtMessageLogging();
 
-	QApplication::setApplicationName(qsl("TelegramDesktop"));
+	QApplication::setApplicationName(qsl("KotatogramDesktop"));
 	QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, true);
 	QApplication::setHighDpiScaleFactorRoundingPolicy(
 		Qt::HighDpiScaleFactorRoundingPolicy::Floor);
@@ -345,7 +345,7 @@ int Launcher::exec() {
 	Platform::start();
 	auto result = executeApplication();
 
-	DEBUG_LOG(("Telegram finished, result: %1").arg(result));
+	DEBUG_LOG(("Kotatogram finished, result: %1").arg(result));
 
 	if (!UpdaterDisabled() && cRestartingUpdate()) {
 		DEBUG_LOG(("Sandbox Info: executing updater to install update."));
@@ -353,7 +353,7 @@ int Launcher::exec() {
 			base::Platform::DeleteDirectory(cWorkingDir() + qsl("tupdates/temp"));
 		}
 	} else if (cRestarting()) {
-		DEBUG_LOG(("Sandbox Info: executing Telegram because of restart."));
+		DEBUG_LOG(("Sandbox Info: executing Kotatogram because of restart."));
 		launchUpdater(UpdaterLaunch::JustRelaunch);
 	}
 

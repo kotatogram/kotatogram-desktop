@@ -46,6 +46,6 @@
   </qresource>
   <qresource prefix="/misc">
     <file alias="default_shortcuts-custom.json">../../default_shortcuts-custom.json</file>
-    <file alias="telegramdesktop.desktop">../../../../lib/xdg/telegramdesktop.desktop</file>
+    <file alias="kotatogramdesktop.desktop">../../../../lib/xdg/kotatogramdesktop.desktop</file>
   </qresource>
 </RCC>

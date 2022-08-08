@@ -70,9 +70,9 @@ private:
 };
 
 IconGraphic::IconGraphic()
-: _panelTrayIconName("telegram-panel")
-, _mutePanelTrayIconName("telegram-mute-panel")
-, _attentionPanelTrayIconName("telegram-attention-panel")
+: _panelTrayIconName("kotatogram-panel")
+, _mutePanelTrayIconName("kotatogram-mute-panel")
+, _attentionPanelTrayIconName("kotatogram-attention-panel")
 , _iconSizes{ 16, 22, 24, 32, 48 } {
 }
 

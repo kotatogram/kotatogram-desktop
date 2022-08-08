@@ -1,0 +1,20 @@
+[Desktop Entry]
+Version=1.0
+Name=Kotatogram Desktop
+Comment=Experimental Telegram Desktop fork
+TryExec=kotatogram-desktop
+Exec=kotatogram-desktop -- %u
+Icon=kotatogram
+Terminal=false
+StartupWMClass=KotatogramDesktop
+Type=Application
+Categories=Chat;Network;InstantMessaging;Qt;
+MimeType=x-scheme-handler/tg;
+Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;kotatogram;
+Actions=Quit;
+X-GNOME-UsesNotifications=true
+
+[Desktop Action Quit]
+Exec=kotatogram-desktop -quit
+Name=Quit Kotatogram
+Icon=application-exit
