@@ -140,19 +140,19 @@ jobs:
           cmake --build build --parallel
 
           cd build
-          macdeployqt Telegram.app
-          codesign --remove-signature Telegram.app
+          macdeployqt Kotatogram.app
+          codesign --remove-signature Kotatogram.app
 
           mkdir dmgsrc
-          mv Telegram.app dmgsrc
-          hdiutil create -volname Telegram -srcfolder dmgsrc -ov -format UDZO Telegram.dmg
+          mv Kotatogram.app dmgsrc
+          hdiutil create -volname Kotatogram -srcfolder dmgsrc -ov -format UDZO Kotatogram.dmg
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
           cd $REPO_NAME/build
           mkdir artifact
-          mv Telegram.dmg artifact/
+          mv Kotatogram.dmg artifact/
       - uses: actions/upload-artifact@master
         if: env.UPLOAD_ARTIFACT == 'true'
         name: Upload artifact.
