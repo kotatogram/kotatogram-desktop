@@ -383,32 +383,14 @@ MainMenu::MainMenu(
 
 	parentResized();
 
-	_telegram->setMarkedText(tr::link(
-		u"Telegram Desktop"_q,
-		u"https://desktop.telegram.org"_q));
-	_telegram->setLinksTrusted();
-	// The canary version is too long for the "Version {version}" form.
-	_version->setMarkedText(
-		tr::link(
-			Core::BuildIsCanary
-				? currentVersionShortText()
-				: tr::lng_settings_current_version(
-					tr::now,
-					lt_version,
-					currentVersionShortText()),
-			1) // Link 1.
-		.append(QChar(' '))
-		.append(QChar(8211))
-		.append(QChar(' '))
-		.append(tr::link(tr::lng_menu_about(tr::now), 2))); // Link 2.
-	_version->setLink(
+	_telegram->setMarkedText(Ui::Text::Link(u"Kotatogram Desktop"_q, 1));
+	_telegram->setLink(
 		1,
-		std::make_shared<UrlClickHandler>(Core::App().changelogLink()));
-	_version->setLink(
-		2,
 		std::make_shared<LambdaClickHandler>([=] {
 			controller->show(Box(AboutBox));
 		}));
+	_version->setMarkedText(Ui::Text::Link(currentVersionShortText(), 1));
+	_version->setLink(1, std::make_shared<UrlClickHandler>(qsl("https://github.com/kotatogram/kotatogram-desktop")));
 
 	rpl::combine(
 		_toggleAccounts->rightSkipValue(),

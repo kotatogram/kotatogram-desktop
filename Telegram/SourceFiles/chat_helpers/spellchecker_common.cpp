@@ -43,6 +43,7 @@ constexpr auto kDictExtensions = { "dic", "aff" };
 
 constexpr auto kExceptions = {
 	AppFile,
+	"Telegram"_cs,
 	"\xd0\xa2\xd0\xb5\xd0\xbb\xd0\xb5\xd0\xb3\xd1\x80\xd0\xb0\xd0\xbc"_cs,
 };
 

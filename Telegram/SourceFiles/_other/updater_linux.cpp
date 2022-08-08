@@ -269,7 +269,7 @@ bool update() {
 						writeLog("Error: bad update, has Updater! '%s' equal '%s'", tofname.c_str(), updaterName.c_str());
 						delFolder();
 						return false;
-					} else if (equal(tofname, exePath + "Telegram") && exeName != "Telegram") {
+					} else if (equal(tofname, exePath + "Kotatogram") && exeName != "Kotatogram") {
 						string fullBinaryPath = exePath + exeName;
 						writeLog("Target binary found: '%s', changing to '%s'", tofname.c_str(), fullBinaryPath.c_str());
 						tofname = fullBinaryPath;
@@ -399,7 +399,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	if (exeName.empty() || exeName.find('/') != string::npos) {
-		exeName = "Telegram";
+		exeName = "Kotatogram";
 	}
 	openLog();
 
@@ -431,6 +431,7 @@ int main(int argc, char *argv[]) {
 					customWorkingDir = false;
 
 					writeLog("No workdir, trying to figure it out");
+					/*
 					struct passwd *pw = getpwuid(getuid());
 					if (pw && pw->pw_dir && strlen(pw->pw_dir)) {
 						string tryDir = pw->pw_dir + string("/.TelegramDesktop/");
@@ -444,6 +445,7 @@ int main(int argc, char *argv[]) {
 							}
 						}
 					}
+					*/
 					if (workDir.empty()) {
 						workDir = exePath;
 
@@ -511,7 +513,7 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 
-		writeLog("Executed Telegram, closing log and quitting..");
+		writeLog("Executed Kotatogram, closing log and quitting..");
 	}
 
 	closeLog();

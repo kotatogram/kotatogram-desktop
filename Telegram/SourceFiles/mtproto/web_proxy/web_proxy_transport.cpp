@@ -1617,7 +1617,7 @@ QByteArray Transport::Private::page(const QString &nonce) const {
 body{font:16px system-ui,sans-serif;margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f6f8;color:#17212b}
 main{width:min(34rem,calc(100% - 4rem));padding:2rem;text-align:center}h1{font-size:1.5rem}#state{color:#5288c1}.traffic{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin:1.5rem 0;text-align:left}.traffic div{padding:1rem;border:1px solid #dce3e9;border-radius:.75rem;background:#fff}.traffic dt{font-size:.8rem;color:#6c7883}.traffic dd{margin:.35rem 0 0;font-size:1.1rem;font-weight:600}.traffic small{display:block;margin-top:.25rem;color:#5288c1;font-size:.8rem;font-weight:400}.note{font-size:.8rem;color:#6c7883}iframe{display:none}
 </style>
-<main><h1>Telegram Web Proxy</h1><p id="state">Connecting to Telegram Desktop…</p><dl class="traffic"><div><dt>Sent through HTTPS</dt><dd><span id="up-total">0 B</span><small id="up-rate">0 B/s</small></dd></div><div><dt>Received through HTTPS</dt><dd><span id="down-total">0 B</span><small id="down-rate">0 B/s</small></dd></div></dl><p>Keep this tab open while using Telegram.</p><p class="note">Counts obfuscated carrier payload after successful requests; HTTPS overhead is not included.</p></main>
+<main><h1>Telegram Web Proxy</h1><p id="state">Connecting to Kotatogram Desktop…</p><dl class="traffic"><div><dt>Sent through HTTPS</dt><dd><span id="up-total">0 B</span><small id="up-rate">0 B/s</small></dd></div><div><dt>Received through HTTPS</dt><dd><span id="down-total">0 B</span><small id="down-rate">0 B/s</small></dd></div></dl><p>Keep this tab open while using Telegram.</p><p class="note">Counts obfuscated carrier payload after successful requests; HTTPS overhead is not included.</p></main>
 <script nonce="%2">
 (()=>{
 const relayOrigin=%1,relayBase=%3,state=document.getElementById('state');
@@ -1665,15 +1665,15 @@ uR"HTML(
   guard.channel.addEventListener('close',check,{once:true});guard.first.addEventListener('connectionstatechange',check);guard.second.addEventListener('connectionstatechange',check);
  }catch(error){restartRtc(guard)}};
 local.onopen=()=>{local.send(JSON.stringify({t:'auth',token,browser}));startRtc()};
-local.onclose=()=>{stopRtc();localClosed=true;state.textContent='Telegram Desktop disconnected. Reopen the browser from Proxy Settings.';if(initialized)port.postMessage({t:'close'})};
-local.onerror=()=>{state.textContent='Could not connect to Telegram Desktop.'};
+local.onclose=()=>{stopRtc();localClosed=true;state.textContent='Kotatogram Desktop disconnected. Reopen the browser from Proxy Settings.';if(initialized)port.postMessage({t:'close'})};
+local.onerror=()=>{state.textContent='Could not connect to Kotatogram Desktop.'};
 const openBridge=url=>{if(iframe||localClosed)return;iframe=document.createElement('iframe');iframe.sandbox='allow-scripts allow-same-origin';iframe.referrerPolicy='no-referrer';
  iframe.onload=()=>{if(localClosed)return;if(initialized){state.textContent='The proxy page reloaded. Reopen the browser from Proxy Settings.';local.close();return}iframe.contentWindow.postMessage({t:'tproxy-init',v:1},relayOrigin,[channel.port2]);initialized=true;while(pending.length){const data=pending.shift();port.postMessage(data,[data])}};
  iframe.src=url;document.body.appendChild(iframe)};
 local.onmessage=e=>{if(e.data instanceof ArrayBuffer){if(initialized)port.postMessage(e.data,[e.data]);else pending.push(e.data);return}
  if(typeof e.data!=='string')return;let control=null;try{control=JSON.parse(e.data)}catch(error){return}
  if(!control||typeof control!=='object'||control.t!=='bridge'||typeof control.url!=='string'||!control.url.startsWith(relayBase+'?bridge='))return;openBridge(control.url)};
-port.onmessage=e=>{if(e.data instanceof ArrayBuffer){if(local.readyState===WebSocket.OPEN){if(local.bufferedAmount>localQueueLimit-e.data.byteLength){state.textContent='Telegram Desktop is not consuming proxy data.';local.close();return}try{local.send(e.data)}catch(error){local.close()}}return}
+port.onmessage=e=>{if(e.data instanceof ArrayBuffer){if(local.readyState===WebSocket.OPEN){if(local.bufferedAmount>localQueueLimit-e.data.byteLength){state.textContent='Kotatogram Desktop is not consuming proxy data.';local.close();return}try{local.send(e.data)}catch(error){local.close()}}return}
  if(e.data&&e.data.t==='status'){const s=e.data.state;state.textContent=s==='connected'?'Connected. Keep this tab open.':s==='failed'?'The proxy site is unavailable.':'Connecting to the proxy site…';if(local.readyState===WebSocket.OPEN)local.send(JSON.stringify(e.data));return}
  if(e.data&&e.data.t==='traffic'){const up=e.data.up,down=e.data.down;if(Number.isSafeInteger(up)&&up>=0&&Number.isSafeInteger(down)&&down>=0){traffic.up+=up;traffic.down+=down}return}
  if(e.data&&e.data.t==='close'){state.textContent='The proxy site closed the connection.';local.close()}}
