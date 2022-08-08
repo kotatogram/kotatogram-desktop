@@ -55,7 +55,7 @@ using Platform::internal::WaylandIntegration;
 namespace Platform {
 namespace {
 
-constexpr auto kDesktopFile = ":/misc/org.telegram.desktop.desktop"_cs;
+constexpr auto kDesktopFile = ":/misc/io.github.kotatogram.desktop"_cs;
 
 bool PortalAutostart(bool start, bool silent) {
 	if (cExeName().isEmpty()) {
@@ -78,7 +78,7 @@ bool PortalAutostart(bool start, bool silent) {
 				activeWindow->widget()->windowHandle());
 		}();
 
-		const auto handleToken = Glib::ustring("tdesktop")
+		const auto handleToken = Glib::ustring("ktgdesktop")
 			+ std::to_string(base::RandomValue<uint>());
 
 		std::vector<Glib::ustring> commandline;
@@ -287,8 +287,8 @@ bool GenerateDesktopFile(
 
 	if (!Core::UpdaterDisabled()) {
 		DEBUG_LOG(("App Info: removing old .desktop files"));
-		QFile::remove(u"%1telegram.desktop"_q.arg(targetPath));
-		QFile::remove(u"%1telegramdesktop.desktop"_q.arg(targetPath));
+		QFile::remove(u"%1kotatogram.desktop"_q.arg(targetPath));
+		QFile::remove(u"%1kotatogramdesktop.desktop"_q.arg(targetPath));
 
 		const auto appimagePath = u"file://%1%2"_q.arg(
 			cExeDir(),
@@ -314,7 +314,7 @@ bool GenerateDesktopFile(
 			hashMd5Hex(exePath.constData(), exePath.size(), md5Hash);
 		}
 
-		QFile::remove(u"%1org.telegram.desktop.%2.desktop"_q.arg(
+		QFile::remove(u"%1io.github.kotatogram.%2.desktop"_q.arg(
 			targetPath,
 			md5Hash));
 	}
@@ -461,8 +461,8 @@ QString ExecutablePathForShortcuts() {
 } // namespace Platform
 
 QString psAppDataPath() {
-	// Previously we used ~/.TelegramDesktop, so look there first.
-	// If we find data there, we should still use it.
+	// We should not use ~/.TelegramDesktop, since it's a fork.
+	/*
 	auto home = QDir::homePath();
 	if (!home.isEmpty()) {
 		auto oldPath = home + u"/.TelegramDesktop/"_q;
@@ -473,6 +473,7 @@ QString psAppDataPath() {
 			return oldPath;
 		}
 	}
+	*/
 
 	return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + '/';
 }
@@ -529,11 +530,11 @@ void start() {
 					md5Hash.data());
 			}
 
-			return u"org.telegram.desktop._%1.desktop"_q.arg(
+			return u"io.github.kotatogram._%1.desktop"_q.arg(
 				md5Hash.constData());
 		}
 
-		return u"org.telegram.desktop.desktop"_q;
+		return u"io.github.kotatogram.desktop"_q;
 	}());
 
 	LOG(("Launcher filename: %1").arg(QGuiApplication::desktopFileName()));

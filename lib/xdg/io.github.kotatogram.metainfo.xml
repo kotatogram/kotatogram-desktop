@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component type="desktop">
+    <id>io.github.kotatogram</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPL-3.0</project_license>
+    <name>Kotatogram Desktop</name>
+    <summary>Kotatogram Desktop messenger</summary>
+    <description>
+        <p>Kotatogram Desktop is unofficial messaging based on Telegram Desktop.</p>
+        <p>Telegram is a popular messaging protocol with encryption and security as its key focus.</p>
+    </description>
+    <categories>
+        <category>Network</category>
+        <category>InstantMessaging</category>
+    </categories>
+    <update_contact></update_contact>
+    <developer_name>RadRussianRus</developer_name>
+    <url type="homepage">https://kotatogram.github.io/</url>
+    <url type="bugtracker">https://github.com/kotatogram/kotatogram-desktop/issues</url>
+    <url type="help">https://github.com/kotatogram/kotatogram-desktop/issues</url>
+    <screenshots>
+      <screenshot type="default">
+        <image>https://raw.githubusercontent.com/kotatogram/kotatogram-desktop/dev/docs/assets/ktg_preview.png</image>
+      </screenshot>
+    </screenshots>
+    <keywords>
+        <keyword>tg</keyword>
+        <keyword>telegram</keyword>
+        <keyword>kotatogram</keyword>
+        <keyword>tdesktop</keyword>
+        <keyword>messaging</keyword>
+        <keyword>messenger</keyword>
+        <keyword>chat</keyword>
+        <keyword>sms</keyword>
+        <keyword>im</keyword>
+    </keywords>
+    <releases>
+        <release version="1.4.9" date="2022-03-08">
+            <description>
+                <p>TDesktop sources were updated to 3.5.2.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Internal rework of Kotatogram Settings.</li>
+                    <li>Allow select time when jumping to date in chat.</li>
+                    <li>Always show TDesktop's experimental settings and allow their translation.</li>
+                    <li>Make message icon color same as name color.</li>
+                    <li>Fix avatar cropping in Windows system notifications.</li>
+                    <li>Warn when trying to unquoted forward a quiz (by blank-x).</li>
+                    <li>Show "Copy callback data" only for callback buttons (by blank-x).</li>
+                    <li>Go to chat on Shift+Enter in Forward box (by blank-x).</li>
+                    <li>Fix name icons (by blank-x).</li>
+                    <li>Fix tg://user?id links for 64-bit IDs (by blank-x).</li>
+                    <li>Fix showing "Mention user" for channels (by blank-x).</li>
+                    <li>Fix profile pictures rounding (by blank-x).</li>
+                    <li>Fix chat status filters by admin rights (by blank-x).</li>
+                    <li>New Kotatogram macOS icon (by gershik).</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4.8" date="2021-12-31">
+            <description>
+                <p>In this update:</p>
+                <ul>
+                    <li>Better font settings.</li>
+                    <li>Fixed severe crash in Saved Messages.</li>
+                    <li>Fixed non-clickable part of message author name if there an icon near it.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4.7" date="2021-12-30">
+            <description>
+                <p>In this update:</p>
+                <ul>
+                    <li>Ability to switch accounts by hotkeys.</li>
+                    <li>Added icon near the author name in message.</li>
+                    <li>Fixed ranks in admin list.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4.6" date="2021-12-18">
+            <description>
+                <p>TDesktop sources were updated to 3.3.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Ability to disable remembering image compression when sending.</li>
+                    <li>Custom auto-replaces now work without emoji replacement enabled.</li>
+                    <li>Removed window size restiction.</li>
+                    <li>Fixed tg:// link protocol in system.</li>
+                    <li>Fixed "External video player" option.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4.5" date="2021-12-04">
+            <description>
+                <p>TDesktop sources were updated to 3.1.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Fixed caption sending modes in unquoted forward.</li>
+                    <li>Fixed "Qt scaling" option.</li>
+                    <li>Removed duplicate of GIF button in shared media.</li>
+                    <li>Fixed animated emoji size.</li>
+                    <li>Fix custom font size scale.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4.4" date="2021-09-22">
+            <description>
+                <p>TDesktop sources were updated to 3.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Added option to remember forward mode.</li>
+                    <li>Added ability to set default forward mode.</li>
+                    <li>Replaced unquoted forward method with option to restore the old one.</li>
+                    <li>Added option to disable per-chat themes.</li>
+                    <li>Removed GTK integration option, since it's not needed anymore.</li>
+                    <li>Fixed missing sending inline bot response preview option.</li>
+                    <li>Fixed missing sending inline bot response preview in comments and scheduled messages.</li>
+                    <li>Fixed option "Disable edit by Up key" in comments and scheduled messages.</li>
+                    <li>GIF section in shared media and forwarded sticker info are now same as in TDesktop.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4.3" date="2021-08-26">
+            <description>
+                <p>In this update:</p>
+                <ul>
+                    <li>Reworked sending without "via @bot" tag.</li>
+                    <li>Optional hotkeys to restart application and to reload Kotatogram translation.</li>
+                    <li>Fixed blocking user in "Recent Actions".</li>
+                    <li>Updated translations, including phrases from previous version.</li>
+                    <li>Fixed errors and crashes in AppImage related to gdk-pixbuf.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4.2" date="2021-08-21">
+            <description>
+                <p>TDesktop sources were updated to 2.8.11.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Manually choose notification mute time.</li>
+                    <li>Auto-login option for Telegram sites.</li>
+                    <li>Multi-threaded video decoding option.</li>
+                    <li>External video player.</li>
+                    <li>Sending without "via @bot" mark.</li>
+                    <li>Font size JSON option.</li>
+                    <li>Backported message self-destruct 1 month option.</li>
+                    <li>Localized self-destruct messages button to Russian.</li>
+                    <li>Fixed missing "Copy Share Link" in forward window when a single album is selected.</li>
+                    <li>Fixed applying of some bundled Kotatogram translations.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4.1" date="2021-04-29">
+            <description>
+                <p>TDesktop sources were updated to 2.7.4.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Separate Kotatogram's MPRIS and TDesktop's MPRIS.</li>
+                    <li>Fix crash on right clicking emoji button.</li>
+                    <li>Attempt to fix repeating changelogs.</li>
+                    <li>Smaller font for options with radio buttons.</li>
+                    <li>Don't show top notification switch in own profile.</li>
+                    <li>Remove unnecessary separator in own profile.</li>
+                    <li>Fix dependent separated "Send stickers and GIFs" restriction.</li>
+                    <li>Updated translations.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.4" date="2021-04-13">
+            <description>
+                <p>TDesktop sources were updated to 2.7.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Ability to forward messages without author.</li>
+                    <li>Local folders.</li>
+                    <li>Ability to set API ID and hash by start parameter or environment variable.</li>
+                    <li>Use checkboxes in polls with multiple answers.</li>
+                    <li>Reworked admins info.</li>
+                    <li>Show group type in chat lists.</li>
+                    <li>Show star icon for groups where you're an admin.</li>
+                    <li>Do not notify when pinning by default.</li>
+                    <li>Ability to mention user from context menu in members list.</li>
+                    <li>Improved theme keys search.</li>
+                    <li>Experimental top bar customization.</li>
+                    <li>Reworked changning time when scheduling messages.</li>
+                    <li>Improved keyboard navigation for calendar.</li>
+                    <li>Ability to jump to date in chat (Ctrl+H by default).</li>
+                    <li>Use ghost icon from Android app.</li>
+                    <li>Hide Edit and All Chats from context menu.</li>
+                    <li>Show button to remove recent sticker.</li>
+                    <li>Option to retain selection after forward.</li>
+                    <li>Hide account name in notification if it's the current one.</li>
+                    <li>Possible fix for crash on Permissions click in profile.</li>
+                    <li>Fix for crash on profile double open in blocked users list.</li>
+                    <li>Option to disable monospace bubbles expansion (user-contributed).</li>
+                    <li>Click-to-copy for ID, phone and username in profile.</li>
+                    <li>Revoke messages by default.</li>
+                    <li>Additional info for chats in folders.</li>
+                    <li>Manage buttons in profile.</li>
+                    <li>Forward to multiple chats.</li>
+                    <li>Allow add up to 10 accounts in 32-bit build and up to 100 in 64 bit builds.</li>
+                    <li>Do not share phone number by default (from 64Gram).</li>
+                    <li>GIFs shared media section (from 64Gram).</li>
+                    <li>Uwrapped "Stickers and GIFs" permission (from 64Gram).</li>
+                    <li>Option to disable emoji panel on hover.</li>
+                    <li>Option to use native window frame on Windows and macOS.</li>
+                    <li>Option to disable tray counter.</li>
+                    <li>Option to use Telegram tray icon on Linux panels.</li>
+                    <li>Set media clear limit down to 1 day.</li>
+                    <li>Many translations from Crowdin page.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.3.9" date="2020-09-09">
+            <description>
+                <p>TDesktop sources were updated to 2.3.2.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Ability to forward messages without author.</li>
+                    <li>Local folders.</li>
+                    <li>Ability to set API ID and hash by start parameter or environment variable.</li>
+                    <li>Use checkboxes in polls with multiple answers.</li>
+                    <li>Reworked admins info.</li>
+                    <li>Show group type in chat lists.</li>
+                    <li>Show star icon for groups where you're an admin.</li>
+                    <li>Do not notify when pinning by default.</li>
+                    <li>Ability to mention user from context menu in members list.</li>
+                    <li>Open pop-up emoji panel on RMB when disabled by hover.</li>
+                    <li>Improved theme keys search.</li>
+                    <li>Experimental top bar customization.</li>
+                    <li>Reworked changning time when scheduling messages.</li>
+                    <li>Improved keyboard navigation for calendar.</li>
+                    <li>Italian translation (by alsoGAMER and CrisMystik).</li>
+                    <li>Ability to jump to date in chat (Ctrl+J by default).</li>
+                    <li>Use ghost icon from Android app.</li>
+                    <li>Hide Edit and All Chats from context menu.</li>
+                    <li>Show button to remove recent sticker.</li>
+                    <li>Portuguese (Brasil) translation (by lipetst).</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.3.8" date="2020-07-10">
+            <description>
+                <p>TDesktop sources were updated to 2.1.18.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Restored one-click forward to Saved Messages.</li>
+                    <li>Ability to go to chat from forward when selecting one.</li>
+                    <li>Make retaining selection after forward optional.</li>
+                    <li>Option to open chat on click in forward.</li>
+                    <li>Hide account name in notification if it's the current one.</li>
+                    <li>Possible fix for crash on Permissions click in profile.</li>
+                    <li>Turkish translation (by disk3).</li>
+                    <li>Polish translation (by Sebek).</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.3.7" date="2020-07-03">
+            <description>
+                <p>TDesktop sources were updated to 2.1.17.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Option to disable monospace bubbles expansion (user-contributed).</li>
+                    <li>Click-to-copy for ID, phone and username in profile.</li>
+                    <li>Revoke messages by default.</li>
+                    <li>Additional info for chats in folders.</li>
+                    <li>Manage buttons in profile.</li>
+                    <li>Forward to multiple chats.</li>
+                    <li>Allow add up to 10 accounts.</li>
+                    <li>Do not share phone number by default (from TDesktop-x64).</li>
+                    <li>GIFs shared media section (from TDesktop-x64).</li>
+                    <li>Uwrapped "Stickers and GIFs" permission (from TDesktop-x64).</li>
+                    <li>Ukranian translation (by winqooq).</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.3.6" date="2020-05-22">
+            <description>
+                <p>TDesktop sources were updated to 2.1.6.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Option to disable emoji panel on hover.</li>
+                    <li>Option to use native window frame on Windows and macOS.</li>
+                    <li>Option to disable tray counter.</li>
+                    <li>Option to use Telegram tray icon on Linux panels.</li>
+                    <li>Set media clear limit down to 1 day.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.3.5" date="2020-05-10">
+            <description>
+                <p>TDesktop sources were updated to 2.1.4.</p>
+            </description>
+        </release>
+        <release version="1.3.4" date="2020-05-06">
+            <description>
+                <p>TDesktop sources were updated to 2.1.2.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Optional Bot API chat ID format.</li>
+                    <li>Message ID in date tooltip.</li>
+                    <li>Option to scale sticker width along with height.</li>
+                    <li>Show time of service message.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.3.3" date="2020-05-03">
+            <description>
+                <p>TDesktop sources were updated to 2.1.1.</p>
+                <p>1.3.2 had crash with "All chats" enabled, so there is 1.3.3.</p>
+            </description>
+        </release>
+        <release version="1.3.2" date="2020-05-02">
+            <description>
+                <p>TDesktop sources were updated to 2.1.1.</p>
+            </description>
+        </release>
+        <release version="1.3.1" date="2020-04-27">
+            <description>
+                <p>Some post-release bugfixes, including folder names.</p>
+            </description>
+        </release>
+        <release version="1.3" date="2020-04-25">
+            <description>
+                <p>TDesktop sources were updated to 2.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Search messages from user from context menu.</li>
+                    <li>"query" parameter for tg://resolve and t.me links to set search query.</li>
+                    <li>Select and copy text in link open box and bot button click.</li>
+                    <li>Select and copy text of poll explanation, showing it in box.</li>
+                    <li>Added two existed options to menu: tray icon and profile picture rounding.</li>
+                    <li>Suggest to hide pinned message when unpinning.</li>
+                    <li>Show Discuss button even if you haven't subscribed to channel.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.2.2" date="2020-04-02">
+            <description>
+                <p>TDesktop sources were updated to 2.0.1.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Option to hide All chats folder.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.2.1" date="2020-03-31">
+            <description>
+                <p>TDesktop sources were updated to 2.0.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Option to set default folder. Also added context menu to All chats filter.</li>
+                    <li>Option to show only unmuted chats in folder counter.</li>
+                    <li>Option to hide Edit button in folder sidebar.</li>
+                    <li>Compact folder sidebar option.</li>
+                    <li>Restored unreleased notification toggle as option.</li>
+                    <li>tg://settings/kotato link to open Kotatogram Settings. Also added three-dots menu there.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.2" date="2020-03-19">
+            <description>
+                <p>TDesktop sources were updated to 1.9.21.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>New logo and option to choose alternative icons.</li>
+                    <li>Support for taskbar flashing alert.</li>
+                    <li>Bot privacy status in members list.</li>
+                    <li>Custom tray and taskbar icon.</li>
+                    <li>Show working dir in tray icon tooltip.</li>
+                    <li>Option to change rounding of profile pictures.</li>
+                    <li>Option to always show profile picture in top bar.</li>
+                    <li>Ban members option in Recent Actions.</li>
+                    <li>Control notification sound from tray menu.</li>
+                    <li>Option to change recent stickers show limit (up to 200 or disable at all).</li>
+                    <li>Show video playback controls for GIFs.</li>
+                    <li>Allow up to 64px as minimal sticker size.</li>
+                    <li>Optional confirmation before calling.</li>
+                    <li>"Disable Up to edit" now in options menu.</li>
+                    <li>Option to use original font height.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.1.9" date="2020-03-15">
+            <description>
+                <p>TDesktop sources were updated to 1.9.20 beta.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Support for taskbar flashing alert.</li>
+                    <li>Bot privacy status in members list.</li>
+                    <li>Custom tray and taskbar icon.</li>
+                    <li>Show working dir in tray icon tooltip.</li>
+                    <li>Option to change rounding of profile pictures.</li>
+                    <li>Option to always show profile picture in top bar.</li>
+                    <li>Ban members option in Recent Actions.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.1.8" date="2020-02-26">
+            <description>
+                <p>TDesktop sources were updated to 1.9.19 beta.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Control notification sound from tray menu.</li>
+                    <li>Option to change recent stickers show limit (up to 200 or disable at all).</li>
+                    <li>Show video playback controls for GIFs.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.1.7" date="2020-02-08">
+            <description>
+                <p>TDesktop sources were updated to 1.9.10 beta.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Allow up to 64px as minimal sticker size.</li>
+                    <li>Optional confirmation before calling.</li>
+                    <li>"Disable Up to edit" now in options menu.</li>
+                    <li>Option to use original font height.</li>
+                </ul>
+            </description>
+        </release>
+        <release version="1.1.6" date="2020-01-31">
+            <description>
+                <p>TDesktop sources were updated to 1.9.9.</p>
+                <p>Also in this update:</p>
+                <ul>
+                    <li>Custom instant replaces in JSON settings.</li>
+                    <li>Ability to use system font (user-contributed).</li>
+                </ul>
+            </description>
+        </release>
+    </releases>
+    <content_rating type="oars-1.1">
+        <content_attribute id="violence-cartoon">none</content_attribute>
+        <content_attribute id="violence-fantasy">none</content_attribute>
+        <content_attribute id="violence-realistic">none</content_attribute>
+        <content_attribute id="violence-bloodshed">none</content_attribute>
+        <content_attribute id="violence-sexual">none</content_attribute>
+        <content_attribute id="violence-desecration">none</content_attribute>
+        <content_attribute id="violence-slavery">none</content_attribute>
+        <content_attribute id="violence-worship">none</content_attribute>
+        <content_attribute id="drugs-alcohol">none</content_attribute>
+        <content_attribute id="drugs-narcotics">none</content_attribute>
+        <content_attribute id="drugs-tobacco">none</content_attribute>
+        <content_attribute id="sex-nudity">none</content_attribute>
+        <content_attribute id="sex-themes">none</content_attribute>
+        <content_attribute id="sex-homosexuality">none</content_attribute>
+        <content_attribute id="sex-prostitution">none</content_attribute>
+        <content_attribute id="sex-adultery">none</content_attribute>
+        <content_attribute id="sex-appearance">none</content_attribute>
+        <content_attribute id="language-profanity">none</content_attribute>
+        <content_attribute id="language-humor">none</content_attribute>
+        <content_attribute id="language-discrimination">none</content_attribute>
+        <content_attribute id="social-chat">intense</content_attribute>
+        <content_attribute id="social-info">none</content_attribute>
+        <content_attribute id="social-audio">intense</content_attribute>
+        <content_attribute id="social-location">none</content_attribute>
+        <content_attribute id="social-contacts">intense</content_attribute>
+        <content_attribute id="money-purchasing">none</content_attribute>
+        <content_attribute id="money-gambling">none</content_attribute>
+    </content_rating>
+    <provides>
+        <binary>kotatogram-desktop</binary>
+    </provides>
+</component>
