@@ -1,10 +1,11 @@
 # Contributing
 
-This document describes how you can contribute to Telegram Desktop. Please read it carefully.
+This document describes how you can contribute to Kotatogram Desktop. Please read it carefully.
 
 **Table of Contents**
 
 * [What contributions are accepted](#what-contributions-are-accepted)
+* [Contributing translations](#contributing-translations)
 * [Build instructions](#build-instructions)
 * [Pull upstream changes into your fork regularly](#pull-upstream-changes-into-your-fork-regularly)
 * [How to get your pull request accepted](#how-to-get-your-pull-request-accepted)
@@ -17,29 +18,46 @@ This document describes how you can contribute to Telegram Desktop. Please read 
 
 ## What contributions are accepted
 
-We highly appreciate your contributions in the matter of fixing bugs and optimizing the Telegram Desktop source code and its documentation. In case of fixing the existing user experience please push to your fork and [submit a pull request][pr].
+Before contribute to Kotatogram Desktop, you could try to contribute to Telegram Desktop in following cases:
 
-Wait for us. We try to review your pull requests as fast as possible.
-If we find issues with your pull request, we may suggest some changes and improvements.
+* Bug fixes of original Telegram Desktop features
+* Optimization of Telegram Desktop's source code and documentation
 
-Unfortunately we **do not merge** any pull requests that have new feature implementations, translations to new languages and those which introduce any new user interface elements.
+If your PR is merged into the official app, it will help both apps (as well as many other Telegram Desktop forks). Be sure to read its [CONTRIBUTING.md][tdesktop_contributing] before trying.
 
-If you have a translations-related contribution, check out [Translations platform][translate].
+If your feature couldn't be added to official Telegram Desktop (e.g. new feature), you can try to [submit a pull request here][pr].
 
-Telegram Desktop is not a standalone application but a part of [Telegram project][telegram], so all the decisions about the features, languages, user experience, user interface and the design are made inside Telegram team, often according to some roadmap which is not public.
+Following contributions are accepted to Kotatogram Desktop:
+
+* Bug fixes and improvements
+* New features
+
+If you are submitting a new feature, please note that:
+
+* It **must** be tested: we need these features to work, and work correctly.
+* It **must not** confilct with exsiting features. If it's an alternative way of making this feature (e.g. showing text in other place), you should improve existing feature, and give user a choice unless there is no logical reasons for making a choice.
+* It **must** look as good and refined as possible. I can accept some "dirty" solutions, but in that case they should be optional, and disabled by default. Still, too "dirty" solution won't be accepted.
+* It **must not** violate [Telegram API Terms of Service][api_tos], e.g. features like Ghost Mode won't be implemented.
+
+## Contributing translations
+
+Translation contributions are currently accepted on [Crowdin](https://crowdin.com/project/kotatogram-desktop). Even though you can open an issue about translation here (e.g. requesting a new language) or submit a PR, Crowdin is the prefered way.
+
+Please note: if you submit a PR with translation, it won't be merged. Instead it will be updated on Crowdin.
 
 ## Build instructions
 
-See the [README.md][build_instructions] for details on the various build
-environments.
+Build instructions of Kotatogram Desktop are practically same, as Telegram Desktop's. See the [README.md][build_instructions] for details on the various build environments.
+
+Of course, you should clone `https://github.com/kotatogram/kotatogram-desktop.git` instead of `https://github.com/telegramdesktop/tdesktop.git`.
 
 ## Pull upstream changes into your fork regularly
 
-Telegram Desktop is advancing quickly. It is therefore critical that you pull upstream changes into your fork on a regular basis. Nothing is worse than putting in a days of hard work into a pull request only to have it rejected because it has diverged too far from upstream.
+Kotatogram Desktop is advancing quickly. It is therefore critical that you pull upstream changes into your fork on a regular basis. Nothing is worse than putting in a days of hard work into a pull request only to have it rejected because it has diverged too far from upstream.
 
 To pull in upstream changes:
 
-    git remote add upstream https://github.com/telegramdesktop/tdesktop.git
+    git remote add upstream https://github.com/kotatogram/kotatogram-desktop.git
     git fetch upstream master
 
 Check the log to be sure that you actually want the changes, before merging:
@@ -58,7 +76,7 @@ For more info, see [GitHub Help][help_fork_repo].
 
 ## How to get your pull request accepted
 
-We want to improve Telegram Desktop with your contributions. But we also want to provide a stable experience for our users and the community. Follow these rules and you should succeed without a problem!
+We want to improve Kotatogram Desktop with your contributions. But we also want to provide a stable experience for our users and the community. Follow these rules and you should succeed without a problem!
 
 ### Keep your pull requests limited to a single issue
 
@@ -97,7 +115,7 @@ Furthermore, the pixel shortage is over. We want to see:
 
 ### Test your changes!
 
-Before you submit a pull request, please test your changes. Verify that Telegram Desktop still works and your changes don't cause other issue or crashes.
+Before you submit a pull request, please test your changes. Verify that Kotatogram Desktop still works and your changes don't cause other issue or crashes.
 
 ### Write a good commit message
 
@@ -112,7 +130,8 @@ Before you submit a pull request, please test your changes. Verify that Telegram
 [help_fork_repo]: https://help.github.com/articles/fork-a-repo/
 [help_change_commit_message]: https://help.github.com/articles/changing-a-commit-message/
 [commit_message]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
-[pr]: https://github.com/telegramdesktop/tdesktop/compare
+[pr]: https://github.com/kotatogram/kotatogram-desktop/compare
 [build_instructions]: https://github.com/telegramdesktop/tdesktop/blob/master/README.md#build-instructions
+[tdesktop_contributing]: https://github.com/telegramdesktop/tdesktop/blob/master/.github/CONTRIBUTING.md
 [closing-issues-via-commit-messages]: https://help.github.com/articles/closing-issues-via-commit-messages/
-[translate]: https://translations.telegram.org
+[api_tos]: https://core.telegram.org/api/terms

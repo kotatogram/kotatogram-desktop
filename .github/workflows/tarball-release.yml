@@ -1,0 +1,37 @@
+name: Release Tarball
+
+on:
+  release:
+    types: [published]
+
+jobs:
+
+  linux:
+    name: Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get repository name
+        run: |
+          tag_name=${GITHUB_REF##*/}
+          version=${tag_name#k}
+          echo "REPO_NAME=${GITHUB_REPOSITORY##*/}-$version-full" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - name: Create tarball
+        run: |
+          artifact_name="$REPO_NAME.tar.gz"
+          echo "ARTIFACT_NAME=$artifact_name" >> $GITHUB_ENV
+
+          rm -rf $REPO_NAME/.git
+          tar -caf $artifact_name $REPO_NAME
+
+      - name: Upload Release Asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "$ARTIFACT_NAME" --repo "$GITHUB_REPOSITORY"

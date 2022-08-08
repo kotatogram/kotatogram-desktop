@@ -44,7 +44,7 @@ jobs:
 
   snap:
     name: Ubuntu
-    runs-on: ${{ (github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/nightly') && 'depot-ubuntu-latest-16' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
 
     env:
       UPLOAD_ARTIFACT: "true"
@@ -71,13 +71,13 @@ jobs:
           enable-lvm-span: true
           lvm-span-mountpoint: /var/snap/lxd/common/lxd/storage-pools/default/containers
 
-      - name: Telegram Desktop snap build.
+      - name: Kotatogram Desktop snap build.
         run: sudo -u $USER snap run snapcraft --verbosity=debug
 
       - name: Move artifact.
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          artifact_name=$(echo telegram-desktop_*.snap)
+          artifact_name=$(echo kotatogram-desktop_*.snap)
           echo "ARTIFACT_NAME=$artifact_name" >> $GITHUB_ENV
 
           mkdir artifact

@@ -33,7 +33,7 @@ body:
       required: true
   - type: input
     attributes:
-      label: Version of Telegram Desktop
+      label: Version of Kotatogram Desktop
       description: |
         Write EXACT version number (e.g. 5.1.2).
         * 🛑 DO NOT WRITE "LATEST". We will instantly close the issue.
@@ -45,11 +45,8 @@ body:
       label: Installation source
       multiple: false
       options:
-        - Downloaded from desktop.telegram.org or GitHub
-        - Microsoft Store
-        - Mac App Store
+        - Downloaded from kotatogram.github.io, GitHub or Kotatogram channel
         - Flatpak
-        - Snap
         - Linux package manager (apt, dnf, pacman, etc)
         - Other source
     validations:
