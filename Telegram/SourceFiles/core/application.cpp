@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/application.h"
 
+#include "kotato/kotato_lang.h"
 #include "data/data_abstract_structure.h"
 #include "data/data_channel.h"
 #include "data/data_forum.h"
@@ -316,6 +317,7 @@ void Application::run() {
 	Test::ApplyStartupOverrides();
 
 	ValidateScale();
+	Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 
 	refreshGlobalProxy(); // Depends on app settings being read.
 
