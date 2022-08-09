@@ -980,6 +980,35 @@ PluralResult Plural(
 	return { shift, FormatDouble(value) };
 }
 
+ushort PluralShift(float64 value, bool isShortened) {
+	// To correctly select a shift for PluralType::Short
+	// we must first round the number.
+	const auto shortened = (isShortened)
+		? FormatCountToShort(qRound(value))
+		: ShortenedCount();
+
+	// Simplified.
+	const auto n = std::abs(shortened.number ? float64(shortened.number) : value);
+	const auto i = int(std::floor(n));
+	const auto integer = (int(std::ceil(n)) == i);
+	const auto formatted = integer ? QString() : FormatDouble(n);
+	const auto dot = formatted.indexOf('.');
+	const auto fraction = (dot >= 0) ? formatted.mid(dot + 1) : QString();
+	const auto v = fraction.size();
+	const auto w = v;
+	const auto f = NonZeroPartToInt(fraction);
+	const auto t = f;
+
+	const auto useNonDefaultPlural = (ChoosePlural != ChoosePluralDefault);
+	return (useNonDefaultPlural ? ChoosePlural : ChoosePluralDefault)(
+		(integer ? i : -1),
+		i,
+		v,
+		w,
+		f,
+		t);
+}
+
 void UpdatePluralRules(const QString &languageId) {
 	static auto kMap = GeneratePluralRulesMap();
 	auto parent = uint64(0);
