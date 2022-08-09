@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/group/calls_group_common.h"
 
+#include "kotato/kotato_lang.h"
 #include "apiwrap.h"
 #include "base/platform/base_platform_info.h"
 #include "base/random.h"
@@ -56,8 +57,8 @@ object_ptr<Ui::GenericBox> ScreenSharingPrivacyRequestBox() {
 			object_ptr<Ui::FlatLabel>(
 				box.get(),
 				rpl::combine(
-					tr::lng_group_call_mac_screencast_access(),
-					tr::lng_group_call_mac_recording()
+					rktr("ktg_group_call_mac_screencast_access"),
+					rktr("ktg_group_call_mac_recording")
 				) | rpl::map([](QString a, QString b) {
 					auto result = tr::rich(a);
 					result.append("\n\n").append(tr::rich(b));

@@ -119,12 +119,9 @@ NotReadyBox::NotReadyBox(
 void NotReadyBox::prepare() {
 	setTitle(tr::lng_language_not_ready_title());
 
-	auto text = tr::lng_language_not_ready_about(
-		lt_lang_name,
-		rpl::single(tr::marked(_name)),
-		lt_link,
-		tr::lng_language_not_ready_link(tr::url(_editLink)),
-		tr::marked);
+	auto text = rktre("ktg_language_not_ready_about",
+		{ "lang_name", { _name } },
+		{ "link", Ui::Text::Link(tr::lng_language_not_ready_link(tr::now), _editLink) });
 	const auto content = Ui::CreateChild<Ui::PaddingWrap<Ui::FlatLabel>>(
 		this,
 		object_ptr<Ui::FlatLabel>(

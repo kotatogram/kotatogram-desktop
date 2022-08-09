@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/download_path_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "core/file_utilities.h"
 #include "ui/widgets/checkbox.h"
@@ -30,7 +31,7 @@ DownloadPathBox::DownloadPathBox(
 		this,
 		_group,
 		Directory::Downloads,
-		tr::lng_download_path_default_radio(tr::now),
+		ktr("ktg_download_path_default_radio"),
 		st::defaultBoxCheckbox)
 	: nullptr)
 , _temp(this, _group, Directory::Temp, tr::lng_download_path_temp_radio(tr::now), st::defaultBoxCheckbox)

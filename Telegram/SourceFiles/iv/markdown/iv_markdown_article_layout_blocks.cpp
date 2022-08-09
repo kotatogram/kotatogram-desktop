@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_prepare_serialize.h"
 #include "spellcheck/spellcheck_highlight_syntax.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 
 #include "styles/style_chat.h"
@@ -3542,7 +3543,7 @@ LaidOutBlock LayoutPlaceholderBlock(
 			auto card = std::make_unique<Ui::UnsupportedNoticeCard>();
 			card->setTexts(
 				tr::lng_unsupported_block_title(tr::now),
-				tr::lng_unsupported_block_text(tr::now),
+				ktr("ktg_unsupported_block_text"),
 				tr::lng_unsupported_message_update(tr::now));
 			block.placeholderRuntime->unsupportedCard = std::move(card);
 		}

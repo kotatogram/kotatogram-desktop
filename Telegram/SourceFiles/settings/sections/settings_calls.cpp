@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_calls.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_authorizations.h"
 #include "apiwrap.h"
 #include "base/timer.h"
@@ -718,7 +719,7 @@ void Calls::requestPermissionAndStartTestingMicrophone() {
 			controller->hideLayer();
 		};
 		controller()->show(Ui::MakeConfirmBox({
-			.text = tr::lng_no_mic_permission(),
+			.text = ktr("ktg_no_mic_permission"),
 			.confirmed = showSystemSettings,
 			.confirmText = tr::lng_menu_settings(),
 		}));

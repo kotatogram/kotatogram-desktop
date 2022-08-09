@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/connection_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/call_delayed.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "base/qthelp_regex.h"
@@ -482,7 +483,7 @@ void AddProxyFromClipboard(
 				((success == Result::IncorrectSecret)
 					? tr::lng_proxy_incorrect_secret(tr::now, tr::rich)
 					: (success == Result::Unsupported)
-					? tr::lng_proxy_unsupported(tr::now, tr::rich)
+					? TextWithEntities{ ktr("ktg_proxy_unsupported") }
 					: tr::lng_proxy_invalid(tr::now, tr::rich))));
 		}
 	}
@@ -1876,7 +1877,7 @@ void ProxiesBoxController::ShowApplyConfirmation(
 		const auto status = proxy.status();
 		auto box = Ui::MakeInformBox(
 			((status == ProxyData::Status::Unsupported)
-				? tr::lng_proxy_unsupported(tr::now, tr::rich)
+				? TextWithEntities{ ktr("ktg_proxy_unsupported") }
 				: (status == ProxyData::Status::IncorrectSecret)
 				? tr::lng_proxy_incorrect_secret(tr::now, tr::rich)
 				: tr::lng_proxy_invalid(tr::now, tr::rich)));

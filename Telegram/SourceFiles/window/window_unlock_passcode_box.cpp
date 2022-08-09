@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_unlock_passcode_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "core/application.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_icon.h"
@@ -114,7 +115,7 @@ void UnlockPasscodeBox(
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
-			tr::lng_passcode_unlock_about(),
+			rktr("ktg_passcode_unlock_about"),
 			*st.description),
 		st::boxRowPadding,
 		style::al_top

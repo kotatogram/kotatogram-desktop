@@ -32,6 +32,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/reactions/history_view_reactions_strip.h"
 #include "history/view/history_view_paid_reaction_toast.h"
 #include "lang/lang_keys.h"
+#include "kotato/kotato_lang.h"
 #include "main/main_session.h"
 #include "media/stories/media_stories_caption_full_view.h"
 #include "media/stories/media_stories_delegate.h"
@@ -258,13 +259,13 @@ void Controller::Unsupported::setup(not_null<PeerData*> peer) {
 
 	_text = std::make_unique<Ui::FlatLabel>(
 		wrap,
-		tr::lng_stories_unsupported(),
+		rktr("ktg_stories_unsupported"),
 		st::storiesUnsupportedLabel);
 	_text->show();
 
 	_button = std::make_unique<Ui::RoundButton>(
 		wrap,
-		tr::lng_update_telegram(),
+		rktr("ktg_update_telegram"),
 		st::storiesUnsupportedUpdate);
 	_button->show();
 

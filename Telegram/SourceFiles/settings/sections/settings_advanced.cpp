@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "settings/settings_common_session.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_global_privacy.h"
 #include "apiwrap.h"
 #include "base/call_delayed.h"
@@ -678,7 +679,7 @@ void BuildSystemIntegrationSection(SectionBuilder &builder) {
 
 		const auto autostart = builder.addCheckbox({
 			.id = u"advanced/autostart"_q,
-			.title = tr::lng_settings_auto_start(),
+			.title = rktr("ktg_settings_auto_start"),
 			.checked = cAutoStart(),
 			.keywords = { u"autostart"_q, u"startup"_q, u"boot"_q },
 		});
@@ -732,7 +733,7 @@ void BuildSystemIntegrationSection(SectionBuilder &builder) {
 				if (controller->session().domain().local().hasLocalPasscode()) {
 					minimized->setChecked(false);
 					controller->show(Ui::MakeInformBox(
-						tr::lng_error_start_minimized_passcoded()));
+						ktr("ktg_error_start_minimized_passcoded")));
 				} else {
 					cSetStartMinimized(checked);
 					Local::writeSettings();
@@ -771,7 +772,7 @@ void BuildSystemIntegrationSection(SectionBuilder &builder) {
 	if (Platform::IsWindows() && !Platform::IsWindowsStoreBuild()) {
 		const auto sendto = builder.addCheckbox({
 			.id = u"advanced/sendto"_q,
-			.title = tr::lng_settings_add_sendto(),
+			.title = rktr("ktg_settings_add_sendto"),
 			.checked = cSendToMenu(),
 			.keywords = { u"sendto"_q, u"send"_q, u"menu"_q, u"context"_q },
 		});
@@ -1113,7 +1114,7 @@ void BuildUpdateSection(SectionBuilder &builder, bool atTop) {
 	if (check && container) {
 		const auto update = Ui::CreateChild<Ui::SettingsButton>(
 			check,
-			tr::lng_update_telegram(),
+			rktr("ktg_update_telegram"),
 			st::settingsUpdate);
 		update->hide();
 		check->widthValue() | rpl::on_next([=](int width) {
@@ -1455,7 +1456,7 @@ void SetupUpdate(not_null<Ui::VerticalLayout*> container) {
 		st::settingsButtonNoIcon));
 	const auto update = Ui::CreateChild<Button>(
 		check,
-		tr::lng_update_telegram(),
+		rktr("ktg_update_telegram"),
 		st::settingsUpdate);
 	update->hide();
 	check->widthValue() | rpl::on_next([=](int width) {
@@ -1872,7 +1873,7 @@ void SetupSystemIntegrationContent(
 		};
 
 		const auto autostart = addCheckbox(
-			tr::lng_settings_auto_start(),
+			rktr("ktg_settings_auto_start"),
 			cAutoStart());
 		const auto minimized = addSlidingCheckbox(
 			tr::lng_settings_start_min(),
@@ -1913,7 +1914,7 @@ void SetupSystemIntegrationContent(
 			if (controller->session().domain().local().hasLocalPasscode()) {
 				minimized->entity()->setChecked(false);
 				controller->show(Ui::MakeInformBox(
-					tr::lng_error_start_minimized_passcoded()));
+					ktr("ktg_error_start_minimized_passcoded")));
 			} else {
 				cSetStartMinimized(checked);
 				Local::writeSettings();
@@ -1928,7 +1929,7 @@ void SetupSystemIntegrationContent(
 
 	if (Platform::IsWindows() && !Platform::IsWindowsStoreBuild()) {
 		const auto sendto = addCheckbox(
-			tr::lng_settings_add_sendto(),
+			rktr("ktg_settings_add_sendto"),
 			cSendToMenu());
 
 		sendto->checkedChanges(

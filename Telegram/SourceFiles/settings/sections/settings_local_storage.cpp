@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_local_storage.h"
 
+#include "kotato/kotato_lang.h"
 #include "settings.h"
 #include "settings/settings_common.h"
 #include "data/data_session.h"
@@ -1163,7 +1164,7 @@ TextWithEntities LocalStorage::DeviceBar::tooltipText() const {
 		result.append(label).append(u": "_q).append(
 			Ui::Text::Bold(FormatStorageSize(size)));
 	};
-	line(tr::lng_local_storage_device_telegram(tr::now), _cache);
+	line(ktr("ktg_local_storage_device_telegram"), _cache);
 	line(tr::lng_local_storage_device_other(tr::now), other);
 	line(tr::lng_local_storage_device_free(tr::now), _free);
 	line(tr::lng_local_storage_device_total(tr::now), _total);

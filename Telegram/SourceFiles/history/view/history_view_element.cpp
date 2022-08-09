@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_element.h"
 
+#include "kotato/kotato_lang.h"
 #include "apiwrap.h"
 #include "api/api_transcribes.h"
 #include "history/view/history_view_service_message.h"
@@ -2087,7 +2088,7 @@ void Element::validateText() {
 		if (!storyMention) {
 			if (_text.isEmpty()) {
 				setTextWithLinks(tr::italic(storyUnsupported
-					? tr::lng_stories_unsupported(tr::now)
+					? ktr("ktg_stories_unsupported")
 					: tr::lng_forwarded_story_expired(tr::now)));
 			}
 			return;

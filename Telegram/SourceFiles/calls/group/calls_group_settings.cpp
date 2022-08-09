@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/group/calls_group_settings.h"
 
+#include "kotato/kotato_lang.h"
 #include "calls/group/calls_group_call.h"
 #include "calls/group/calls_group_menu.h" // LeaveBox.
 #include "calls/group/calls_group_common.h"
@@ -459,10 +460,10 @@ void SettingsBox(
 						object_ptr<Ui::FlatLabel>(
 							box.get(),
 							rpl::combine(
-								tr::lng_group_call_mac_access(),
+								rktr("ktg_group_call_mac_access"),
 								(requestInputMonitoring
-									? tr::lng_group_call_mac_input()
-									: tr::lng_group_call_mac_accessibility())
+									? rktr("ktg_group_call_mac_input")
+									: rktr("ktg_group_call_mac_accessibility"))
 							) | rpl::map([](QString a, QString b) {
 								auto result = tr::rich(a);
 								result.append("\n\n").append(tr::rich(b));

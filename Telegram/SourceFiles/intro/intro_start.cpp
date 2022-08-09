@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "intro/intro_start.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "intro/intro_qr.h"
 #include "intro/intro_phone.h"
@@ -24,8 +25,8 @@ StartWidget::StartWidget(
 	not_null<Data*> data)
 : Step(parent, account, data, true) {
 	setMouseTracking(true);
-	setTitleText(rpl::single(u"Telegram Desktop"_q));
-	setDescriptionText(tr::lng_intro_about());
+	setTitleText(rpl::single(u"Kotatogram Desktop"_q));
+	setDescriptionText(rktr("ktg_intro_about"));
 	show();
 }
 

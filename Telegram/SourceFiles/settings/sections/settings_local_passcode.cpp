@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_local_passcode.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/platform/base_platform_last_input.h"
 #include "base/platform/base_platform_info.h"
 #include "base/system_unlock.h"
@@ -155,7 +156,7 @@ void LocalPasscodeEnter::setupContent() {
 
 	addDescription(tr::lng_passcode_about1());
 	Ui::AddSkip(content);
-	addDescription(tr::lng_passcode_about2());
+	addDescription(rktr("ktg_passcode_about2"));
 
 	Ui::AddSkip(content, st::settingLocalPasscodeDescriptionBottomSkip);
 
@@ -441,7 +442,7 @@ void BuildManageContent(SectionBuilder &builder) {
 					ctx.container,
 					rpl::combine(
 						tr::lng_passcode_about1(),
-						tr::lng_passcode_about3()
+						rktr("ktg_passcode_about3")
 					) | rpl::map([](const QString &s1, const QString &s2) {
 						return s1 + "\n\n" + s2;
 					}),
@@ -525,12 +526,12 @@ void BuildManageContent(SectionBuilder &builder) {
 			Ui::AddDividerText(
 				systemUnlockContent,
 				(Platform::IsWindows()
-					? tr::lng_settings_use_winhello_about()
+					? rktr("ktg_settings_use_winhello_about")
 					: (type == UnlockType::Biometrics)
-					? tr::lng_settings_use_touchid_about()
+					? rktr("ktg_settings_use_touchid_about")
 					: (type == UnlockType::Companion)
-					? tr::lng_settings_use_applewatch_about()
-					: tr::lng_settings_use_systempwd_about()));
+					? rktr("ktg_settings_use_applewatch_about")
+					: rktr("ktg_settings_use_systempwd_about")));
 
 		}, systemUnlockContent->lifetime());
 

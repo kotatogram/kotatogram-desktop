@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/controls/window_screen_reader_bar.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/painter.h"
@@ -133,7 +134,7 @@ Bar::Bar(not_null<QWidget*> parent)
 : RpWidget(parent)
 , _label(
 	this,
-	tr::lng_screen_reader_bar_text(),
+	rktr("ktg_screen_reader_bar_text"),
 	st::windowScreenReaderLabel)
 , _disable(object_ptr<DisableButton>(this)) {
 }

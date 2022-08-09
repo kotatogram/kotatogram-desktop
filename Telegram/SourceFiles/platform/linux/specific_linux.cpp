@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/linux/base_linux_app_launch_context.h"
 #include "base/platform/base_platform_process.h"
 #include "lang/lang_keys.h"
+#include "kotato/kotato_lang.h"
 #include "core/launcher.h"
 #include "core/sandbox.h"
 #include "core/application.h"
@@ -180,7 +181,7 @@ void PortalAutostart(bool enabled, Fn<void(bool)> done) {
 								GLib::Variant::new_string("reason"),
 								GLib::Variant::new_variant(
 									GLib::Variant::new_string(
-										tr::lng_settings_auto_start(tr::now)
+										ktr("ktg_settings_auto_start")
 											.toStdString()))),
 							GLib::Variant::new_dict_entry(
 								GLib::Variant::new_string("autostart"),

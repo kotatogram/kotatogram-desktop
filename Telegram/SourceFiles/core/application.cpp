@@ -231,7 +231,7 @@ Application::Application()
 			return;
 		}
 		_webProxyFallbackBox = Ui::show(Ui::MakeConfirmBox({
-			.text = tr::lng_proxy_web_fallback(tr::now),
+			.text = ktr("ktg_proxy_web_fallback"),
 			.confirmed = [=] {
 				const auto &current = settings().proxy();
 				if (current.isEnabled()

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_lock_widgets.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/platform/base_platform_info.h"
 #include "base/call_delayed.h"
 #include "base/system_unlock.h"
@@ -241,7 +242,7 @@ void PasscodeLockWidget::suggestSystemUnlock() {
 			SuggestSystemUnlock(
 				this,
 				(::Platform::IsWindows()
-					? tr::lng_passcode_winhello_unlock(tr::now)
+					? ktr("ktg_passcode_winhello_unlock")
 					: tr::lng_passcode_touchid_unlock(tr::now)),
 				done);
 		}, _systemUnlockSuggested);

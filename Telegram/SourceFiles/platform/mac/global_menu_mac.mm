@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/mac/global_menu_mac.h"
 
+#include "kotato/kotato_lang.h"
 #include "core/application.h"
 #include "core/sandbox.h"
 #include "window/window_controller.h"
@@ -194,7 +195,7 @@ void Manager::retranslate() {
 		_newChannel->setText(tr::lng_mac_menu_new_channel(tr::now));
 	}
 	if (_showTelegram) {
-		_showTelegram->setText(tr::lng_mac_menu_show(tr::now));
+		_showTelegram->setText(ktr("ktg_mac_menu_show"));
 	}
 	if (_fullScreen) {
 		_fullScreen->setText(tr::lng_mac_menu_fullscreen(tr::now));

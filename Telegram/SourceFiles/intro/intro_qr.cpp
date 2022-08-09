@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "intro/intro_widget.h"
 #include "intro/intro_password_check.h"
 #include "lang/lang_keys.h"
+#include "kotato/kotato_lang.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
 #include "ui/wrap/fade_wrap.h"
@@ -521,7 +522,7 @@ void QrWidget::sendCheckPasswordRequest() {
 					close();
 				};
 				Ui::show(Ui::MakeConfirmBox({
-					.text = tr::lng_passport_app_out_of_date(),
+					.text = rktr("ktg_passport_app_out_of_date"),
 					.confirmed = callback,
 					.confirmText = tr::lng_menu_update(),
 				}));

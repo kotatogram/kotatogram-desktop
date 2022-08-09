@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_unsupported_notice.h"
 
+#include "kotato/kotato_lang.h"
 #include "core/update_checker.h"
 #include "history/view/history_view_cursor_state.h"
 #include "lang/lang_keys.h"
@@ -32,7 +33,7 @@ UnsupportedNotice::UnsupportedNotice(not_null<Element*> parent)
 , _link(MakeUpdateTelegramHandler()) {
 	_card.setTexts(
 		tr::lng_unsupported_message_title(tr::now),
-		tr::lng_unsupported_message_text(tr::now),
+		ktr("ktg_unsupported_message_text"),
 		tr::lng_unsupported_message_update(tr::now));
 }
 

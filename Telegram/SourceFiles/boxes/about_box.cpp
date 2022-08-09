@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/about_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "core/file_utilities.h"
@@ -14,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/update_checker.h"
 #include "core/version.h"
 #include "lang/lang_keys.h"
+#include "lang/lang_instance.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/painter.h"
 #include "ui/rect.h"
@@ -36,10 +38,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 rpl::producer<TextWithEntities> Text1() {
-	return tr::lng_about_text1(
-		lt_api_link,
-		tr::lng_about_text1_api(tr::url(u"https://core.telegram.org/api"_q)),
-		tr::marked);
+	return rktre("ktg_about_text1", {
+		"tdesktop_link",
+		Ui::Text::Link(ktr("ktg_about_text1_tdesktop"), "https://desktop.telegram.org/")
+	});
 }
 
 rpl::producer<TextWithEntities> Text2() {
@@ -47,25 +49,43 @@ rpl::producer<TextWithEntities> Text2() {
 		lt_gpl_link,
 		rpl::single(tr::link(
 			"GNU GPL",
-			"https://github.com/telegramdesktop/tdesktop/blob/master/LICENSE")),
+			"https://github.com/kotatogram/kotatogram-desktop/blob/master/LICENSE")),
 		lt_github_link,
 		rpl::single(tr::link(
 			"GitHub",
-			"https://github.com/telegramdesktop/tdesktop")),
+			"https://github.com/kotatogram/kotatogram-desktop")),
 		tr::marked);
 }
 
 rpl::producer<TextWithEntities> Text3() {
-	return tr::lng_about_text3(
-		lt_faq_link,
-		tr::lng_about_text3_faq(tr::url(telegramFaqLink())),
-		tr::marked);
+	auto baseLang = Lang::GetInstance().baseId();
+	auto currentLang = Lang::Id();
+	QString channelLink;
+
+	for (const auto language : { "ru", "uk", "be" }) {
+		if (baseLang.startsWith(QLatin1String(language)) || currentLang == QString(language)) {
+			channelLink = "https://t.me/kotatogram_ru";
+			break;
+		}
+	}
+
+	if (channelLink.isEmpty()) {
+		channelLink = "https://t.me/kotatogram";
+	}
+
+	return rktre("ktg_about_text3", {
+		"channel_link",
+		Ui::Text::Link(ktr("ktg_about_text3_channel"), channelLink)
+	}, {
+		"faq_link",
+		Ui::Text::Link(tr::lng_about_text3_faq(tr::now), telegramFaqLink())
+	});
 }
 
 } // namespace
 
 void AboutBox(not_null<Ui::GenericBox*> box) {
-	box->setTitle(u"Telegram Desktop"_q);
+	box->setTitle(u"Kotatogram Desktop"_q);
 
 	auto layout = box->verticalLayout();
 
