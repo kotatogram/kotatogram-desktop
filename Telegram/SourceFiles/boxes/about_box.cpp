@@ -7,7 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/about_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
+#include "lang/lang_instance.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "ui/boxes/confirm_box.h"
@@ -28,11 +30,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 rpl::producer<TextWithEntities> Text1() {
-	return tr::lng_about_text1(
-		lt_api_link,
-		tr::lng_about_text1_api(
-		) | Ui::Text::ToLink("https://core.telegram.org/api"),
-		Ui::Text::WithEntities);
+	return rktre("ktg_about_text1", {
+		"tdesktop_link",
+		Ui::Text::Link(ktr("ktg_about_text1_tdesktop"), "https://desktop.telegram.org/")
+	});
 }
 
 rpl::producer<TextWithEntities> Text2() {
@@ -40,19 +41,37 @@ rpl::producer<TextWithEntities> Text2() {
 		lt_gpl_link,
 		rpl::single(Ui::Text::Link(
 			"GNU GPL",
-			"https://github.com/telegramdesktop/tdesktop/blob/master/LICENSE")),
+			"https://github.com/kotatogram/kotatogram-desktop/blob/master/LICENSE")),
 		lt_github_link,
 		rpl::single(Ui::Text::Link(
 			"GitHub",
-			"https://github.com/telegramdesktop/tdesktop")),
+			"https://github.com/kotatogram/kotatogram-desktop")),
 		Ui::Text::WithEntities);
 }
 
 rpl::producer<TextWithEntities> Text3() {
-	return tr::lng_about_text3(
-		lt_faq_link,
-		tr::lng_about_text3_faq() | Ui::Text::ToLink(telegramFaqLink()),
-		Ui::Text::WithEntities);
+	auto baseLang = Lang::GetInstance().baseId();
+	auto currentLang = Lang::Id();
+	QString channelLink;
+
+	for (const auto language : { "ru", "uk", "be" }) {
+		if (baseLang.startsWith(QLatin1String(language)) || currentLang == QString(language)) {
+			channelLink = "https://t.me/kotatogram_ru";
+			break;
+		}
+	}
+
+	if (channelLink.isEmpty()) {
+		channelLink = "https://t.me/kotatogram";
+	}
+
+	return rktre("ktg_about_text3", {
+		"channel_link",
+		Ui::Text::Link(ktr("ktg_about_text3_channel"), channelLink)
+	}, {
+		"faq_link",
+		Ui::Text::Link(tr::lng_about_text3_faq(tr::now), telegramFaqLink())
+	});
 }
 
 } // namespace
@@ -65,7 +84,7 @@ AboutBox::AboutBox(QWidget *parent)
 }
 
 void AboutBox::prepare() {
-	setTitle(rpl::single(u"Telegram Desktop"_q));
+	setTitle(rpl::single(u"Kotatogram Desktop"_q));
 
 	addButton(tr::lng_close(), [this] { closeBox(); });
 

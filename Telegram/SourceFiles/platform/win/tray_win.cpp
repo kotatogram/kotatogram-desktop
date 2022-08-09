@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/win/tray_win.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
@@ -198,7 +199,7 @@ void Tray::showTrayMessage() const {
 	if (!cSeenTrayTooltip() && _icon) {
 		_icon->showMessage(
 			AppName.utf16(),
-			tr::lng_tray_icon_text(tr::now),
+			ktr("ktg_tray_icon_text"),
 			QSystemTrayIcon::Information,
 			kTooltipDelay);
 		cSetSeenTrayTooltip(true);
