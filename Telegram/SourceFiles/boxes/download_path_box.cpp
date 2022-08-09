@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/download_path_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "core/file_utilities.h"
 #include "ui/widgets/checkbox.h"
@@ -25,7 +26,7 @@ DownloadPathBox::DownloadPathBox(
 , _path(Core::App().settings().downloadPath())
 , _pathBookmark(Core::App().settings().downloadPathBookmark())
 , _group(std::make_shared<Ui::RadioenumGroup<Directory>>(typeFromPath(_path)))
-, _default(this, _group, Directory::Downloads, tr::lng_download_path_default_radio(tr::now), st::defaultBoxCheckbox)
+, _default(this, _group, Directory::Downloads, ktr("ktg_download_path_default_radio"), st::defaultBoxCheckbox)
 , _temp(this, _group, Directory::Temp, tr::lng_download_path_temp_radio(tr::now), st::defaultBoxCheckbox)
 , _dir(this, _group, Directory::Custom, tr::lng_download_path_dir_radio(tr::now), st::defaultBoxCheckbox)
 , _pathLink(this, QString(), st::boxLinkButton) {

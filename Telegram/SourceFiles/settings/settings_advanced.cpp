@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_advanced.h"
 
+#include "kotato/kotato_lang.h"
 #include "settings/settings_common.h"
 #include "settings/settings_chat.h"
 #include "ui/wrap/vertical_layout.h"
@@ -142,7 +143,7 @@ void SetupUpdate(
 		st::settingsButton);
 	const auto update = Ui::CreateChild<Button>(
 		check.get(),
-		tr::lng_update_telegram() | Ui::Text::ToUpper(),
+		rktr("ktg_update_telegram") | Ui::Text::ToUpper(),
 		st::settingsUpdate);
 	update->hide();
 	check->widthValue() | rpl::start_with_next([=](int width) {
@@ -487,7 +488,7 @@ void SetupSystemIntegrationContent(
 		};
 
 		const auto autostart = addCheckbox(
-			tr::lng_settings_auto_start(),
+			rktr("ktg_settings_auto_start"),
 			cAutoStart());
 		const auto minimized = addSlidingCheckbox(
 			tr::lng_settings_start_min(),
@@ -521,7 +522,7 @@ void SetupSystemIntegrationContent(
 			if (controller->session().domain().local().hasLocalPasscode()) {
 				minimized->entity()->setChecked(false);
 				controller->show(Box<Ui::InformBox>(
-					tr::lng_error_start_minimized_passcoded(tr::now)));
+					ktr("ktg_error_start_minimized_passcoded")));
 			} else {
 				cSetStartMinimized(checked);
 				Local::writeSettings();
@@ -536,7 +537,7 @@ void SetupSystemIntegrationContent(
 
 	if (Platform::IsWindows() && !Platform::IsWindowsStoreBuild()) {
 		const auto sendto = addCheckbox(
-			tr::lng_settings_add_sendto(),
+			rktr("ktg_settings_add_sendto"),
 			cSendToMenu());
 
 		sendto->checkedChanges(

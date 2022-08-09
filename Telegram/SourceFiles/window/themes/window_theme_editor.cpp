@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/themes/window_theme_editor.h"
 
+#include "kotato/kotato_lang.h"
 #include "window/themes/window_theme.h"
 #include "window/themes/window_theme_editor_block.h"
 #include "window/themes/window_theme_editor_box.h"
@@ -819,7 +820,7 @@ QByteArray Editor::ColorizeInContent(
 
 void Editor::save() {
 	if (Core::App().passcodeLocked()) {
-		Ui::Toast::Show(tr::lng_theme_editor_need_unlock(tr::now));
+		Ui::Toast::Show(ktr("ktg_theme_editor_need_unlock"));
 		return;
 	} else if (!_window->account().sessionExists()) {
 		Ui::Toast::Show(tr::lng_theme_editor_need_auth(tr::now));

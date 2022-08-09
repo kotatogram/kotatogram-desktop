@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "export/view/export_view_progress.h"
 
+#include "kotato/kotato_lang.h"
 #include "ui/effects/animations.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/buttons.h"
@@ -263,7 +264,7 @@ ProgressWidget::ProgressWidget(
 	_about = _body->add(
 		object_ptr<Ui::FlatLabel>(
 			this,
-			tr::lng_export_progress(tr::now),
+			ktr("ktg_export_progress"),
 			st::exportAboutLabel),
 		st::exportAboutPadding);
 

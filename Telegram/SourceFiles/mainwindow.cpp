@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "mainwindow.h"
 
+#include "kotato/kotato_lang.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
 #include "data/data_document_media.h"
@@ -146,7 +147,7 @@ void MainWindow::createTrayIconMenu() {
 	const auto notificationAction = trayIconMenu->addAction(QString(), [=] {
 		toggleDisplayNotifyFromTray();
 	});
-	trayIconMenu->addAction(tr::lng_quit_from_tray(tr::now), [=] {
+	trayIconMenu->addAction(ktr("ktg_quit_from_tray"), [=] {
 		quitFromTray();
 	});
 
@@ -159,7 +160,7 @@ void MainWindow::createTrayIconMenu() {
 		_activeForTrayIconAction = isActiveForTrayMenu();
 		minimizeAction->setText(_activeForTrayIconAction
 			? tr::lng_minimize_to_tray(tr::now)
-			: tr::lng_open_from_tray(tr::now));
+			: ktr("ktg_open_from_tray"));
 
 		auto notificationActionText = Core::App().settings().desktopNotify()
 			? tr::lng_disable_notifications_from_tray(tr::now)
