@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "tray.h"
 
+#include "kotato/kotato_lang.h"
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "platform/platform_specific.h"
@@ -71,7 +72,7 @@ void Tray::rebuildMenu() {
 			_activeForTrayIconAction = Core::App().isActiveForTrayMenu();
 			return _activeForTrayIconAction
 				? tr::lng_minimize_to_tray(tr::now)
-				: tr::lng_open_from_tray(tr::now);
+				: ktr("ktg_open_from_tray");
 		});
 
 		_tray.addAction(
@@ -92,7 +93,7 @@ void Tray::rebuildMenu() {
 			[=] { toggleSoundNotifications(); });
 	}
 
-	_tray.addAction(tr::lng_quit_from_tray(), [] { Core::Quit(); });
+	_tray.addAction(rktr("ktg_quit_from_tray"), [] { Core::Quit(); });
 
 	updateMenuText();
 }

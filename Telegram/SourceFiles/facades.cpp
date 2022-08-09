@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "facades.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_bot.h"
 #include "info/info_memento.h"
 #include "inline_bots/bot_attach_web_view.h"

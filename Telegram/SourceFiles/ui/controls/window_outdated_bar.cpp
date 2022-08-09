@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/controls/window_outdated_bar.h"
 
+#include "kotato/kotato_lang.h"
 #include "ui/widgets/labels.h" // Ui::FlatLabel
 #include "ui/widgets/buttons.h" // Ui::IconButton
 #include "ui/wrap/slide_wrap.h" // Ui::SlideWrap
@@ -66,8 +67,8 @@ Bar::Bar(not_null<QWidget*> parent, QDate date)
 	_title->setTryMakeSimilarLines(true);
 	_details->setTryMakeSimilarLines(true);
 	_details->setText(_soon
-		? tr::lng_outdated_soon(tr::now, lt_date, langDayOfMonthFull(date))
-		: tr::lng_outdated_now(tr::now));
+		? ktr("ktg_outdated_soon", { "date", langDayOfMonthFull(date) })
+		: ktr("ktg_outdated_now"));
 }
 
 rpl::producer<> Bar::hideClicks() const {

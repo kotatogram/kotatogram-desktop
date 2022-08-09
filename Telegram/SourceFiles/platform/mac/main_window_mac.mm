@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/mac/main_window_mac.h"
 
+#include "kotato/kotato_lang.h"
 #include "data/data_session.h"
 #include "styles/style_window.h"
 #include "mainwindow.h"
@@ -475,7 +476,7 @@ void MainWindow::createGlobalMenu() {
 	}
 	window->addSeparator();
 	psShowTelegram = window->addAction(
-		tr::lng_mac_menu_show(tr::now),
+		ktr("ktg_mac_menu_show"),
 		this,
 		[=] { showFromTray(); });
 

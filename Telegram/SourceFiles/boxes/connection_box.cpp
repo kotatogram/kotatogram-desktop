@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/connection_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "ui/boxes/confirm_box.h"
 #include "lang/lang_keys.h"
 #include "storage/localstorage.h"
@@ -1149,7 +1150,7 @@ void ProxiesBoxController::ShowApplyConfirmation(
 	} else {
 		Ui::show(Ui::MakeInformBox(
 			(proxy.status() == ProxyData::Status::Unsupported
-				? tr::lng_proxy_unsupported(tr::now)
+				? ktr("ktg_proxy_unsupported")
 				: tr::lng_proxy_invalid(tr::now))));
 	}
 }

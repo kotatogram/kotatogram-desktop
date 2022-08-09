@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_cloud_themes.h"
 
+#include "kotato/kotato_lang.h"
 #include "window/themes/window_theme.h"
 #include "window/themes/window_theme_preview.h"
 #include "window/themes/window_theme_editor_box.h"
@@ -224,7 +225,7 @@ void CloudThemes::resolve(
 		showPreview(controller, result);
 	}).fail([=](const MTP::Error &error) {
 		if (error.type() == qstr("THEME_FORMAT_INVALID")) {
-			controller->show(Ui::MakeInformBox(tr::lng_theme_no_desktop()));
+			controller->show(Ui::MakeInformBox(ktr("ktg_theme_no_desktop")));
 		}
 	}).send();
 }
@@ -248,7 +249,7 @@ void CloudThemes::showPreview(
 			controller,
 			cloud));
 	} else {
-		controller->show(Ui::MakeInformBox(tr::lng_theme_no_desktop()));
+		controller->show(Ui::MakeInformBox(ktr("ktg_theme_no_desktop")));
 	}
 }
 
