@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "lang/lang_cloud_manager.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_instance.h"
 #include "lang/lang_file_parser.h"
 #include "lang/lang_text_entity.h"
@@ -447,6 +448,7 @@ void CloudManager::sendSwitchingToLanguageRequest() {
 		const auto finalize = [=] {
 			if (canApplyWithoutRestart(language.id)) {
 				performSwitchAndAddToRecent(language);
+				Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 			} else {
 				performSwitchAndRestart(language);
 			}
@@ -482,6 +484,7 @@ void CloudManager::switchToLanguage(const Language &data) {
 		performSwitchToCustom();
 	} else if (canApplyWithoutRestart(data.id)) {
 		performSwitchAndAddToRecent(data);
+		Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 	} else {
 		QVector<MTPstring> keys;
 		keys.reserve(3);
@@ -535,6 +538,7 @@ void CloudManager::performSwitchToCustom() {
 			}
 			if (canApplyWithoutRestart(u"#custom"_q)) {
 				_langpack.switchToCustomFile(filePath);
+				Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 			} else {
 				const auto values = loader.found();
 				const auto getValue = [&](ushort key) {
