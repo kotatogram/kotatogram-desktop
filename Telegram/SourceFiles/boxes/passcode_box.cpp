@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/passcode_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/bytes.h"
 #include "lang/lang_keys.h"
 #include "ui/boxes/confirm_box.h"
@@ -273,7 +274,7 @@ void PasscodeBox::prepare() {
 			? *_cloudFields.customDescription
 			: _cloudPwd
 			? tr::lng_cloud_password_about(tr::now)
-			: tr::lng_passcode_about(tr::now)));
+			: ktr("ktg_passcode_about")));
 	_aboutHeight = _about.countHeight(st::boxWidth - st::boxPadding.left() * 1.5);
 	const auto onlyCheck = onlyCheckCurrent();
 	if (onlyCheck) {
