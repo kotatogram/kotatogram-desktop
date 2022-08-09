@@ -48,4 +48,7 @@
     <file alias="default_shortcuts-custom.json">../../default_shortcuts-custom.json</file>
     <file alias="kotatogramdesktop.desktop">../../../../lib/xdg/kotatogramdesktop.desktop</file>
   </qresource>
+  <qresource prefix="/ktg_lang">
+    <file alias="en.json">../../langs/rewrites/en.json</file>
+  </qresource>
 </RCC>
