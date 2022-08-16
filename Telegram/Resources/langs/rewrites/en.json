@@ -4,6 +4,7 @@
 	"ktg_about_text1_tdesktop": "Telegram Desktop",
 	"ktg_about_text3": "Visit {channel_link} or {faq_link} for more info.",
 	"ktg_about_text3_channel": "Kotatogram channel",
+	"ktg_new_version": "Kotatogram Desktop has been updated to {version} (TD {td_version})\n\nFull version history is available here:\n{link}",
 	"ktg_open_from_tray": "Open Kotatogram",
 	"ktg_quit_from_tray": "Quit Kotatogram",
 	"ktg_tray_icon_text": "Kotatogram is still running here,\nyou can change this from settings page.\nIf this icon disappears from tray menu,\nyou can drag it here from hidden icons.",
@@ -25,5 +26,6 @@
 	"ktg_outdated_soon": "Otherwise, Kotatogram Desktop will stop updating on {date}.",
 	"ktg_outdated_now": "So that Kotatogram Desktop can update to newer versions.",
 	"ktg_mac_menu_show": "Show Kotatogram",
+	"ktg_in_app_update_disabled": "In-app updater is disabled.",
 	"dummy_last_string": ""
 }

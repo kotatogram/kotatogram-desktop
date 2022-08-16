@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/phone_banned_box.h"
 
+#include "kotato/kotato_version.h"
 #include "ui/boxes/confirm_box.h"
 #include "core/click_handler_types.h" // UrlClickHandler
 #include "base/qthelp_url.h" // qthelp::url_encode
@@ -19,10 +20,10 @@ namespace Ui {
 namespace {
 
 void SendToBannedHelp(const QString &phone) {
-	const auto version = QString::fromLatin1(AppVersionStr)
+	const auto version = QString::fromLatin1(AppKotatoVersionStr)
 		+ (cAlphaVersion()
-			? qsl(" alpha %1").arg(cAlphaVersion())
-			: (AppBetaVersion ? " beta" : ""));
+			? qsl("-%1.%2").arg(AppKotatoTestBranch).arg(AppKotatoTestVersion)
+			: (AppKotatoBetaVersion ? " beta" : ""));
 
 	const auto subject = qsl("Banned phone number: ") + phone;
 
