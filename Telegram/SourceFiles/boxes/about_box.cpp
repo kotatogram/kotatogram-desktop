@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/about_box.h"
 
+#include "kotato/kotato_version.h"
 #include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "lang/lang_instance.h"
@@ -112,6 +113,7 @@ void AboutBox::resizeEvent(QResizeEvent *e) {
 }
 
 void AboutBox::showVersionHistory() {
+	/*
 	if (cRealAlphaVersion()) {
 		auto url = qsl("https://tdesktop.com/");
 		if (Platform::IsWindows32Bit()) {
@@ -135,8 +137,11 @@ void AboutBox::showVersionHistory() {
 				"version of Telegram Desktop was copied to the clipboard."),
 			Ui::LayerOption::CloseOther);
 	} else {
+	*/
 		UrlClickHandler::Open(Core::App().changelogLink());
+	/*
 	}
+	*/
 }
 
 void AboutBox::keyPressEvent(QKeyEvent *e) {
@@ -165,14 +170,15 @@ QString telegramFaqLink() {
 }
 
 QString currentVersionText() {
-	auto result = QString::fromLatin1(AppVersionStr);
+	auto result = QString::fromLatin1(AppKotatoVersionStr);
 	if (cAlphaVersion()) {
-		result += qsl(" alpha %1").arg(cAlphaVersion() % 1000);
-	} else if (AppBetaVersion) {
+		result += qsl("-%1.%2").arg(AppKotatoTestBranch).arg(AppKotatoTestVersion);
+	} else if (AppKotatoBetaVersion) {
 		result += " beta";
 	}
 	if (Platform::IsWindows64Bit()) {
 		result += " x64";
 	}
+	result += qsl(" (TD %1)").arg(AppVersionStr);
 	return result;
 }

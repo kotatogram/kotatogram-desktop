@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "storage/localstorage.h"
 //
+
+#include "kotato/kotato_version.h"
 #include "storage/serialize_common.h"
 #include "storage/storage_account.h"
 #include "storage/details/storage_file_utilities.h"
@@ -83,6 +85,7 @@ bool _useGlobalBackgroundKeys = false;
 bool _backgroundCanWrite = true;
 
 int32 _oldSettingsVersion = 0;
+int32 _oldKotatoVersion = 0;
 bool _settingsRewriteNeeded = false;
 bool _settingsWriteAllowed = false;
 
@@ -358,6 +361,9 @@ void start() {
 	_basePath = cWorkingDir() + qsl("tdata/");
 	if (!QDir().exists(_basePath)) QDir().mkpath(_basePath);
 
+	_oldKotatoVersion = readKotatoVersion();
+	writeKotatoVersion(AppKotatoVersion);
+
 	ReadSettingsContext context;
 	FileReadDescriptor settingsData;
 	// We dropped old test authorizations when migrated to multi auth.
@@ -534,7 +540,7 @@ const QString &AutoupdatePrefix(const QString &replaceWith = {}) {
 QString autoupdatePrefixFile() {
 	Expects(!Core::UpdaterDisabled());
 
-	return cWorkingDir() + "tdata/prefix";
+	return cWorkingDir() + "tdata/kotatoprefix";
 }
 
 const QString &readAutoupdatePrefixRaw() {
@@ -551,7 +557,7 @@ const QString &readAutoupdatePrefixRaw() {
 			return AutoupdatePrefix(value);
 		}
 	}
-	return AutoupdatePrefix("https://td.telegram.org");
+	return AutoupdatePrefix("https://kotatogram.github.io");
 }
 
 void writeAutoupdatePrefix(const QString &prefix) {
@@ -798,6 +804,10 @@ void reset() {
 
 int32 oldSettingsVersion() {
 	return _oldSettingsVersion;
+}
+
+int32 oldKotatoVersion() {
+	return _oldKotatoVersion;
 }
 
 class CountWaveformTask : public Task {
@@ -1291,6 +1301,32 @@ void incrementRecentHashtag(RecentHashtagPack &recent, const QString &tag) {
 			}
 			qSwap(*i, *(i - 1));
 		}
+	}
+}
+
+qint32 readKotatoVersion() {
+	qint32 version = 0;
+	QFile f(_basePath + qsl("ktg_version"));
+	if (f.open(QIODevice::ReadOnly)) {
+		QDataStream stream(&f);
+		stream.setVersion(QDataStream::Qt_5_1);
+		while (!stream.atEnd()) {
+			stream >> version;
+			break;
+		}
+		f.close();
+	}
+
+	return version;
+}
+
+void writeKotatoVersion(int version) {
+	qint32 writtenVersion = version;
+	QFile f(_basePath + qsl("ktg_version"));
+	if (f.open(QIODevice::WriteOnly)) {
+		QDataStream stream(&f);
+		stream << writtenVersion;
+		f.close();
 	}
 }
 

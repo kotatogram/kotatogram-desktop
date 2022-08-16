@@ -847,6 +847,7 @@ PRIVATE
     intro/intro_widget.h
     kotato/kotato_lang.cpp
     kotato/kotato_lang.h
+    kotato/kotato_version.h
     lang/lang_cloud_manager.cpp
     lang/lang_cloud_manager.h
     lang/lang_instance.cpp
@@ -1620,7 +1621,7 @@ if ((NOT DESKTOP_APP_DISABLE_AUTOUPDATE OR APPLE) AND NOT build_macstore AND NOT
         endif()
     endif()
 
-    if (DESKTOP_APP_SPECIAL_TARGET)
+    if (DESKTOP_APP_SPECIAL_TARGET OR KTGDESKTOP_ENABLE_PACKER)
         add_executable(Packer)
         init_target(Packer)
 
