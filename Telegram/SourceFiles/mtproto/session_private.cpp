@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/options.h"
 #include "mtproto/session_private.h"
 
+#include "kotato/kotato_version.h"
 #include "core/version.h"
 #include "mtproto/details/mtproto_bound_key_creator.h"
 #include "mtproto/details/mtproto_dcenter.h"
@@ -88,7 +89,7 @@ using namespace details;
 #else
 	const auto arch = ' ' + QSysInfo::buildCpuArchitecture();
 #endif
-	return QString::fromLatin1(AppVersionStr) + arch + ([] {
+	return QString::fromLatin1(AppKotatoVersionStr) + arch + ([] {
 #if defined OS_MAC_STORE
 		return u" Mac App Store"_q;
 #elif defined OS_WIN_STORE // OS_MAC_STORE
@@ -100,7 +101,9 @@ using namespace details;
 			? u" Snap"_q
 			: QString();
 #endif // OS_MAC_STORE || OS_WIN_STORE
-	})();
+	})() + (cAlphaVersion()
+				? qsl("-%1.%2").arg(AppKotatoTestBranch).arg(AppKotatoTestVersion)
+				: QString());
 }
 
 void WrapInvokeAfter(

@@ -1434,6 +1434,7 @@ PRIVATE
     iv/iv_rich_page.h
     kotato/kotato_lang.cpp
     kotato/kotato_lang.h
+    kotato/kotato_version.h
     lang/lang_cloud_manager.cpp
     lang/lang_cloud_manager.h
     lang/lang_instance.cpp
@@ -2432,6 +2433,17 @@ PRIVATE
     G_LOG_DOMAIN="Kotatogram"
 )
 
+execute_process(
+    COMMAND git describe --tags --always
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE KTGDESKTOP_GIT_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+string(REGEX REPLACE "^(k|v)([0-9]\\.[0-9])" "\\2" KTGDESKTOP_GIT_VERSION "${KTGDESKTOP_GIT_VERSION}")
+if (KTGDESKTOP_GIT_VERSION)
+    target_compile_definitions(Telegram PRIVATE KTGDESKTOP_GIT_VERSION="${KTGDESKTOP_GIT_VERSION}")
+endif()
+
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if (APPLE
     OR is_multi_config
@@ -2573,7 +2585,7 @@ if (NOT DESKTOP_APP_DISABLE_AUTOUPDATE AND NOT build_macstore AND NOT build_wins
         )
     endif()
 
-    if (DESKTOP_APP_SPECIAL_TARGET)
+    if (DESKTOP_APP_SPECIAL_TARGET OR KTGDESKTOP_ENABLE_PACKER)
         add_executable(Packer)
         init_target(Packer)
 

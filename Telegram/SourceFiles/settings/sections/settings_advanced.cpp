@@ -1019,9 +1019,7 @@ void BuildSpellcheckerSection(SectionBuilder &builder) {
 }
 
 void BuildUpdateSection(SectionBuilder &builder, bool atTop) {
-	if (!HasUpdate()) {
-		return;
-	}
+	const auto controller = builder.controller();
 	const auto container = builder.container();
 
 	if (!atTop) {
@@ -1050,7 +1048,9 @@ void BuildUpdateSection(SectionBuilder &builder, bool atTop) {
 		.id = u"advanced/auto_update"_q,
 		.title = tr::lng_settings_update_automatically(),
 		.st = &st::settingsUpdateToggle,
-		.toggled = rpl::single(cAutoUpdate()),
+		.toggled = HasUpdate()
+			? rpl::producer<bool>(rpl::single(cAutoUpdate()))
+			: rpl::producer<bool>(nullptr),
 		.keywords = { u"update"_q, u"automatic"_q, u"version"_q },
 	});
 
@@ -1071,6 +1071,20 @@ void BuildUpdateSection(SectionBuilder &builder, bool atTop) {
 		label->setAttribute(Qt::WA_TransparentForMouseEvents);
 	}
 
+	if (!HasUpdate() && toggle) {
+		texts->fire_copy(version);
+		auto &lifetime = container->lifetime();
+		const auto toggles = lifetime.make_state<rpl::event_stream<bool>>();
+		toggle->toggleOn(toggles->events_starting_with(false));
+		toggle->toggledChanges(
+		) | rpl::on_next([=](bool value) {
+			if (value) {
+				toggles->fire_copy(false);
+				controller->showToast(ktr("ktg_in_app_update_disabled"));
+			}
+		}, container->lifetime());
+	}
+
 	auto optionsShown = rpl::producer<bool>(nullptr);
 	if (toggle) {
 		Core::UpdateChecker checker;
@@ -1086,7 +1100,7 @@ void BuildUpdateSection(SectionBuilder &builder, bool atTop) {
 	auto install = (Ui::SettingsButton*)nullptr;
 	auto check = (Ui::SettingsButton*)nullptr;
 	builder.scope([&] {
-		install = (cAlphaVersion() || KSandbox::isInside())
+		install = (cAlphaVersion() || KSandbox::isInside() || !HasUpdate())
 			? nullptr
 			: builder.addButton({
 				.id = u"advanced/install_beta"_q,
@@ -1096,7 +1110,7 @@ void BuildUpdateSection(SectionBuilder &builder, bool atTop) {
 				.keywords = { u"beta"_q, u"update"_q, u"version"_q },
 			});
 
-		check = builder.addButton({
+		check = HasUpdate() ? builder.addButton({
 			.id = u"advanced/check_update"_q,
 			.title = tr::lng_settings_check_now(),
 			.st = &st::settingsButtonNoIcon,
@@ -1106,7 +1120,7 @@ void BuildUpdateSection(SectionBuilder &builder, bool atTop) {
 				checker.start();
 			},
 			.keywords = { u"check"_q, u"update"_q, u"version"_q },
-		});
+		}) : nullptr;
 	}, std::move(optionsShown), [&](auto wrap) {
 		options = wrap;
 	});
