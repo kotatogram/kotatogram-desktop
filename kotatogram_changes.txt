@@ -1,0 +1,330 @@
+1.4.9 (08.03.2022)
+- Updated TDesktop sources to 3.5.2.
+- Internal rework of Kotatogram Settings.
+- Allow select time when jumping to date in chat.
+- Always show TDesktop's experimental settings and allow their translation.
+- Make message icon color same as name color.
+- Fix avatar cropping in Windows system notifications.
+- Warn when trying to unquoted forward a quiz (by blank-x).
+- Show "Copy callback data" only for callback buttons (by blank-x).
+- Go to chat on Shift+Enter in Forward box (by blank-x).
+- Fix name icons (by blank-x).
+- Fix tg://user?id links for 64-bit IDs (by blank-x).
+- Fix showing "Mention user" for channels (by blank-x).
+- Fix profile pictures rounding (by blank-x).
+- Fix chat status filters by admin rights (by blank-x).
+- New Kotatogram macOS icon (by gershik).
+
+1.4.8 (31.12.2021)
+- Better font settings.
+- Fixed severe crash in Saved Messages.
+- Fixed non-clickable part of message author name if there an icon near it.
+
+1.4.7 (30.12.2021)
+- Ability to switch accounts by hotkeys.
+- Added icon near the author name in message.
+- Fixed ranks in admin list.
+
+1.4.6 (18.12.2021)
+- Updated TDesktop sources to 3.3.
+- Ability to disable remembering image compression when sending.
+- Custom auto-replaces now work without emoji replacement enabled.
+- Removed window size restiction.
+- Fixed tg:// link protocol in system.
+- Fixed "External video player" option.
+
+1.4.5 (04.12.2021)
+- Updated TDesktop sources to 3.1.1.
+- Fixed caption sending modes in unquoted forward.
+- Fixed "Qt scaling" option.
+- Removed duplicate of GIF button in shared media.
+- Fixed animated emoji size.
+- Fix custom font size scale.
+
+1.4.4 (22.09.2021)
+- Updated TDesktop sources to 3.1.
+- Added option to remember forward mode.
+- Added ability to set default forward mode.
+- Replaced unquoted forward method with option to restore the old one.
+- Added option to disable per-chat themes.
+- Removed GTK integration option, since it's not needed anymore.
+- Fixed missing sending inline bot response preview option.
+- Fixed missing sending inline bot response preview in comments and scheduled messages.
+- Fixed option "Disable edit by Up key" in comments and scheduled messages.
+- GIF section in shared media and forwarded sticker info are now same as in TDesktop.
+
+1.4.3 (26.08.2021)
+- Reworked sending without "via @bot" tag.
+- Optional hotkeys to restart application and to reload Kotatogram translation.
+- Fixed blocking user in "Recent Actions".
+- Updated translations, including phrases from previous version.
+- Fixed errors and crashes in AppImage related to gdk-pixbuf.
+
+1.4.2 (21.08.2021)
+- Updated TDesktop sources to 2.8.11.
+- Manually choose notification mute time.
+- Auto-login option for Telegram sites.
+- Multi-threaded video decoding option.
+- External video player.
+- Sending without "via @bot" mark.
+- Font size JSON option.
+- Backported message self-destruct 1 month option.
+- Localized self-destruct messages button to Russian.
+- Fixed missing "Copy Share Link" in forward window when a single album is selected.
+- Fixed applying of some bundled Kotatogram translations.
+
+1.4.1 (29.04.2021)
+- Updated TDesktop sources to 2.7.4.
+- Separate Kotatogram's MPRIS and TDesktop's MPRIS.
+- Fix crash on right clicking emoji button.
+- Attempt to fix repeating changelogs.
+- Smaller font for options with radio buttons.
+- Don't show top notification switch in own profile.
+- Remove unnecessary separator in own profile.
+- Fix dependent separated "Send stickers and GIFs" restriction.
+- Updated translations.
+
+1.4 (13.04.2021)
+- Updated TDesktop sources to 2.7.1.
+- Ability to forward messages without author.
+- Local folders.
+- Ability to set API ID and hash by start parameter or environment variable.
+- Use checkboxes in polls with multiple answers.
+- Reworked admins info.
+- Show group type in chat lists.
+- Show star icon for groups where you're an admin.
+- Do not notify when pinning by default.
+- Ability to mention user from context menu in members list.
+- Improved theme keys search.
+- Experimental top bar customization.
+- Reworked changning time when scheduling messages.
+- Improved keyboard navigation for calendar.
+- Ability to jump to date in chat (Ctrl+H by default).
+- Use ghost icon from Android app.
+- Hide Edit and All Chats from context menu.
+- Show button to remove recent sticker.
+- Option to retain selection after forward.
+- Hide account name in notification if it's the current one.
+- Possible fix for crash on Permissions click in profile.
+- Fix for crash on profile double open in blocked users list.
+- Option to disable monospace bubbles expansion (user-contributed).
+- Click-to-copy for ID, phone and username in profile.
+- Revoke messages by default.
+- Additional info for chats in folders.
+- Manage buttons in profile.
+- Forward to multiple chats.
+- Allow add up to 10 accounts in 32-bit build and up to 100 in 64 bit builds.
+- Do not share phone number by default (from 64Gram).
+- GIFs shared media section (from 64Gram).
+- Uwrapped "Stickers and GIFs" permission (from 64Gram).
+- Option to disable emoji panel on hover.
+- Option to use native window frame on Windows and macOS.
+- Option to disable tray counter.
+- Option to use Telegram tray icon on Linux panels.
+- Set media clear limit down to 1 day.
+- Many translations from Crowdin page.
+
+1.3.9 (9.09.2020)
+- Updated TDesktop sources to 2.3.2.
+- Ability to forward messages without author.
+- Local folders.
+- Ability to set API ID and hash by start parameter or environment variable.
+- Use checkboxes in polls with multiple answers.
+- Reworked admins info.
+- Show group type in chat lists.
+- Show star icon for groups where you're an admin.
+- Do not notify when pinning by default.
+- Ability to mention user from context menu in members list.
+- Open pop-up emoji panel on RMB when disabled by hover.
+- Improved theme keys search.
+- Experimental top bar customization.
+- Reworked changning time when scheduling messages.
+- Improved keyboard navigation for calendar.
+- Italian translation (by alsoGAMER and CrisMystik).
+- Ability to jump to date in chat (Ctrl+J by default).
+- Use ghost icon from Android app.
+- Hide Edit and All Chats from context menu.
+- Show button to remove recent sticker.
+- Portuguese (Brasil) translation (by lipetst).
+
+1.3.8 (10.07.2020)
+- Updated TDesktop sources to 2.1.18.
+- Restored one-click forward to Saved Messages.
+- Ability to go to chat from forward when selecting one.
+- Make retaining selection after forward optional.
+- Option to open chat on click in forward window.
+- Hide account name in notification if it's the current one.
+- Possible fix for crash on Permissions click in profile.
+- Turkish translation (by disk3).
+- Polish translation (by Sebek).
+
+1.3.7 (3.07.2020)
+- Updated TDesktop sources to 2.1.17.
+- Option to disable monospace bubbles expansion (user-contributed).
+- Click-to-copy for ID, phone and username in profile.
+- Revoke messages by default.
+- Additional info for chats in folders.
+- Manage buttons in profile.
+- Forward to multiple chats.
+- Allow add up to 10 accounts.
+- Do not share phone number by default (from TDesktop-x64).
+- GIFs shared media section (from TDesktop-x64).
+- Uwrapped "Stickers and GIFs" permission (from TDesktop-x64).
+- Ukranian translation (by winqooq).
+
+1.3.6 (22.05.2020)
+- Updated TDesktop sources to 2.1.6.
+- Option to disable emoji panel on hover.
+- Option to use native window frame on Windows and macOS.
+- Option to disable tray counter.
+- Option to use Telegram tray icon on Linux panels.
+- Set media clear limit down to 1 day.
+
+1.3.5 (10.05.2020)
+- Updated TDesktop sources to 2.1.4.
+
+1.3.4 (6.05.2020)
+- Updated TDesktop sources to 2.1.2.
+- Optional Bot API chat ID format.
+- Message ID in date tooltip.
+- Option to scale sticker width along with height.
+- Show time of service message.
+
+1.3.3 (3.05.2020)
+- Fixed crash from 1.3.2.
+
+1.3.2 (2.05.2020)
+- Updated TDesktop sources to 2.1.1.
+
+1.3.1 (27.04.2020)
+- Some post-refactor bugfixes.
+
+1.3 (25.04.2020)
+- Updated TDesktop sources to 2.1.
+- Search messages from user from context menu.
+- "query" parameter for tg://resolve and t.me links to set search query.
+- Select and copy text in link open box and bot button click.
+- Select and copy text of poll explanation, showing it in box.
+- Added two existed options to menu: tray icon and profile picture rounding.
+- Suggest to hide pinned message when unpinning.
+- Show Discuss button even if you haven't subscribed to channel.
+
+1.2.2 (2.04.2020)
+- Updated TDesktop sources to 2.0.1.
+- Option to hide All chats folder.
+
+1.2.1 (31.03.2020)
+- Updated TDesktop sources to 2.0.
+- Option to set default folder. Also added context menu to All chats filter.
+- Option to show only unmuted chats in folder counter.
+- Option to hide Edit button in folder sidebar.
+- Compact folder sidebar option.
+- Restored unreleased notification toggle as option.
+- tg://settings/kotato link to open Kotatogram Settings. Also added three-dots menu there.
+
+1.2 (19.03.2020)
+- Updated TDesktop sources to 1.9.21.
+- New logo and option to choose alternative icons.
+
+1.1.9 (15.03.2020)
+- Updated TDesktop sources to 1.9.20 beta.
+- Support for taskbar flashing alert on Linux.
+- Bot privacy status in members list.
+- Custom tray and taskbar icon.
+- Show working dir in tray icon tooltip.
+- Option to change rounding of profile pictures.
+- Option to always show profile picture in top bar.
+- Ban members option in Recent Actions.
+
+1.1.8 (27.02.2020)
+- Updated TDesktop sources to 1.9.19 beta.
+- Option to disable taskbar icon flashing.
+- Control notification sound from tray menu.
+- Option to change recent stickers show limit (up to 200 or disable at all).
+- Show video playback controls for GIFs.
+
+1.1.7 (8.02.2020)
+- Updated TDesktop sources to 1.9.10 beta.
+- Allow up to 64px as minimal sticker size.
+- Optional confirmation before calling.
+- "Disable Up to edit" now in options menu.
+- Option to use original font height.
+
+1.1.6 (31.01.2020)
+- Updated TDesktop sources to 1.9.9.
+- Custom text replaces.
+- Ability to use system font (user-contributed).
+
+1.1.5 (25.01.2020)
+- Updated TDesktop sources to 1.9.8.
+
+1.1.4 (24.01.2020)
+- Updated TDesktop sources to 1.9.7.
+
+1.1.3 (19.12.2019)
+- Updated TDesktop sources to 1.9.4.
+- Option to disable Up shortcut to edit previous message.
+- Speed boost now affects only upload since original download manager was rebuilt.
+
+1.1.2 beta (21.12.2019)
+- Adaptive message width option (user-contributed).
+- Compact chat list mode.
+- Forwarded info for stickers.
+
+1.1.1 beta (11.10.2019)
+- Updated TDesktop sources to 1.9.1 beta.
+
+1.1 (21.10.2019)
+- Options menu with almost all JSON options (except for scales).
+- Font start options are now removed in favor of JSON and settings menu.
+- Highlight for specific media in album.
+
+1.0.10 (15.10.2019)
+- Change fonts in Kotatogram Settings.
+
+1.0.9 (11.10.2019)
+- Options menu: sticker height, emoji outline, scheduled messages button visibility.
+
+1.0.8 (8.10.2019)
+- Option to hide phone number in drawer.
+- Option to set custom interface scales.
+- Keyboard shortcut to save draft to cloud (Ctrl+S by default).
+
+1.0.7 beta (7.10.2019)
+- JSON locale rewrites.
+- Russian language support for fork strings.
+- Show custom settings and restart app from settings' three-dots menu.
+- Show custom admin titles in member list.
+- Option to enable network speed boost. Warning: can work bad with low connection speeds.
+- Fixed "Channel is unaccessible" when clicking on linked channel from message.
+
+1.0.6 (5.10.2019)
+- JSON configuration.
+
+1.0.5 (4.10.2019)
+- Minor fixes and improvements.
+
+1.0.4 (3.10.2019)
+- Minor fixes and improvements.
+
+1.0.3 (2.10.2019)
+- Always show edit timer.
+- Disabled big emoji outline.
+- Show restriction date to user.
+
+1.0.2 (1.10.2019)
+- Hide pinned message from chat menu.
+- Always show scheduled messages button.
+- View discussion group and discussed channel in profile.
+
+1.0.1 (30.09.2019)
+- Show previously hidden pinned message in chat.
+- Show ID in chat profile.
+- Copy bot button callback data from its context menu.
+
+1.0 (22.09.2019)
+
+- Mention user by name instead of username by right clicking mention suggestion.
+- Clickable links and usernames in profile bios.
+- Custom font selection by start options.
+- Adjusted caption, photo, and sticker sizes.

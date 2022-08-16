@@ -69,7 +69,7 @@ object_ptr<Ui::RpWidget> CreateIntroSettings(
 	if (HasUpdate()) {
 		Ui::AddDivider(result);
 		Ui::AddSkip(result);
-		SetupUpdate(result);
+		SetupUpdate(window, result);
 		Ui::AddSkip(result);
 	}
 	{

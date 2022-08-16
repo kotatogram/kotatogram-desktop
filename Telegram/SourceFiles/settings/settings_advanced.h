@@ -30,7 +30,9 @@ void SetupConnectionType(
 	not_null<::Main::Account*> account,
 	not_null<Ui::VerticalLayout*> container);
 bool HasUpdate();
-void SetupUpdate(not_null<Ui::VerticalLayout*> container);
+void SetupUpdate(
+	not_null<Window::Controller*> controller,
+	not_null<Ui::VerticalLayout*> container);
 void SetupWindowTitleContent(
 	Window::SessionController *controller,
 	not_null<Ui::VerticalLayout*> container);

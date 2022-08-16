@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/crash_report_window.h"
 
+#include "kotato/kotato_version.h"
 #include "core/crash_reports.h"
 #include "core/application.h"
 #include "core/sandbox.h"
@@ -333,7 +334,7 @@ LastCrashedWindow::LastCrashedWindow(
 	}
 	if (_sendingState != SendingNoReport) {
 		QString version = getReportField(qstr("version"), qstr("Version:"));
-		QString current = cAlphaVersion() ? u"-%1"_q.arg(cAlphaVersion()) : QString::number(AppVersion);
+		QString current = cAlphaVersion() ? u"-%1"_q.arg(cAlphaVersion()) : QString::number(AppKotatoVersion);
 		if (version != current) { // currently don't accept crash reports from not current app version
 			_sendingState = SendingNoReport;
 		}
@@ -502,7 +503,7 @@ QString LastCrashedWindow::getReportField(const QLatin1String &name, const QLati
 			QString data = lines.at(i).trimmed().mid(prefix.size()).trimmed();
 
 			if (name == qstr("version")) {
-				if (data.endsWith(qstr(" alpha"))) {
+				if (data.endsWith(qstr(" %1").arg(AppKotatoTestBranch))) {
 					data = QString::number(-data.replace(QRegularExpression(u"[^\\d]"_q), "").toLongLong());
 				} else {
 					data = QString::number(data.replace(QRegularExpression(u"[^\\d]"_q), "").toLongLong());
@@ -714,7 +715,7 @@ void LastCrashedWindow::updateControls() {
 					if (_sendingState == SendingTooOld || _sendingState == SendingUnofficial) {
 						QString verStr = getReportField(qstr("version"), qstr("Version:"));
 						qint64 ver = verStr.isEmpty() ? 0 : verStr.toLongLong();
-						if (!ver || (ver == AppVersion) || (ver < 0 && (-ver / 1000) == AppVersion)) {
+						if (!ver || (ver == AppKotatoVersion) || (ver < 0 && (-ver / 1000) == AppKotatoVersion)) {
 							h += _getApp.height() + padding;
 							_getApp.show();
 							h -= _yourReportName.height() + padding; // hide report name
