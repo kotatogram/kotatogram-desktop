@@ -5,6 +5,7 @@
 # https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 option(TDESKTOP_API_TEST "Use test API credentials." OFF)
+option(KTGDESKTOP_ENABLE_PACKER "Enable building update packer on non-special targets." OFF)
 set(TDESKTOP_API_ID "0" CACHE STRING "Provide 'api_id' for the Telegram API access.")
 set(TDESKTOP_API_HASH "" CACHE STRING "Provide 'api_hash' for the Telegram API access.")
 
@@ -48,6 +49,6 @@ if (DESKTOP_APP_USE_PACKAGED)
     target_compile_definitions(Telegram PRIVATE TDESKTOP_USE_PACKAGED)
 endif()
 
-if (DESKTOP_APP_SPECIAL_TARGET)
-    target_compile_definitions(Telegram PRIVATE TDESKTOP_ALLOW_CLOSED_ALPHA)
-endif()
+# if (DESKTOP_APP_SPECIAL_TARGET)
+#     target_compile_definitions(Telegram PRIVATE TDESKTOP_ALLOW_CLOSED_ALPHA)
+# endif()
