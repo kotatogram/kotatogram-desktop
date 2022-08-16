@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/crash_reports.h"
 
+#include "kotato/kotato_version.h"
 #include "platform/platform_specific.h"
 #include "base/platform/base_platform_info.h"
 #include "core/launcher.h"
@@ -318,10 +319,10 @@ void StartCatching() {
 	ProcessAnnotations["Binary"] = cExeName().toUtf8().constData();
 	ProcessAnnotations["ApiId"] = QString::number(ApiId).toUtf8().constData();
 	ProcessAnnotations["Version"] = (cAlphaVersion()
-		? u"%1 alpha"_q.arg(cAlphaVersion())
+		? u"%1 %2"_q.arg(cAlphaVersion()).arg(AppKotatoTestBranch)
 		: (AppBetaVersion
 			? u"%1 beta"_q
-			: u"%1"_q).arg(AppVersion)).toUtf8().constData();
+			: u"%1"_q).arg(AppKotatoVersion)).toUtf8().constData();
 	ProcessAnnotations["Launched"] = QDateTime::currentDateTime().toString("dd.MM.yyyy hh:mm:ss").toUtf8().constData();
 	ProcessAnnotations["Platform"] = PlatformString().toUtf8().constData();
 	ProcessAnnotations["UserTag"] = QString::number(Core::Launcher::Instance().installationTag(), 16).toUtf8().constData();

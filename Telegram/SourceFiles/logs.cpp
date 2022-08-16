@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "logs.h"
 
+#include "kotato/kotato_version.h"
 #include "platform/platform_specific.h"
 #include "core/crash_reports.h"
 #include "core/launcher.h"
@@ -422,10 +423,11 @@ void start() {
 		LogsData = nullptr;
 	}
 
-	LOG(("Launched version: %1, install beta: %2, alpha: %3, debug mode: %4"
+	LOG(("Launched version: %1, install beta: %2, %3: %4, debug mode: %5"
 		).arg(AppVersion
 		).arg(Logs::b(cInstallBetaVersion())
-		).arg(cAlphaVersion()
+		).arg(AppKotatoTestBranch
+		).arg(AppKotatoTestVersion
 		).arg(Logs::b(DebugEnabled())));
 	LOG(("Executable dir: %1, name: %2").arg(cExeDir(), cExeName()));
 	LOG(("Initial working dir: %1").arg(initialWorkingDir));

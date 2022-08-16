@@ -7,7 +7,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/changelogs.h"
 
+#include "kotato/kotato_lang.h"
+#include "kotato/kotato_version.h"
+#include "storage/localstorage.h"
 #include "lang/lang_keys.h"
+#include "lang/lang_instance.h"
 #include "core/application.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
@@ -131,14 +135,18 @@ std::map<int, const char*> BetaLogs() {
 
 } // namespace
 
-Changelogs::Changelogs(not_null<Main::Session*> session, int oldVersion)
+Changelogs::Changelogs(not_null<Main::Session*> session, int oldVersion, int oldKotatoVersion)
 : _session(session)
-, _oldVersion(oldVersion) {
+, _oldVersion(oldVersion)
+, _oldKotatoVersion(oldKotatoVersion) {
+
+	LOG(("Previous Kotatogram version: %1").arg(_oldKotatoVersion));
+
 	_session->data().chatsListChanges(
 	) | rpl::filter([](Data::Folder *folder) {
 		return !folder;
 	}) | rpl::start_with_next([=] {
-		requestCloudLogs();
+		addKotatoLogs();
 	}, _chatsSubscription);
 }
 
@@ -146,10 +154,40 @@ std::unique_ptr<Changelogs> Changelogs::Create(
 		not_null<Main::Session*> session) {
 	auto &local = Core::App().domain().local();
 	const auto oldVersion = local.oldVersion();
+	const auto oldKotatoVersion = Local::oldKotatoVersion();
 	local.clearOldVersion();
-	return (oldVersion > 0 && oldVersion < AppVersion)
-		? std::make_unique<Changelogs>(session, oldVersion)
+	return (oldVersion != 0
+		&& oldKotatoVersion < AppKotatoVersion)
+		? std::make_unique<Changelogs>(session, oldVersion, oldKotatoVersion)
 		: nullptr;
+}
+
+void Changelogs::addKotatoLogs() {
+	_chatsSubscription.destroy();
+	
+	if (_addedSomeLocal) {
+		return;
+	}
+	auto baseLang = Lang::GetInstance().baseId();
+	auto currentLang = Lang::Id();
+	QString channelLink;
+
+	for (const auto language : { "ru", "uk", "be" }) {
+		if (baseLang.startsWith(QLatin1String(language)) || currentLang == QString(language)) {
+			channelLink = "https://t.me/kotatogram_ru";
+			break;
+		}
+	}
+
+	if (channelLink.isEmpty()) {
+		channelLink = "https://t.me/kotatogram";
+	}
+
+	const auto text = ktr("ktg_new_version",
+		{ "version", QString::fromLatin1(AppKotatoVersionStr) },
+		{ "td_version", QString::fromLatin1(AppVersionStr) },
+		{ "link", channelLink });
+	addLocalLog(text.trimmed());
 }
 
 void Changelogs::requestCloudLogs() {
@@ -186,7 +224,7 @@ void Changelogs::requestCloudLogs() {
 }
 
 void Changelogs::addLocalLogs() {
-	if (AppBetaVersion || cAlphaVersion()) {
+	if (AppKotatoBetaVersion || cAlphaVersion()) {
 		addBetaLogs();
 	}
 	if (!_addedSomeLocal) {

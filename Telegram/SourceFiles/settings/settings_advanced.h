@@ -25,6 +25,7 @@ void SetupConnectionType(
 	not_null<Ui::VerticalLayout*> container);
 bool HasUpdate();
 void SetupUpdate(
+	not_null<Window::Controller*> controller,
 	not_null<Ui::VerticalLayout*> container,
 	Fn<void(Type)> showOther);
 void SetupWindowTitleContent(

@@ -13,17 +13,17 @@ bool OnlyAlphaKey = false;
 
 const char *PublicKey = "\
 -----BEGIN RSA PUBLIC KEY-----\n\
-MIGJAoGBAMA4ViQrjkPZ9xj0lrer3r23JvxOnrtE8nI69XLGSr+sRERz9YnUptnU\n\
-BZpkIfKaRcl6XzNJiN28cVwO1Ui5JSa814UAiDHzWUqCaXUiUEQ6NmNTneiGx2sQ\n\
-+9PKKlb8mmr3BB9A45ZNwLT6G9AK3+qkZLHojeSA+m84/a6GP4svAgMBAAE=\n\
+MIGJAoGBALUEi8NQfcq/GToD5CdgdNhgj2at2nusoWsHuUdIOGEOehpt2PiQlzt+\n\
+qziKJDO8+tPnQV0Nzq6UqZXA0eCT4CvP2jZyLq/xnNzlinQXT+wPu2wqBabRTfoC\n\
+TIiLseFjv2zEsXCCkhiaUfAtU3w09yw0/D8vl1/5+N/4mpAic+0VAgMBAAE=\n\
 -----END RSA PUBLIC KEY-----\
 ";
 
 const char *PublicBetaKey = "\
 -----BEGIN RSA PUBLIC KEY-----\n\
-MIGJAoGBALWu9GGs0HED7KG7BM73CFZ6o0xufKBRQsdnq3lwA8nFQEvmdu+g/I1j\n\
-0LQ+0IQO7GW4jAgzF/4+soPDb6uHQeNFrlVx1JS9DZGhhjZ5rf65yg11nTCIHZCG\n\
-w/CVnbwQOw0g5GBwwFV3r0uTTvy44xx8XXxk+Qknu4eBCsmrAFNnAgMBAAE=\n\
+MIGJAoGBAPgjMkWHsxk1d4NcPC5jyPlEddvOdl3yH+s8xpm8MxCVwhWu5dazkC0Z\n\
+v1/0UnkegO4jNkSY3ycDqn+T3NjxNxnL0EsKh7MjinyMUe3ZISzaIyrdq/8v4bvB\n\
+/Z1X5Ruw2HacoWo/EVsXY9zCTrY53IRrKy4HQbCOloK2+TBimyX5AgMBAAE=\n\
 -----END RSA PUBLIC KEY-----\
 ";
 
@@ -181,10 +181,12 @@ int main(int argc, char *argv[])
 			AlphaVersion = QString(argv[i + 1]).toULongLong();
 			if (AlphaVersion > version * 1000ULL && AlphaVersion < (version + 1) * 1000ULL) {
 				BetaChannel = false;
+				/*
 				AlphaSignature = countAlphaVersionSignature(AlphaVersion);
 				if (AlphaSignature.isEmpty()) {
 					return -1;
 				}
+				*/
 			} else {
 				cout << "Bad -alpha param value passed, should be for the same version: " << version << ", alpha: " << AlphaVersion << "\n";
 				return -1;
@@ -501,9 +503,11 @@ int main(int argc, char *argv[])
 #else
 #error Unknown platform!
 #endif
+	/*
 	if (AlphaVersion) {
 		outName += "_" + AlphaSignature;
 	}
+	*/
 	QFile out(outName);
 	if (!out.open(QIODevice::WriteOnly)) {
 		cout << "Can't open '" << outName.toUtf8().constData() << "' for write..\n";

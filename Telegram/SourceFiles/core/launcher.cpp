@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/launcher.h"
 
+#include "kotato/kotato_version.h"
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
 #include "base/options.h"
@@ -115,7 +116,7 @@ void ComputeDebugMode() {
 }
 
 void ComputeExternalUpdater() {
-	QFile file(u"/etc/tdesktop/externalupdater"_q);
+	QFile file(u"/etc/kotatogram-desktop/externalupdater"_q);
 
 	if (file.exists() && file.open(QIODevice::ReadOnly)) {
 		QTextStream fileStream(&file);
@@ -150,7 +151,7 @@ void ComputeInstallBetaVersions() {
 		if (f.open(QIODevice::ReadOnly)) {
 			cSetInstallBetaVersion(f.read(1) != "0");
 		}
-	} else if (AppBetaVersion) {
+	} else if (AppKotatoBetaVersion) {
 		WriteInstallBetaVersionsSetting();
 	}
 }
@@ -221,10 +222,13 @@ bool CheckPortableVersionFolder() {
 	const auto portable = cExeDir() + u"TelegramForcePortable"_q;
 	QFile key(portable + u"/tdata/alpha"_q);
 	if (cAlphaVersion()) {
+		/*
 		Assert(*AlphaPrivateKey != 0);
+		*/
 
 		cForceWorkingDir(portable + '/');
 		QDir().mkpath(cWorkingDir() + u"tdata"_q);
+		/*
 		cSetAlphaPrivateKey(QByteArray(AlphaPrivateKey));
 		if (!key.open(QIODevice::WriteOnly)) {
 			LOG(("FATAL: Could not open '%1' for writing private key!"
@@ -234,6 +238,7 @@ bool CheckPortableVersionFolder() {
 		QDataStream dataStream(&key);
 		dataStream.setVersion(QDataStream::Qt_5_3);
 		dataStream << quint64(cRealAlphaVersion()) << cAlphaPrivateKey();
+		*/
 		return true;
 	}
 	if (!QDir(portable).exists()) {
