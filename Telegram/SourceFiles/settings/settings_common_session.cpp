@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_common_session.h"
 
+#include "kotato/kotato_settings_menu.h"
 #include "api/api_cloud_password.h"
 #include "apiwrap.h"
 #include "core/application.h"
@@ -63,18 +64,20 @@ void FillMenu(
 				Core::App().domain().addActivated(MTP::Environment{});
 			}, &st::menuIconAddAccount);
 		}
-		if (!controller->session().supportMode()) {
+		if (type != Kotato::Id() && !controller->session().supportMode()) {
 			addAction(
 				tr::lng_settings_information(tr::now),
 				[=] { showOther(Information::Id()); },
 				&st::menuIconInfo);
 		}
-		addAction({
-			.text = tr::lng_settings_logout(tr::now),
-			.handler = [=] { window->showLogoutConfirmation(); },
-			.icon = &st::menuIconLeaveAttention,
-			.isAttention = true,
-		});
+		if (type != Kotato::Id()) {
+			addAction({
+				.text = tr::lng_settings_logout(tr::now),
+				.handler = [=] { window->showLogoutConfirmation(); },
+				.icon = &st::menuIconLeaveAttention,
+				.isAttention = true,
+			});
+		}
 	}
 }
 

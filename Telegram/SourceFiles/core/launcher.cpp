@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/launcher.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_version.h"
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
@@ -356,6 +357,9 @@ void Launcher::initHighDpi() {
 }
 
 int Launcher::exec() {
+	// This should be called before init to load default
+	// values and set some options that are not stored in JSON.
+	Kotato::JsonSettings::Start();
 	init();
 
 	if (cLaunchMode() == LaunchModeFixPrevious) {
@@ -367,6 +371,7 @@ int Launcher::exec() {
 	// Must be started before Platform is started.
 	Logs::start();
 	base::options::init(cWorkingDir() + "tdata/experimental_options.json");
+	Kotato::JsonSettings::Load();
 
 	// Must be called after options are inited.
 	initHighDpi();
@@ -406,6 +411,7 @@ int Launcher::exec() {
 
 	CrashReports::Finish();
 	Platform::finish();
+	Kotato::JsonSettings::Finish();
 	Logs::finish();
 
 	return result;

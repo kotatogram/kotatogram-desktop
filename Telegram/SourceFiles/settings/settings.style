@@ -78,6 +78,7 @@ settingsIconChat: icon {{ "settings/chat", settingsIconFg }};
 settingsIconInterfaceScale: icon {{ "settings/interface_scale", settingsIconFg }};
 settingsIconStickers: icon {{ "settings/stickers", settingsIconFg }};
 settingsIconEmoji: icon {{ "settings/emoji", settingsIconFg }};
+settingsIconKotato: icon {{ "settings/kotato", settingsIconFg }};
 
 settingsPremiumIconWallpapers: icon {{ "settings/photo", settingsIconFg }};
 settingsPremiumIconStories: icon {{ "settings/stories", settingsIconFg }};
@@ -572,3 +573,8 @@ messagePrivacySubscribe: SettingsButton(settingsButtonLight) {
 	iconLeft: 20px;
 }
 messagePrivacyLock: icon {{ "info/info_rights_lock", checkboxFg }};
+
+ktgSettingsSliderLabel: LabelSimple(defaultLabelSimple) {
+	textFg: windowFg;
+	font: boxTextFont;
+}

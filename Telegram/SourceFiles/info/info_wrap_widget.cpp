@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/info_wrap_widget.h"
 
+#include "kotato/kotato_settings_menu.h"
 #include "info/profile/info_profile_widget.h"
 #include "info/profile/info_profile_values.h"
 #include "info/media/info_media_widget.h"
@@ -348,7 +349,8 @@ void WrapWidget::createTopBar() {
 		&& (section.settingsType()
 				== ::Settings::CloudPasswordEmailConfirmId()
 			|| section.settingsType() == ::Settings::Main::Id()
-			|| section.settingsType() == ::Settings::Chat::Id())) {
+			|| section.settingsType() == ::Settings::Chat::Id()
+			|| section.settingsType() == ::Settings::Kotato::Id())) {
 		addTopBarMenuButton();
 	} else if (section.type() == Section::Type::Downloads) {
 		auto &manager = Core::App().downloadManager();
