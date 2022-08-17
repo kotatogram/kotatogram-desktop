@@ -68,6 +68,7 @@ settingsIconTips: icon {{ "settings/tips", settingsIconFg }};
 settingsIconStickers: icon {{ "settings/stickers", settingsIconFg }};
 settingsIconEmoji: icon {{ "settings/emoji", settingsIconFg }};
 settingsIconThemes: icon {{ "settings/palette", settingsIconFg }};
+settingsIconKotato: icon {{ "settings/kotato", settingsIconFg }};
 settingsIconGroup: icon {{ "settings/group", settingsIconFg }};
 settingsIconChannel: icon {{ "settings/channel", settingsIconFg }};
 settingsIconUser: icon {{ "settings/user", settingsIconFg }};

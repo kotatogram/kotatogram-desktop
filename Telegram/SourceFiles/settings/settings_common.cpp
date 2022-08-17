@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_folders.h"
 #include "settings/settings_calls.h"
 #include "settings/settings_experimental.h"
+#include "kotato/kotato_settings_menu.h"
 #include "core/application.h"
 #include "core/core_cloud_password.h"
 #include "ui/wrap/padding_wrap.h"
@@ -332,18 +333,20 @@ void FillMenu(
 				Core::App().domain().addActivated(MTP::Environment{});
 			}, &st::menuIconAddAccount);
 		}
-		if (!controller->session().supportMode()) {
+		if (type != Kotato::Id() && !controller->session().supportMode()) {
 			addAction(
 				tr::lng_settings_information(tr::now),
 				[=] { showOther(Information::Id()); },
 				&st::menuIconInfo);
 		}
-		addAction({
-			.text = tr::lng_settings_logout(tr::now),
-			.handler = [=] { window->showLogoutConfirmation(); },
-			.icon = &st::menuIconLeaveAttention,
-			.isAttention = true,
-		});
+		if (type != Kotato::Id()) {
+			addAction({
+				.text = tr::lng_settings_logout(tr::now),
+				.handler = [=] { window->showLogoutConfirmation(); },
+				.icon = &st::menuIconLeaveAttention,
+				.isAttention = true,
+			});
+		}
 	}
 }
 

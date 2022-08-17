@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/launcher.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_version.h"
 #include "platform/platform_launcher.h"
 #include "platform/platform_specific.h"
@@ -317,6 +318,9 @@ void Launcher::init() {
 }
 
 int Launcher::exec() {
+	// This should be called before init to load default
+	// values and set some options that are not stored in JSON.
+	Kotato::JsonSettings::Start();
 	init();
 
 	if (cLaunchMode() == LaunchModeFixPrevious) {
@@ -328,6 +332,7 @@ int Launcher::exec() {
 	// Must be started before Platform is started.
 	Logs::start(this);
 	base::options::init(cWorkingDir() + "tdata/experimental_options.json");
+	Kotato::JsonSettings::Load();
 
 	if (Logs::DebugEnabled()) {
 		const auto openalLogPath = QDir::toNativeSeparators(
@@ -364,6 +369,7 @@ int Launcher::exec() {
 
 	CrashReports::Finish();
 	Platform::finish();
+	Kotato::JsonSettings::Finish();
 	Logs::finish();
 
 	return result;
