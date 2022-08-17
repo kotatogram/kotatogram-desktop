@@ -78,6 +78,7 @@ settingsIconChat: icon {{ "settings/chat", settingsIconFg }};
 settingsIconInterfaceScale: icon {{ "settings/interface_scale", settingsIconFg }};
 settingsIconStickers: icon {{ "settings/stickers", settingsIconFg }};
 settingsIconEmoji: icon {{ "settings/emoji", settingsIconFg }};
+settingsIconKotato: icon {{ "settings/kotato", settingsIconFg }};
 
 settingsPremiumIconWallpapers: icon {{ "settings/photo", settingsIconFg }};
 settingsPremiumIconStories: icon {{ "settings/stories", settingsIconFg }};
@@ -638,3 +639,8 @@ settingsChatbotsNotFound: FlatLabel(defaultFlatLabel) {
 }
 settingsChatbotsDeleteIcon: icon {{ "dialogs/dialogs_cancel_search", dialogsMenuIconFg }};
 settingsChatbotsDeleteIconOver: icon {{ "dialogs/dialogs_cancel_search", dialogsMenuIconFgOver }};
+
+ktgSettingsSliderLabel: LabelSimple(defaultLabelSimple) {
+	textFg: windowFg;
+	font: boxTextFont;
+}

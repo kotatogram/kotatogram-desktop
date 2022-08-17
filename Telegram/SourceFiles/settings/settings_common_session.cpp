@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_common_session.h"
 
+#include "kotato/kotato_settings_menu.h"
 #include "api/api_cloud_password.h"
 #include "apiwrap.h"
 #include "core/application.h"
@@ -37,7 +38,8 @@ namespace Settings {
 bool HasMenu(Type type) {
 	return (type == ::Settings::CloudPasswordEmailConfirmId())
 		|| (type == Main::Id())
-		|| (type == Chat::Id());
+		|| (type == Chat::Id())
+		|| (type == Kotato::Id());
 }
 
 } // namespace Settings

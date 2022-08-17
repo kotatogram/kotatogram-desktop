@@ -7,6 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_main.h"
 
+#include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
+#include "kotato/kotato_settings_menu.h"
 #include "core/application.h"
 #include "settings/settings_business.h"
 #include "settings/settings_codes.h"
@@ -406,6 +409,10 @@ void SetupSections(
 		tr::lng_settings_section_devices(),
 		Calls::Id(),
 		{ &st::menuIconUnmute });
+	addSection(
+		rktr("ktg_settings_kotato"),
+		Kotato::Id(),
+		{ &st::settingsIconKotato });
 
 	SetupPowerSavingButton(&controller->window(), container);
 	SetupLanguageButton(&controller->window(), container);
