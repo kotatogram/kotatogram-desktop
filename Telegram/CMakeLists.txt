@@ -908,8 +908,14 @@ PRIVATE
     intro/intro_step.h
     intro/intro_widget.cpp
     intro/intro_widget.h
+    kotato/boxes/kotato_radio_box.cpp
+    kotato/boxes/kotato_radio_box.h
     kotato/kotato_lang.cpp
     kotato/kotato_lang.h
+    kotato/kotato_settings.cpp
+    kotato/kotato_settings.h
+    kotato/kotato_settings_menu.cpp
+    kotato/kotato_settings_menu.h
     kotato/kotato_version.h
     lang/lang_cloud_manager.cpp
     lang/lang_cloud_manager.h
