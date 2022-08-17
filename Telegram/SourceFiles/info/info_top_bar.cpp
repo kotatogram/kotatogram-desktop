@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <rpl/never.h>
 #include <rpl/merge.h>
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "lang/lang_numbers_animation.h"
 #include "info/info_wrap_widget.h"
@@ -643,6 +644,8 @@ rpl::producer<QString> TitleValue(
 			return tr::lng_settings_section_call_settings();
 		case Section::SettingsType::Experimental:
 			return tr::lng_settings_experimental();
+		case Section::SettingsType::Kotato:
+			return rktr("ktg_settings_kotato");
 		}
 		Unexpected("Bad settings type in Info::TitleValue()");
 

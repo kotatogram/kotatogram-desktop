@@ -63,6 +63,7 @@ settingsIconFaq: icon {{ "settings/settings_faq", menuIconFg }};
 settingsIconStickers: icon {{ "settings/settings_stickers", menuIconFg }};
 settingsIconEmoji: icon {{ "settings/settings_emoji", menuIconFg }};
 settingsIconThemes: icon {{ "settings/settings_themes", menuIconFg }};
+settingsIconKotato: icon {{ "settings/settings_kotato", menuIconFg }};
 
 settingsSetPhotoSkip: 7px;
 

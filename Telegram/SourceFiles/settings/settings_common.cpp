@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_folders.h"
 #include "settings/settings_calls.h"
 #include "settings/settings_experimental.h"
+#include "kotato/kotato_settings_menu.h"
 #include "core/application.h"
 #include "ui/wrap/padding_wrap.h"
 #include "ui/wrap/vertical_layout.h"
@@ -62,6 +63,8 @@ object_ptr<Section> CreateSection(
 		return object_ptr<Calls>(parent, controller);
 	case Type::Experimental:
 		return object_ptr<Experimental>(parent, controller);
+	case Type::Kotato:
+		return object_ptr<Kotato>(parent, controller);
 	}
 	Unexpected("Settings section type in Widget::createInnerWidget.");
 }
@@ -223,16 +226,18 @@ void FillMenu(
 				Core::App().domain().addActivated(MTP::Environment{});
 			}, &st::menuIconAddAccount);
 		}
-		if (!controller->session().supportMode()) {
+		if (type != Type::Kotato && !controller->session().supportMode()) {
 			addAction(
 				tr::lng_settings_information(tr::now),
 				[=] { showOther(Type::Information); },
 				&st::menuIconInfo);
 		}
-		addAction(
-			tr::lng_settings_logout(tr::now),
-			[=] { window->showLogoutConfirmation(); },
-			&st::menuIconLeave);
+		if (type != Type::Kotato) {
+			addAction(
+				tr::lng_settings_logout(tr::now),
+				[=] { window->showLogoutConfirmation(); },
+				&st::menuIconLeave);
+		}
 	}
 }
 

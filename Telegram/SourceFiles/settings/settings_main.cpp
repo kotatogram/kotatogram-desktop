@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_main.h"
 
+#include "kotato/kotato_lang.h"
 #include "settings/settings_common.h"
 #include "settings/settings_codes.h"
 #include "settings/settings_chat.h"
@@ -159,6 +160,10 @@ void SetupSections(
 		tr::lng_settings_advanced(),
 		Type::Advanced,
 		&st::settingsIconGeneral);
+	addSection(
+		rktr("ktg_settings_kotato"),
+		Type::Kotato,
+		&st::settingsIconKotato);
 
 	SetupLanguageButton(container);
 

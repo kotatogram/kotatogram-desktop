@@ -386,6 +386,8 @@ bool ResolveSettings(
 		? ::Settings::Type::Folders
 		: (section == qstr("devices"))
 		? ::Settings::Type::Sessions
+		: (section == qstr("kotato"))
+		? ::Settings::Type::Kotato
 		: ::Settings::Type::Main;
 	controller->showSettings(type);
 	return true;
@@ -681,7 +683,7 @@ const std::vector<LocalUrlHandler> &LocalUrlHandlers() {
 			ResolvePrivatePost
 		},
 		{
-			qsl("^settings(/folders|/devices|/language)?$"),
+			qsl("^settings(/folders|/devices|/language|/kotato)?$"),
 			ResolveSettings
 		},
 		{

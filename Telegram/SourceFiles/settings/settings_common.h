@@ -42,6 +42,7 @@ enum class Type {
 	Folders,
 	Calls,
 	Experimental,
+	Kotato,
 };
 
 using Button = Ui::SettingsButton;
