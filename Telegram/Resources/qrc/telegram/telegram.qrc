@@ -87,6 +87,7 @@
   </qresource>
   <qresource prefix="/misc">
     <file alias="default_shortcuts-custom.json">../../default_shortcuts-custom.json</file>
+    <file alias="default_kotato-settings-custom.json">../../default_kotato-settings-custom.json</file>
     <file alias="io.github.kotatogram.desktop">../../../../lib/xdg/io.github.kotatogram.desktop</file>
   </qresource>
   <qresource prefix="/ktg_lang">

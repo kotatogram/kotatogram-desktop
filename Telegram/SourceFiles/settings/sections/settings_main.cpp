@@ -9,6 +9,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "settings/settings_common_session.h"
 
+#include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
+#include "kotato/kotato_settings_menu.h"
 #include "api/api_cloud_password.h"
 #include "api/api_credits.h"
 #include "api/api_global_privacy.h"
@@ -441,6 +444,13 @@ void BuildSectionButtons(SectionBuilder &builder) {
 		.targetSection = CallsId(),
 		.icon = { &st::menuIconUnmute },
 		.keywords = { u"sessions"_q, u"calls"_q },
+	});
+
+	builder.addSectionButton({
+		.title = rktr("ktg_settings_kotato"),
+		.targetSection = Kotato::Id(),
+		.icon = { &st::settingsIconKotato },
+		.keywords = { u"kotato"_q },
 	});
 
 	builder.addButton({

@@ -98,6 +98,7 @@ settingsUpdate: SettingsButton(infoMainButton, settingsButtonNoIcon) {
 settingsUpdateStatePosition: point(22px, 29px);
 
 settingsIconInterfaceScale: icon {{ "settings/interface_scale", settingsIconFg }};
+settingsIconKotato: icon {{ "settings/kotato", menuIconColor }};
 
 settingsPremiumIconDouble: icon {{ "settings/premium/double", settingsIconFg }};
 settingsPremiumIconTags: icon {{ "settings/premium/tags", settingsIconFg }};
@@ -755,3 +756,8 @@ detailedSettingsButtonStyle: DetailedSettingsButtonStyle {
 }
 
 settingsToastStarIcon: icon {{ "toast/star", toastFg }};
+
+ktgSettingsSliderLabel: LabelSimple(defaultLabelSimple) {
+	textFg: windowFg;
+	font: boxTextFont;
+}
