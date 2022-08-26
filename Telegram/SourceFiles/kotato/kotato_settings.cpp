@@ -171,6 +171,33 @@ CheckHandler ScalesLimit() {
 	};
 }
 
+CheckHandler ReplacesLimit() {
+	return [=] (QVariant value) -> QVariant {
+		auto newArrayValue = QJsonArray();
+		if (value.canConvert<QJsonArray>()) {
+			auto arrayValue = value.toJsonArray();
+			for (auto i = arrayValue.begin(); i != arrayValue.end(); ++i) {
+				if (!(*i).isArray()) {
+					continue;
+				}
+
+				const auto a = (*i).toArray();
+				if (a.size() != 2 || !a.at(0).isString() || !a.at(1).isString()) {
+					continue;
+				}
+
+				const auto from = a.at(0).toString();
+				const auto to = a.at(1).toString();
+				Ui::AddCustomReplacement(from, to);
+
+				newArrayValue.append(a);
+			}
+		}
+
+		return newArrayValue;
+	};
+}
+
 
 CheckHandler NetSpeedBoostConv(CheckHandler wrapped = nullptr) {
 	return [=] (QVariant value) -> QVariant {
@@ -319,6 +346,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "disable_up_edit", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "replaces", {
+		.type = SettingType::QJsonArraySetting,
+		.limitHandler = ReplacesLimit(), }},
 };
 
 using OldOptionKey = QString;
