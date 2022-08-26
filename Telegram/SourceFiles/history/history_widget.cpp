@@ -9124,7 +9124,8 @@ void HistoryWidget::keyPressEvent(QKeyEvent *e) {
 		if (!_field->empty()
 			|| !canWriteMessage()
 			|| _editMsgId
-			|| _replyTo) {
+			|| _replyTo
+			|| ::Kotato::JsonSettings::GetBool("disable_up_edit")) {
 			_scroll->keyPressEvent(e);
 		} else {
 			const auto last = _history->lastMessage();

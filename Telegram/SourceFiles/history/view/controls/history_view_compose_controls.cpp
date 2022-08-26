@@ -3017,7 +3017,9 @@ void ComposeControls::initKeyHandler() {
 			_attachRequests.fire({});
 			return;
 		}
-		if (key == Qt::Key_Up && !hasModifiers) {
+		if (key == Qt::Key_Up
+				&& !hasModifiers
+				&& !::Kotato::JsonSettings::GetBool("disable_up_edit")) {
 			if (!isEditingMessage()
 				&& _field->empty()
 				&& !replyingToMessage().replying()) {
