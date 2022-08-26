@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
 #include "dialogs/dialogs_inner_widget.h"
 #include "dialogs/dialogs_search_from_controllers.h"
@@ -231,7 +232,9 @@ Widget::Widget(
 		const auto movedTo = data.ymax;
 		const auto st = int32(_scroll->scrollTop());
 		if (st > movedTo && st < movedFrom) {
-			_scroll->scrollToY(st + st::dialogsRowHeight);
+			_scroll->scrollToY(st + (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+				? st::dialogsImportantBarHeight
+				: st::dialogsRowHeight));
 		}
 	}, lifetime());
 	_inner->searchMessages(
@@ -1670,7 +1673,7 @@ void Widget::updateControlsGeometry() {
 		_forwardCancel->moveToLeft(0, filterAreaTop);
 		filterAreaTop += st::dialogsForwardHeight;
 	}
-	auto smallLayoutWidth = (st::dialogsPadding.x() + st::dialogsPhotoSize + st::dialogsPadding.x());
+	auto smallLayoutWidth = (st::dialogsPadding.x() + (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1 ? st::dialogsUnreadHeight : st::dialogsPhotoSize) + st::dialogsPadding.x());
 	auto smallLayoutRatio = (width() < st::columnMinimalWidthLeft) ? (st::columnMinimalWidthLeft - width()) / float64(st::columnMinimalWidthLeft - smallLayoutWidth) : 0.;
 	auto filterLeft = (controller()->filtersWidth() ? st::dialogsFilterSkip : st::dialogsFilterPadding.x() + _mainMenuToggle->width()) + st::dialogsFilterPadding.x();
 	auto filterRight = (session().domain().local().hasLocalPasscode() ? (st::dialogsFilterPadding.x() + _lockUnlock->width()) : st::dialogsFilterSkip) + st::dialogsFilterPadding.x();

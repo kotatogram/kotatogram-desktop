@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_row.h"
 
+#include "kotato/kotato_settings.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
@@ -141,6 +142,28 @@ void BasicRow::paintUserpic(
 		paused);
 }
 
+void BasicRow::paintUserpic(
+		Painter &p,
+		not_null<PeerData*> peer,
+		Ui::VideoUserpic *videoUserpic,
+		History *historyForCornerBadge,
+		crl::time now,
+		bool active,
+		int fullWidth,
+		int size,
+		bool paused) const {
+	PaintUserpic(
+		p,
+		peer,
+		videoUserpic,
+		_userpic,
+		st::dialogsPadding.x(),
+		st::dialogsPadding.y(),
+		fullWidth,
+		size,
+		paused);
+}
+
 Row::Row(Key key, int pos) : _id(key), _pos(pos) {
 	if (const auto history = key.history()) {
 		updateCornerBadgeShown(history->peer);
@@ -198,6 +221,9 @@ void Row::updateCornerBadgeShown(
 		not_null<PeerData*> peer,
 		Fn<void()> updateCallback) const {
 	const auto shown = [&] {
+		if (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
+			return false;
+		}
 		if (const auto user = peer->asUser()) {
 			return Data::IsUserOnline(user);
 		} else if (const auto channel = peer->asChannel()) {
@@ -232,7 +258,9 @@ void Row::PaintCornerBadgeFrame(
 		0,
 		0,
 		data->frame.width() / data->frame.devicePixelRatio(),
-		st::dialogsPhotoSize,
+		(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+			? st::dialogsUnreadHeight
+			: st::dialogsPhotoSize),
 		paused);
 
 	PainterHighQualityEnabler hq(q);
@@ -284,6 +312,9 @@ void Row::paintUserpic(
 			now,
 			active,
 			fullWidth,
+			(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+				? st::dialogsUnreadHeight
+				: st::dialogsPhotoSize),
 			paused);
 		if (!historyForCornerBadge || !_cornerBadgeShown) {
 			_cornerBadgeUserpic = nullptr;
@@ -292,9 +323,10 @@ void Row::paintUserpic(
 	}
 	ensureCornerBadgeUserpic();
 	if (_cornerBadgeUserpic->frame.isNull()) {
-		_cornerBadgeUserpic->frame = QImage(
-			st::dialogsPhotoSize * cRetinaFactor(),
-			st::dialogsPhotoSize * cRetinaFactor(),
+		const auto frameSize = (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+				? st::dialogsUnreadHeight
+				: st::dialogsPhotoSize) * cRetinaFactor();
+		_cornerBadgeUserpic->frame = QImage(frameSize, frameSize,
 			QImage::Format_ARGB32_Premultiplied);
 		_cornerBadgeUserpic->frame.setDevicePixelRatio(cRetinaFactor());
 	}

@@ -33,6 +33,7 @@
 	"ktg_settings_sticker_scale_both_about": "When enabled, sticker maximum width will be changed along with sticker height.",
 	"ktg_settings_emoji_outline": "Big emoji outline",
 	"ktg_settings_always_show_scheduled": "Always show scheduled",
+	"ktg_settings_chat_list_compact": "Compact chat list",
 	"ktg_fonts_title": "Fonts",
 	"ktg_settings_fonts": "Change application fonts",
 	"ktg_fonts_reset": "Reset",

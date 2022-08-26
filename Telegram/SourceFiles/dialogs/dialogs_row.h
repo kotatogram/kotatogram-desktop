@@ -48,6 +48,17 @@ public:
 		int fullWidth,
 		bool paused) const;
 
+	virtual void paintUserpic(
+		Painter &p,
+		not_null<PeerData*> peer,
+		Ui::VideoUserpic *videoUserpic,
+		History *historyForCornerBadge,
+		crl::time now,
+		bool active,
+		int fullWidth,
+		int size,
+		bool paused) const;
+
 	void addRipple(QPoint origin, QSize size, Fn<void()> updateCallback);
 	void stopLastRipple();
 

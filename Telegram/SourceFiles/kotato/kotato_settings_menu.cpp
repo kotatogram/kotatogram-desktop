@@ -107,6 +107,20 @@ void SetupKotatoChats(
 
 	AddButton(
 		container,
+		rktr("ktg_settings_chat_list_compact"),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1)
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1));
+	}) | rpl::start_with_next([](bool enabled) {
+		::Kotato::JsonSettings::Set("chat_list_lines", enabled ? 1 : 2);
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	AddButton(
+		container,
 		rktr("ktg_settings_always_show_scheduled"),
 		st::settingsButtonNoIcon
 	)->toggleOn(

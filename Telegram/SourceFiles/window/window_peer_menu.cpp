@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_peer_menu.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_chat_participants.h"
 #include "lang/lang_keys.h"
 #include "ui/boxes/confirm_box.h"
@@ -911,14 +912,16 @@ void Filler::fillArchiveActions() {
 		return;
 	}
 	const auto controller = _controller;
-	const auto hidden = controller->session().settings().archiveCollapsed();
-	const auto text = hidden
-		? tr::lng_context_archive_expand(tr::now)
-		: tr::lng_context_archive_collapse(tr::now);
-	_addAction(text, [=] {
-		controller->session().settings().setArchiveCollapsed(!hidden);
-		controller->session().saveSettingsDelayed();
-	}, hidden ? &st::menuIconExpand : &st::menuIconCollapse);
+	if (::Kotato::JsonSettings::GetInt("chat_list_lines") != 1) {
+		const auto hidden = controller->session().settings().archiveCollapsed();
+		const auto text = hidden
+			? tr::lng_context_archive_expand(tr::now)
+			: tr::lng_context_archive_collapse(tr::now);
+		_addAction(text, [=] {
+			controller->session().settings().setArchiveCollapsed(!hidden);
+			controller->session().saveSettingsDelayed();
+		}, hidden ? &st::menuIconExpand : &st::menuIconCollapse);
+	}
 
 	_addAction(tr::lng_context_archive_to_menu(tr::now), [=] {
 		Ui::Toast::Show(
