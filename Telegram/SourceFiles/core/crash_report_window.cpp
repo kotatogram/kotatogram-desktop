@@ -27,12 +27,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 constexpr auto kDefaultProxyPort = 80;
+Core::UiIntegration UiIntegrationInstance;
 
 } // namespace
 
 PreLaunchWindow *PreLaunchWindowInstance = nullptr;
 
 PreLaunchWindow::PreLaunchWindow(QString title) {
+	Ui::Integration::Set(&UiIntegrationInstance);
 	style::internal::StartFonts();
 
 	setWindowIcon(Window::CreateIcon());

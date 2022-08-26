@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/ui_integration.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/local_url_handlers.h"
 #include "core/file_utilities.h"
 #include "core/application.h"
@@ -14,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/click_handler_types.h"
 #include "ui/basic_click_handlers.h"
 #include "ui/emoji_config.h"
+#include "ui/style/style_core_custom_font.h"
 #include "lang/lang_keys.h"
 #include "platform/platform_specific.h"
 #include "boxes/url_auth_box.h"
@@ -126,6 +128,18 @@ void UiIntegration::textActionsUpdated() {
 
 void UiIntegration::activationFromTopPanel() {
 	Platform::IgnoreApplicationActivationRightNow();
+}
+
+style::CustomFontSettings UiIntegration::fontSettings() {
+	return {
+		::Kotato::JsonSettings::GetString("fonts/main"),
+		::Kotato::JsonSettings::GetString("fonts/semibold"),
+		::Kotato::JsonSettings::GetString("fonts/monospaced"),
+		::Kotato::JsonSettings::GetInt("fonts/size"),
+		::Kotato::JsonSettings::GetBool("fonts/semibold_is_bold"),
+		::Kotato::JsonSettings::GetBool("fonts/use_system_font"),
+		::Kotato::JsonSettings::GetBool("fonts/use_original_metrics"),
+	};
 }
 
 bool UiIntegration::screenIsLocked() {
