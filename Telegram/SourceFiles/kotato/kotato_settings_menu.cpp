@@ -108,6 +108,7 @@ void SetupKotatoChats(
 	Ui::AddSkip(container);
 	Ui::AddSubsectionTitle(container, rktr("ktg_settings_chats"));
 
+	SettingsMenuJsonSwitch(ktg_settings_disable_up_edit, disable_up_edit);
 	SettingsMenuJsonSwitch(ktg_settings_always_show_scheduled, always_show_scheduled);
 
 	container->add(object_ptr<Button>(
