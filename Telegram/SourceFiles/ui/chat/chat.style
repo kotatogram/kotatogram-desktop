@@ -527,6 +527,11 @@ historyScheduledToggle: IconButton(historyAttach) {
 	};
 }
 
+historyScheduledToggleEmpty: IconButton(historyAttach) {
+	icon: icon {{ "send_control_scheduled_no_dot", historyComposeIconFg }};
+	iconOver: icon {{ "send_control_scheduled_no_dot", historyComposeIconFgOver }};
+	iconPosition: point(-1px, -1px);
+}
 historyRecordVoiceFg: historyComposeIconFg;
 historyRecordVoiceFgOver: historyComposeIconFgOver;
 historyRecordVoiceFgInactive: attentionButtonFg;

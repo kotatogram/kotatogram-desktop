@@ -70,6 +70,8 @@ void SetupKotatoChats(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_chats"));
 
+	SettingsMenuJsonSwitch(ktg_settings_always_show_scheduled, always_show_scheduled);
+
 	AddButton(
 		container,
 		rktr("ktg_settings_fonts"),
