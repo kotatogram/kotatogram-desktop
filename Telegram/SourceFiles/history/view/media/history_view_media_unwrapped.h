@@ -143,6 +143,8 @@ private:
 	std::unique_ptr<Content> _content;
 	QSize _contentSize;
 
+	rpl::lifetime _lifetime;
+
 };
 
 } // namespace HistoryView
