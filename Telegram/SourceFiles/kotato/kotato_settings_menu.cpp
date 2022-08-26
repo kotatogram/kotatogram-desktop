@@ -328,6 +328,8 @@ void SetupKotatoOther(
 				::Kotato::JsonSettings::Write();
 			}));
 	});
+
+	SettingsMenuJsonSwitch(ktg_settings_call_confirm, confirm_before_calls);
 }
 
 Kotato::Kotato(
