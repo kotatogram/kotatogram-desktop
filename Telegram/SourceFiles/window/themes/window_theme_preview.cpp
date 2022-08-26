@@ -960,8 +960,7 @@ void Generator::paintUserpic(int x, int y, Row::Type type, int index, QString le
 	{
 		Painter p(&image);
 		auto fontsize = (st::dialogsPhotoSize * 13) / 33;
-		auto font = st::historyPeerUserpicFont->f;
-		font.setPixelSize(fontsize);
+		auto font = style::font(fontsize, st::historyPeerUserpicFont->flags(), st::historyPeerUserpicFont->family());
 
 		p.setFont(font);
 		p.setBrush(Qt::NoBrush);

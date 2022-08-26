@@ -7898,7 +7898,7 @@ void HistoryWidget::paintEvent(QPaintEvent *e) {
 		HistoryView::ServiceMessagePainter::PaintBubble(p, st, tr);
 
 		p.setPen(st->msgServiceFg());
-		p.setFont(st::msgServiceFont->f);
+		p.setFont(st::msgServiceFont);
 		p.drawTextLeft(tr.left() + st::msgPadding.left(), tr.top() + st::msgServicePadding.top(), width(), tr::lng_willbe_history(tr::now));
 
 		//AssertIsDebug();

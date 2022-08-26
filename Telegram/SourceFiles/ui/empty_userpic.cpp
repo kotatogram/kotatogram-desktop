@@ -196,8 +196,7 @@ void EmptyUserpic::paint(
 	x = rtl() ? (outerWidth - x - size) : x;
 
 	const auto fontsize = (size * 13) / 33;
-	auto font = st::historyPeerUserpicFont->f;
-	font.setPixelSize(fontsize);
+	auto font = style::font(fontsize, st::historyPeerUserpicFont->flags(), st::historyPeerUserpicFont->family());
 
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(_color);
