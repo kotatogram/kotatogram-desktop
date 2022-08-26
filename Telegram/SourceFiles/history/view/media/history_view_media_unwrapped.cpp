@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_media_unwrapped.h"
 
+#include "kotato/kotato_settings.h"
 #include "data/data_session.h"
 #include "history/history.h"
 #include "history/view/media/history_view_media_common.h"
@@ -14,9 +15,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 #include "history/view/history_view_cursor_state.h"
 #include "history/view/history_view_reply.h"
+#include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_item_components.h"
 #include "lottie/lottie_single_player.h"
+#include "data/data_session.h"
 #include "ui/cached_round_corners.h"
 #include "ui/chat/chat_style.h"
 #include "ui/painter.h"
@@ -44,6 +47,17 @@ UnwrappedMedia::UnwrappedMedia(
 	std::unique_ptr<Content> content)
 : Media(parent)
 , _content(std::move(content)) {
+	::Kotato::JsonSettings::Events(
+		"sticker_height"
+	) | rpl::start_with_next([=] {
+		history()->owner().requestItemViewRefresh(_parent->data());
+	}, _lifetime);
+
+	::Kotato::JsonSettings::Events(
+		"sticker_scale_both"
+	) | rpl::start_with_next([=] {
+		history()->owner().requestItemViewRefresh(_parent->data());
+	}, _lifetime);
 }
 
 QSize UnwrappedMedia::countOptimalSize() {
@@ -605,7 +619,7 @@ int UnwrappedMedia::calculateFullRight(const QRect &inner) const {
 	const auto rightActionWidth = rightActionSize
 		? (st::historyFastShareLeft * 2
 			+ rightActionSize->width())
-		: 0;
+		: st::msgMargin.left() + st::msgMargin.right();
 	auto fullRight = inner.x()
 		+ inner.width()
 		+ (rightAligned ? 0 : infoWidth);
