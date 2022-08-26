@@ -67,6 +67,7 @@ enum ClipStopperType {
 
 namespace Notify {
 
+void showScheduledButtonChanged(not_null<Main::Session*> session);
 bool switchInlineBotButtonReceived(
 	not_null<Main::Session*> session,
 	const QString &query,

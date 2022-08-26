@@ -260,6 +260,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "monospace_large_bubbles", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "always_show_scheduled", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;
