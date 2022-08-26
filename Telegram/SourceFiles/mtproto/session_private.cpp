@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "mtproto/session_private.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_version.h"
 #include "mtproto/details/mtproto_bound_key_creator.h"
 #include "mtproto/details/mtproto_dcenter.h"
@@ -685,7 +686,7 @@ void SessionPrivate::tryToSend() {
 		initWrapper = MTPInitConnection<SerializedRequest>(
 			MTP_flags(Flag::f_params
 				| (mtprotoProxy ? Flag::f_proxy : Flag(0))),
-			MTP_int(ApiId),
+			MTP_int(::Kotato::JsonSettings::GetInt("api_id")),
 			MTP_string(deviceModel),
 			MTP_string(systemVersion),
 			MTP_string(appVersion),
