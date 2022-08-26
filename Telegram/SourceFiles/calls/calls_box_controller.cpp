@@ -7,7 +7,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_box_controller.h"
 
+#include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/checkbox.h"
@@ -388,7 +391,18 @@ void BoxController::rowRightActionClicked(not_null<PeerListRow*> row) {
 	auto user = row->peer()->asUser();
 	Assert(user != nullptr);
 
-	Core::App().calls().startOutgoingCall(user, false);
+	if (::Kotato::JsonSettings::GetBool("confirm_before_calls")) {
+		Ui::show(Ui::MakeConfirmBox({
+			.text = ktr("ktg_call_sure"),
+			.confirmed = [=] {
+				Ui::hideLayer();
+				Core::App().calls().startOutgoingCall(user, false);
+			},
+			.confirmText = ktr("ktg_call_button"),
+		}));
+	} else {
+		Core::App().calls().startOutgoingCall(user, false);
+	}
 }
 
 void BoxController::receivedCalls(const QVector<MTPMessage> &result) {

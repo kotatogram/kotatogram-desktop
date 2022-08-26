@@ -9,6 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <rpl/combine.h>
 #include <rpl/combine_previous.h>
+#include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "history/history.h"
 #include "history/view/history_view_send_action.h"
 #include "boxes/add_contact_box.h"
@@ -234,7 +236,18 @@ void TopBarWidget::refreshLang() {
 void TopBarWidget::call() {
 	if (const auto peer = _activeChat.key.peer()) {
 		if (const auto user = peer->asUser()) {
-			Core::App().calls().startOutgoingCall(user, false);
+			if (::Kotato::JsonSettings::GetBool("confirm_before_calls")) {
+				Ui::show(Ui::MakeConfirmBox({
+					.text = ktr("ktg_call_sure"),
+					.confirmed = [=] {
+						Ui::hideLayer();
+						Core::App().calls().startOutgoingCall(user, false);
+					},
+					.confirmText = ktr("ktg_call_button"),
+				}));
+			} else {
+				Core::App().calls().startOutgoingCall(user, false);
+			}
 		}
 	}
 }

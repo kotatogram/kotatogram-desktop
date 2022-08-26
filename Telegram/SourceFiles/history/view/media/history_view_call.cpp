@@ -7,6 +7,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_call.h"
 
+#include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
+#include "boxes/abstract_box.h" // Ui::hideLayer().
+#include "ui/boxes/confirm_box.h"
 #include "lang/lang_keys.h"
 #include "ui/chat/chat_style.h"
 #include "ui/text/format_values.h"
@@ -61,7 +65,18 @@ QSize Call::countOptimalSize() {
 	const auto video = _video;
 	_link = std::make_shared<LambdaClickHandler>([=] {
 		if (user) {
-			Core::App().calls().startOutgoingCall(user, video);
+			if (::Kotato::JsonSettings::GetBool("confirm_before_calls")) {
+				Ui::show(Ui::MakeConfirmBox({
+					.text = ktr("ktg_call_sure"),
+					.confirmed = [=] {
+						Ui::hideLayer();
+						Core::App().calls().startOutgoingCall(user, false);
+					},
+					.confirmText = ktr("ktg_call_button"),
+				}));
+			} else {
+				Core::App().calls().startOutgoingCall(user, video);
+			}
 		}
 	});
 
