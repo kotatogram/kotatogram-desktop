@@ -243,6 +243,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "fonts/use_original_metrics", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "big_emoji_outline", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 };
 
 using OldOptionKey = QString;

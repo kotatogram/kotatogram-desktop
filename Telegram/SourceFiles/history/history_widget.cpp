@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_editing.h"
 #include "api/api_bot.h"
 #include "api/api_chat_participants.h"
@@ -567,6 +568,14 @@ HistoryWidget::HistoryWidget(
 	}, lifetime());
 
 	Core::App().settings().largeEmojiChanges(
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			updateHistoryGeometry();
+		});
+	}, lifetime());
+
+	::Kotato::JsonSettings::Events(
+		"big_emoji_outline"
 	) | rpl::start_with_next([=] {
 		crl::on_main(this, [=] {
 			updateHistoryGeometry();

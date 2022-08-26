@@ -87,6 +87,8 @@ void SetupKotatoChats(
 void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	AddSubsectionTitle(container, rktr("ktg_settings_messages"));
 
+	SettingsMenuJsonSwitch(ktg_settings_emoji_outline, big_emoji_outline);
+
 	AddSkip(container);
 }
 
