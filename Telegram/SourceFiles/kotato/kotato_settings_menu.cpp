@@ -71,6 +71,8 @@ void SetupKotatoChats(
 	Ui::AddSkip(container);
 	Ui::AddSubsectionTitle(container, rktr("ktg_settings_chats"));
 
+	SettingsMenuJsonSwitch(ktg_settings_always_show_scheduled, always_show_scheduled);
+
 	container->add(object_ptr<Button>(
 		container,
 		rktr("ktg_settings_fonts"),
