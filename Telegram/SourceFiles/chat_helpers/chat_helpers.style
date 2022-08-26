@@ -1378,6 +1378,9 @@ historySuggestPostToggle: IconButton(historyAttach) {
 historySuggestIconPosition: point(4px, 4px);
 historySuggestIconActive: icon{{ "chat/input_paid", windowActiveTextFg }};
 
+historyScheduledToggleEmpty: icon {{ "send_control_scheduled_no_dot", historyComposeIconFg }};
+historyScheduledToggleEmptyOver: icon {{ "send_control_scheduled_no_dot", historyComposeIconFgOver }};
+
 historyAttachEmojiInner: IconButton(historyAttach) {
 	icon: icon {{ "chat/input_smile_face", historyComposeIconFg }};
 	iconOver: icon {{ "chat/input_smile_face", historyComposeIconFgOver }};

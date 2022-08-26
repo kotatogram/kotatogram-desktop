@@ -434,6 +434,7 @@ ChatWidget::ChatWidget(
 			) | rpl::map([=] {
 				return session().scheduledMessages().count(_history) > 0;
 			}) | rpl::type_erased,
+		.scheduledToggleAlwaysShown = _topic || (!_repliesRootId && !_sublist),
 		.currentSuggest = [=] { return suggestOptions(); },
 		.processShortcut = [=](QString shortcut) {
 			const auto messages = &_peer->owner().shortcutMessages();

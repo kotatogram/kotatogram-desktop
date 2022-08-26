@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/controls/history_view_compose_controls.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/call_delayed.h"
 #include "base/event_filter.h"
 #include "base/options.h"
@@ -1323,10 +1324,19 @@ ComposeControls::ComposeControls(
 		) | rpl::start_to_stream(_stickerOrEmojiChosen, _wrap->lifetime());
 	}
 	if (descriptor.scheduledToggleValue) {
-		std::move(
-			descriptor.scheduledToggleValue
-		) | rpl::on_next([=](bool hasScheduled) {
-			if (!_scheduled && hasScheduled) {
+		auto alwaysShown = descriptor.scheduledToggleAlwaysShown
+			? (rpl::single(QString()) | rpl::then(
+				::Kotato::JsonSettings::Events("always_show_scheduled")
+			) | rpl::map([] {
+				return ::Kotato::JsonSettings::GetBool("always_show_scheduled");
+			}) | rpl::type_erased)
+			: rpl::single(false);
+		rpl::combine(
+			std::move(descriptor.scheduledToggleValue),
+			std::move(alwaysShown)
+		) | rpl::on_next([=](bool hasScheduled, bool alwaysShown) {
+			const auto shown = hasScheduled || alwaysShown;
+			if (!_scheduled && shown) {
 				_scheduled = base::make_unique_q<Ui::IconButton>(
 					_wrap.get(),
 					st::historyScheduledToggle);
@@ -1340,8 +1350,15 @@ ComposeControls::ComposeControls(
 				orderControls(); // Raise drag areas to the top.
 				updateControlsVisibility();
 				updateControlsGeometry(_wrap->size());
-			} else if (_scheduled && !hasScheduled) {
+			} else if (_scheduled && !shown) {
 				_scheduled = nullptr;
+			}
+			if (_scheduled) {
+				_scheduled->setIconOverride(
+					hasScheduled ? nullptr : &st::historyScheduledToggleEmpty,
+					(hasScheduled
+						? nullptr
+						: &st::historyScheduledToggleEmptyOver));
 			}
 		}, _wrap->lifetime());
 	}

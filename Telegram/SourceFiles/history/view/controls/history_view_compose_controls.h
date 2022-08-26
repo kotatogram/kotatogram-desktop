@@ -142,6 +142,7 @@ struct ComposeControlsDescriptor {
 	bool voiceLockFromBottom = false;
 	ChatHelpers::ComposeFeatures features;
 	rpl::producer<bool> scheduledToggleValue;
+	bool scheduledToggleAlwaysShown = false;
 	Fn<SuggestOptions()> currentSuggest;
 	Fn<void(QString)> processShortcut;
 	Fn<bool(int)> moderateKeyActivateCallback;
