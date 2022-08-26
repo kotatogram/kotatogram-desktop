@@ -116,6 +116,11 @@ mainMenuCoverNameTop: 84px;
 mainMenuCoverStatusLeft: 24px;
 mainMenuCoverStatusTop: 103px;
 mainMenuPhoneFont: font(12px);
+mainMenuCoverNameOnlyTop: 94px;
+mainMenuCoverNameOnlyFont: font(14px semibold);
+mainMenuCoverNameOnlyStyle: TextStyle(semiboldTextStyle) {
+	font: mainMenuCoverNameOnlyFont;
+}
 mainMenuSkip: 6px;
 mainMenuFooterHeightMin: 80px;
 mainMenu: Menu(defaultMenu) {
