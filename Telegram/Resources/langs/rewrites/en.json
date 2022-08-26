@@ -60,6 +60,7 @@
 	"ktg_profile_group_id": "Group ID",
 	"ktg_profile_supergroup_id": "Supergroup ID",
 	"ktg_profile_channel_id": "Channel ID",
+	"ktg_settings_show_phone_number": "Show phone in drawer",
 	"ktg_settings_adaptive_bubbles": "Adaptive bubbles",
 	"ktg_settings_filters": "Folders",
 	"ktg_settings_messages": "Messages",

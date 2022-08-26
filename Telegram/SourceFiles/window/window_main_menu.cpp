@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_main_menu.h"
 
+#include "kotato/kotato_settings.h"
 #include "window/themes/window_theme.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
@@ -1184,16 +1185,30 @@ void MainMenu::paintEvent(QPaintEvent *e) {
 			p.fillRect(cover, st::mainMenuCoverBg);
 		}
 		p.setPen(st::mainMenuCoverFg);
-		p.setFont(st::semiboldFont);
-		_controller->session().user()->nameText().drawLeftElided(
-			p,
-			st::mainMenuCoverTextLeft,
-			st::mainMenuCoverNameTop,
-			widthText,
-			width());
-		p.setFont(st::normalFont);
-		p.drawTextLeft(st::mainMenuCoverTextLeft, st::mainMenuCoverStatusTop, width(), _phoneText);
+		if (::Kotato::JsonSettings::GetBool("show_phone_in_drawer")) {
+			p.setFont(st::semiboldFont);
+			_controller->session().user()->nameText().drawLeftElided(
+				p,
+				st::mainMenuCoverTextLeft,
+				st::mainMenuCoverNameTop,
+				widthText,
+				width());
+			p.setFont(st::normalFont);
+			p.drawTextLeft(st::mainMenuCoverTextLeft, st::mainMenuCoverStatusTop, width(), _phoneText);
+		} else {
+			p.setFont(st::mainMenuCoverNameOnlyFont);
+			auto name = _controller->session().user()->nameText().toString();
+			auto nameStr = Ui::Text::String();
+			nameStr.setText(st::mainMenuCoverNameOnlyStyle, name, Ui::NameTextOptions());
+			nameStr.drawLeftElided(
+				p,
+				st::mainMenuCoverTextLeft,
+				st::mainMenuCoverNameOnlyTop,
+				widthText,
+				width());
 
+		}
+		
 		// Draw Saved Messages button.
 		if (!_cloudButton->isHidden()) {
 			Ui::EmptyUserpic::PaintSavedMessages(

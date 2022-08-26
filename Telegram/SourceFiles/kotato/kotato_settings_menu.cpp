@@ -306,6 +306,7 @@ void SetupKotatoOther(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_other"));
 
+	SettingsMenuJsonSwitch(ktg_settings_show_phone_number, show_phone_in_drawer);
 
 	const auto chatIdButton = container->add(
 		object_ptr<Button>(
