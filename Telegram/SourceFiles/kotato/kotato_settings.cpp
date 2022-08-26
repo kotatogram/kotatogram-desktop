@@ -156,6 +156,25 @@ CheckHandler IntLimitMin(int min) {
 }
 
 
+CheckHandler NetSpeedBoostConv(CheckHandler wrapped = nullptr) {
+	return [=] (QVariant value) -> QVariant {
+		auto newValue = 0;
+		if (value.canConvert<int>()) {
+			newValue = value.value<int>();
+		} else if (value.canConvert<QString>()) {
+			const auto strValue = value.value<QString>();
+			if (strValue == "high") {
+				newValue = 3;
+			} else if (strValue == "medium") {
+				newValue = 2;
+			} else if (strValue == "low") {
+				newValue = 1;
+			}
+		}
+		return (wrapped) ? wrapped(newValue) : newValue;
+	};
+}
+
 struct Definition {
 	SettingScope scope = SettingScope::Global;
 	SettingStorage storage = SettingStorage::MainJson;
@@ -267,6 +286,10 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 2,
 		.limitHandler = IntLimit(0, 2, 2), }},
+	{ "net_speed_boost", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0,
+		.limitHandler = NetSpeedBoostConv(IntLimit(0, 3)), }},
 };
 
 using OldOptionKey = QString;
@@ -412,6 +435,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 
 	if (areDefault) {
 		settings.insert(qsl("version"), QString::number(AppKotatoVersion));
+		settings.insert(qsl("net_speed_boost"), QJsonValue(QJsonValue::Null));
 	}
 
 	auto document = QJsonDocument();
