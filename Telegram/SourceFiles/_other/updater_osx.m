@@ -91,8 +91,10 @@ int main(int argc, const char * argv[]) {
 	openLog();
 	pid_t procId = 0;
 	BOOL update = YES, toSettings = NO, autoStart = NO, startInTray = NO, freeType = NO;
-	BOOL customWorkingDir = NO;
+	BOOL customWorkingDir = NO, useEnvApi = YES;
 	NSString *key = nil;
+	NSString *customApiId = nil;
+	NSString *customApiHash = nil;
 	for (int i = 0; i < argc; ++i) {
 		if ([@"-workpath" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
 			if (++i < argc) {
@@ -120,6 +122,12 @@ int main(int argc, const char * argv[]) {
 			customWorkingDir = YES;
 		} else if ([@"-key" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
 			if (++i < argc) key = [NSString stringWithUTF8String:argv[i]];
+		} else if ([@"-no-env-api" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
+			useEnvApi = NO;
+		} else if ([@"-api-id" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
+			if (++i < argc) customApiId = [NSString stringWithUTF8String:argv[i]];
+		} else if ([@"-api-hash" isEqualToString:[NSString stringWithUTF8String:argv[i]]]) {
+			if (++i < argc) customApiHash = [NSString stringWithUTF8String:argv[i]];
 		}
 	}
 	if (!workDir) {
@@ -261,6 +269,13 @@ int main(int argc, const char * argv[]) {
 	if (customWorkingDir) {
 		[args addObject:@"-workdir"];
 		[args addObject:workDir];
+	}
+	if (!useEnvApi) [args addObject:@"-no-env-api"];
+	if (customApiId && customApiHash) {
+		[args addObject:@"-api-id"];
+		[args addObject:customApiId];
+		[args addObject:@"-api-hash"];
+		[args addObject:customApiHash];
 	}
 	writeLog([[NSArray arrayWithObjects:@"Running application '", appPath, @"' with args '", [args componentsJoinedByString:@"' '"], @"'..", nil] componentsJoinedByString:@""]);
 
