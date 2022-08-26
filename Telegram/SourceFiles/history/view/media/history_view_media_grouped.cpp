@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_media_grouped.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/history_item_components.h"
 #include "history/history_item.h"
 #include "history/history.h"
@@ -127,10 +128,18 @@ QSize GroupedMedia::countOptimalSize() {
 		sizes.push_back(part.content->sizeForGroupingOptimal(maxWidth));
 	}
 
+	const auto captionWithPaddings = _caption.maxWidth()
+		+ st::msgPadding.left()
+		+ st::msgPadding.right();
+	auto groupMaxWidth = st::historyGroupWidthMax;
+	if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+		accumulate_max(groupMaxWidth, captionWithPaddings);
+	}
+
 	const auto layout = (_mode == Mode::Grid)
 		? Ui::LayoutMediaGroup(
 			sizes,
-			st::historyGroupWidthMax,
+			groupMaxWidth,
 			st::historyGroupWidthMin,
 			st::historyGroupSkip)
 		: LayoutPlaylist(sizes);
@@ -146,6 +155,9 @@ QSize GroupedMedia::countOptimalSize() {
 	}
 
 	if (!_caption.isEmpty()) {
+		if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+			maxWidth = qMax(maxWidth, captionWithPaddings);
+		}
 		auto captionw = maxWidth - st::msgPadding.left() - st::msgPadding.right();
 		minHeight += st::mediaCaptionSkip + _caption.countHeight(captionw);
 		if (isBubbleBottom()) {

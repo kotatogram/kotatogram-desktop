@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_document.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/random.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_icon.h"
@@ -520,7 +521,11 @@ QSize Document::countOptimalSize() {
 
 	if (auto named = Get<HistoryDocumentNamed>()) {
 		accumulate_max(maxWidth, tleft + named->namew + tright);
-		accumulate_min(maxWidth, st::msgMaxWidth);
+		if (::Kotato::JsonSettings::GetBool("adaptive_bubbles") && captioned) {
+			accumulate_max(maxWidth, captioned->caption.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
+		} else {
+			accumulate_min(maxWidth, st::msgMaxWidth);
+		}
 	}
 	if (voice && voice->transcribe) {
 		maxWidth += st::historyTranscribeSkip

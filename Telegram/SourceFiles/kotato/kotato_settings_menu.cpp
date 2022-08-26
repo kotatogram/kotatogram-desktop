@@ -135,6 +135,45 @@ void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	Ui::AddDividerText(container, rktr("ktg_settings_sticker_scale_both_about"));
 	Ui::AddSkip(container);
 
+	auto adaptiveBubblesButton = container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_settings_adaptive_bubbles"),
+		st::settingsButtonNoIcon
+	));
+
+	auto monospaceLargeBubblesButton = container->add(
+		object_ptr<Ui::SlideWrap<Button>>(
+			container,
+			object_ptr<Ui::SettingsButton>(
+				container,
+				rktr("ktg_settings_monospace_large_bubbles"),
+				st::settingsButtonNoIcon)));
+
+	adaptiveBubblesButton->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("adaptive_bubbles"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("adaptive_bubbles"));
+	}) | rpl::start_with_next([monospaceLargeBubblesButton](bool enabled) {
+		monospaceLargeBubblesButton->toggle(!enabled, anim::type::normal);
+		::Kotato::JsonSettings::Set("adaptive_bubbles", enabled);
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	monospaceLargeBubblesButton->entity()->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("monospace_large_bubbles"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("monospace_large_bubbles"));
+	}) | rpl::start_with_next([](bool enabled) {
+		::Kotato::JsonSettings::Set("monospace_large_bubbles", enabled);
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	if (adaptiveBubblesButton->toggled()) {
+		monospaceLargeBubblesButton->hide(anim::type::instant);
+	}
+
 	SettingsMenuJsonSwitch(ktg_settings_emoji_outline, big_emoji_outline);
 
 	Ui::AddSkip(container);

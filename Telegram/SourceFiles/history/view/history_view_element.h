@@ -349,6 +349,7 @@ public:
 	[[nodiscard]] int skipBlockWidth() const;
 	[[nodiscard]] int skipBlockHeight() const;
 	[[nodiscard]] virtual int infoWidth() const;
+	[[nodiscard]] virtual int plainMaxWidth() const;
 	[[nodiscard]] virtual int bottomInfoFirstLineWidth() const;
 	[[nodiscard]] virtual bool bottomInfoIsWide() const;
 
