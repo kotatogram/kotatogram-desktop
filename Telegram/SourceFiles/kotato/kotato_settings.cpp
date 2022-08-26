@@ -289,6 +289,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 0,
 		.limitHandler = NetSpeedBoostConv(IntLimit(0, 3)), }},
+	{ "disable_up_edit", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;
