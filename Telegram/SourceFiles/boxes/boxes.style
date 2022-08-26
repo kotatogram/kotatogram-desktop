@@ -1017,3 +1017,7 @@ shortInfoBox: ShortInfoBox {
 	labeled: infoLabeled;
 	labeledOneLine: infoLabeledOneLine;
 }
+
+fontsBoxTextStyle: TextStyle(defaultTextStyle) {
+	font: font(13px);
+}
