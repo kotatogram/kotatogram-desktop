@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/win/launcher_win.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/crash_reports.h"
 #include "core/update_checker.h"
 #include "base/platform/win/base_windows_h.h"
@@ -89,6 +90,16 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 			pushArgument(u"-writeprotected"_q);
 			pushArgument('"' + cExeDir() + '"');
 		}
+	}
+
+	if (!::Kotato::JsonSettings::GetBool("api_use_env")) {
+		pushArgument(qsl("-no-env-api"));
+	}
+	if (::Kotato::JsonSettings::GetBool("api_start_params")) {
+		pushArgument(qsl("-api-id"));
+		pushArgument('"' + QString::number(::Kotato::JsonSettings::GetInt("api_id")) + '"');
+		pushArgument(qsl("-api-hash"));
+		pushArgument('"' + ::Kotato::JsonSettings::GetString("api_hash") + '"');
 	}
 	return launch(operation, binaryPath, argumentsList);
 }

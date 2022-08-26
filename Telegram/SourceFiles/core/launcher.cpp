@@ -26,6 +26,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Core {
 namespace {
 
+constexpr auto kApiIdVarName = "KTGDESKTOP_API_ID"_cs;
+constexpr auto kApiHashVarName = "KTGDESKTOP_API_HASH"_cs;
+
 uint64 InstallationTag = 0;
 
 base::options::toggle OptionFreeType({
@@ -383,6 +386,15 @@ int Launcher::exec() {
 
 	// Must be started before Sandbox is created.
 	Platform::start();
+
+	if (::Kotato::JsonSettings::GetBool("api_use_env")
+		&& qEnvironmentVariableIsSet(kApiIdVarName.utf8().constData())
+		&& qEnvironmentVariableIsSet(kApiHashVarName.utf8().constData())) {
+		::Kotato::JsonSettings::Set("api_id", qgetenv(kApiIdVarName.utf8().constData()).toInt());
+		::Kotato::JsonSettings::Set("api_hash", QString::fromLatin1(qgetenv(kApiHashVarName.utf8().constData())));
+		::Kotato::JsonSettings::Set("api_start_params", false);
+	}
+
 	auto result = executeApplication();
 
 	DEBUG_LOG(("Kotatogram finished, result: %1").arg(result));
@@ -509,6 +521,9 @@ void Launcher::processArguments() {
 		{ "-workdir"        , KeyFormat::OneValue },
 		{ "--"              , KeyFormat::OneValue },
 		{ "-scale"          , KeyFormat::OneValue },
+		{ "-no-env-api"     , KeyFormat::NoValues },
+		{ "-api-id"         , KeyFormat::OneValue },
+		{ "-api-hash"       , KeyFormat::OneValue },
 	};
 	auto parseResult = QMap<QByteArray, QStringList>();
 	auto parsingKey = QByteArray();
@@ -558,6 +573,15 @@ void Launcher::processArguments() {
 		gConfigScale = ((value < kScaleMin) || (value > kScaleMax))
 			? kScaleAuto
 			: value;
+	}
+
+	::Kotato::JsonSettings::Set("api_use_env", !parseResult.contains("-no-env-api"));
+	auto customApiId = parseResult.value("-api-id", {}).join(QString()).toInt();
+	auto customApiHash = parseResult.value("-api-hash", {}).join(QString());
+	if (customApiId > 0 && !customApiHash.isEmpty()) {
+		::Kotato::JsonSettings::Set("api_id", customApiId);
+		::Kotato::JsonSettings::Set("api_hash", customApiHash);
+		::Kotato::JsonSettings::Set("api_start_params", true);
 	}
 }
 

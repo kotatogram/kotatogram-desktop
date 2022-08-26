@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "intro/intro_phone.h"
 
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
 #include "intro/intro_code.h"
 #include "intro/intro_qr.h"
@@ -192,8 +193,8 @@ void PhoneWidget::submit() {
 	api().instance().setUserPhone(_sentPhone);
 	_sentRequest = api().request(MTPauth_SendCode(
 		MTP_string(_sentPhone),
-		MTP_int(ApiId),
-		MTP_string(ApiHash),
+		MTP_int(::Kotato::JsonSettings::GetInt("api_id")),
+		MTP_string(::Kotato::JsonSettings::GetString("api_hash")),
 		MTP_codeSettings(
 			MTP_flags(0),
 			MTPVector<MTPbytes>(),
