@@ -208,6 +208,15 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.defaultValue = false, }},
 
 	// Stored settings
+	{ "fonts/semibold_is_bold", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "fonts/monospaced", {
+		.type = SettingType::QStringSetting,
+		.fillerValue = qsl("Consolas"), }},
+	{ "fonts/size", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0, }},
 };
 
 using OldOptionKey = QString;

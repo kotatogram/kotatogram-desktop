@@ -1432,6 +1432,8 @@ PRIVATE
     iv/iv_rich_message_serializer.h
     iv/iv_rich_page.cpp
     iv/iv_rich_page.h
+    kotato/boxes/kotato_fonts_box.cpp
+    kotato/boxes/kotato_fonts_box.h
     kotato/boxes/kotato_radio_box.cpp
     kotato/boxes/kotato_radio_box.h
     kotato/kotato_lang.cpp

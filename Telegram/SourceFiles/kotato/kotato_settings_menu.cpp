@@ -21,6 +21,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/continuous_sliders.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "boxes/connection_box.h"
+#include "kotato/boxes/kotato_fonts_box.h"
 #include "kotato/boxes/kotato_radio_box.h"
 #include "boxes/about_box.h"
 #include "ui/boxes/confirm_box.h"
@@ -69,6 +70,14 @@ void SetupKotatoChats(
 	not_null<Ui::VerticalLayout*> container) {
 	Ui::AddSkip(container);
 	Ui::AddSubsectionTitle(container, rktr("ktg_settings_chats"));
+
+	container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_settings_fonts"),
+		st::settingsButtonNoIcon
+	))->addClickHandler([=] {
+		Ui::show(Box<FontsBox>());
+	});
 
 
 	Ui::AddSkip(container);
