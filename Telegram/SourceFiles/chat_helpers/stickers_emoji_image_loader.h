@@ -22,7 +22,7 @@ public:
 		std::shared_ptr<UniversalImages> images,
 		bool largeEnabled);
 
-	[[nodiscard]] QImage prepare(EmojiPtr emoji) const;
+	[[nodiscard]] QImage prepare(EmojiPtr emoji, bool outline) const;
 	void switchTo(std::shared_ptr<UniversalImages> images);
 	std::shared_ptr<UniversalImages> releaseImages();
 

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "chat_helpers/stickers_emoji_pack.h"
 
+#include "kotato/kotato_settings.h"
 #include "chat_helpers/stickers_emoji_image_loader.h"
 #include "history/view/history_view_element.h"
 #include "history/history_item.h"
@@ -112,6 +113,13 @@ EmojiPack::EmojiPack(not_null<Main::Session*> session)
 		refreshAll();
 	}, _lifetime);
 
+	::Kotato::JsonSettings::Events(
+		"big_emoji_outline"
+	) | rpl::on_next([=] {
+		_images.clear();
+		refreshAll();
+	}, _lifetime);
+
 	Ui::Emoji::Updated(
 	) | rpl::on_next([=] {
 		_images.clear();
@@ -192,11 +200,13 @@ std::shared_ptr<LargeEmojiImage> EmojiPack::image(EmojiPtr emoji) {
 	const auto raw = result.get();
 	const auto weak = base::make_weak(_session);
 	raw->load = [=] {
+		const auto outline = ::Kotato::JsonSettings::GetBool(
+			"big_emoji_outline");
 		Core::App().emojiImageLoader().with([=](
 				const EmojiImageLoader &loader) {
 			crl::on_main(weak, [
 				=,
-				image = loader.prepare(emoji)
+				image = loader.prepare(emoji, outline)
 			]() mutable {
 				const auto i = _images.find(emoji);
 				if (i != end(_images)) {
