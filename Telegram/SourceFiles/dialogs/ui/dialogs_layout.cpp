@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_layout.h"
 
+#include "kotato/kotato_settings.h"
 #include "data/data_abstract_structure.h"
 #include "data/data_drafts.h"
 #include "data/data_session.h"
@@ -90,7 +91,8 @@ void PaintNarrowCounter(
 		bool selected,
 		bool active,
 		bool unreadMuted,
-		bool mentionOrReactionMuted) {
+		bool mentionOrReactionMuted,
+		int lines = 2) {
 	auto skipBeforeMention = 0;
 	if (displayUnreadCounter || displayUnreadMark) {
 		const auto counter = (unreadCount > 0)
@@ -102,9 +104,11 @@ void PaintNarrowCounter(
 			: 3;
 		const auto unreadRight = st::dialogsPadding.x()
 			+ st::dialogsPhotoSize;
-		const auto unreadTop = st::dialogsPadding.y()
-			+ st::dialogsPhotoSize
-			- st::dialogsUnreadHeight;
+		const auto unreadTop = (lines == 1
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y()
+				+ st::dialogsPhotoSize
+				- st::dialogsUnreadHeight);
 
 		UnreadBadgeStyle st;
 		st.active = active;
@@ -122,11 +126,15 @@ void PaintNarrowCounter(
 	if (displayMentionBadge || displayReactionBadge) {
 		const auto counter = QString();
 		const auto unreadRight = st::dialogsPadding.x()
-			+ st::dialogsPhotoSize
+			+ (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+				? st::dialogsUnreadHeight
+				: st::dialogsPhotoSize)
 			- skipBeforeMention;
-		const auto unreadTop = st::dialogsPadding.y()
-			+ st::dialogsPhotoSize
-			- st::dialogsUnreadHeight;
+		const auto unreadTop = (lines == 1
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y()
+				+ st::dialogsPhotoSize
+				- st::dialogsUnreadHeight);
 
 		UnreadBadgeStyle st;
 		st.active = active;
@@ -297,6 +305,186 @@ enum class Flag {
 	AllowUserOnline  = 0x20,
 };
 inline constexpr bool is_flag_type(Flag) { return true; }
+
+template <typename PaintItemCallback, typename PaintCounterCallback>
+void paintOneLineRow(
+		Painter &p,
+		not_null<const BasicRow*> row,
+		not_null<Entry*> entry,
+		Dialogs::Key chat,
+		FilterId filterId,
+		PeerData *from,
+		const HiddenSenderInfo *hiddenSenderInfo,
+		HistoryItem *item,
+		const Data::Draft *draft,
+		QDateTime date,
+		int fullWidth,
+		base::flags<Flag> flags,
+		crl::time ms,
+		PaintItemCallback &&paintItemCallback,
+		PaintCounterCallback &&paintCounterCallback) {
+	const auto supportMode = entry->session().supportMode();
+	if (supportMode) {
+		draft = nullptr;
+	}
+
+	auto active = (flags & Flag::Active);
+	auto selected = (flags & Flag::Selected);
+	auto fullRect = QRect(0, 0, fullWidth, st::dialogsImportantBarHeight);
+	auto bg = active
+		? st::dialogsBgActive
+		: (selected
+			? st::dialogsBgOver
+			: st::dialogsBg);
+	auto ripple = active
+		? st::dialogsRippleBgActive
+		: st::dialogsRippleBg;
+	p.fillRect(fullRect, bg);
+	row->paintRipple(p, 0, 0, fullWidth, &ripple->c);
+
+	const auto history = chat.history();
+
+	if (flags & Flag::SavedMessages) {
+		Ui::EmptyUserpic::PaintSavedMessages(
+			p,
+			st::dialogsPadding.x(),
+			st::dialogsPadding.y(),
+			fullWidth,
+			st::dialogsUnreadHeight);
+	} else if (flags & Flag::RepliesMessages) {
+		Ui::EmptyUserpic::PaintRepliesMessages(
+			p,
+			st::dialogsPadding.x(),
+			st::dialogsPadding.y(),
+			fullWidth,
+			st::dialogsUnreadHeight);
+	} else if (from) {
+		row->paintUserpic(
+			p,
+			from,
+			(flags & Flag::AllowUserOnline) ? history : nullptr,
+			ms,
+			active,
+			fullWidth);
+	} else if (hiddenSenderInfo) {
+		hiddenSenderInfo->userpic.paint(
+			p,
+			st::dialogsPadding.x(),
+			st::dialogsPadding.y(),
+			fullWidth,
+			st::dialogsUnreadHeight);
+	} else {
+		entry->paintUserpicLeft(
+			p,
+			row->userpicView(),
+			st::dialogsPadding.x(),
+			st::dialogsPadding.y(),
+			fullWidth,
+			st::dialogsUnreadHeight);
+	}
+
+	auto nameleft = st::dialogsPadding.x() * 2 + st::dialogsUnreadHeight;
+	if (fullWidth <= nameleft) {
+		if (!draft && item && !item->isEmpty()) {
+			paintCounterCallback();
+		}
+		return;
+	}
+
+	auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
+	auto rectForName = QRect(
+		nameleft,
+		st::dialogsPadding.y(),
+		namewidth,
+		st::dialogsTextFont->height);
+
+	const auto promoted = (history && history->useTopPromotion())
+		&& !(flags & (Flag::SearchResult/* | Flag::FeedSearchResult*/)); // #feed
+	if (promoted) {
+		const auto text = tr::lng_proxy_sponsor(tr::now);
+		PaintRowTopRight(p, text, rectForName, active, selected);
+	} else if (from && !(flags & Flag::SearchResult/* | Flag::FeedSearchResult*/)) {  // #feed
+		if (const auto chatTypeIcon = ChatTypeIcon(from, active, selected)) {
+			chatTypeIcon->paint(p, rectForName.topLeft(), fullWidth);
+			rectForName.setLeft(rectForName.left() + st::dialogsChatTypeSkip);
+		}
+	//} else if (const auto feed = chat.feed()) { // #feed
+	//	if (const auto feedTypeIcon = FeedTypeIcon(feed, active, selected)) {
+	//		feedTypeIcon->paint(p, rectForName.topLeft(), fullWidth);
+	//		rectForName.setLeft(rectForName.left() + st::dialogsChatTypeSkip);
+	//	}
+	}
+	if (!draft
+		&& !(supportMode
+			&& entry->session().supportHelper().isOccupiedBySomeone(history))
+		&& item
+		&& !item->isEmpty()) {
+		const auto nameWithoutCounterWidth = paintItemCallback(nameleft, (flags & Flag::SearchResult ? namewidth : rectForName.width()));
+		rectForName.setWidth(nameWithoutCounterWidth - st::dialogsPadding.x());
+	} else if (entry->isPinnedDialog(filterId) && (filterId || !entry->fixedOnTopIndex())) {
+		auto &icon = (active ? st::dialogsPinnedIconActive : (selected ? st::dialogsPinnedIconOver : st::dialogsPinnedIcon));
+		icon.paint(p, fullWidth - st::dialogsPadding.x() - icon.width(), st::dialogsPadding.y(), fullWidth);
+		rectForName.setWidth(rectForName.width() - icon.width() - st::dialogsUnreadPadding);
+	}
+
+	QString text;
+
+	if (flags & (Flag::SavedMessages | Flag::RepliesMessages)) {
+		text = (flags & Flag::SavedMessages)
+			? tr::lng_saved_messages(tr::now)
+			: tr::lng_replies_messages(tr::now);
+		p.setPen(active
+			? st::dialogsNameFgActive
+			: selected
+			? st::dialogsNameFgOver
+			: st::dialogsNameFg);
+	} else if (from) {
+		if (!(flags & Flag::SearchResult)) {
+			const auto badgeStyle = Ui::PeerBadgeStyle{
+				(active
+					? &st::dialogsVerifiedIconActive
+					: selected
+					? &st::dialogsVerifiedIconOver
+					: &st::dialogsVerifiedIcon),
+				(active
+					? &st::dialogsScamFgActive
+					: selected
+					? &st::dialogsScamFgOver
+					: &st::dialogsScamFg) };
+			const auto badgeWidth = Ui::DrawPeerBadgeGetWidth(
+				from,
+				p,
+				rectForName,
+				from->nameText().maxWidth(),
+				fullWidth,
+				badgeStyle);
+			rectForName.setWidth(rectForName.width() - badgeWidth);
+
+			text = from->nameText().toString();
+			p.setPen(active
+				? st::dialogsNameFgActive
+				: selected
+				? st::dialogsNameFgOver
+				: st::dialogsNameFg);
+			p.setFont(st::dialogsTextFont);
+		}
+	} else if (hiddenSenderInfo) {
+		text = hiddenSenderInfo->nameText.toString();
+	} else {
+		text = entry->chatListName();
+		const auto nameFg = active
+			? st::dialogsNameFgActive
+			: (selected
+				? st::dialogsArchiveFgOver
+				: st::dialogsArchiveFg);
+		p.setPen(nameFg);
+	}
+
+	if (!(from && (flags & Flag::SearchResult))) {
+		auto textStr = Ui::Text::String{ st::dialogsTextStyle, text, Ui::NameTextOptions() };
+		textStr.drawElided(p, rectForName.left(), rectForName.top(), rectForName.width());
+	}
+}
 
 template <typename PaintItemCallback, typename PaintCounterCallback>
 void paintRow(
@@ -801,6 +989,11 @@ void RowPainter::paint(
 		&& history
 		&& history->unreadReactions().has();
 	const auto displayUnreadCounter = [&] {
+		if (fullWidth < st::columnMinimalWidthLeft
+			&& ::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
+			return false;
+		}
+
 		if (displayMentionBadge
 			&& unreadCount == 1
 			&& item
@@ -833,9 +1026,12 @@ void RowPainter::paint(
 		| (peer && peer->isSelf() ? Flag::SavedMessages : Flag(0))
 		| (peer && peer->isRepliesChat() ? Flag::RepliesMessages : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
-		const auto texttop = st::dialogsPadding.y()
-			+ st::msgNameFont->height
-			+ st::dialogsSkip;
+		const auto texttop = (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y()
+				+ st::msgNameFont->height
+				+ st::dialogsSkip);
+
 		const auto availableWidth = PaintWideCounter(
 			p,
 			texttop,
@@ -851,37 +1047,42 @@ void RowPainter::paint(
 			selected,
 			unreadMuted,
 			mentionOrReactionMuted);
-		const auto &color = active
-			? st::dialogsTextFgServiceActive
-			: (selected
-				? st::dialogsTextFgServiceOver
-				: st::dialogsTextFgService);
-		const auto itemRect = QRect(
-			nameleft,
-			texttop,
-			availableWidth,
-			st::dialogsTextFont->height);
-		const auto actionWasPainted = ShowSendActionInDialogs(history)
-			? history->sendActionPainter()->paint(
-				p,
-				itemRect.x(),
-				itemRect.y(),
-				itemRect.width(),
-				fullWidth,
-				color,
-				ms)
-			: false;
-		if (const auto folder = row->folder()) {
-			PaintListEntryText(p, itemRect, active, selected, row);
-		} else if (history && !actionWasPainted) {
-			history->lastItemDialogsView.paint(
-				p,
-				item,
-				itemRect,
-				active,
-				selected,
-				{});
+		if (flags & Flag::SearchResult
+			|| ::Kotato::JsonSettings::GetInt("chat_list_lines") > 1) {
+			const auto &color = active
+				? st::dialogsTextFgServiceActive
+				: (selected
+					? st::dialogsTextFgServiceOver
+					: st::dialogsTextFgService);
+			const auto itemRect = QRect(
+				nameleft,
+				texttop,
+				availableWidth,
+				st::dialogsTextFont->height);
+			const auto actionWasPainted = ShowSendActionInDialogs(history)
+				? history->sendActionPainter()->paint(
+					p,
+					itemRect.x(),
+					itemRect.y(),
+					itemRect.width(),
+					fullWidth,
+					color,
+					ms)
+				: false;
+			if (const auto folder = row->folder()) {
+				PaintListEntryText(p, itemRect, active, selected, row);
+			} else if (history && !actionWasPainted) {
+				history->lastItemDialogsView.paint(
+					p,
+					item,
+					itemRect,
+					active,
+					selected,
+					{});
+			}
 		}
+
+		return availableWidth;
 	};
 	const auto paintCounterCallback = [&] {
 		PaintNarrowCounter(
@@ -894,24 +1095,44 @@ void RowPainter::paint(
 			selected,
 			active,
 			unreadMuted,
-			mentionOrReactionMuted);
+			mentionOrReactionMuted,
+			::Kotato::JsonSettings::GetInt("chat_list_lines"));
 	};
-	paintRow(
-		p,
-		row,
-		entry,
-		row->key(),
-		filterId,
-		from,
-		nullptr,
-		item,
-		cloudDraft,
-		displayDate,
-		fullWidth,
-		flags,
-		ms,
-		paintItemCallback,
-		paintCounterCallback);
+	if (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
+		paintOneLineRow(
+			p,
+			row,
+			entry,
+			row->key(),
+			filterId,
+			from,
+			nullptr,
+			item,
+			cloudDraft,
+			displayDate,
+			fullWidth,
+			flags,
+			ms,
+			paintItemCallback,
+			paintCounterCallback);
+	} else {
+		paintRow(
+			p,
+			row,
+			entry,
+			row->key(),
+			filterId,
+			from,
+			nullptr,
+			item,
+			cloudDraft,
+			displayDate,
+			fullWidth,
+			flags,
+			ms,
+			paintItemCallback,
+			paintCounterCallback);
+	}
 }
 
 void RowPainter::paint(
@@ -973,11 +1194,21 @@ void RowPainter::paint(
 		&& !displayMentionBadge
 		&& unreadMark;
 	const auto displayPinnedIcon = false;
-
+	const auto showSavedMessages = history->peer->isSelf()
+		&& !row->searchInChat();
+	const auto showRepliesMessages = history->peer->isRepliesChat()
+		&& !row->searchInChat();
+	const auto flags = (active ? Flag::Active : Flag(0))
+		| (selected ? Flag::Selected : Flag(0))
+		| Flag::SearchResult
+		| (showSavedMessages ? Flag::SavedMessages : Flag(0))
+		| (showRepliesMessages ? Flag::RepliesMessages : Flag(0));
 	const auto paintItemCallback = [&](int nameleft, int namewidth) {
-		const auto texttop = st::dialogsPadding.y()
-			+ st::msgNameFont->height
-			+ st::dialogsSkip;
+		const auto texttop = (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+			? st::dialogsPadding.y()
+			: st::dialogsPadding.y()
+				+ st::msgNameFont->height
+				+ st::dialogsSkip);
 		const auto availableWidth = PaintWideCounter(
 			p,
 			texttop,
@@ -994,18 +1225,23 @@ void RowPainter::paint(
 			unreadMuted,
 			mentionOrReactionMuted);
 
-		const auto itemRect = QRect(
-			nameleft,
-			texttop,
-			availableWidth,
-			st::dialogsTextFont->height);
-		row->itemView().paint(
-			p,
-			item,
-			itemRect,
-			active,
-			selected,
-			previewOptions);
+		if (flags & Flag::SearchResult
+			|| ::Kotato::JsonSettings::GetInt("chat_list_lines") > 1) {
+			const auto itemRect = QRect(
+				nameleft,
+				texttop,
+				availableWidth,
+				st::dialogsTextFont->height);
+			row->itemView().paint(
+				p,
+				item,
+				itemRect,
+				active,
+				selected,
+				previewOptions);
+		}
+
+		return availableWidth;
 	};
 	const auto paintCounterCallback = [&] {
 		PaintNarrowCounter(
@@ -1018,33 +1254,44 @@ void RowPainter::paint(
 			selected,
 			active,
 			unreadMuted,
-			mentionOrReactionMuted);
+			mentionOrReactionMuted,
+			::Kotato::JsonSettings::GetInt("chat_list_lines"));
 	};
-	const auto showSavedMessages = history->peer->isSelf()
-		&& !row->searchInChat();
-	const auto showRepliesMessages = history->peer->isRepliesChat()
-		&& !row->searchInChat();
-	const auto flags = (active ? Flag::Active : Flag(0))
-		| (selected ? Flag::Selected : Flag(0))
-		| Flag::SearchResult
-		| (showSavedMessages ? Flag::SavedMessages : Flag(0))
-		| (showRepliesMessages ? Flag::RepliesMessages : Flag(0));
-	paintRow(
-		p,
-		row,
-		history,
-		history,
-		FilterId(),
-		from,
-		hiddenSenderInfo,
-		item,
-		cloudDraft,
-		ItemDateTime(item),
-		fullWidth,
-		flags,
-		ms,
-		paintItemCallback,
-		paintCounterCallback);
+	if (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
+		paintOneLineRow(
+			p,
+			row,
+			history,
+			history,
+			FilterId(),
+			from,
+			hiddenSenderInfo,
+			item,
+			cloudDraft,
+			ItemDateTime(item),
+			fullWidth,
+			flags,
+			ms,
+			paintItemCallback,
+			paintCounterCallback);
+	} else {
+		paintRow(
+			p,
+			row,
+			history,
+			history,
+			FilterId(),
+			from,
+			hiddenSenderInfo,
+			item,
+			cloudDraft,
+			ItemDateTime(item),
+			fullWidth,
+			flags,
+			ms,
+			paintItemCallback,
+			paintCounterCallback);
+	}
 }
 
 QRect RowPainter::sendActionAnimationRect(
@@ -1054,7 +1301,9 @@ QRect RowPainter::sendActionAnimationRect(
 		int fullWidth,
 		bool textUpdated) {
 	const auto nameleft = st::dialogsPadding.x()
-		+ st::dialogsPhotoSize
+		+ (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+			? st::dialogsUnreadHeight
+			: st::dialogsPhotoSize)
 		+ st::dialogsPhotoPadding;
 	const auto namewidth = fullWidth - nameleft - st::dialogsPadding.x();
 	const auto texttop = st::dialogsPadding.y()

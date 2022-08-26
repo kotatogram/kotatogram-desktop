@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_row.h"
 
+#include "kotato/kotato_settings.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
@@ -148,6 +149,9 @@ void BasicRow::updateCornerBadgeShown(
 		not_null<PeerData*> peer,
 		Fn<void()> updateCallback) const {
 	const auto shown = [&] {
+		if (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1) {
+			return false;
+		}
 		if (const auto user = peer->asUser()) {
 			return Data::IsUserOnline(user);
 		} else if (const auto channel = peer->asChannel()) {
@@ -177,7 +181,9 @@ void BasicRow::PaintCornerBadgeFrame(
 		view,
 		0,
 		0,
-		st::dialogsPhotoSize);
+		(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+			? st::dialogsUnreadHeight
+			: st::dialogsPhotoSize));
 
 	PainterHighQualityEnabler hq(q);
 	q.setCompositionMode(QPainter::CompositionMode_Source);
@@ -224,7 +230,9 @@ void BasicRow::paintUserpic(
 			st::dialogsPadding.x(),
 			st::dialogsPadding.y(),
 			fullWidth,
-			st::dialogsPhotoSize);
+			(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+				? st::dialogsUnreadHeight
+				: st::dialogsPhotoSize));
 		if (!historyForCornerBadge || !_cornerBadgeShown) {
 			_cornerBadgeUserpic = nullptr;
 		}
@@ -232,9 +240,10 @@ void BasicRow::paintUserpic(
 	}
 	ensureCornerBadgeUserpic();
 	if (_cornerBadgeUserpic->frame.isNull()) {
-		_cornerBadgeUserpic->frame = QImage(
-			st::dialogsPhotoSize * cRetinaFactor(),
-			st::dialogsPhotoSize * cRetinaFactor(),
+		const auto frameSize = (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1
+				? st::dialogsUnreadHeight
+				: st::dialogsPhotoSize) * cRetinaFactor();
+		_cornerBadgeUserpic->frame = QImage(frameSize, frameSize,
 			QImage::Format_ARGB32_Premultiplied);
 		_cornerBadgeUserpic->frame.setDevicePixelRatio(cRetinaFactor());
 	}
