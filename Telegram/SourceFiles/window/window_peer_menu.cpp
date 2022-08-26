@@ -119,6 +119,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat_filters.h"
 #include "data/data_peer_values.h"
 #include "dialogs/dialogs_key.h"
+#include "dialogs/ui/dialogs_layout.h"
 #include "core/application.h"
 #include "core/ui_integration.h"
 #include "export/export_manager.h"
@@ -2031,7 +2032,7 @@ void Filler::fillArchiveActions() {
 
 		const auto hidden = controller->session().settings().archiveCollapsed();
 		const auto inmenu = controller->session().settings().archiveInMainMenu();
-		if (!inmenu) {
+		if (!inmenu && !Dialogs::Ui::CompactChatList()) {
 			const auto text = hidden
 				? tr::lng_context_archive_expand(tr::now)
 				: tr::lng_context_archive_collapse(tr::now);

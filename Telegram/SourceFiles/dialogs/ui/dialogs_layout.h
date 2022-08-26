@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace style {
 struct DialogRow;
+struct DialogRightButton;
 struct VerifiedBadge;
 } // namespace style
 
@@ -80,6 +81,12 @@ struct PaintContext {
 };
 
 extern const char kOptionDialogsMuteIcon[];
+
+[[nodiscard]] bool CompactChatList();
+[[nodiscard]] const style::DialogRow &ChatListRowStyle();
+[[nodiscard]] const style::DialogRow &ForumTopicRowStyle();
+[[nodiscard]] int ChatListNarrowWidth();
+[[nodiscard]] int RightButtonTop(const style::DialogRightButton &st);
 
 [[nodiscard]] const style::icon *ChatTypeIcon(
 	not_null<PeerData*> peer,

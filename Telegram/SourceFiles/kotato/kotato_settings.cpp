@@ -243,6 +243,10 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "video_download_boost", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "chat_list_lines", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 2,
+		.limitHandler = IntLimit(1, 2, 2), }},
 };
 
 using OldOptionKey = QString;

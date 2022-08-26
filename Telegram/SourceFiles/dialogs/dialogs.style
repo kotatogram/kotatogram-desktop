@@ -211,6 +211,21 @@ dialogsSpeakingDenominator: 8.;
 
 dialogsImportantBarHeight: 37px;
 
+compactDialogRow: DialogRow(defaultDialogRow) {
+	height: dialogsImportantBarHeight;
+	padding: margins(11px, 9px, 11px, 9px);
+	photoSize: dialogsUnreadHeight;
+	nameLeft: 41px;
+	nameTop: 11px;
+	textLeft: 41px;
+	textTop: 11px;
+}
+communityInfoCompactDialogRow: DialogRow(compactDialogRow) {
+	padding: margins(22px, 9px, 18px, 9px);
+	nameLeft: 52px;
+	textLeft: 52px;
+}
+
 dialogsWidthDuration: universalDuration;
 dialogsFilterSlideDuration: 200;
 dialogsFilterSwipeSlideDuration: 140;
@@ -634,6 +649,12 @@ forumTopicRow: DialogRow(defaultDialogRow) {
 	textLeft: 39px;
 	textTop: 29px;
 	unreadMarkDiameter: 8px;
+}
+compactForumTopicRow: DialogRow(forumTopicRow) {
+	height: dialogsImportantBarHeight;
+	padding: margins(8px, 8px, 10px, 8px);
+	nameTop: 11px;
+	textTop: 11px;
 }
 forumTopicIconPosition: point(2px, 0px);
 editTopicTitleMargin: margins(70px, 2px, 22px, 18px);

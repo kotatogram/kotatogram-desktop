@@ -93,6 +93,20 @@ void SetupKotatoChats(
 
 	container->add(object_ptr<Button>(
 		container,
+		rktr("ktg_settings_chat_list_compact"),
+		st::settingsButtonNoIcon
+	))->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetInt("chat_list_lines") == 1)
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1));
+	}) | rpl::on_next([](bool enabled) {
+		::Kotato::JsonSettings::Set("chat_list_lines", enabled ? 1 : 2);
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	container->add(object_ptr<Button>(
+		container,
 		rktr("ktg_settings_fonts"),
 		st::settingsButtonNoIcon
 	))->addClickHandler([=] {

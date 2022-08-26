@@ -7,7 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/main_window.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_updates.h"
+#include "dialogs/ui/dialogs_layout.h"
 #include "storage/localstorage.h"
 #include "platform/platform_specific.h"
 #include "ui/platform/ui_platform_window.h"
@@ -75,9 +77,7 @@ using Core::WindowPosition;
 }
 
 [[nodiscard]] QPoint ChildSkip() {
-	const auto skipx = st::defaultDialogRow.padding.left()
-		+ st::defaultDialogRow.photoSize
-		+ st::defaultDialogRow.padding.left();
+	const auto skipx = Dialogs::Ui::ChatListNarrowWidth();
 	const auto skipy = st::windowTitleHeight;
 	return { skipx, skipy };
 }
