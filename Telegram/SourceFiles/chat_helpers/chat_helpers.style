@@ -1031,6 +1031,11 @@ historyScheduledToggle: IconButton(historyAttach) {
 		{ "chat/input_scheduled_dot", attentionButtonFg }
 	};
 }
+historyScheduledToggleEmpty: IconButton(historyAttach) {
+	icon: icon {{ "send_control_scheduled_no_dot", historyComposeIconFg }};
+	iconOver: icon {{ "send_control_scheduled_no_dot", historyComposeIconFgOver }};
+	iconPosition: point(-1px, -1px);
+}
 
 historyAttachEmojiInner: IconButton(historyAttach) {
 	icon: icon {{ "chat/input_smile_face", historyComposeIconFg }};
