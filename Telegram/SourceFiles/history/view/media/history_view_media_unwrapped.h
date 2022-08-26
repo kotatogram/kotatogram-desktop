@@ -162,6 +162,8 @@ private:
 	int _topAdded = 0;
 	bool _additionalOnTop = false;
 
+	rpl::lifetime _lifetime;
+
 };
 
 } // namespace HistoryView

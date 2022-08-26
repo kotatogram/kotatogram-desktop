@@ -582,6 +582,22 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
+	::Kotato::JsonSettings::Events(
+		"sticker_height"
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			updateHistoryGeometry();
+		});
+	}, lifetime());
+
+	::Kotato::JsonSettings::Events(
+		"sticker_scale_both"
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			updateHistoryGeometry();
+		});
+	}, lifetime());
+
 	session().data().webPageUpdates(
 	) | rpl::filter([=](not_null<WebPageData*> page) {
 		return (_previewData == page.get());
