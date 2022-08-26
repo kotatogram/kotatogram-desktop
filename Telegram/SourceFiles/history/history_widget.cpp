@@ -578,6 +578,22 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
+	::Kotato::JsonSettings::Events(
+		"sticker_height"
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			updateHistoryGeometry();
+		});
+	}, lifetime());
+
+	::Kotato::JsonSettings::Events(
+		"sticker_scale_both"
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			updateHistoryGeometry();
+		});
+	}, lifetime());
+
 	session().data().animationPlayInlineRequest(
 	) | rpl::start_with_next([=](not_null<HistoryItem*> item) {
 		if (const auto view = item->mainView()) {

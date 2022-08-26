@@ -247,6 +247,13 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "big_emoji_outline", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "sticker_height", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 170,
+		.limitHandler = IntLimit(64, 256, 170), }},
+	{ "sticker_scale_both", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 };
 
 using OldOptionKey = QString;
