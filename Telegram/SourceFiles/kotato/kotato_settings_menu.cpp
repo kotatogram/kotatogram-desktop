@@ -38,6 +38,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "data/data_cloud_themes.h"
 #include "main/main_session.h"
 #include "mainwindow.h"
+#include "styles/style_background_preview_box.h"
 #include "styles/style_boxes.h"
 #include "styles/style_calls.h"
 #include "styles/style_settings.h"
@@ -87,6 +88,53 @@ void SetupKotatoChats(
 
 void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container) {
 	Ui::AddSubsectionTitle(container, rktr("ktg_settings_messages"));
+
+	const auto stickerHeightLabel = container->add(
+		object_ptr<Ui::LabelSimple>(
+			container,
+			st::ktgSettingsSliderLabel),
+		st::groupCallDelayLabelMargin);
+	const auto stickerHeightSlider = container->add(
+		object_ptr<Ui::MediaSlider>(
+			container,
+			st::defaultContinuousSlider),
+		st::localStorageLimitMargin);
+	const auto updateStickerHeightLabel = [=](int value) {
+		const auto pixels = QString::number(value);
+		stickerHeightLabel->setText(
+			ktr("ktg_settings_sticker_height", { "pixels", pixels }));
+	};
+	const auto updateStickerHeight = [=](int value) {
+		updateStickerHeightLabel(value);
+		::Kotato::JsonSettings::Set("sticker_height", value);
+		::Kotato::JsonSettings::Write();
+	};
+	stickerHeightSlider->resize(st::defaultContinuousSlider.seekSize);
+	stickerHeightSlider->setPseudoDiscrete(
+		193,
+		[](int val) { return val + 64; },
+		::Kotato::JsonSettings::GetInt("sticker_height"),
+		updateStickerHeight);
+	updateStickerHeightLabel(::Kotato::JsonSettings::GetInt("sticker_height"));
+
+	container->add(
+		object_ptr<Ui::Checkbox>(
+			container,
+			ktr("ktg_settings_sticker_scale_both"),
+			::Kotato::JsonSettings::GetBool("sticker_scale_both"),
+			st::settingsCheckbox),
+		st::settingsCheckboxPadding
+	)->checkedChanges(
+	) | rpl::filter([](bool checked) {
+		return (checked != ::Kotato::JsonSettings::GetBool("sticker_scale_both"));
+	}) | rpl::on_next([](bool checked) {
+		::Kotato::JsonSettings::Set("sticker_scale_both", checked);
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	Ui::AddSkip(container);
+	Ui::AddDividerText(container, rktr("ktg_settings_sticker_scale_both_about"));
+	Ui::AddSkip(container);
 
 	SettingsMenuJsonSwitch(ktg_settings_emoji_outline, big_emoji_outline);
 
