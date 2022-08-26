@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/mac/launcher_mac.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/crash_reports.h"
 #include "core/update_checker.h"
 #include "base/base_file_utilities.h"
@@ -70,6 +71,13 @@ bool Launcher::launchUpdater(UpdaterLaunch action) {
 		}
 		if (customWorkingDir()) {
 			[args addObject:@"-workdir_custom"];
+		}
+		if (!::Kotato::JsonSettings::GetBool("api_use_env")) [args addObject:@"-no-env-api"];
+		if (::Kotato::JsonSettings::GetBool("api_start_params")) {
+			[args addObject:@"-api-id"];
+			[args addObject:Q2NSString(QString::number(::Kotato::JsonSettings::GetInt("api_id")))];
+			[args addObject:@"-api-hash"];
+			[args addObject:Q2NSString(::Kotato::JsonSettings::GetString("api_hash"))];
 		}
 
 		DEBUG_LOG(("Application Info: executing %1 %2").arg(NS2QString(path)).arg(NS2QString([args componentsJoinedByString:@" "])));

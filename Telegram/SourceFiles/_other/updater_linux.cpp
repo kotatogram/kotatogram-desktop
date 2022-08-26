@@ -362,9 +362,12 @@ int main(int argc, char *argv[]) {
 	bool tosettings = false;
 	bool startintray = false;
 	bool customWorkingDir = false;
+	bool useEnvApi = true;
 
 	char *key = 0;
 	char *workdir = 0;
+	char *customApiId = 0;
+	char *customApiHash = 0;
 	for (int i = 1; i < argc; ++i) {
 		if (equal(argv[i], "-noupdate")) {
 			needupdate = false;
@@ -388,6 +391,12 @@ int main(int argc, char *argv[]) {
 			exeName = argv[i];
 		} else if (equal(argv[i], "-exepath") && ++i < argc) {
 			exePath = argv[i];
+		} else if (equal(argv[i], "-no-env-api")) {
+			useEnvApi = false;
+		} else if (equal(argv[i], "-api-id") && ++i < argc) {
+			customApiId = argv[i];
+		} else if (equal(argv[i], "-api-hash") && ++i < argc) {
+			customApiHash = argv[i];
 		}
 	}
 	if (exeName.empty() || exeName.find('/') != string::npos) {
@@ -484,6 +493,14 @@ int main(int argc, char *argv[]) {
 	if (customWorkingDir && workdir) {
 		push("-workdir");
 		push(workdir);
+	}
+
+	if (!useEnvApi) push("-no-env-api");
+	if (customApiId && customApiHash) {
+		push("-api-id");
+		push(customApiId);
+		push("-api-hash");
+		push(customApiHash);
 	}
 
 	auto args = vector<char*>();

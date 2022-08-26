@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 bool _debug = false;
 
 wstring updaterName, updaterDir, updateTo, exeName, customWorkingDir, customKeyFile;
+wstring customApiId, customApiHash;
 
 bool equal(const wstring &a, const wstring &b) {
 	return !_wcsicmp(a.c_str(), b.c_str());
@@ -344,6 +345,7 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdPara
 	int argsCount;
 
 	bool needupdate = false, autostart = false, debug = false, writeprotected = false, startintray = false, freetype = false;
+	bool useEnvApi = true;
 	args = CommandLineToArgvW(GetCommandLine(), &argsCount);
 	if (args) {
 		for (int i = 1; i < argsCount; ++i) {
@@ -383,6 +385,14 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdPara
 						break;
 					}
 				}
+			} else if (equal(args[i], L"-no-env-api")) {
+				useEnvApi = false;
+			} else if (equal(args[i], L"-api-id") && ++i < argsCount) {
+				writeLog(std::wstring(L"Argument: ") + args[i]);
+				customApiId = args[i];
+			} else if (equal(args[i], L"-api-hash") && ++i < argsCount) {
+				writeLog(std::wstring(L"Argument: ") + args[i]);
+				customApiHash = args[i];
 			}
 		}
 		if (exeName.empty()) {
@@ -434,6 +444,11 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdPara
 	}
 	if (!customKeyFile.empty()) {
 		targs += L" -key \"" + customKeyFile + L"\"";
+	}
+	if (!useEnvApi) targs += L" -no-env-api";
+	if (!customApiId.empty() && !customApiHash.empty()) {
+		targs += L" -api-id \"" + customApiId + L"\"";
+		targs += L" -api-hash \"" + customApiHash + L"\"";
 	}
 	writeLog(L"Result arguments: " + targs);
 
