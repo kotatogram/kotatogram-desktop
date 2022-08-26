@@ -254,12 +254,19 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "sticker_scale_both", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "adaptive_bubbles", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "monospace_large_bubbles", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;
 using NewOptionKey = QString;
 
 const std::map<OldOptionKey, NewOptionKey, std::greater<OldOptionKey>> ReplacedOptionsMap {
+	{ "adaptive_baloons", "adaptive_bubbles" },
 };
 
 QString DefaultFilePath() {

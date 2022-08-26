@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_gif.h"
 
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
 #include "mainwindow.h"
 #include "main/main_session.h"
@@ -132,6 +133,11 @@ QSize Gif::sizeForAspectRatio() const {
 }
 
 QSize Gif::countThumbSize(int &inOutWidthMax) const {
+	const auto captionWithPaddings = ::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+		? _caption.maxWidth()
+			+ st::msgPadding.left()
+			+ st::msgPadding.right()
+		: 0;
 	const auto maxSize = _data->sticker()
 		? Sticker::Size().width()
 		: _data->isVideoFile()
@@ -139,7 +145,8 @@ QSize Gif::countThumbSize(int &inOutWidthMax) const {
 		: _data->isVideoMessage()
 		? st::maxVideoMessageSize
 		: st::maxGifSize;
-	const auto useMaxSize = std::max(maxSize, st::minPhotoSize);
+	const auto maxSizeWithCaption = std::max(captionWithPaddings, maxSize);
+	const auto useMaxSize = std::max(maxSizeWithCaption, st::minPhotoSize);
 	const auto size = _data->sticker()
 		? videoSize()
 		: style::ConvertScale(videoSize());
@@ -171,6 +178,14 @@ QSize Gif::countOptimalSize() {
 	if (_parent->hasBubble()) {
 		accumulate_max(maxWidth, _parent->minWidthForMedia());
 		if (!_caption.isEmpty()) {
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+				const auto captionWithPaddings = ::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+					? _caption.maxWidth()
+						+ st::msgPadding.left()
+						+ st::msgPadding.right()
+					: 0;
+				accumulate_max(maxWidth, captionWithPaddings);
+			}
 			auto captionw = maxWidth - st::msgPadding.left() - st::msgPadding.right();
 			minHeight += st::mediaCaptionSkip + _caption.countHeight(captionw);
 			if (isBubbleBottom()) {
@@ -210,6 +225,15 @@ QSize Gif::countCurrentSize(int newWidth) {
 	if (_parent->hasBubble()) {
 		accumulate_max(newWidth, _parent->minWidthForMedia());
 		if (!_caption.isEmpty()) {
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+				const auto captionWithPaddings = ::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+					? _caption.maxWidth()
+						+ st::msgPadding.left()
+						+ st::msgPadding.right()
+					: 0;
+				accumulate_max(newWidth, captionWithPaddings);
+				accumulate_min(newWidth, availableWidth);
+			}
 			auto captionw = newWidth - st::msgPadding.left() - st::msgPadding.right();
 			newHeight += st::mediaCaptionSkip + _caption.countHeight(captionw);
 			if (isBubbleBottom()) {
