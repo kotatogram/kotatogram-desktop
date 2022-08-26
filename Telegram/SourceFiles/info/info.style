@@ -366,6 +366,12 @@ infoLabeledOneLine: FlatLabel(defaultFlatLabel) {
 		lineHeight: 19px;
 	}
 }
+infoLabeledOneLineInline: FlatLabel(infoLabeledOneLine) {
+	palette: TextPalette(defaultTextPalette) {
+		linkFg: windowFg;
+	}
+}
+
 infoLabelSkip: 2px;
 infoLabel: FlatLabel(infoLabeledOneLine) {
 	textFg: windowSubTextFg;
