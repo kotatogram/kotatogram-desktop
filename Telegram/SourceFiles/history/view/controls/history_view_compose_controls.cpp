@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/controls/history_view_compose_controls.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/event_filter.h"
 #include "base/platform/base_platform_info.h"
 #include "base/qt_signal_producer.h"
@@ -1384,7 +1385,9 @@ void ComposeControls::initKeyHandler() {
 			_attachRequests.fire({});
 			return;
 		}
-		if (key == Qt::Key_Up && !hasModifiers) {
+		if (key == Qt::Key_Up
+				&& !hasModifiers
+				&& !::Kotato::JsonSettings::GetBool("disable_up_edit")) {
 			if (!isEditingMessage() && _field->empty()) {
 				_editLastMessageRequests.fire(std::move(keyEvent));
 				return;

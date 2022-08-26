@@ -105,6 +105,8 @@ void SetupKotatoChats(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_chats"));
 
+	SettingsMenuJsonSwitch(ktg_settings_disable_up_edit, disable_up_edit);
+
 	AddButton(
 		container,
 		rktr("ktg_settings_chat_list_compact"),

@@ -6186,15 +6186,18 @@ void HistoryWidget::keyPressEvent(QKeyEvent *e) {
 	} else if (e->key() == Qt::Key_Down && !commonModifiers) {
 		_scroll->keyPressEvent(e);
 	} else if (e->key() == Qt::Key_Up && !commonModifiers) {
-		const auto item = _history
-			? _history->lastEditableMessage()
-			: nullptr;
-		if (item
-			&& _field->empty()
-			&& !_editMsgId
-			&& !_replyToId) {
-			editMessage(item);
-			return;
+		if (!::Kotato::JsonSettings::GetBool("disable_up_edit")) {
+			const auto item = _history
+				? _history->lastEditableMessage()
+				: nullptr;
+			if (item
+				&& item->allowsEdit(base::unixtime::now())
+				&& _field->empty()
+				&& !_editMsgId
+				&& !_replyToId) {
+				editMessage(item);
+				return;
+			}
 		}
 		_scroll->keyPressEvent(e);
 	} else if (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter) {
