@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_photo.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/history_item_components.h"
 #include "history/history_item.h"
 #include "history/history.h"
@@ -175,15 +176,20 @@ QSize Photo::countOptimalSize() {
 			? st::historyPhotoBubbleMinWidth
 			: st::minPhotoSize),
 		st::maxMediaSize);
-	const auto maxActualWidth = qMax(scaled.width(), minWidth);
+	auto maxActualWidth = qMax(scaled.width(), minWidth);
 	auto maxWidth = qMax(maxActualWidth, scaled.height());
 	auto minHeight = qMax(scaled.height(), st::minPhotoSize);
 	if (_parent->hasBubble() && !_caption.isEmpty()) {
+		const auto captionWithPaddings = (st::msgPadding.left()
+											+ _caption.maxWidth()
+											+ st::msgPadding.right());
+		if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+			maxActualWidth = qMax(maxActualWidth, captionWithPaddings);
+			maxWidth = qMax(maxWidth, captionWithPaddings);
+		}
 		maxWidth = qMax(
 			maxWidth,
-			(st::msgPadding.left()
-				+ _caption.maxWidth()
-				+ st::msgPadding.right()));
+			captionWithPaddings);
 		minHeight = adjustHeightForLessCrop(
 			dimensions,
 			{ maxWidth, minHeight });

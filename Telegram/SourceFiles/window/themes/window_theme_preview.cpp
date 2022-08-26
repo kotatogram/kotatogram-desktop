@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/themes/window_theme_preview.h"
 
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
 #include "platform/platform_window_title.h"
 #include "ui/text/text_options.h"
@@ -266,7 +267,9 @@ void Generator::addAudioBubble(QVector<int> waveform, int waveactive, QString wa
 	const auto &st = st::msgFileLayout;
 	auto tleft = st.padding.left() + st.thumbSize + st.thumbSkip;
 	accumulate_max(width, tleft + st::normalFont->width(wavestatus) + skipBlock.width() + st::msgPadding.right());
-	accumulate_min(width, st::msgMaxWidth);
+	if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+		accumulate_min(width, st::msgMaxWidth);
+	}
 
 	auto height = st.padding.top() + st.thumbSize + st.padding.bottom();
 	addBubble(std::move(bubble), width, height, date, status);
@@ -299,7 +302,9 @@ void Generator::addTextBubble(QString text, QString date, Status status) {
 
 	auto width = _history.width() - st::msgMargin.left() - st::msgMargin.right();
 	accumulate_min(width, st::msgPadding.left() + bubble.text.maxWidth() + st::msgPadding.right());
-	accumulate_min(width, st::msgMaxWidth);
+	if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+		accumulate_min(width, st::msgMaxWidth);
+	}
 
 	auto textWidth = qMax(width - st::msgPadding.left() - st::msgPadding.right(), 1);
 	auto textHeight = bubble.text.countHeight(textWidth);
@@ -328,7 +333,9 @@ void Generator::addPhotoBubble(QString image, QString caption, QString date, Sta
 
 	auto width = _history.width() - st::msgMargin.left() - st::msgMargin.right();
 	accumulate_min(width, bubble.photoWidth);
-	accumulate_min(width, st::msgMaxWidth);
+	if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+		accumulate_min(width, st::msgMaxWidth);
+	}
 
 	auto textWidth = qMax(width - st::msgPadding.left() - st::msgPadding.right(), 1);
 	auto textHeight = bubble.text.countHeight(textWidth);
