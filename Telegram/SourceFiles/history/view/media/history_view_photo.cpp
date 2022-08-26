@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_photo.h"
 
+#include "kotato/kotato_settings.h"
 #include "boxes/send_credits_box.h"
 #include "history/history_item_components.h"
 #include "history/history_item.h"
@@ -238,7 +239,15 @@ QSize Photo::countOptimalSize() {
 	}
 	const auto hostedInstantView = IsHostedInstantViewMedia(_parent);
 	const auto dimensions = photoSize();
-	const auto scaled = PhotoDesiredMediaSize(dimensions, hostedInstantView);
+	const auto captionWithPaddings = ::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+		? _parent->textualMaxWidth()
+		: 0;
+	const auto scaled = (!hostedInstantView
+			&& captionWithPaddings > st::maxMediaSize)
+		? DownscaledSize(
+			style::ConvertScale(dimensions),
+			{ captionWithPaddings, st::maxMediaSize })
+		: PhotoDesiredMediaSize(dimensions, hostedInstantView);
 	const auto maxMediaWidth = hostedInstantView
 		? std::max(scaled.width(), st::maxMediaSize)
 		: st::maxMediaSize;
@@ -255,12 +264,16 @@ QSize Photo::countOptimalSize() {
 		const auto botTop = _parent->Get<FakeBotAboutTop>();
 		const auto captionMaxWidth = _parent->textualMaxWidth();
 		if (botTop || !_parent->data()->isFakeAboutView()) {
-			const auto maxWithCaption = std::min(
-				st::msgMaxWidth,
-				captionMaxWidth);
-			maxWidth = std::min(
-				std::max(maxWidth, maxWithCaption),
-				st::msgMaxWidth);
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+				maxWidth = std::max(maxWidth, captionMaxWidth);
+			} else {
+				const auto maxWithCaption = std::min(
+					st::msgMaxWidth,
+					captionMaxWidth);
+				maxWidth = std::min(
+					std::max(maxWidth, maxWithCaption),
+					st::msgMaxWidth);
+			}
 			minHeight = adjustHeightForLessCrop(
 				dimensions,
 				{ maxWidth, minHeight });
@@ -277,6 +290,7 @@ QSize Photo::countCurrentSize(int newWidth) {
 		; !forced.isEmpty()) {
 		return forced;
 	}
+	const auto availableWidth = newWidth;
 	const auto hostedInstantView = IsHostedInstantViewMedia(_parent);
 	const auto thumbMaxWidth = hostedInstantView
 		? std::max(newWidth, 1)
@@ -288,7 +302,15 @@ QSize Photo::countCurrentSize(int newWidth) {
 			: st::minPhotoSize),
 		thumbMaxWidth);
 	const auto dimensions = photoSize();
-	const auto desired = PhotoDesiredMediaSize(dimensions, hostedInstantView);
+	const auto captionWithPaddings = ::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+		? _parent->textualMaxWidth()
+		: 0;
+	const auto desired = (!hostedInstantView
+			&& captionWithPaddings > st::maxMediaSize)
+		? DownscaledSize(
+			style::ConvertScale(dimensions),
+			{ captionWithPaddings, st::maxMediaSize })
+		: PhotoDesiredMediaSize(dimensions, hostedInstantView);
 	auto pix = _data->extendedMediaVideoDuration()
 		? CountMediaSize(
 			desired,
@@ -306,12 +328,18 @@ QSize Photo::countCurrentSize(int newWidth) {
 			accumulate_max(captionMaxWidth, botTop->maxWidth);
 		}
 		if (botTop || !_parent->data()->isFakeAboutView()) {
-			const auto maxWithCaption = std::min(
-				st::msgMaxWidth,
-				captionMaxWidth);
-			newWidth = std::min(
-				std::max(newWidth, maxWithCaption),
-				thumbMaxWidth);
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+				newWidth = std::min(
+					std::max(newWidth, captionMaxWidth),
+					availableWidth);
+			} else {
+				const auto maxWithCaption = std::min(
+					st::msgMaxWidth,
+					captionMaxWidth);
+				newWidth = std::min(
+					std::max(newWidth, maxWithCaption),
+					thumbMaxWidth);
+			}
 			newHeight = adjustHeightForLessCrop(
 				dimensions,
 				{ newWidth, newHeight });

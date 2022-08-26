@@ -3842,6 +3842,11 @@ void History::forceFullResize() {
 	_flags |= Flag::HasPendingResizedItems;
 }
 
+void History::forceFullReinit() {
+	_flags |= Flag::PendingAllItemsResize;
+	forceFullResize();
+}
+
 Data::Thread *History::threadFor(MsgId topicRootId, PeerId monoforumPeerId) {
 	return topicRootId
 		? peer->forumTopicFor(topicRootId)

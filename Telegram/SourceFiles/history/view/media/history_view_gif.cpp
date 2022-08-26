@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_gif.h"
 
+#include "kotato/kotato_settings.h"
 #include "apiwrap.h"
 #include "api/api_transcribes.h"
 #include "lang/lang_keys.h"
@@ -363,6 +364,9 @@ QSize Gif::sizeForAspectRatio() const {
 }
 
 QSize Gif::countThumbSize(int &inOutWidthMax) const {
+	const auto captionWithPaddings = ::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+		? _parent->textualMaxWidth()
+		: 0;
 	const auto hostedInstantView = IsHostedInstantViewMedia(_parent);
 	const auto maxSize = [&] {
 		if (hostedInstantView) {
@@ -374,11 +378,12 @@ QSize Gif::countThumbSize(int &inOutWidthMax) const {
 		}
 		return st::maxGifSize;
 	}();
+	const auto maxSizeWithCaption = std::max(captionWithPaddings, maxSize);
 	const auto size = style::ConvertScale(videoSize());
 	if (hostedInstantView) {
 		inOutWidthMax = std::max(inOutWidthMax, 1);
 	} else {
-		accumulate_min(inOutWidthMax, maxSize);
+		accumulate_min(inOutWidthMax, maxSizeWithCaption);
 	}
 	return DownscaledSize(size, { inOutWidthMax, maxSize });
 }
@@ -475,12 +480,18 @@ QSize Gif::countCurrentSize(int newWidth) {
 		if (botTop) {
 			accumulate_max(captionMaxWidth, botTop->maxWidth);
 		}
-		const auto maxWithCaption = std::min(
-			st::msgMaxWidth,
-			captionMaxWidth);
-		newWidth = std::min(
-			std::max(newWidth, maxWithCaption),
-			thumbMaxWidth);
+		if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+			newWidth = std::min(
+				std::max(newWidth, captionMaxWidth),
+				availableWidth);
+		} else {
+			const auto maxWithCaption = std::min(
+				st::msgMaxWidth,
+				captionMaxWidth);
+			newWidth = std::min(
+				std::max(newWidth, maxWithCaption),
+				thumbMaxWidth);
+		}
 		newHeight = adjustHeightForLessCrop(
 			scaled,
 			{ newWidth, newHeight });

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_message.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_suggest_post.h"
 #include "api/api_transcribes.h"
 #include "base/options.h"
@@ -6474,6 +6475,9 @@ QRect Message::countGeometry() const {
 		contentLeft += st::msgPhotoSkip;
 		if (const auto size = rightActionSize()) {
 			contentWidth -= size->width() + (st::msgPhotoSkip - st::historyFastShareSize);
+		} else if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+			// Without the width limit the bubble would reach the right margin.
+			contentWidth -= st::msgPhotoSkip;
 		}
 	//} else if (!Adaptive::Wide() && !out() && !fromChannel() && st::msgPhotoSkip - (hmaxwidth - hwidth) > 0) {
 	//	contentLeft += st::msgPhotoSkip - (hmaxwidth - hwidth);
@@ -6501,7 +6505,9 @@ QRect Message::countGeometry() const {
 		}
 	}
 	if (contentWidth < availableWidth
-		&& delegate()->elementChatMode() != ElementChatMode::Wide) {
+		&& (delegate()->elementChatMode() != ElementChatMode::Wide
+			|| (centeredView
+				&& ::Kotato::JsonSettings::GetBool("adaptive_bubbles")))) {
 		if (outbg) {
 			contentLeft += availableWidth - contentWidth;
 		} else if (centeredView) {
@@ -6607,14 +6613,19 @@ int Message::resizeContentGetHeight(int newWidth) {
 	if (hasFromPhoto()) {
 		if (const auto size = rightActionSize()) {
 			contentWidth -= size->width() + (st::msgPhotoSkip - st::historyFastShareSize);
+		} else if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+			contentWidth -= st::msgPhotoSkip;
 		}
 	}
 	accumulate_min(contentWidth, maxWidth());
-	_bubbleWidthLimit = (UnlimitedMessageWidth.value() && !mediaDisplayed)
+	_bubbleWidthLimit = (::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+			|| (UnlimitedMessageWidth.value() && !mediaDisplayed))
 		? 0x3FFFFFF
 		: std::max({
 			st::msgMaxWidth,
-			monospaceMaxWidth(),
+			::Kotato::JsonSettings::GetBool("monospace_large_bubbles")
+				? monospaceMaxWidth()
+				: 0,
 			mediaDisplayed ? media->bubbleWidthLimit() : 0,
 		});
 	accumulate_min(contentWidth, int(_bubbleWidthLimit));
@@ -6691,7 +6702,7 @@ int Message::resizeContentGetHeight(int newWidth) {
 		if (reactionsInBubble) {
 			_reactions->resizeGetHeight(textWidth);
 		}
-		if (contentWidth == maxWidth() && !appearing) {
+		if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles") && contentWidth == maxWidth() && !appearing) {
 			if (mediaDisplayed) {
 				newHeight += media->height() - media->minHeight();
 				if (check) {

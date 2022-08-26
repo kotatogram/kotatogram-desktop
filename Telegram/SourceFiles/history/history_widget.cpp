@@ -782,6 +782,22 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
+	rpl::merge(
+		::Kotato::JsonSettings::Events("adaptive_bubbles"),
+		::Kotato::JsonSettings::Events("monospace_large_bubbles")
+	) | rpl::on_next([=] {
+		crl::on_main(this, [=] {
+			if (_history) {
+				_history->forceFullReinit();
+				if (_migrated) {
+					_migrated->forceFullReinit();
+				}
+				updateHistoryGeometry();
+				update();
+			}
+		});
+	}, lifetime());
+
 	session().data().channelDifferenceTooLong(
 	) | rpl::filter([=](not_null<ChannelData*> channel) {
 		return _peer == channel.get();

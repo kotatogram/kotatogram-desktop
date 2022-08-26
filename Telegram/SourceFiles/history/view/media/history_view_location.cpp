@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_location.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/unixtime.h"
 #include "history/history.h"
 #include "history/history_item_components.h"
@@ -312,6 +313,9 @@ QSize Location::countOptimalSize() {
 
 	if (_parent->hasBubble()) {
 		if (!_title.isEmpty()) {
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+				maxWidth = std::max(maxWidth, _title.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
+			}
 			minHeight += std::min(
 				_title.countHeight(maxWidth
 					- st::msgPadding.left()
@@ -319,6 +323,9 @@ QSize Location::countOptimalSize() {
 				2 * st::webPageTitleFont->height);
 		}
 		if (!_description.isEmpty()) {
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+				maxWidth = std::max(maxWidth, _description.maxWidth() + st::msgPadding.left() + st::msgPadding.right());
+			}
 			minHeight += std::min(
 				_description.countHeight(maxWidth
 					- st::msgPadding.left()
@@ -348,8 +355,10 @@ QSize Location::countCurrentSize(int newWidth) {
 	auto newHeight = th;
 	if (tw > newWidth) {
 		newHeight = (newWidth * newHeight / tw);
-	} else {
+	} else if (!::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		newWidth = tw;
+	} else {
+		newHeight = (newWidth * newHeight / tw);
 	}
 	auto minWidth = hostedInstantView
 		? std::max(_parent->minWidthForMedia(), 1)

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_document.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/random.h"
 #include "lang/lang_keys.h"
 #include "lottie/lottie_icon.h"
@@ -1765,7 +1766,9 @@ int Document::widenGroupingMaxWidth(int current, bool last) {
 	const auto &caption = captioned->caption;
 	const auto padding = st::msgPadding.left() + st::msgPadding.right();
 	const auto proseFull = padding + caption.maxWidth();
-	const auto proseCapped = std::min(proseFull, int(st::msgMaxWidth));
+	const auto proseCapped = ::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+		? proseFull
+		: std::min(proseFull, int(st::msgMaxWidth));
 	const auto monospaceRaw = caption.countMaxMonospaceWidth();
 	const auto monospaceFull = monospaceRaw
 		? (padding + monospaceRaw)

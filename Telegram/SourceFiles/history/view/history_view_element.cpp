@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_element.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "apiwrap.h"
 #include "api/api_transcribes.h"
 #include "history/view/history_view_service_message.h"
@@ -795,7 +796,7 @@ void UnreadBar::paint(
 	p.setPen(st->historyUnreadBarFg());
 
 	int maxwidth = w;
-	if (mode == ElementChatMode::Wide) {
+	if (mode == ElementChatMode::Wide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		maxwidth = std::min(
 			maxwidth,
 			st::msgMaxWidth
@@ -963,7 +964,8 @@ void ForumThreadBar::Paint(
 		bool chatWide,
 		bool skipPatternLine) {
 	int left = st::msgServiceMargin.left();
-	const auto maxwidth = chatWide
+	const auto maxwidth = (chatWide
+			&& !::Kotato::JsonSettings::GetBool("adaptive_bubbles"))
 		? std::min(w, WideChatWidth())
 		: w;
 	w = maxwidth - st::msgServiceMargin.left() - st::msgServiceMargin.left();
@@ -1059,7 +1061,8 @@ void ServicePreMessage::init(
 
 int ServicePreMessage::resizeToWidth(int newWidth, ElementChatMode mode) {
 	width = newWidth;
-	if (mode == ElementChatMode::Wide) {
+	if (mode == ElementChatMode::Wide
+		&& !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		accumulate_min(
 			width,
 			st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left());

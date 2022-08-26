@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_media_grouped.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/history_item_components.h"
 #include "history/history_item.h"
 #include "history/history.h"
@@ -168,10 +169,16 @@ QSize GroupedMedia::countOptimalSize() {
 			part.content->sizeForGroupingOptimal(maxWidth, last));
 	}
 
+	const auto captionWithPaddings = _parent->textualMaxWidth();
+	auto groupMaxWidth = st::historyGroupWidthMax;
+	if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+		accumulate_max(groupMaxWidth, captionWithPaddings);
+	}
+
 	const auto layout = (_mode == Mode::Grid)
 		? Ui::LayoutMediaGroup(
 			sizes,
-			st::historyGroupWidthMax,
+			groupMaxWidth,
 			st::historyGroupWidthMin,
 			st::historyGroupSkip)
 		: LayoutPlaylist(sizes);

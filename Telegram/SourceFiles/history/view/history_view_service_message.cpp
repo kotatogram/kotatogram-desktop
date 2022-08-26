@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_service_message.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/view/media/history_view_media.h"
 #include "history/view/reactions/history_view_reactions.h"
 #include "history/view/history_view_cursor_state.h"
@@ -157,7 +158,7 @@ void PaintPreparedDate(
 		int w,
 		bool chatWide) {
 	int left = st::msgServiceMargin.left();
-	const auto maxwidth = chatWide
+	const auto maxwidth = (chatWide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles"))
 		? std::min(w, WideChatWidth())
 		: w;
 	w = maxwidth - st::msgServiceMargin.left() - st::msgServiceMargin.left();
@@ -450,7 +451,7 @@ bool Service::consumeHorizontalScroll(
 
 QRect Service::countGeometry() const {
 	auto result = QRect(0, 0, width(), height());
-	if (delegate()->elementChatMode() == ElementChatMode::Wide) {
+	if (delegate()->elementChatMode() == ElementChatMode::Wide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		result.setWidth(std::min(
 			result.width(),
 			st::msgMaxWidth
@@ -493,7 +494,7 @@ QSize Service::performCountCurrentSize(int newWidth) {
 	const auto media = this->media();
 	const auto mediaDisplayed = media && media->isDisplayed();
 	auto contentWidth = newWidth;
-	if (delegate()->elementChatMode() == ElementChatMode::Wide) {
+	if (delegate()->elementChatMode() == ElementChatMode::Wide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		accumulate_min(contentWidth, st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left());
 	}
 	contentWidth -= st::msgServiceMargin.left() + st::msgServiceMargin.left(); // two small margins
