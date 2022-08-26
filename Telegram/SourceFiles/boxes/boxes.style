@@ -1005,6 +1005,11 @@ infoLabeledOneLine: FlatLabel(defaultFlatLabel) {
 	}
 	margin: margins(5px, 5px, 5px, 5px);
 }
+infoLabeledOneLineInline: FlatLabel(infoLabeledOneLine) {
+	palette: TextPalette(defaultTextPalette) {
+		linkFg: windowFg;
+	}
+}
 infoLabelSkip: 2px;
 infoLabeled: FlatLabel(infoLabeledOneLine) {
 	minWidth: 180px;

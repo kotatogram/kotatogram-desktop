@@ -49,6 +49,23 @@ namespace Settings {
 namespace {
 
 
+QString ChatIdLabel(int option) {
+	switch (option) {
+		case 0:
+			return ktr("ktg_settings_chat_id_disable");
+
+		case 1:
+			return ktr("ktg_settings_chat_id_telegram");
+
+		case 2:
+			return ktr("ktg_settings_chat_id_bot");
+
+		default:
+			Unexpected("Option in Settings::ChatIdLabel.");
+	}
+	return QString();
+}
+
 } // namespace
 
 #define SettingsMenuJsonSwitch(LangKey, Option) container->add(object_ptr<Button>( \
@@ -227,6 +244,39 @@ void SetupKotatoOther(
 	Ui::AddDivider(container);
 	Ui::AddSkip(container);
 	Ui::AddSubsectionTitle(container, rktr("ktg_settings_other"));
+
+
+	const auto chatIdButton = container->add(
+		object_ptr<Button>(
+			container,
+			rktr("ktg_settings_chat_id"),
+			st::settingsButtonNoIcon));
+	auto chatIdText = rpl::single(
+		ChatIdLabel(::Kotato::JsonSettings::GetInt("show_chat_id"))
+	) | rpl::then(
+		::Kotato::JsonSettings::Events(
+			"show_chat_id"
+		) | rpl::map([] {
+			return ChatIdLabel(::Kotato::JsonSettings::GetInt("show_chat_id"));
+		})
+	);
+	CreateRightLabel(
+		chatIdButton,
+		std::move(chatIdText),
+		st::settingsButtonNoIcon,
+		rktr("ktg_settings_chat_id"));
+	chatIdButton->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			ktr("ktg_settings_chat_id"),
+			ktr("ktg_settings_chat_id_desc"),
+			::Kotato::JsonSettings::GetInt("show_chat_id"),
+			3,
+			ChatIdLabel,
+			[=] (int value) {
+				::Kotato::JsonSettings::Set("show_chat_id", value);
+				::Kotato::JsonSettings::Write();
+			}));
+	});
 
 	Ui::AddSkip(container);
 }
