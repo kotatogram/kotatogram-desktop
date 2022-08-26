@@ -155,6 +155,22 @@ CheckHandler IntLimitMin(int min) {
 	};
 }
 
+CheckHandler ScalesLimit() {
+	return [=] (QVariant value) -> QVariant {
+		auto newArrayValue = QJsonArray();
+		if (value.canConvert<QJsonArray>()) {
+			auto arrayValue = value.toJsonArray();
+			for (auto i = arrayValue.begin(); i != arrayValue.end() && arrayValue.size() <= 6; ++i) {
+				const auto scaleNumber = (*i).toDouble(); 
+				if (scaleNumber >= style::kScaleMin && scaleNumber <= style::kScaleMax) {
+					newArrayValue.append(scaleNumber);
+				}
+			}
+		}
+		return newArrayValue;
+	};
+}
+
 
 CheckHandler NetSpeedBoostConv(CheckHandler wrapped = nullptr) {
 	return [=] (QVariant value) -> QVariant {
@@ -293,6 +309,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "show_phone_in_drawer", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "scales", {
+		.type = SettingType::QJsonArraySetting,
+		.limitHandler = ScalesLimit(), }},
 };
 
 using OldOptionKey = QString;

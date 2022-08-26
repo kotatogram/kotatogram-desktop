@@ -66,6 +66,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
 
+#include <QtCore/QJsonArray>
+
 namespace Settings {
 namespace {
 
@@ -426,8 +428,22 @@ void SetupInterfaceScale(
 		object_ptr<Ui::SettingsSlider>(container, st::settingsSlider),
 		icon ? st::settingsScalePadding : st::settingsBigScalePadding);
 
+	static const auto customScales = [&] {
+		const auto scalesJson = ::Kotato::JsonSettings::Get("scales").toJsonArray();
+		auto result = std::vector<int>();
+		result.reserve(scalesJson.size());
+		for (auto i = scalesJson.begin(); i != scalesJson.end(); ++i) {
+			if ((*i).type() != QJsonValue::Undefined) {
+				result.push_back(int((*i).toDouble()));
+			}
+		}
+		return result;
+	}();
+
 	static const auto ScaleValues = [&] {
-		auto values = (cIntRetinaFactor() > 1)
+		auto values = (customScales.size() > 1)
+			? customScales
+			: (cIntRetinaFactor() > 1)
 			? std::vector<int>{ 100, 110, 120, 130, 140, 150 }
 			: std::vector<int>{ 100, 125, 150, 200, 250, 300 };
 		if (cConfigScale() == style::kScaleAuto) {
