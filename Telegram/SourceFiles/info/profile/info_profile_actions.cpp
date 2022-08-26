@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_actions.h"
 
+#include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "api/api_chat_participants.h"
 #include "base/options.h"
 #include "data/data_peer_values.h"
@@ -14,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_folder.h"
 #include "data/data_forum_topic.h"
 #include "data/data_channel.h"
+#include "data/data_chat.h"
 #include "data/data_changes.h"
 #include "data/data_chat.h"
 #include "data/data_user.h"
@@ -471,8 +474,44 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		result.text->setContextCopyText(contextCopyText);
 		return result;
 	};
+	auto addInfoOneLineInline = [&](
+			rpl::producer<QString> &&label,
+			rpl::producer<TextWithEntities> &&text,
+			const QString &contextCopyText) {
+		auto result = addInfoLine(
+			std::move(label),
+			std::move(text),
+			st::infoLabeledOneLineInline);
+		result->setContextCopyText(contextCopyText);
+		return result;
+	};
 	if (const auto user = _peer->asUser()) {
 		const auto controller = _controller->parentController();
+		if (::Kotato::JsonSettings::GetInt("show_chat_id") != 0) {
+			auto idDrawableText = IDValue(
+				user
+			) | rpl::map([](TextWithEntities &&text) {
+				return Ui::Text::Link(text.text);
+			});
+			auto idInfo = addInfoOneLineInline(
+				(user->isBot()
+					? rktr("ktg_profile_bot_id")
+					: rktr("ktg_profile_user_id")),
+				std::move(idDrawableText),
+				ktr("ktg_profile_copy_id"));
+
+			idInfo->setClickHandlerFilter([user](auto&&...) {
+				const auto idText = IDString(user);
+				if (!idText.isEmpty()) {
+					QGuiApplication::clipboard()->setText(idText);
+					Ui::Toast::Show(user->isBot()
+						? ktr("ktg_bot_id_copied")
+						: ktr("ktg_user_id_copied"));
+				}
+				return false;
+			});
+		}
+
 		if (user->session().supportMode()) {
 			addInfoLineGeneric(
 				user->session().supportHelper().infoLabelValue(user),
@@ -571,6 +610,35 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			[=] { controller->window().show(Box(EditContactBox, controller, user)); },
 			tracker);
 	} else {
+		if (::Kotato::JsonSettings::GetInt("show_chat_id") != 0) {
+			auto idDrawableText = IDValue(
+				_peer
+			) | rpl::map([](TextWithEntities &&text) {
+				return Ui::Text::Link(text.text);
+			});
+			auto idInfo = addInfoOneLineInline(
+				(_peer->isChat()
+					? rktr("ktg_profile_group_id")
+					: _peer->isMegagroup()
+					? rktr("ktg_profile_supergroup_id")
+					: rktr("ktg_profile_channel_id")),
+				std::move(idDrawableText),
+				ktr("ktg_profile_copy_id"));
+
+			idInfo->setClickHandlerFilter([peer = _peer](auto&&...) {
+				const auto idText = IDString(peer);
+				if (!idText.isEmpty()) {
+					QGuiApplication::clipboard()->setText(idText);
+					Ui::Toast::Show(peer->isChat()
+						? ktr("ktg_group_id_copied")
+						: peer->isMegagroup()
+						? ktr("ktg_supergroup_id_copied")
+						: ktr("ktg_channel_id_copied"));
+				}
+				return false;
+			});
+		}
+
 		const auto topicRootId = _topic ? _topic->rootId() : 0;
 		const auto addToLink = topicRootId
 			? ('/' + QString::number(topicRootId.bare))
