@@ -594,6 +594,36 @@ HistoryWidget::HistoryWidget(
 		});
 	}, lifetime());
 
+	::Kotato::JsonSettings::Events(
+		"adaptive_bubbles"
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			if (_history) {
+				_history->forceFullResize();
+				if (_migrated) {
+					_migrated->forceFullResize();
+				}
+				updateHistoryGeometry();
+				update();
+			}
+		});
+	}, lifetime());
+
+	::Kotato::JsonSettings::Events(
+		"monospace_large_bubbles"
+	) | rpl::start_with_next([=] {
+		crl::on_main(this, [=] {
+			if (_history) {
+				_history->forceFullResize();
+				if (_migrated) {
+					_migrated->forceFullResize();
+				}
+				updateHistoryGeometry();
+				update();
+			}
+		});
+	}, lifetime());
+
 	session().data().animationPlayInlineRequest(
 	) | rpl::start_with_next([=](not_null<HistoryItem*> item) {
 		if (const auto view = item->mainView()) {

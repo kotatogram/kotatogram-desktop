@@ -123,6 +123,7 @@ public:
 	[[nodiscard]] bool toggleSelectionByHandlerClick(
 		const ClickHandlerPtr &handler) const override;
 	[[nodiscard]] int infoWidth() const override;
+	[[nodiscard]] int plainMaxWidth() const override;
 	[[nodiscard]] int bottomInfoFirstLineWidth() const override;
 	[[nodiscard]] bool bottomInfoIsWide() const override;
 	[[nodiscard]] bool isSignedAuthorElided() const override;
@@ -229,7 +230,7 @@ private:
 	[[nodiscard]] ClickHandlerPtr fastReplyLink() const;
 
 	void refreshInfoSkipBlock();
-	[[nodiscard]] int plainMaxWidth() const;
+	//[[nodiscard]] int plainMaxWidth() const;
 	[[nodiscard]] int monospaceMaxWidth() const;
 
 	void updateViewButtonExistence();

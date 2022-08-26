@@ -295,6 +295,7 @@ public:
 	int skipBlockWidth() const;
 	int skipBlockHeight() const;
 	virtual int infoWidth() const;
+	virtual int plainMaxWidth() const;
 	virtual int bottomInfoFirstLineWidth() const;
 	virtual bool bottomInfoIsWide() const;
 
