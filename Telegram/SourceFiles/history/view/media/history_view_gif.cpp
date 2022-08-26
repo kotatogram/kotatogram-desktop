@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_gif.h"
 
+#include "kotato/kotato_settings.h"
 #include "apiwrap.h"
 #include "api/api_transcribes.h"
 #include "lang/lang_keys.h"
@@ -229,13 +230,19 @@ QSize Gif::sizeForAspectRatio() const {
 }
 
 QSize Gif::countThumbSize(int &inOutWidthMax) const {
+	const auto captionWithPaddings = ::Kotato::JsonSettings::GetBool("adaptive_bubbles")
+		? _caption.maxWidth()
+			+ st::msgPadding.left()
+			+ st::msgPadding.right()
+		: 0;
 	const auto maxSize = _data->isVideoFile()
 		? st::maxMediaSize
 		: _data->isVideoMessage()
 		? st::maxVideoMessageSize
 		: st::maxGifSize;
+	const auto maxSizeWithCaption = std::max(captionWithPaddings, maxSize);
 	const auto size = style::ConvertScale(videoSize());
-	accumulate_min(inOutWidthMax, maxSize);
+	accumulate_min(inOutWidthMax, maxSizeWithCaption);
 	return DownscaledSize(size, { inOutWidthMax, maxSize });
 }
 
@@ -272,6 +279,11 @@ QSize Gif::countOptimalSize() {
 	}
 	if (_parent->hasBubble()) {
 		if (!_caption.isEmpty()) {
+			if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+				accumulate_max(maxWidth, _caption.maxWidth()
+						+ st::msgPadding.left()
+						+ st::msgPadding.right());
+			}
 			maxWidth = qMax(maxWidth, st::msgPadding.left()
 				+ _caption.maxWidth()
 				+ st::msgPadding.right());

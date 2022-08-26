@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_web_page.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/application.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "window/window_session_controller.h"
@@ -474,6 +475,10 @@ QSize WebPage::countOptimalSize() {
 		maxWidth += rect::m::sum::h(st::historyPageButtonPadding)
 			+ _openButton.maxWidth();
 	}
+	if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
+		accumulate_min(maxWidth, st::msgMaxWidth);
+		accumulate_max(maxWidth, _parent->plainMaxWidth());
+	}
 	maxWidth += rect::m::sum::h(padding);
 	minHeight += rect::m::sum::v(padding);
 
@@ -486,6 +491,10 @@ QSize WebPage::countOptimalSize() {
 QSize WebPage::countCurrentSize(int newWidth) {
 	if (_data->pendingTill || _data->failed) {
 		return { newWidth, minHeight() };
+	}
+
+	if (::Kotato::JsonSettings::GetBool("adaptive_bubbles") && !asArticle()) {
+		accumulate_min(newWidth, maxWidth());
 	}
 
 	const auto padding = inBubblePadding() + innerMargin();

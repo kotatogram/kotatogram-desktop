@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_inner_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "chat_helpers/stickers_emoji_pack.h"
 #include "core/file_utilities.h"
 #include "core/click_handler_types.h"
@@ -3664,7 +3665,7 @@ void HistoryInner::mouseActionUpdate() {
 					dateWidth += st::msgServicePadding.left() + st::msgServicePadding.right();
 					auto dateLeft = st::msgServiceMargin.left();
 					auto maxwidth = _contentWidth;
-					if (_isChatWide) {
+					if (_isChatWide && !::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 						maxwidth = qMin(maxwidth, int32(st::msgMaxWidth + 2 * st::msgPhotoSkip + 2 * st::msgMargin.left()));
 					}
 					auto widthForDate = maxwidth - st::msgServiceMargin.left() - st::msgServiceMargin.left();
