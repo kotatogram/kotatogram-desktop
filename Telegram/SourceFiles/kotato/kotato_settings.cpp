@@ -263,6 +263,10 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "always_show_scheduled", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "show_chat_id", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 2,
+		.limitHandler = IntLimit(0, 2, 2), }},
 };
 
 using OldOptionKey = QString;
