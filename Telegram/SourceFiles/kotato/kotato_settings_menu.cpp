@@ -70,6 +70,21 @@ void SetupKotatoChats(
 
 	AddButton(
 		container,
+		rktr("ktg_settings_always_show_scheduled"),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("always_show_scheduled"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("always_show_scheduled"));
+	}) | rpl::start_with_next([controller](bool enabled) {
+		::Kotato::JsonSettings::Set("always_show_scheduled", enabled);
+		Notify::showScheduledButtonChanged(&controller->session());
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	AddButton(
+		container,
 		rktr("ktg_settings_fonts"),
 		st::settingsButtonNoIcon
 	)->addClickHandler([=] {

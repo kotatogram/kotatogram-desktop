@@ -91,3 +91,11 @@ bool skipPaintEvent(QWidget *widget, QPaintEvent *event) {
 }
 
 } // namespace Ui
+
+namespace Notify {
+
+void showScheduledButtonChanged(not_null<Main::Session*> session) {
+	if (const auto m = CheckMainWidget(session)) m->notify_showScheduledButtonChanged();
+}
+
+} // namespace Notify

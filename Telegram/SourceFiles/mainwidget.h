@@ -219,6 +219,7 @@ public:
 		MsgId msgId);
 
 	bool notify_switchInlineBotButtonReceived(const QString &query, UserData *samePeerBot, MsgId samePeerReplyTo);
+	void notify_showScheduledButtonChanged();
 
 	using FloatDelegate::floatPlayerAreaUpdated;
 

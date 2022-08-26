@@ -1891,6 +1891,12 @@ bool HistoryWidget::notify_switchInlineBotButtonReceived(const QString &query, U
 	return false;
 }
 
+void HistoryWidget::notify_showScheduledButtonChanged() {
+	refreshScheduledToggle();
+	updateControlsVisibility();
+	updateControlsGeometry();
+}
+
 void HistoryWidget::setupShortcuts() {
 	Shortcuts::Requests(
 	) | rpl::filter([=] {
@@ -2622,19 +2628,23 @@ void HistoryWidget::setupScheduledToggle() {
 }
 
 void HistoryWidget::refreshScheduledToggle() {
-	const auto has = _history
-		&& _peer->canWrite()
-		&& (session().data().scheduledMessages().count(_history) > 0);
-	if (!_scheduled && has) {
-		_scheduled.create(this, st::historyScheduledToggle);
-		_scheduled->show();
-		_scheduled->addClickHandler([=] {
-			controller()->showSection(
-				std::make_shared<HistoryView::ScheduledMemento>(_history));
-		});
-		orderWidgets(); // Raise drag areas to the top.
-	} else if (_scheduled && !has) {
+	const auto canWrite = _history && _peer->canWrite();
+	const auto has = canWrite && (session().data().scheduledMessages().count(_history) > 0);
+	if (_scheduled && !canWrite) {
 		_scheduled.destroy();
+	} else if (canWrite) {
+		if (_scheduled) {
+			_scheduled.destroy();
+		}
+		if (::Kotato::JsonSettings::GetBool("always_show_scheduled") || has){
+			_scheduled.create(this, (has ? st::historyScheduledToggle : st::historyScheduledToggleEmpty));
+			_scheduled->show();
+			_scheduled->addClickHandler([=] {
+				controller()->showSection(
+					std::make_shared<HistoryView::ScheduledMemento>(_history));
+			});
+			orderWidgets(); // Raise drag areas to the top.
+		}
 	}
 }
 

@@ -634,6 +634,10 @@ bool MainWidget::notify_switchInlineBotButtonReceived(const QString &query, User
 	return _history->notify_switchInlineBotButtonReceived(query, samePeerBot, samePeerReplyTo);
 }
 
+void MainWidget::notify_showScheduledButtonChanged() {
+	_history->notify_showScheduledButtonChanged();
+}
+
 void MainWidget::clearHider(not_null<Window::HistoryHider*> instance) {
 	if (_hider != instance) {
 		return;

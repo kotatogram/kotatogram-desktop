@@ -47,3 +47,9 @@ void showChatsList(not_null<Main::Session*> session);
 bool skipPaintEvent(QWidget *widget, QPaintEvent *event);
 
 } // namespace Ui
+
+namespace Notify {
+
+void showScheduledButtonChanged(not_null<Main::Session*> session);
+
+} // namespace Notify
