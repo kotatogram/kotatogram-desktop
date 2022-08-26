@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_values.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_chat_participants.h"
 #include "apiwrap.h"
 #include "info/profile/info_profile_phone_menu.h"
@@ -40,6 +41,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Info {
 namespace Profile {
 namespace {
+
+constexpr auto kMaxChannelId = -1000000000000;
 
 using UpdateFlag = Data::PeerUpdate::Flag;
 
@@ -92,6 +95,30 @@ void StripExternalLinks(TextWithEntities &text) {
 }
 
 } // namespace
+
+QString IDString(not_null<PeerData*> peer) {
+	auto resultId = QString::number(peerIsUser(peer->id)
+		? peerToUser(peer->id).bare
+		: peerIsChat(peer->id)
+		? peerToChat(peer->id).bare
+		: peerIsChannel(peer->id)
+		? peerToChannel(peer->id).bare
+		: peer->id.value);
+
+	if (::Kotato::JsonSettings::GetInt("show_chat_id") == 2) {
+		if (peer->isChannel()) {
+			resultId = QString::number(peerToChannel(peer->id).bare - kMaxChannelId).prepend("-");
+		} else if (peer->isChat()) {
+			resultId = resultId.prepend("-");
+		}
+	}
+
+	return resultId;
+}
+
+rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer) {
+	return rpl::single(IDString(peer)) | rpl::map(tr::marked);
+}
 
 rpl::producer<QString> NameValue(not_null<PeerData*> peer) {
 	if (const auto broadcast = peer->monoforumBroadcast()) {
