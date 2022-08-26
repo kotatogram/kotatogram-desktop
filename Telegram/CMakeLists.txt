@@ -999,6 +999,8 @@ PRIVATE
     intro/intro_widget.h
     iv/iv_instance.cpp
     iv/iv_instance.h
+    kotato/boxes/kotato_fonts_box.cpp
+    kotato/boxes/kotato_fonts_box.h
     kotato/boxes/kotato_radio_box.cpp
     kotato/boxes/kotato_radio_box.h
     kotato/kotato_lang.cpp
