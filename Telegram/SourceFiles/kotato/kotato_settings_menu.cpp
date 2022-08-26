@@ -70,6 +70,14 @@ void SetupKotatoChats(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_chats"));
 
+	AddButton(
+		container,
+		rktr("ktg_settings_fonts"),
+		st::settingsButtonNoIcon
+	)->addClickHandler([=] {
+		Ui::show(Box<FontsBox>());
+	});
+
 
 	AddSkip(container);
 	AddDivider(container);

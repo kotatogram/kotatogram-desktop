@@ -217,6 +217,32 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.defaultValue = false, }},
 
 	// Stored settings
+	{ "fonts/main", {
+		.type = SettingType::QStringSetting,
+		.fillerValue = qsl("Open Sans"), }},
+	{ "fonts/semibold", {
+		.type = SettingType::QStringSetting,
+		.fillerValue = qsl("Open Sans Semibold"), }},
+	{ "fonts/semibold_is_bold", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "fonts/monospaced", {
+		.type = SettingType::QStringSetting,
+		.fillerValue = qsl("Consolas"), }},
+	{ "fonts/size", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0, }},
+	{ "fonts/use_system_font", {
+		.type = SettingType::BoolSetting,
+#ifdef DESKTOP_APP_USE_PACKAGED_FONTS
+		.defaultValue = true,
+#else
+		.defaultValue = Platform::IsLinux(),
+#endif
+	}},
+	{ "fonts/use_original_metrics", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;

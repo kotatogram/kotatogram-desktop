@@ -1006,3 +1006,9 @@ ringtonesBoxSkip: 7px;
 gradientButtonGlareDuration: 700;
 gradientButtonGlareTimeout: 2000;
 gradientButtonGlareWidth: 100px;
+
+fontsBoxTextStyle: TextStyle(defaultTextStyle) {
+	font: font(13px);
+	linkFont: font(13px);
+	linkFontOver: font(13px underline);
+}
