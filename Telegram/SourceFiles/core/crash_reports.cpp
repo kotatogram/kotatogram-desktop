@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/crash_reports.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_version.h"
 #include "core/version.h"
 #include "platform/platform_specific.h"
@@ -324,7 +325,7 @@ QString PlatformString() {
 void StartCatching() {
 #ifndef TDESKTOP_DISABLE_CRASH_REPORTS
 	ProcessAnnotations["Binary"] = cExeName().toUtf8().constData();
-	ProcessAnnotations["ApiId"] = QString::number(ApiId).toUtf8().constData();
+	ProcessAnnotations["ApiId"] = QString::number(::Kotato::JsonSettings::GetInt("api_id")).toUtf8().constData();
 	ProcessAnnotations["Version"] = (cAlphaVersion()
 		? u"%1 %2"_q.arg(cAlphaVersion()).arg(AppKotatoTestBranch)
 		: (AppKotatoBetaVersion
