@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_top_bar_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/history.h"
 #include "history/view/history_view_send_action.h"
 #include "boxes/add_contact_box.h"
@@ -1116,7 +1117,9 @@ void TopBarWidget::updateInfoButtonVisibility() {
 	}
 	const auto shown = (communityChatsListBar() && !rootChatsListBar())
 		? communityUserpicShown()
-		: (_controller->adaptive().isOneColumn() || !_primaryWindow);
+		: (::Kotato::JsonSettings::GetBool("always_show_top_userpic")
+			|| _controller->adaptive().isOneColumn()
+			|| !_primaryWindow);
 	_info->setVisible(!_chooseForReportReason && shown);
 }
 
@@ -1205,7 +1208,11 @@ void TopBarWidget::updateControlsGeometry() {
 		_cancelChoose->moveToLeft(_leftTaken, otherButtonsTop);
 		_leftTaken += _cancelChoose->width();
 	} else if (_back->isHidden()) {
-		_leftTaken = st::topBarArrowPadding.right();
+		if (::Kotato::JsonSettings::GetBool("always_show_top_userpic")) {
+			_leftTaken = st::topBarActionSkip;
+		} else {
+			_leftTaken = st::topBarArrowPadding.right();
+		}
 	} else {
 		_leftTaken = anim::interpolate(
 			0,

@@ -296,6 +296,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "userpic_corner_radius_forum_use_default", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "always_show_top_userpic", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;
