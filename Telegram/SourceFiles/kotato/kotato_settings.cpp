@@ -359,6 +359,10 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 0,
 		.limitHandler = IntLimitMin(0) }},
+	{ "recent_stickers_limit", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 20,
+		.limitHandler = IntLimit(0, 200, 20), }},
 };
 
 using OldOptionKey = QString;
