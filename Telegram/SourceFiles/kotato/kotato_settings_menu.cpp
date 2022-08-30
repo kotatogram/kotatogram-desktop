@@ -330,6 +330,11 @@ void SetupKotatoOther(
 	});
 
 	SettingsMenuJsonSwitch(ktg_settings_call_confirm, confirm_before_calls);
+	SettingsMenuJsonSwitch(ktg_settings_ffmpeg_multithread, ffmpeg_multithread);
+
+	AddSkip(container);
+	AddDividerText(container, rktr("ktg_settings_ffmpeg_multithread_about"));
+	AddSkip(container);
 }
 
 Kotato::Kotato(
