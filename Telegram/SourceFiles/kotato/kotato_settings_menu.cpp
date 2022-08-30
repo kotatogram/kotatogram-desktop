@@ -330,6 +330,10 @@ void SetupKotatoOther(
 			}));
 	});
 
+	SettingsMenuJsonSwitch(ktg_settings_ffmpeg_multithread, ffmpeg_multithread);
+
+	Ui::AddSkip(container);
+	Ui::AddDividerText(container, rktr("ktg_settings_ffmpeg_multithread_about"));
 	Ui::AddSkip(container);
 }
 

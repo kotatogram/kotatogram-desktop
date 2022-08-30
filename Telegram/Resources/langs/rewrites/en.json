@@ -61,6 +61,8 @@
 	"ktg_profile_group_id": "Group ID",
 	"ktg_profile_supergroup_id": "Supergroup ID",
 	"ktg_profile_channel_id": "Channel ID",
+	"ktg_settings_ffmpeg_multithread": "Multithread video decoding",
+	"ktg_settings_ffmpeg_multithread_about": "When enabled, CPU and RAM consumption is higher, video decodes faster. When disabled, CPU and RAM consumption is lower, video decodes slower. The more CPU cores you have, the more RAM consumption you have when this option is enabled. You can set exact number of threads in the JSON configuration file.",
 	"ktg_settings_adaptive_bubbles": "Adaptive bubbles",
 	"ktg_settings_filters": "Folders",
 	"ktg_settings_messages": "Messages",
