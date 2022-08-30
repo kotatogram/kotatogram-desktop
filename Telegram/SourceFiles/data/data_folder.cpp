@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "mainwidget.h"
 #include "styles/style_dialogs.h"
+#include "styles/style_widgets.h"
 
 namespace Data {
 namespace {
@@ -252,7 +253,24 @@ void Folder::paintUserpic(
 	p.setBrush(overrideBg ? *overrideBg : st::historyPeerArchiveUserpicBg);
 	{
 		PainterHighQualityEnabler hq(p);
-		p.drawEllipse(x, y, size, size);
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				p.drawRoundedRect(QRect{ x, y, size, size }, 0, 0);
+				break;
+
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(QRect{ x, y, size, size },
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(QRect{ x, y, size, size },
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(x, y, size, size);
+		}
 	}
 	if (size == st::dialogsPhotoSize) {
 		const auto rect = QRect{ x, y, size, size };

@@ -66,6 +66,26 @@ QString NetBoostLabel(int boost) {
 	return QString();
 }
 
+QString UserpicRoundingLabel(int rounding) {
+	switch (rounding) {
+		case 0:
+			return ktr("ktg_settings_userpic_rounding_none");
+
+		case 1:
+			return ktr("ktg_settings_userpic_rounding_small");
+
+		case 2:
+			return ktr("ktg_settings_userpic_rounding_big");
+
+		case 3:
+			return ktr("ktg_settings_userpic_rounding_full");
+
+		default:
+			Unexpected("Rounding in Settings::UserpicRoundingLabel.");
+	}
+	return QString();
+}
+
 QString ChatIdLabel(int option) {
 	switch (option) {
 		case 0:
@@ -174,6 +194,38 @@ void SetupKotatoChats(
 		st::settingsButtonNoIcon
 	)->addClickHandler([=] {
 		Ui::show(Box<FontsBox>());
+	});
+
+	const auto userpicCornerButton = container->add(
+		object_ptr<Button>(
+			container,
+			rktr("ktg_settings_userpic_rounding"),
+			st::settingsButtonNoIcon));
+	auto userpicCornerText = rpl::single(
+		UserpicRoundingLabel(::Kotato::JsonSettings::GetIntWithPending("userpic_corner_type"))
+	) | rpl::then(
+		::Kotato::JsonSettings::EventsWithPending(
+			"userpic_corner_type"
+		) | rpl::map([] {
+			return UserpicRoundingLabel(::Kotato::JsonSettings::GetIntWithPending("userpic_corner_type"));
+		})
+	);
+	CreateRightLabel(
+		userpicCornerButton,
+		std::move(userpicCornerText),
+		st::settingsButtonNoIcon,
+		rktr("ktg_settings_userpic_rounding"));
+	userpicCornerButton->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			ktr("ktg_settings_userpic_rounding"),
+			ktr("ktg_settings_userpic_rounding_desc"),
+			::Kotato::JsonSettings::GetIntWithPending("userpic_corner_type"),
+			4,
+			UserpicRoundingLabel,
+			[=] (int value) {
+				::Kotato::JsonSettings::SetAfterRestart("userpic_corner_type", value);
+				::Kotato::JsonSettings::Write();
+			}, true));
 	});
 
 

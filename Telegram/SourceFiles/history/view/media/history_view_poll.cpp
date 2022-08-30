@@ -894,7 +894,24 @@ void Poll::paintRecentVoters(
 			p.setPen(pen);
 			p.setBrush(Qt::NoBrush);
 			PainterHighQualityEnabler hq(p);
-			p.drawEllipse(x, y, size, size);
+			switch (KotatoImageRoundRadius()) {
+				case ImageRoundRadius::None:
+					p.drawRoundedRect(QRect{ x, y, size, size }, 0, 0);
+					break;
+
+				case ImageRoundRadius::Small:
+					p.drawRoundedRect(QRect{ x, y, size, size },
+						st::buttonRadius, st::buttonRadius);
+					break;
+
+				case ImageRoundRadius::Large:
+					p.drawRoundedRect(QRect{ x, y, size, size },
+						st::dateRadius, st::dateRadius);
+					break;
+
+				default:
+					p.drawEllipse(x, y, size, size);
+			}
 		};
 		if (usesBubblePattern(context)) {
 			const auto add = st::lineWidth * 2;

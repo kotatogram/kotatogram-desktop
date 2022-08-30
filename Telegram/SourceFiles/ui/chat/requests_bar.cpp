@@ -22,14 +22,16 @@ namespace Ui {
 
 RequestsBar::RequestsBar(
 	not_null<QWidget*> parent,
-	rpl::producer<RequestsBarContent> content)
+	rpl::producer<RequestsBarContent> content,
+	int userpicRadius)
 : _wrap(parent, object_ptr<RpWidget>(parent))
 , _inner(_wrap.entity())
 , _shadow(std::make_unique<PlainShadow>(_wrap.parentWidget()))
 , _userpics(std::make_unique<GroupCallUserpics>(
 		st::historyRequestsUserpics,
 		rpl::single(false),
-		[=] { _inner->update(); })) {
+		[=] { _inner->update(); },
+		userpicRadius)) {
 	_wrap.hide(anim::type::instant);
 	_shadow->hide();
 

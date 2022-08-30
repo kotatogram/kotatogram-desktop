@@ -271,6 +271,30 @@ void PeerData::paintUserpic(
 		int x,
 		int y,
 		int size) const {
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
+			paintUserpicSquare(p, view, x, y, size);
+			break;
+
+		case ImageRoundRadius::Small:
+			paintUserpicRounded(p, view, x, y, size);
+			break;
+
+		case ImageRoundRadius::Large:
+			paintUserpicRoundedLarge(p, view, x, y, size);
+			break;
+
+		default:
+			paintUserpicCircled(p, view, x, y, size);
+	}
+}
+
+void PeerData::paintUserpicCircled(
+		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
+		int x,
+		int y,
+		int size) const {
 	if (const auto userpic = currentUserpic(view)) {
 		const auto circled = Images::Option::RoundCircle;
 		p.drawPixmap(
@@ -279,6 +303,47 @@ void PeerData::paintUserpic(
 			userpic->pix(size, size, { .options = circled }));
 	} else {
 		ensureEmptyUserpic()->paint(p, x, y, x + size + x, size);
+	}
+}
+
+void PeerData::paintUserpicRoundedLarge(
+		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
+		int x,
+		int y,
+		int size) const {
+	if (const auto userpic = currentUserpic(view)) {
+		const auto rounded = Images::Option::RoundLarge;
+		p.drawPixmap(x, y, userpic->pix(size, size, { .options = rounded }));
+	} else {
+		ensureEmptyUserpic()->paintRoundedLarge(p, x, y, x + size + x, size);
+	}
+}
+
+void PeerData::paintUserpicRounded(
+		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
+		int x,
+		int y,
+		int size) const {
+	if (const auto userpic = currentUserpic(view)) {
+		const auto rounded = Images::Option::RoundSmall;
+		p.drawPixmap(x, y, userpic->pix(size, size, { .options = rounded }));
+	} else {
+		ensureEmptyUserpic()->paintRounded(p, x, y, x + size + x, size);
+	}
+}
+
+void PeerData::paintUserpicSquare(
+		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
+		int x,
+		int y,
+		int size) const {
+	if (const auto userpic = currentUserpic(view)) {
+		p.drawPixmap(x, y, userpic->pix(size, size));
+	} else {
+		ensureEmptyUserpic()->paintSquare(p, x, y, x + size + x, size);
 	}
 }
 
@@ -336,7 +401,7 @@ QPixmap PeerData::genUserpic(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const {
 	if (const auto userpic = currentUserpic(view)) {
-		const auto circle = Images::Option::RoundCircle;
+		const auto circle = KotatoImageRoundOption();
 		return userpic->pix(size, size, { .options = circle });
 	}
 	const auto ratio = style::DevicePixelRatio();
@@ -355,7 +420,7 @@ QPixmap PeerData::genUserpic(
 QImage PeerData::generateUserpicImage(
 		std::shared_ptr<Data::CloudImageView> &view,
 		int size) const {
-	return generateUserpicImage(view, size, ImageRoundRadius::Ellipse);
+	return generateUserpicImage(view, size, KotatoImageRoundRadius());
 }
 
 QImage PeerData::generateUserpicImage(
@@ -365,6 +430,8 @@ QImage PeerData::generateUserpicImage(
 	if (const auto userpic = currentUserpic(view)) {
 		const auto options = (radius == ImageRoundRadius::Ellipse)
 			? Images::Option::RoundCircle
+			: (radius == ImageRoundRadius::Large)
+			? Images::Option::RoundLarge
 			: (radius == ImageRoundRadius::None)
 			? Images::Option()
 			: Images::Option::RoundSmall;
@@ -380,6 +447,8 @@ QImage PeerData::generateUserpicImage(
 		Painter p(&result);
 		if (radius == ImageRoundRadius::Ellipse) {
 			ensureEmptyUserpic()->paint(p, 0, 0, size, size);
+		} else if (radius == ImageRoundRadius::Large) {
+			ensureEmptyUserpic()->paintRoundedLarge(p, 0, 0, size, size);
 		} else if (radius == ImageRoundRadius::None) {
 			ensureEmptyUserpic()->paintSquare(p, 0, 0, size, size);
 		} else {

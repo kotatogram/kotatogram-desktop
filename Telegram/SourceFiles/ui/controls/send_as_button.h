@@ -18,7 +18,7 @@ namespace Ui {
 
 class SendAsButton final : public AbstractButton {
 public:
-	SendAsButton(QWidget *parent, const style::SendAsButton &st);
+	SendAsButton(QWidget *parent, const style::SendAsButton &st, int radius);
 
 	void setUserpic(QImage userpic);
 
@@ -33,6 +33,7 @@ private:
 	bool _active = false;
 
 	QImage _userpic;
+	int _radius;
 
 };
 

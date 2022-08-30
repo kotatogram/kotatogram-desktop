@@ -188,7 +188,25 @@ void Contact::draw(Painter &p, const PaintContext &context) const {
 			PainterHighQualityEnabler hq(p);
 			p.setBrush(p.textPalette().selectOverlay);
 			p.setPen(Qt::NoPen);
-			p.drawEllipse(rthumb);
+			switch (KotatoImageRoundRadius()) {
+				case ImageRoundRadius::None:
+					p.drawRoundedRect(rthumb, 0, 0);
+					break;
+
+				case ImageRoundRadius::Small:
+					p.drawRoundedRect(rthumb,
+						st::buttonRadius, st::buttonRadius);
+					break;
+
+				case ImageRoundRadius::Large:
+					p.drawRoundedRect(rthumb,
+						st::dateRadius, st::dateRadius);
+					break;
+
+				default:
+					p.drawEllipse(rthumb);
+			}
+
 		}
 
 		bool over = ClickHandler::showAsActive(_linkl);

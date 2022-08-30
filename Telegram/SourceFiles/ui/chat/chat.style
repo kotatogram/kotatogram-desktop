@@ -572,6 +572,24 @@ historyBubbleTailInRightSelected: icon {{ "bubble_tail-flip_horizontal", msgInBg
 historyBubbleTailOutRight: icon {{ "bubble_tail-flip_horizontal", msgOutBg }};
 historyBubbleTailOutRightSelected: icon {{ "bubble_tail-flip_horizontal", msgOutBgSelected }};
 
+historyBubbleTail1InLeft: icon {{ "bubble_tail1", msgInBg }};
+historyBubbleTail1InLeftSelected: icon {{ "bubble_tail1", msgInBgSelected }};
+historyBubbleTail1OutLeft: icon {{ "bubble_tail1", msgOutBg }};
+historyBubbleTail1OutLeftSelected: icon {{ "bubble_tail1", msgOutBgSelected }};
+historyBubbleTail1InRight: icon {{ "bubble_tail1-flip_horizontal", msgInBg }};
+historyBubbleTail1InRightSelected: icon {{ "bubble_tail1-flip_horizontal", msgInBgSelected }};
+historyBubbleTail1OutRight: icon {{ "bubble_tail1-flip_horizontal", msgOutBg }};
+historyBubbleTail1OutRightSelected: icon {{ "bubble_tail1-flip_horizontal", msgOutBgSelected }};
+
+historyBubbleTail2InLeft: icon {{ "bubble_tail2", msgInBg }};
+historyBubbleTail2InLeftSelected: icon {{ "bubble_tail2", msgInBgSelected }};
+historyBubbleTail2OutLeft: icon {{ "bubble_tail2", msgOutBg }};
+historyBubbleTail2OutLeftSelected: icon {{ "bubble_tail2", msgOutBgSelected }};
+historyBubbleTail2InRight: icon {{ "bubble_tail2-flip_horizontal", msgInBg }};
+historyBubbleTail2InRightSelected: icon {{ "bubble_tail2-flip_horizontal", msgInBgSelected }};
+historyBubbleTail2OutRight: icon {{ "bubble_tail2-flip_horizontal", msgOutBg }};
+historyBubbleTail2OutRightSelected: icon {{ "bubble_tail2-flip_horizontal", msgOutBgSelected }};
+
 historyPeerUserpicFont: semiboldFont;
 
 historyPsaIconIn: icon {{ "message_psa_tooltip", msgFileThumbLinkInFg }};

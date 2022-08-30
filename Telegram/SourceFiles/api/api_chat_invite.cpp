@@ -345,13 +345,15 @@ void ConfirmInviteBox::paintEvent(QPaintEvent *e) {
 
 	if (_photo) {
 		if (const auto image = _photo->image(Data::PhotoSize::Small)) {
-			const auto size = st::confirmInvitePhotoSize;
+			auto source = [=] {
+				const auto size = st::confirmInvitePhotoSize;
+				const auto roundOption = KotatoImageRoundOption();
+				return image->pix(size, size, { .options = roundOption });
+			}();
 			p.drawPixmap(
-				(width() - size) / 2,
+				(width() - st::confirmInvitePhotoSize) / 2,
 				st::confirmInvitePhotoTop,
-				image->pix(
-					{ size, size },
-					{ .options = Images::Option::RoundCircle }));
+				source);
 		}
 	} else if (_photoEmpty) {
 		_photoEmpty->paint(

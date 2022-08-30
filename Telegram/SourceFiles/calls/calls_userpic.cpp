@@ -16,8 +16,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_photo_media.h"
 #include "data/data_file_origin.h"
 #include "ui/empty_userpic.h"
+#include "ui/rect_part.h"
 #include "apiwrap.h" // requestFullPeer.
 #include "styles/style_calls.h"
+#include "styles/style_widgets.h"
 
 namespace Calls {
 namespace {
@@ -104,7 +106,25 @@ void Userpic::paint() {
 			_mutePosition.y() - _muteSize / 2,
 			_muteSize,
 			_muteSize);
-		p.drawEllipse(rect);
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				p.drawRoundedRect(rect, 0, 0);
+				break;
+
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(rect,
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(rect,
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(rect);
+		}
+
 		st::callMutedPeerIcon.paintInCenter(p, rect);
 	}
 }
@@ -180,13 +200,10 @@ void Userpic::createCache(Image *image) {
 			height = qMax((height * real) / width, 1);
 			width = real;
 		}
-		_userPhoto = image->pixNoCache(
-			{ width, height },
-			{
-				.options = Images::Option::RoundCircle,
-				.outer = { size, size },
-			});
-		_userPhoto.setDevicePixelRatio(cRetinaFactor());
+		const auto roundOption = KotatoImageRoundOption();
+		_userPhoto = image->pix(size, size, {
+			.options = roundOption,
+			.outer = { size, size }});
 	} else {
 		auto filled = QImage(
 			QSize(real, real),

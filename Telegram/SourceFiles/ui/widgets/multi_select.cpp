@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/widgets/multi_select.h"
 
+#include "ui/image/image.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/widgets/scroll_area.h"
@@ -177,6 +178,20 @@ void Item::paintOnce(Painter &p, int x, int y, int outerWidth) {
 	}
 
 	auto radius = _st.height / 2;
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
+			radius = 0;
+			break;
+
+		case ImageRoundRadius::Small:
+			radius = st::buttonRadius;
+			break;
+
+		case ImageRoundRadius::Large:
+			radius = st::dateRadius;
+			break;
+	}
+
 	auto inner = style::rtlrect(
 		x + radius,
 		y,
@@ -235,8 +250,28 @@ void Item::paintDeleteButton(
 	p.setBrush(_color);
 	{
 		PainterHighQualityEnabler hq(p);
-		p.drawEllipse(
-			style::rtlrect(x, y, _st.height, _st.height, outerWidth));
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.height, _st.height, outerWidth), 0, 0);
+				break;
+
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.height, _st.height, outerWidth),
+						st::buttonRadius, st::buttonRadius);
+				break;
+
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(
+					style::rtlrect(x, y, _st.height, _st.height, outerWidth),
+						st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(
+					style::rtlrect(x, y, _st.height, _st.height, outerWidth));
+		}
 	}
 
 	CrossAnimation::paint(

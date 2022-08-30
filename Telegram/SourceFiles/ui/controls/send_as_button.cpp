@@ -12,9 +12,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace Ui {
 
-SendAsButton::SendAsButton(QWidget *parent, const style::SendAsButton &st)
+SendAsButton::SendAsButton(QWidget *parent, const style::SendAsButton &st, int radius)
 : AbstractButton(parent)
-, _st(st) {
+, _st(st)
+, _radius(radius) {
 	resize(_st.width, _st.height);
 }
 
@@ -52,7 +53,28 @@ void SendAsButton::paintEvent(QPaintEvent *e) {
 		p.setBrush(_st.activeBg);
 		{
 			PainterHighQualityEnabler hq(p);
-			p.drawEllipse(left, top, _st.size, _st.size);
+			switch (_radius) {
+				case 0:
+					p.drawRoundedRect(
+						left, top, _st.size, _st.size,
+						0, 0);
+					break;
+
+				case 1:
+					p.drawRoundedRect(
+						left, top, _st.size, _st.size,
+						st::buttonRadius, st::buttonRadius);
+					break;
+
+				case 2:
+					p.drawRoundedRect(
+						left, top, _st.size, _st.size,
+						st::dateRadius, st::dateRadius);
+					break;
+
+				default:
+					p.drawEllipse(left, top, _st.size, _st.size);
+			}
 		}
 
 		CrossAnimation::paint(

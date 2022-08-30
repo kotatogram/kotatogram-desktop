@@ -2245,7 +2245,8 @@ bool ComposeControls::updateSendAsButton() {
 	}
 	_sendAs = std::make_unique<Ui::SendAsButton>(
 		_wrap.get(),
-		st::sendAsButton);
+		st::sendAsButton,
+		::Kotato::JsonSettings::GetInt("userpic_corner_type"));
 	Ui::SetupSendAsButton(
 		_sendAs.get(),
 		rpl::single(peer.get()),

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_context_menu.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
 #include "api/api_polls.h"
@@ -1164,7 +1165,8 @@ void AddWhoReactedAction(
 		menu.get(),
 		Api::WhoReacted(item, context, st::defaultWhoRead, whoReadIds),
 		participantChosen,
-		showAllChosen));
+		showAllChosen,
+		::Kotato::JsonSettings::GetInt("userpic_corner_type")));
 }
 
 void ShowWhoReactedMenu(

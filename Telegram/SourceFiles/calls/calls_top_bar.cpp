@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_top_bar.h"
 
+#include "kotato/kotato_settings.h"
 #include "ui/effects/cross_line.h"
 #include "ui/paint/blobs_linear.h"
 #include "ui/widgets/buttons.h"
@@ -253,7 +254,8 @@ TopBar::TopBar(
 	: std::make_unique<Ui::GroupCallUserpics>(
 		st::groupCallTopBarUserpics,
 		rpl::single(true),
-		[=] { updateUserpics(); }))
+		[=] { updateUserpics(); },
+		::Kotato::JsonSettings::GetInt("userpic_corner_type")))
 , _durationLabel(_call
 	? object_ptr<Ui::LabelSimple>(this, st::callBarLabel)
 	: object_ptr<Ui::LabelSimple>(nullptr))

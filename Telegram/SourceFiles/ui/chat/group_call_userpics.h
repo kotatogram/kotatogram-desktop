@@ -27,7 +27,8 @@ public:
 	GroupCallUserpics(
 		const style::GroupCallUserpics &st,
 		rpl::producer<bool> &&hideBlobs,
-		Fn<void()> repaint);
+		Fn<void()> repaint,
+		int userpicRadius);
 	~GroupCallUserpics();
 
 	void update(
@@ -63,6 +64,7 @@ private:
 	int _maxWidth = 0;
 	bool _skipLevelUpdate = false;
 	crl::time _speakingAnimationHideLastTime = 0;
+	int _userpicRadius = 3;
 
 	rpl::variable<int> _width;
 

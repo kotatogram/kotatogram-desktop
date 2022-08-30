@@ -222,8 +222,29 @@ void EmptyUserpic::paint(
 		int y,
 		int outerWidth,
 		int size) const {
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
+			paintSquare(p, x, y, outerWidth, size);
+			break;
+
+		case ImageRoundRadius::Small:
+			paintRounded(p, x, y, outerWidth, size);
+			break;
+
+		case ImageRoundRadius::Large:
+			paintRoundedLarge(p, x, y, outerWidth, size);
+			break;
+
+		default:
+			paint(p, x, y, outerWidth, size, [&p, x, y, size] {
+				p.drawEllipse(x, y, size, size);
+			});
+	}
+}
+
+void EmptyUserpic::paintRoundedLarge(Painter &p, int x, int y, int outerWidth, int size) const {
 	paint(p, x, y, outerWidth, size, [&p, x, y, size] {
-		p.drawEllipse(x, y, size, size);
+		p.drawRoundedRect(x, y, size, size, st::dateRadius, st::dateRadius);
 	});
 }
 
@@ -245,9 +266,35 @@ void EmptyUserpic::PaintSavedMessages(
 		int y,
 		int outerWidth,
 		int size) {
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
+			PaintSavedMessagesSquared(p, x, y, outerWidth, size);
+			break;
+
+		case ImageRoundRadius::Small:
+			PaintSavedMessagesRounded(p, x, y, outerWidth, size);
+			break;
+
+		case ImageRoundRadius::Large:
+			PaintSavedMessagesRoundedLarge(p, x, y, outerWidth, size);
+			break;
+
+		default:
+			const auto &bg = st::historyPeerSavedMessagesBg;
+			const auto &fg = st::historyPeerUserpicFg;
+			PaintSavedMessages(p, x, y, outerWidth, size, bg, fg);
+	}
+}
+
+void EmptyUserpic::PaintSavedMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) {
 	const auto &bg = st::historyPeerSavedMessagesBg;
 	const auto &fg = st::historyPeerUserpicFg;
-	PaintSavedMessages(p, x, y, outerWidth, size, bg, fg);
+	PaintSavedMessagesRoundedLarge(p, x, y, outerWidth, size, bg, fg);
 }
 
 void EmptyUserpic::PaintSavedMessagesRounded(
@@ -261,7 +308,51 @@ void EmptyUserpic::PaintSavedMessagesRounded(
 	PaintSavedMessagesRounded(p, x, y, outerWidth, size, bg, fg);
 }
 
+void EmptyUserpic::PaintSavedMessagesSquared(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) {
+	const auto &bg = st::historyPeerSavedMessagesBg;
+	const auto &fg = st::historyPeerUserpicFg;
+	PaintSavedMessagesSquared(p, x, y, outerWidth, size, bg, fg);
+}
+
 void EmptyUserpic::PaintSavedMessages(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg) {
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
+			PaintSavedMessagesSquared(p, x, y, outerWidth, size, bg, fg);
+			break;
+
+		case ImageRoundRadius::Small:
+			PaintSavedMessagesRounded(p, x, y, outerWidth, size, bg, fg);
+			break;
+
+		case ImageRoundRadius::Large:
+			PaintSavedMessagesRoundedLarge(p, x, y, outerWidth, size, bg, fg);
+			break;
+
+		default:
+			x = rtl() ? (outerWidth - x - size) : x;
+
+			PainterHighQualityEnabler hq(p);
+			p.setBrush(bg);
+			p.setPen(Qt::NoPen);
+			p.drawEllipse(x, y, size, size);
+
+			PaintSavedMessagesInner(p, x, y, size, fg);
+	}
+}
+
+void EmptyUserpic::PaintSavedMessagesRoundedLarge(
 		Painter &p,
 		int x,
 		int y,
@@ -274,7 +365,7 @@ void EmptyUserpic::PaintSavedMessages(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	p.drawRoundedRect(x, y, size, size, st::dateRadius, st::dateRadius);
 
 	PaintSavedMessagesInner(p, x, y, size, fg);
 }
@@ -293,6 +384,24 @@ void EmptyUserpic::PaintSavedMessagesRounded(
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
 	p.drawRoundedRect(x, y, size, size, st::roundRadiusSmall, st::roundRadiusSmall);
+
+	PaintSavedMessagesInner(p, x, y, size, fg);
+}
+
+void EmptyUserpic::PaintSavedMessagesSquared(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg) {
+	x = rtl() ? (outerWidth - x - size) : x;
+
+	PainterHighQualityEnabler hq(p);
+	p.setBrush(bg);
+	p.setPen(Qt::NoPen);
+	p.drawRoundedRect(x, y, size, size, 0, 0);
 
 	PaintSavedMessagesInner(p, x, y, size, fg);
 }
@@ -315,9 +424,35 @@ void EmptyUserpic::PaintRepliesMessages(
 		int y,
 		int outerWidth,
 		int size) {
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
+			PaintRepliesMessagesSquared(p, x, y, outerWidth, size);
+			break;
+
+		case ImageRoundRadius::Small:
+			PaintRepliesMessagesRounded(p, x, y, outerWidth, size);
+			break;
+
+		case ImageRoundRadius::Large:
+			PaintRepliesMessagesRoundedLarge(p, x, y, outerWidth, size);
+			break;
+
+		default:
+			const auto &bg = st::historyPeerSavedMessagesBg;
+			const auto &fg = st::historyPeerUserpicFg;
+			PaintRepliesMessages(p, x, y, outerWidth, size, bg, fg);
+	}
+}
+
+void EmptyUserpic::PaintRepliesMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) {
 	const auto &bg = st::historyPeerSavedMessagesBg;
 	const auto &fg = st::historyPeerUserpicFg;
-	PaintRepliesMessages(p, x, y, outerWidth, size, bg, fg);
+	PaintRepliesMessagesRoundedLarge(p, x, y, outerWidth, size, bg, fg);
 }
 
 void EmptyUserpic::PaintRepliesMessagesRounded(
@@ -329,6 +464,17 @@ void EmptyUserpic::PaintRepliesMessagesRounded(
 	const auto &bg = st::historyPeerSavedMessagesBg;
 	const auto &fg = st::historyPeerUserpicFg;
 	PaintRepliesMessagesRounded(p, x, y, outerWidth, size, bg, fg);
+}
+
+void EmptyUserpic::PaintRepliesMessagesSquared(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size) {
+	const auto &bg = st::historyPeerSavedMessagesBg;
+	const auto &fg = st::historyPeerUserpicFg;
+	PaintRepliesMessagesSquared(p, x, y, outerWidth, size, bg, fg);
 }
 
 void EmptyUserpic::PaintRepliesMessages(
@@ -349,6 +495,24 @@ void EmptyUserpic::PaintRepliesMessages(
 	PaintRepliesMessagesInner(p, x, y, size, fg);
 }
 
+void EmptyUserpic::PaintRepliesMessagesRoundedLarge(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg) {
+	x = rtl() ? (outerWidth - x - size) : x;
+
+	PainterHighQualityEnabler hq(p);
+	p.setBrush(bg);
+	p.setPen(Qt::NoPen);
+	p.drawRoundedRect(x, y, size, size, st::dateRadius, st::dateRadius);
+
+	PaintRepliesMessagesInner(p, x, y, size, fg);
+}
+
 void EmptyUserpic::PaintRepliesMessagesRounded(
 		Painter &p,
 		int x,
@@ -363,6 +527,24 @@ void EmptyUserpic::PaintRepliesMessagesRounded(
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
 	p.drawRoundedRect(x, y, size, size, st::roundRadiusSmall, st::roundRadiusSmall);
+
+	PaintRepliesMessagesInner(p, x, y, size, fg);
+}
+
+void EmptyUserpic::PaintRepliesMessagesSquared(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		int size,
+		const style::color &bg,
+		const style::color &fg) {
+	x = rtl() ? (outerWidth - x - size) : x;
+
+	PainterHighQualityEnabler hq(p);
+	p.setBrush(bg);
+	p.setPen(Qt::NoPen);
+	p.drawRoundedRect(x, y, size, size, 0, 0);
 
 	PaintRepliesMessagesInner(p, x, y, size, fg);
 }

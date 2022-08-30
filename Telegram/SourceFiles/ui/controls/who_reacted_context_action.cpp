@@ -80,7 +80,8 @@ public:
 		not_null<PopupMenu*> parentMenu,
 		rpl::producer<WhoReadContent> content,
 		Fn<void(uint64)> participantChosen,
-		Fn<void()> showAllChosen);
+		Fn<void()> showAllChosen,
+		int userpicsRadius);
 
 	bool isEnabled() const override;
 	not_null<QAction*> action() const override;
@@ -144,7 +145,8 @@ Action::Action(
 	not_null<PopupMenu*> parentMenu,
 	rpl::producer<WhoReadContent> content,
 	Fn<void(uint64)> participantChosen,
-	Fn<void()> showAllChosen)
+	Fn<void()> showAllChosen,
+	int userpicsRadius)
 : ItemBase(parentMenu->menu(), parentMenu->menu()->st())
 , _parentMenu(parentMenu)
 , _dummyAction(CreateChild<QAction>(parentMenu->menu().get()))
@@ -153,7 +155,8 @@ Action::Action(
 , _userpics(std::make_unique<GroupCallUserpics>(
 	st::defaultWhoRead.userpics,
 	rpl::never<bool>(),
-	[=] { update(); }))
+	[=] { update(); },
+	userpicsRadius))
 , _st(parentMenu->menu()->st())
 , _submenu(_participantChosen, _showAllChosen)
 , _height(st::defaultWhoRead.itemPadding.top()
@@ -586,12 +589,14 @@ base::unique_qptr<Menu::ItemBase> WhoReactedContextAction(
 		not_null<PopupMenu*> menu,
 		rpl::producer<WhoReadContent> content,
 		Fn<void(uint64)> participantChosen,
-		Fn<void()> showAllChosen) {
+		Fn<void()> showAllChosen,
+		int userpicsRadius) {
 	return base::make_unique_q<Action>(
 		menu,
 		std::move(content),
 		std::move(participantChosen),
-		std::move(showAllChosen));
+		std::move(showAllChosen),
+		userpicsRadius);
 }
 
 WhoReactedListMenu::WhoReactedListMenu(

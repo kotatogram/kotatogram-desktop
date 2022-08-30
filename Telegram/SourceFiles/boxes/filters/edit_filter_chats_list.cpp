@@ -277,7 +277,24 @@ void PaintFilterChatsTypeIcon(
 	auto hq = PainterHighQualityEnabler(p);
 	p.setBrush(color->b);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(rect);
+	switch (KotatoImageRoundRadius()) {
+		case ImageRoundRadius::None:
+			p.drawRoundedRect(rect, 0, 0);
+			break;
+
+		case ImageRoundRadius::Small:
+			p.drawRoundedRect(rect,
+				st::buttonRadius, st::buttonRadius);
+			break;
+
+		case ImageRoundRadius::Large:
+			p.drawRoundedRect(rect,
+				st::dateRadius, st::dateRadius);
+			break;
+
+		default:
+			p.drawEllipse(rect);
+	}
 	icon.paintInCenter(p, rect);
 }
 

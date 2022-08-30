@@ -104,14 +104,16 @@ void GroupCallScheduledLeft::update() {
 GroupCallBar::GroupCallBar(
 	not_null<QWidget*> parent,
 	rpl::producer<GroupCallBarContent> content,
-	rpl::producer<bool> &&hideBlobs)
+	rpl::producer<bool> &&hideBlobs,
+	int userpicsRadius)
 : _wrap(parent, object_ptr<RpWidget>(parent))
 , _inner(_wrap.entity())
 , _shadow(std::make_unique<PlainShadow>(_wrap.parentWidget()))
 , _userpics(std::make_unique<GroupCallUserpics>(
 		st::historyGroupCallUserpics,
 		std::move(hideBlobs),
-		[=] { updateUserpics(); })) {
+		[=] { updateUserpics(); },
+		userpicsRadius)) {
 	_wrap.hide(anim::type::instant);
 	_shadow->hide();
 

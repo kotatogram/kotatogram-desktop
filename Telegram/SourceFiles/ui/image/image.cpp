@@ -7,10 +7,29 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/image/image.h"
 
+#include "kotato/kotato_settings.h"
 #include "storage/cache/storage_cache_database.h"
 #include "data/data_session.h"
 #include "main/main_session.h"
 #include "ui/ui_utility.h"
+
+ImageRoundRadius KotatoImageRoundRadius() {
+	switch (::Kotato::JsonSettings::GetInt("userpic_corner_type")) {
+		case 0: return ImageRoundRadius::None;
+		case 1: return ImageRoundRadius::Small;
+		case 2: return ImageRoundRadius::Large;
+		default: return ImageRoundRadius::Ellipse;
+	}
+}
+
+Images::Option KotatoImageRoundOption() {
+	switch (::Kotato::JsonSettings::GetInt("userpic_corner_type")) {
+		case 0: return Images::Option::None;
+		case 1: return Images::Option::RoundSmall;
+		case 2: return Images::Option::RoundLarge;
+		default: return Images::Option::RoundCircle;
+	}
+}
 
 using namespace Images;
 

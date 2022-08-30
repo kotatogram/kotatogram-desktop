@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/effects/round_checkbox.h"
 
+#include "ui/image/image.h"
 #include "ui/rp_widget.h"
 #include "ui/ui_utility.h"
 
@@ -389,7 +390,25 @@ void RoundImageCheckbox::paint(Painter &p, int x, int y, int outerWidth) const {
 			_fgOverride ? (*_fgOverride) : _st.selectFg->b,
 			_st.selectWidth);
 		p.setPen(pen);
-		p.drawEllipse(style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth));
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				p.drawRoundedRect(style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth),
+					0, 0);
+				break;
+
+			case ImageRoundRadius::Small:
+				p.drawRoundedRect(style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth),
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case ImageRoundRadius::Large:
+				p.drawRoundedRect(style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth),
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				p.drawEllipse(style::rtlrect(x, y, _st.imageRadius * 2, _st.imageRadius * 2, outerWidth));
+		}
 		p.setOpacity(1.);
 	}
 	if (_st.check.size > 0) {

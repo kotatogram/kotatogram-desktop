@@ -274,6 +274,30 @@ public:
 			int size) const {
 		paintUserpic(p, view, rtl() ? (w - x - size) : x, y, size);
 	}
+	void paintUserpicCircled(
+		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
+		int x,
+		int y,
+		int size) const;
+	void paintUserpicRoundedLarge(
+		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
+		int x,
+		int y,
+		int size) const;
+	void paintUserpicRounded(
+		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
+		int x,
+		int y,
+		int size) const;
+	void paintUserpicSquare(
+		Painter &p,
+		std::shared_ptr<Data::CloudImageView> &view,
+		int x,
+		int y,
+		int size) const;
 	void loadUserpic();
 	[[nodiscard]] bool hasUserpic() const;
 	[[nodiscard]] std::shared_ptr<Data::CloudImageView> activeUserpicView();
