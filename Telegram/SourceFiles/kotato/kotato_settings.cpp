@@ -370,6 +370,12 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "always_show_top_userpic", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	{ "qt_scale", {
+		.storage = SettingStorage::None,
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+#endif
 };
 
 using OldOptionKey = QString;

@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "data/data_abstract_structure.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
@@ -230,8 +231,15 @@ void Application::run() {
 	_notifications = std::make_unique<Window::Notifications::System>();
 
 	startLocalStorage();
-	ValidateScale();
 	Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	if (!::Kotato::JsonSettings::GetBool("qt_scale")) {
+#endif
+		ValidateScale();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	}
+#endif
 
 	refreshGlobalProxy(); // Depends on app settings being read.
 

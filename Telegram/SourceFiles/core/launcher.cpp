@@ -337,6 +337,13 @@ int Launcher::exec() {
 	base::options::init(cWorkingDir() + "tdata/experimental_options.json");
 	Kotato::JsonSettings::Load();
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	if (::Kotato::JsonSettings::GetBool("qt_scale")) {
+		QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
+		QApplication::setAttribute(Qt::AA_EnableHighDpiScaling, true);
+	}
+#endif
+
 	if (Logs::DebugEnabled()) {
 		const auto openalLogPath = QDir::toNativeSeparators(
 			cWorkingDir() + qsl("DebugLogs/last_openal_log.txt"));

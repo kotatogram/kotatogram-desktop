@@ -395,6 +395,29 @@ void SetupKotatoSystem(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_system"));
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	AddButton(
+		container,
+		rktr("ktg_settings_qt_scale"),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBoolWithPending("qt_scale"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBoolWithPending("qt_scale"));
+	}) | rpl::start_with_next([=](bool enabled) {
+		::Kotato::JsonSettings::SetAfterRestart("qt_scale", enabled);
+		::Kotato::JsonSettings::Write();
+
+		Ui::show(Ui::MakeConfirmBox({
+			.text = tr::lng_settings_need_restart(),
+			.confirmed = [] { Core::Restart(); },
+			.confirmText = tr::lng_settings_restart_now(),
+			.cancelText = tr::lng_settings_restart_later(),
+		}));
+	}, container->lifetime());
+#endif // Qt < 6.0.0
+
 
 	AddSkip(container);
 }
