@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_main.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "settings/settings_common.h"
 #include "settings/settings_codes.h"
 #include "settings/settings_chat.h"
@@ -173,7 +174,11 @@ void SetupSections(
 }
 
 bool HasInterfaceScale() {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	return !::Kotato::JsonSettings::GetBool("qt_scale");
+#else
 	return true;
+#endif
 }
 
 void SetupInterfaceScale(

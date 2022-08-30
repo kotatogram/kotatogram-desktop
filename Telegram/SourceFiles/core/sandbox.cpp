@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/sandbox.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/platform/base_platform_info.h"
 #include "platform/platform_specific.h"
 #include "mainwidget.h"
@@ -240,7 +241,11 @@ void Sandbox::setupScreenScale() {
 	}
 
 	const auto ratio = devicePixelRatio();
-	if (ratio > 1.) {
+	if (ratio > 1.
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+		|| ::Kotato::JsonSettings::GetBool("qt_scale")
+#endif
+		) {
 		if (!Platform::IsMac() || (ratio != 2.)) {
 			LOG(("Found non-trivial Device Pixel Ratio: %1").arg(ratio));
 			LOG(("Environmental variables: QT_DEVICE_PIXEL_RATIO='%1'").arg(qEnvironmentVariable("QT_DEVICE_PIXEL_RATIO")));
@@ -249,7 +254,11 @@ void Sandbox::setupScreenScale() {
 			LOG(("Environmental variables: QT_SCREEN_SCALE_FACTORS='%1'").arg(qEnvironmentVariable("QT_SCREEN_SCALE_FACTORS")));
 		}
 		style::SetDevicePixelRatio(int(ratio));
-		if (Platform::IsMac() && ratio == 2.) {
+		if (Platform::IsMac() && ratio == 2.
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+			&& !::Kotato::JsonSettings::GetBool("qt_scale")
+#endif
+			) {
 			cSetScreenScale(110); // 110% for Retina screens by default.
 		} else {
 			cSetScreenScale(style::kScaleDefault);
@@ -366,7 +375,12 @@ void Sandbox::singleInstanceChecked() {
 		LOG(("App Info: Detected another instance"));
 	}
 
-	Ui::DisableCustomScaling();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+	if (!::Kotato::JsonSettings::GetBool("qt_scale")) {
+		Ui::DisableCustomScaling();
+	}
+#endif
+
 	refreshGlobalProxy();
 	if (!Logs::started() || !Logs::instanceChecked()) {
 		new NotStartedWindow();
