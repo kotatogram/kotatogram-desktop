@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "chat_helpers/stickers_list_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "core/application.h"
 #include "data/data_document.h"
 #include "data/data_document_media.h"
@@ -59,7 +60,6 @@ namespace ChatHelpers {
 namespace {
 
 constexpr auto kSearchRequestDelay = 400;
-constexpr auto kRecentDisplayLimit = 20;
 constexpr auto kPreloadOfficialPages = 4;
 constexpr auto kOfficialLoadLimit = 40;
 constexpr auto kMinRepaintDelay = crl::time(33);
@@ -268,6 +268,12 @@ StickersListWidget::StickersListWidget(
 	rpl::merge(
 		Data::AmPremiumValue(&session()) | rpl::to_empty,
 		session().api().premium().cloudSetUpdated()
+	) | rpl::start_with_next([=] {
+		refreshStickers();
+	}, lifetime());
+
+	::Kotato::JsonSettings::Events(
+		"recent_stickers_limit"
 	) | rpl::start_with_next([=] {
 		refreshStickers();
 	}, lifetime());
@@ -1808,6 +1814,10 @@ void StickersListWidget::removeRecentSticker(int section, int index) {
 			}
 		}
 	}
+	Api::ToggleRecentSticker(
+		document,
+		Data::FileOriginStickerSet(Data::Stickers::RecentSetId, 0),
+		false);
 	if (refresh) {
 		refreshRecentStickers();
 		updateSelected();
@@ -2118,7 +2128,7 @@ auto StickersListWidget::collectRecentStickers() -> std::vector<Sticker> {
 	_custom.reserve(cloudCount + recent.size() + customCount);
 
 	auto add = [&](not_null<DocumentData*> document, bool custom) {
-		if (result.size() >= kRecentDisplayLimit) {
+		if (result.size() >= ::Kotato::JsonSettings::GetInt("recent_stickers_limit")) {
 			return;
 		}
 		const auto i = ranges::find(result, document, &Sticker::document);
