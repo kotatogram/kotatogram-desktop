@@ -281,6 +281,10 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "replaces", {
 		.type = SettingType::QJsonArraySetting,
 		.limitHandler = ReplacesLimit(), }},
+	{ "recent_stickers_limit", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 20,
+		.limitHandler = IntLimit(0, 200, 20), }},
 };
 
 using OldOptionKey = QString;

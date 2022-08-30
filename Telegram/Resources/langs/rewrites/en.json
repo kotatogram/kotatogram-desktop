@@ -72,6 +72,15 @@
 	"ktg_profile_supergroup_id": "Supergroup ID",
 	"ktg_profile_channel_id": "Channel ID",
 	"ktg_settings_adaptive_bubbles": "Adaptive bubbles",
+	"ktg_settings_recent_stickers_limit": {
+		"zero": "Recent stickers: show {count} stickers",
+		"one": "Recent stickers: show {count} sticker",
+		"two": "Recent stickers: show {count} stickers",
+		"few": "Recent stickers: show {count} stickers",
+		"many": "Recent stickers: show {count} stickers",
+		"other": "Recent stickers: show {count} stickers"
+	},
+	"ktg_settings_recent_stickers_limit_none": "Recent stickers: hide all",
 	"ktg_settings_filters": "Folders",
 	"ktg_settings_messages": "Messages",
 	"ktg_settings_chat_id": "Chat ID in profile",
