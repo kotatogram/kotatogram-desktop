@@ -107,6 +107,38 @@ void SetupKotatoChats(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_chats"));
 
+	const auto recentStickersLimitLabel = container->add(
+		object_ptr<Ui::LabelSimple>(
+			container,
+			st::groupCallDelayLabel),
+		st::groupCallDelayLabelMargin);
+	const auto recentStickersLimitSlider = container->add(
+		object_ptr<Ui::MediaSlider>(
+			container,
+			st::defaultContinuousSlider),
+		st::localStorageLimitMargin);
+	const auto updateRecentStickersLimitLabel = [=](int value) {
+		if (value == 0) {
+			recentStickersLimitLabel->setText(
+				ktr("ktg_settings_recent_stickers_limit_none"));
+		} else {
+			recentStickersLimitLabel->setText(
+				ktr("ktg_settings_recent_stickers_limit", value, { "count", QString::number(value) }));
+		}
+	};
+	const auto updateRecentStickersLimitHeight = [=](int value) {
+		updateRecentStickersLimitLabel(value);
+		::Kotato::JsonSettings::Set("recent_stickers_limit", value);
+		::Kotato::JsonSettings::Write();
+	};
+	recentStickersLimitSlider->resize(st::defaultContinuousSlider.seekSize);
+	recentStickersLimitSlider->setPseudoDiscrete(
+		201,
+		[](int val) { return val; },
+		::Kotato::JsonSettings::GetInt("recent_stickers_limit"),
+		updateRecentStickersLimitHeight);
+	updateRecentStickersLimitLabel(::Kotato::JsonSettings::GetInt("recent_stickers_limit"));
+
 	SettingsMenuJsonSwitch(ktg_settings_disable_up_edit, disable_up_edit);
 	SettingsMenuJsonSwitch(ktg_settings_always_show_scheduled, always_show_scheduled);
 

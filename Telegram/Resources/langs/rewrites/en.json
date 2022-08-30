@@ -67,6 +67,15 @@
 	"ktg_settings_ffmpeg_multithread": "Multithread video decoding",
 	"ktg_settings_ffmpeg_multithread_about": "When enabled, CPU and RAM consumption is higher, video decodes faster. When disabled, CPU and RAM consumption is lower, video decodes slower. The more CPU cores you have, the more RAM consumption you have when this option is enabled. You can set exact number of threads in the JSON configuration file.",
 	"ktg_settings_adaptive_bubbles": "Adaptive bubbles",
+	"ktg_settings_recent_stickers_limit": {
+		"zero": "Recent stickers: show {count} stickers",
+		"one": "Recent stickers: show {count} sticker",
+		"two": "Recent stickers: show {count} stickers",
+		"few": "Recent stickers: show {count} stickers",
+		"many": "Recent stickers: show {count} stickers",
+		"other": "Recent stickers: show {count} stickers"
+	},
+	"ktg_settings_recent_stickers_limit_none": "Recent stickers: hide all",
 	"ktg_settings_filters": "Folders",
 	"ktg_settings_messages": "Messages",
 	"ktg_settings_chat_id": "Chat ID in profile",
