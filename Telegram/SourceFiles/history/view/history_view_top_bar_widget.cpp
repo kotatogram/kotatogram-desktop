@@ -812,13 +812,20 @@ void TopBarWidget::updateControlsGeometry() {
 		_cancelChoose->moveToLeft(_leftTaken, otherButtonsTop);
 		_leftTaken += _cancelChoose->width();
 	} else if (_back->isHidden()) {
-		_leftTaken = st::topBarArrowPadding.right();
+		if (::Kotato::JsonSettings::GetBool("always_show_top_userpic")) {
+			_leftTaken = st::topBarActionSkip;
+		} else {
+			_leftTaken = st::topBarArrowPadding.right();
+		}
 	} else {
 		const auto smallDialogsColumn = _activeChat.key.folder()
 			&& (width() < _back->width() + _search->width());
 		_leftTaken = smallDialogsColumn ? (width() - _back->width()) / 2 : 0;
 		_back->moveToLeft(_leftTaken, otherButtonsTop);
 		_leftTaken += _back->width();
+	}
+
+	if (!_back->isHidden() || ::Kotato::JsonSettings::GetBool("always_show_top_userpic")) {
 		if (_info && !_info->isHidden()) {
 			_info->moveToLeft(_leftTaken, otherButtonsTop);
 			_leftTaken += _info->width();
@@ -881,7 +888,8 @@ void TopBarWidget::updateControlsVisibility() {
 	_back->setVisible(backVisible && !_chooseForReportReason);
 	_cancelChoose->setVisible(_chooseForReportReason.has_value());
 	if (_info) {
-		_info->setVisible(isOneColumn && !_chooseForReportReason);
+		_info->setVisible(::Kotato::JsonSettings::GetBool("always_show_top_userpic")
+			|| (isOneColumn && !_chooseForReportReason));
 	}
 	if (_unreadBadge) {
 		_unreadBadge->setVisible(!_chooseForReportReason);

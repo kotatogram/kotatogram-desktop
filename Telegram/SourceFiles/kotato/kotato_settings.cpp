@@ -367,6 +367,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 3,
 		.limitHandler = IntLimit(0, 3, 3), }},
+	{ "always_show_top_userpic", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;
