@@ -391,6 +391,8 @@ private:
 	rpl::event_stream<> _scrollUpdated;
 	rpl::event_stream<TabbedSelector::Action> _choosingUpdated;
 
+	rpl::lifetime _lifetime;
+
 };
 
 [[nodiscard]] object_ptr<Ui::BoxContent> MakeConfirmRemoveSetBox(
