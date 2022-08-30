@@ -2563,7 +2563,7 @@ void HistoryWidget::refreshSendAsToggle() {
 	} else if (_sendAs) {
 		return;
 	}
-	_sendAs.create(this, st::sendAsButton);
+	_sendAs.create(this, st::sendAsButton, ::Kotato::JsonSettings::GetInt("userpic_corner_type"));
 	Ui::SetupSendAsButton(_sendAs.data(), controller());
 }
 
@@ -6346,7 +6346,8 @@ void HistoryWidget::setupGroupCallBar() {
 		HistoryView::GroupCallBarContentByPeer(
 			peer,
 			st::historyGroupCallUserpics.size),
-		Core::App().appDeactivatedValue());
+		Core::App().appDeactivatedValue(),
+		::Kotato::JsonSettings::GetInt("userpic_corner_type"));
 
 	controller()->adaptive().oneColumnValue(
 	) | rpl::start_with_next([=](bool one) {
@@ -6397,7 +6398,8 @@ void HistoryWidget::setupRequestsBar() {
 		this,
 		HistoryView::RequestsBarContentByPeer(
 			peer,
-			st::historyRequestsUserpics.size));
+			st::historyRequestsUserpics.size),
+		::Kotato::JsonSettings::GetInt("userpic_corner_type"));
 
 	controller()->adaptive().oneColumnValue(
 	) | rpl::start_with_next([=](bool one) {

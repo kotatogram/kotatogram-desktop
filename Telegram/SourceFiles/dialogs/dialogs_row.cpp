@@ -204,8 +204,12 @@ void BasicRow::PaintCornerBadgeFrame(
 		? st::dialogsOnlineBadgeFgActive
 		: st::dialogsOnlineBadgeFg);
 	q.drawEllipse(QRectF(
-		st::dialogsPhotoSize - skip.x() - size,
-		st::dialogsPhotoSize - skip.y() - size,
+		st::dialogsPhotoSize - size -
+			(KotatoImageRoundRadius() == ImageRoundRadius::Ellipse
+				? skip.x() : -(stroke / 2)),
+		st::dialogsPhotoSize - size -
+			(KotatoImageRoundRadius() == ImageRoundRadius::Ellipse
+				? skip.y() : -(stroke / 2)),
 		size,
 		size
 	).marginsRemoved({ shrink, shrink, shrink, shrink }));
@@ -266,12 +270,17 @@ void BasicRow::paintUserpic(
 		: st::dialogsBg;
 	const auto size = st::dialogsCallBadgeSize;
 	const auto skip = st::dialogsCallBadgeSkip;
+	const auto stroke = st::dialogsOnlineBadgeStroke;
 	p.setOpacity(shown);
 	p.translate(st::dialogsPadding);
 	actionPainter->paintSpeaking(
 		p,
-		st::dialogsPhotoSize - skip.x() - size,
-		st::dialogsPhotoSize - skip.y() - size,
+		st::dialogsPhotoSize - size -
+			(KotatoImageRoundRadius() == ImageRoundRadius::Ellipse
+				? skip.x() : -(stroke / 2)),
+		st::dialogsPhotoSize - size -
+			(KotatoImageRoundRadius() == ImageRoundRadius::Ellipse
+				? skip.y() : -(stroke / 2)),
 		fullWidth,
 		bg,
 		now);

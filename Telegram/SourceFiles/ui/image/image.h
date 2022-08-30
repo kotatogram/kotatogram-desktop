@@ -9,6 +9,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "ui/image/image_prepare.h"
 
+ImageRoundRadius KotatoImageRoundRadius();
+Images::Option KotatoImageRoundOption();
+
 class QPainterPath;
 
 namespace Images {

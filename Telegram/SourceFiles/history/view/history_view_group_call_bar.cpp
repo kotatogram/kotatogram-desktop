@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "calls/calls_instance.h"
 #include "core/application.h"
 #include "styles/style_chat.h"
+#include "styles/style_widgets.h"
 
 namespace HistoryView {
 
@@ -57,7 +58,24 @@ void GenerateUserpicsInRow(
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		q.setBrush(Qt::NoBrush);
 		q.setPen(pen);
-		q.drawEllipse(x, 0, single, single);
+		switch (KotatoImageRoundRadius()) {
+			case ImageRoundRadius::None:
+				q.drawRoundedRect(QRect{ x, 0, single, single }, 0, 0);
+				break;
+
+			case ImageRoundRadius::Small:
+				q.drawRoundedRect(QRect{ x, 0, single, single },
+					st::buttonRadius, st::buttonRadius);
+				break;
+
+			case ImageRoundRadius::Large:
+				q.drawRoundedRect(QRect{ x, 0, single, single },
+					st::dateRadius, st::dateRadius);
+				break;
+
+			default:
+				q.drawEllipse(x, 0, single, single);
+		}
 		x -= single - shift;
 	}
 }

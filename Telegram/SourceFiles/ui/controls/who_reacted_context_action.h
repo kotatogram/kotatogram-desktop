@@ -50,7 +50,8 @@ struct WhoReadContent {
 	not_null<PopupMenu*> menu,
 	rpl::producer<WhoReadContent> content,
 	Fn<void(uint64)> participantChosen,
-	Fn<void()> showAllChosen);
+	Fn<void()> showAllChosen,
+	int userpicsRadius);
 
 class WhoReactedListMenu final {
 public:

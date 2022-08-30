@@ -363,6 +363,10 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 20,
 		.limitHandler = IntLimit(0, 200, 20), }},
+	{ "userpic_corner_type", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 3,
+		.limitHandler = IntLimit(0, 3, 3), }},
 };
 
 using OldOptionKey = QString;
