@@ -21,4 +21,21 @@ inline void UnsafeOpenUrl(const QString &url) {
 }
 
 } // namespace File
+
+namespace FileDialog {
+
+enum class ImplementationType {
+	Default,
+	Count,
+};
+
+inline QString ImplementationTypeLabel(ImplementationType value) {
+	Unexpected("Value in Platform::FileDialog::ImplementationTypeLabel.");
+}
+
+inline QString ImplementationTypeDescription(ImplementationType value) {
+	return QString();
+}
+
+} // namespace FileDialog
 } // namespace Platform

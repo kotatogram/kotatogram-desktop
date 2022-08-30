@@ -27,6 +27,13 @@ inline void PostprocessDownloaded(const QString &filepath) {
 
 namespace FileDialog {
 
+enum class ImplementationType {
+	Default,
+	XDP,
+	Qt,
+	Count,
+};
+
 inline void InitLastPath() {
 	::FileDialog::internal::InitLastPathDefault();
 }

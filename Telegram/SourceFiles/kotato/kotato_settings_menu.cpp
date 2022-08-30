@@ -45,6 +45,20 @@ namespace Settings {
 
 namespace {
 
+QString FileDialogTypeLabel(int value) {
+	const auto typedValue = Platform::FileDialog::ImplementationType(value);
+	switch (typedValue) {
+	case Platform::FileDialog::ImplementationType::Default:
+		return ktr("ktg_file_dialog_type_default");
+	}
+	return Platform::FileDialog::ImplementationTypeLabel(typedValue);
+}
+
+QString FileDialogTypeDescription(int value) {
+	const auto typedValue = Platform::FileDialog::ImplementationType(value);
+	return Platform::FileDialog::ImplementationTypeDescription(typedValue);
+}
+
 
 QString NetBoostLabel(int boost) {
 	switch (boost) {
@@ -416,6 +430,36 @@ void SetupKotatoSystem(
 			[] { Core::Restart(); }));
 	}, container->lifetime());
 #endif // Qt < 6.0.0
+
+	if (Platform::IsLinux()) {
+		auto fileDialogTypeText = rpl::single(
+			FileDialogTypeLabel(::Kotato::JsonSettings::GetInt("file_dialog_type"))
+		) | rpl::then(
+			::Kotato::JsonSettings::Events(
+				"file_dialog_type"
+			) | rpl::map([] {
+				return FileDialogTypeLabel(::Kotato::JsonSettings::GetInt("file_dialog_type"));
+			})
+		);
+
+		AddButtonWithLabel(
+			container,
+			rktr("ktg_settings_file_dialog_type"),
+			fileDialogTypeText,
+			st::settingsButton
+		)->addClickHandler([=] {
+			Ui::show(Box<::Kotato::RadioBox>(
+				ktr("ktg_settings_file_dialog_type"),
+				::Kotato::JsonSettings::GetInt("file_dialog_type"),
+				int(Platform::FileDialog::ImplementationType::Count),
+				FileDialogTypeLabel,
+				FileDialogTypeDescription,
+				[=](int value) {
+					::Kotato::JsonSettings::Set("file_dialog_type", value);
+					::Kotato::JsonSettings::Write();
+				}, false));
+		});
+	}
 
 
 	AddSkip(container);

@@ -198,6 +198,23 @@ CheckHandler ReplacesLimit() {
 	};
 }
 
+CheckHandler FileDialogLimit() {
+	return [=] (QVariant value) -> QVariant {
+		using Platform::FileDialog::ImplementationType;
+		auto newValue = int(ImplementationType::Default);
+		if (value.canConvert<int>()) {
+			auto intValue = value.toInt();
+			if (intValue >= int(ImplementationType::Default)
+				&& intValue < int(ImplementationType::Count)) {
+
+				newValue = intValue;
+			} else if (intValue >= int(ImplementationType::Count)) {
+				newValue = int(ImplementationType::Count) - 1;
+			}
+		}
+		return newValue;
+	};
+}
 
 CheckHandler NetSpeedBoostConv(CheckHandler wrapped = nullptr) {
 	return [=] (QVariant value) -> QVariant {
@@ -376,6 +393,10 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
 #endif
+	{ "file_dialog_type", {
+		.type = SettingType::IntSetting,
+		.defaultValue = int(Platform::FileDialog::ImplementationType::Default),
+		.limitHandler = FileDialogLimit(), }},
 };
 
 using OldOptionKey = QString;

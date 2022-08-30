@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/file_utilities_linux.h"
 
+#include "kotato/kotato_lang.h"
+
 #ifndef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
 #include "platform/linux/linux_xdp_file_dialog.h"
 #include "platform/linux/linux_xdp_open_with_dialog.h"
@@ -82,6 +84,23 @@ void UnsafeLaunch(const QString &filepath) {
 } // namespace File
 
 namespace FileDialog {
+
+QString ImplementationTypeLabel(ImplementationType value) {
+	switch (value) {
+	case ImplementationType::XDP: return qsl("XDG Desktop Portal");
+	case ImplementationType::Qt: return qsl("Qt");
+	}
+	Unexpected("Value in Platform::FileDialog::ImplementationTypeLabel.");
+}
+
+QString ImplementationTypeDescription(ImplementationType value) {
+	switch (value) {
+#ifdef DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+	case ImplementationType::XDP: return ktr("ktg_file_dialog_disabled_on_build");
+#endif // DESKTOP_APP_DISABLE_DBUS_INTEGRATION
+	}
+	return QString();
+}
 
 bool Get(
 		QPointer<QWidget> parent,
