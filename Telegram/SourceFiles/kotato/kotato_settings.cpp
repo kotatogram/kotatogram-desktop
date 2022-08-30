@@ -322,6 +322,13 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "replaces", {
 		.type = SettingType::QJsonArraySetting,
 		.limitHandler = ReplacesLimit(), }},
+	{ "ffmpeg_multithread", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
+	{ "ffmpeg_thread_count", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0,
+		.limitHandler = IntLimitMin(0) }},
 };
 
 using OldOptionKey = QString;
