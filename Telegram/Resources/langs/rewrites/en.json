@@ -66,6 +66,8 @@
 	"ktg_settings_call_confirm": "Confirm before calling",
 	"ktg_call_sure": "Are you sure you want to call this user?",
 	"ktg_call_button": "Call",
+	"ktg_settings_ffmpeg_multithread": "Multithread video decoding",
+	"ktg_settings_ffmpeg_multithread_about": "When enabled, CPU and RAM consumption is higher, video decodes faster. When disabled, CPU and RAM consumption is lower, video decodes slower. The more CPU cores you have, the more RAM consumption you have when this option is enabled. You can set exact number of threads in the JSON configuration file.",
 	"ktg_settings_adaptive_bubbles": "Adaptive bubbles",
 	"ktg_settings_filters": "Folders",
 	"ktg_settings_messages": "Messages",

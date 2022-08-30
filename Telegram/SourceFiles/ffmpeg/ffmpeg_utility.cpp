@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ffmpeg/ffmpeg_utility.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/algorithm.h"
 #include "logs.h"
 
@@ -176,7 +177,13 @@ CodecPointer MakeCodecPointer(not_null<AVStream*> stream) {
 		return {};
 	}
 	context->pkt_timebase = stream->time_base;
-	av_opt_set(context, "threads", "auto", 0);
+	if(::Kotato::JsonSettings::GetBool("ffmpeg_multithread")) {
+		if (::Kotato::JsonSettings::GetInt("ffmpeg_thread_count") > 0) {
+			av_opt_set(context, "threads", std::to_string(::Kotato::JsonSettings::GetInt("ffmpeg_thread_count")).c_str(), 0);
+		} else {
+			av_opt_set(context, "threads", "auto", 0);
+		}
+	}
 	av_opt_set_int(context, "refcounted_frames", 1, 0);
 
 	const auto codec = FindDecoder(context);
