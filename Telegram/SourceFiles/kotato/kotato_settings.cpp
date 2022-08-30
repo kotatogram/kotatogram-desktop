@@ -352,6 +352,13 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "confirm_before_calls", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "ffmpeg_multithread", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
+	{ "ffmpeg_thread_count", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0,
+		.limitHandler = IntLimitMin(0) }},
 };
 
 using OldOptionKey = QString;
