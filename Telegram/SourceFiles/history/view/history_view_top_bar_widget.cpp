@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_top_bar_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "history/history.h"
 #include "history/view/history_view_send_action.h"
 #include "boxes/add_contact_box.h"
@@ -987,7 +988,11 @@ void TopBarWidget::updateControlsGeometry() {
 		_cancelChoose->moveToLeft(_leftTaken, otherButtonsTop);
 		_leftTaken += _cancelChoose->width();
 	} else if (_back->isHidden()) {
-		_leftTaken = st::topBarArrowPadding.right();
+		if (::Kotato::JsonSettings::GetBool("always_show_top_userpic")) {
+			_leftTaken = st::topBarActionSkip;
+		} else {
+			_leftTaken = st::topBarArrowPadding.right();
+		}
 	} else {
 		_leftTaken = anim::interpolate(
 			0,
@@ -996,13 +1001,17 @@ void TopBarWidget::updateControlsGeometry() {
 		_back->moveToLeft(_leftTaken, backButtonTop);
 		_leftTaken += _back->width();
 	}
-	if (_info && !_info->isHidden()) {
-		_info->moveToLeft(_leftTaken, otherButtonsTop);
-		_leftTaken += _info->width();
+
+	if (!_back->isHidden() || ::Kotato::JsonSettings::GetBool("always_show_top_userpic")) {
+		if (_info && !_info->isHidden()) {
+			_info->moveToLeft(_leftTaken, otherButtonsTop);
+			_leftTaken += _info->width();
+		}
 	} else if (_activeChat.key.topic()
 		|| _activeChat.section == Section::ChatsList) {
 		_leftTaken += st::normalFont->spacew;
 	}
+
 
 	if (_searchField) {
 		const auto fieldLeft = _leftTaken;
@@ -1090,7 +1099,7 @@ void TopBarWidget::updateControlsVisibility() {
 	_cancelChoose->setVisible(_chooseForReportReason.has_value());
 	if (_info) {
 		_info->setVisible(!_chooseForReportReason
-			&& (isOneColumn || !_primaryWindow));
+			&& (::Kotato::JsonSettings::GetBool("always_show_top_userpic") || isOneColumn || !_primaryWindow));
 	}
 	if (_unreadBadge) {
 		_unreadBadge->setVisible(!_chooseForReportReason);
