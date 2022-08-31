@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/linux/tray_linux.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "base/platform/linux/base_linux_dbus_utilities.h"
@@ -22,6 +23,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtWidgets/QMenu>
 #include <QtWidgets/QSystemTrayIcon>
 
+#include <ksandbox.h>
+
 #include <gio/gio.hpp>
 
 namespace Platform {
@@ -30,7 +33,11 @@ namespace {
 using namespace gi::repository;
 
 [[nodiscard]] QString PanelIconName(int counter, bool muted) {
-	return ApplicationIconName() + ((counter > 0)
+	return (::Kotato::JsonSettings::GetBool("use_telegram_panel_icon")
+		? KSandbox::isSnap()
+		? u"snap.telegram-desktop."_q
+		: u"org.telegram.desktop"_q
+		: ApplicationIconName()) + ((counter > 0)
 		? (muted
 			? u"-mute"_q
 			: u"-attention"_q)
@@ -55,6 +62,9 @@ private:
 		bool monochrome = false;
 		int32 counter = 0;
 		bool muted = false;
+		int customId = 0;
+		bool counterDisabled = false;
+		bool telegramPanelIcon = false;
 	};
 
 	[[nodiscard]] QIcon systemIcon() const;
@@ -82,7 +92,8 @@ QIcon IconGraphic::systemIcon() const {
 	if (_new.iconThemeName == _current.iconThemeName
 		&& _new.monochrome == _current.monochrome
 		&& (_new.counter > 0) == (_current.counter > 0)
-		&& _new.muted == _current.muted) {
+		&& _new.muted == _current.muted
+		&& _new.telegramPanelIcon == _current.telegramPanelIcon) {
 		return _current.systemIcon;
 	}
 
@@ -125,6 +136,9 @@ void IconGraphic::updateState() {
 	_new.monochrome = Core::App().settings().trayIconMonochrome();
 	_new.counter = Core::App().unreadBadge();
 	_new.muted = Core::App().unreadBadgeMuted();
+	_new.customId = ::Kotato::JsonSettings::GetInt("custom_app_icon");
+	_new.counterDisabled = ::Kotato::JsonSettings::GetBool("disable_tray_counter");
+	_new.telegramPanelIcon = ::Kotato::JsonSettings::GetBool("use_telegram_panel_icon");
 	_new.systemIcon = systemIcon();
 }
 
@@ -136,7 +150,10 @@ bool IconGraphic::isRefreshNeeded() const {
 			? _new.muted != _current.muted
 				|| counterSlice(_new.counter) != counterSlice(
 						_current.counter)
-			: false);
+			: false)
+		|| _new.customId != _current.customId
+		|| _new.counterDisabled != _current.counterDisabled
+		|| _new.telegramPanelIcon != _current.telegramPanelIcon;
 }
 
 QIcon IconGraphic::trayIcon() {
@@ -160,10 +177,16 @@ QIcon IconGraphic::trayIcon() {
 
 		if (currentImageBack.isNull()
 			|| _new.iconThemeName != _current.iconThemeName
-			|| _new.systemIcon.name() != _current.systemIcon.name()) {
+			|| _new.systemIcon.name() != _current.systemIcon.name()
+			|| _new.customId != _current.customId
+			|| _new.counterDisabled != _current.counterDisabled) {
 			currentImageBack = {};
 
-			if (!_new.systemIcon.isNull()) {
+			if (QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
+				currentImageBack = QImage(cWorkingDir() + "tdata/icon.png");
+			} else if (_new.customId != 0) {
+				currentImageBack = Window::Logo(_new.customId);
+			} else if (!_new.systemIcon.isNull()) {
 				// We can't use QIcon::actualSize here
 				// since it works incorrectly with svg icon themes
 				currentImageBack = _new.systemIcon
@@ -203,7 +226,7 @@ QIcon IconGraphic::trayIcon() {
 			}
 		}
 
-		result.addPixmap(Ui::PixmapFromImage(_new.counter > 0
+		result.addPixmap(Ui::PixmapFromImage((!_new.counterDisabled && _new.counter > 0)
 			? Window::WithSmallCounter(std::move(currentImageBack), {
 				.size = iconSize,
 				.count = _new.counter,

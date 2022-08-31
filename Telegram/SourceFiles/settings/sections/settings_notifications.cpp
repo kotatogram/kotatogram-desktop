@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "settings/settings_common_session.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_authorizations.h"
 #include "api/api_reactions_notify_settings.h"
 #include "api/api_ringtones.h"
@@ -455,7 +456,7 @@ void NotificationsCount::prepareNotificationSampleSmall() {
 void NotificationsCount::prepareNotificationSampleUserpic() {
 	if (_notificationSampleUserpic.isNull()) {
 		_notificationSampleUserpic = Ui::PixmapFromImage(
-			Window::LogoNoMargin().scaled(
+			Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon")).scaled(
 				st::notifyPhotoSize * style::DevicePixelRatio(),
 				st::notifyPhotoSize * style::DevicePixelRatio(),
 				Qt::IgnoreAspectRatio,

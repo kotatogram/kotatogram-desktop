@@ -35,8 +35,8 @@ class TitleWidget;
 struct TermsLock;
 struct SeparateId;
 
-[[nodiscard]] const QImage &Logo();
-[[nodiscard]] const QImage &LogoNoMargin();
+[[nodiscard]] const QImage &Logo(int variant = 0);
+[[nodiscard]] const QImage &LogoNoMargin(int variant = 0);
 void OverrideApplicationIcon(QImage image);
 [[nodiscard]] QIcon CreateIcon(
 	Main::Session *session = nullptr,

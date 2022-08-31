@@ -99,6 +99,7 @@ settingsUpdateStatePosition: point(22px, 29px);
 
 settingsIconInterfaceScale: icon {{ "settings/interface_scale", settingsIconFg }};
 settingsIconKotato: icon {{ "settings/kotato", menuIconColor }};
+settingsIconKotatoOld: icon {{ "settings/kotato_old", menuIconColor }};
 
 settingsPremiumIconDouble: icon {{ "settings/premium/double", settingsIconFg }};
 settingsPremiumIconTags: icon {{ "settings/premium/tags", settingsIconFg }};

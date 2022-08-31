@@ -136,13 +136,41 @@ base::options::toggle OptionDisableTouchbar({
 const char kOptionNewWindowsSizeAsFirst[] = "new-windows-size-as-first";
 const char kOptionDisableTouchbar[] = "touchbar-disabled";
 
-const QImage &Logo() {
+const QImage &Logo(int variant) {
 	static const auto result = QImage(u":/gui/art/logo_256.png"_q);
+	static const auto result_blue = QImage(u":/gui/art/logo_256_blue.png"_q);
+	static const auto result_green = QImage(u":/gui/art/logo_256_green.png"_q);
+	static const auto result_orange = QImage(u":/gui/art/logo_256_orange.png"_q);
+	static const auto result_red = QImage(u":/gui/art/logo_256_red.png"_q);
+	static const auto result_old = QImage(u":/gui/art/logo_256_old.png"_q);
+
+	switch (variant) {
+		case 1: return result_blue;
+		case 2: return result_green;
+		case 3: return result_orange;
+		case 4: return result_red;
+		case 5: return result_old;
+	}
+
 	return result;
 }
 
-const QImage &LogoNoMargin() {
+const QImage &LogoNoMargin(int variant) {
 	static const auto result = QImage(u":/gui/art/logo_256_no_margin.png"_q);
+	static const auto result_blue = QImage(u":/gui/art/logo_256_no_margin_blue.png"_q);
+	static const auto result_green = QImage(u":/gui/art/logo_256_no_margin_green.png"_q);
+	static const auto result_orange = QImage(u":/gui/art/logo_256_no_margin_orange.png"_q);
+	static const auto result_red = QImage(u":/gui/art/logo_256_no_margin_red.png"_q);
+	static const auto result_old = QImage(u":/gui/art/logo_256_no_margin_old.png"_q);
+
+	switch (variant) {
+		case 1: return result_blue;
+		case 2: return result_green;
+		case 3: return result_orange;
+		case 4: return result_red;
+		case 5: return result_old;
+	}
+
 	return result;
 }
 
@@ -202,10 +230,15 @@ QIcon CreateSupportIcon(Main::Session *session) {
 	if (!support) {
 		return QIcon();
 	}
+	const auto customIcon = QImage(cWorkingDir() + "tdata/icon.png");
 	auto overriden = OverridenIcon();
-	auto image = overriden.isNull()
-		? Platform::DefaultApplicationIcon()
-		: overriden;
+
+	auto image = customIcon.isNull()
+		? overriden.isNull()
+			? Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))
+			: overriden
+		: customIcon;
+
 	ConvertIconToBlack(image);
 	return QIcon(Ui::PixmapFromImage(std::move(image)));
 }
@@ -216,10 +249,14 @@ QIcon CreateIcon(Main::Session *session, bool returnNullIfDefault) {
 		return supportIcon;
 	}
 
-	const auto officialIcon = QIcon(
-		Ui::PixmapFromImage(base::duplicate(Logo())));
+	const auto customIcon = QImage(cWorkingDir() + "tdata/icon.png");
+	const auto customIconId = ::Kotato::JsonSettings::GetInt(
+		"custom_app_icon");
+	const auto officialIcon = QIcon(Ui::PixmapFromImage(customIcon.isNull()
+		? base::duplicate(Logo(customIconId))
+		: base::duplicate(customIcon)));
 
-	if constexpr (!Platform::IsLinux()) {
+	if (!Platform::IsLinux() || customIconId || !customIcon.isNull()) {
 		return officialIcon;
 	}
 

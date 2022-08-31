@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/win/tray_win.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
@@ -106,10 +107,12 @@ bool DarkTasbarValueValid/* = false*/;
 		bool supportMode,
 		bool smallIcon,
 		bool monochrome) {
-	static auto ScaledLogo = base::flat_map<int, QImage>();
-	static auto ScaledLogoNoMargin = base::flat_map<int, QImage>();
-	static auto ScaledLogoDark = base::flat_map<int, QImage>();
-	static auto ScaledLogoLight = base::flat_map<int, QImage>();
+	using Key = std::pair<int, int>; // size, custom_app_icon
+	static auto ScaledLogo = base::flat_map<Key, QImage>();
+	static auto ScaledLogoNoMargin = base::flat_map<Key, QImage>();
+	static auto ScaledLogoDark = base::flat_map<Key, QImage>();
+	static auto ScaledLogoLight = base::flat_map<Key, QImage>();
+	static auto CustomIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	const auto darkMode = IsDarkTaskbar();
 	auto &scaled = (monochrome && darkMode)
@@ -121,17 +124,23 @@ bool DarkTasbarValueValid/* = false*/;
 		: ScaledLogo;
 
 	auto result = [&] {
-		if (const auto it = scaled.find(args.size); it != scaled.end()) {
+		const auto idx = CustomIcon.isNull()
+			? ::Kotato::JsonSettings::GetInt("custom_app_icon")
+			: 0;
+		const auto key = Key(args.size, idx);
+		if (const auto it = scaled.find(key); it != scaled.end()) {
 			return it->second;
 		} else if (monochrome && darkMode) {
 			return MonochromeIconFor(args.size, *darkMode);
 		}
 		return scaled.emplace(
-			args.size,
-			(smallIcon
-				? Window::LogoNoMargin()
-				: Window::Logo()
-			).scaledToWidth(args.size, Qt::SmoothTransformation)
+			key,
+			!CustomIcon.isNull()
+				? CustomIcon.scaledToWidth(args.size, Qt::SmoothTransformation)
+				: (smallIcon
+					? Window::LogoNoMargin(idx)
+					: Window::Logo(idx)
+				).scaledToWidth(args.size, Qt::SmoothTransformation)
 		).first->second;
 	}();
 	if ((!monochrome || !darkMode) && supportMode) {
@@ -142,6 +151,8 @@ bool DarkTasbarValueValid/* = false*/;
 	} else if (smallIcon) {
 		if (monochrome && darkMode) {
 			return MonochromeWithDot(std::move(result), args.bg);
+		} else if (::Kotato::JsonSettings::GetBool("disable_tray_counter")) {
+			return result;
 		}
 		return Window::WithSmallCounter(std::move(result), std::move(args));
 	}

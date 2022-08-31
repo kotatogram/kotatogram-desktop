@@ -449,7 +449,9 @@ void BuildSectionButtons(SectionBuilder &builder) {
 	builder.addSectionButton({
 		.title = rktr("ktg_settings_kotato"),
 		.targetSection = Kotato::Id(),
-		.icon = { &st::settingsIconKotato },
+		.icon = { (::Kotato::JsonSettings::GetInt("custom_app_icon") == 5
+			? &st::settingsIconKotatoOld
+			: &st::settingsIconKotato) },
 		.keywords = { u"kotato"_q },
 	});
 
