@@ -79,6 +79,7 @@ settingsIconInterfaceScale: icon {{ "settings/interface_scale", settingsIconFg }
 settingsIconStickers: icon {{ "settings/stickers", settingsIconFg }};
 settingsIconEmoji: icon {{ "settings/emoji", settingsIconFg }};
 settingsIconKotato: icon {{ "settings/kotato", settingsIconFg }};
+settingsIconKotatoOld: icon {{ "settings/kotato_old", settingsIconFg }};
 
 settingsPremiumIconWallpapers: icon {{ "settings/photo", settingsIconFg }};
 settingsPremiumIconStories: icon {{ "settings/stories", settingsIconFg }};

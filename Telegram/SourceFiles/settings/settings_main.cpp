@@ -399,7 +399,9 @@ void SetupSections(
 	addSection(
 		rktr("ktg_settings_kotato"),
 		Kotato::Id(),
-		{ &st::settingsIconKotato });
+		{(::Kotato::JsonSettings::GetInt("custom_app_icon") == 5
+			? &st::settingsIconKotatoOld
+			: &st::settingsIconKotato) });
 
 	SetupPowerSavingButton(&controller->window(), container);
 	SetupLanguageButton(&controller->window(), container);

@@ -4,7 +4,17 @@
     <file alias="art/bg_thumbnail.png">../../art/bg_thumbnail.png</file>
     <file alias="art/bg_initial.jpg">../../art/bg_initial.jpg</file>
     <file alias="art/logo_256.png">../../art/logo_256.png</file>
+    <file alias="art/logo_256_blue.png">../../art/logo_256_blue.png</file>
+    <file alias="art/logo_256_green.png">../../art/logo_256_green.png</file>
+    <file alias="art/logo_256_orange.png">../../art/logo_256_orange.png</file>
+    <file alias="art/logo_256_red.png">../../art/logo_256_red.png</file>
+    <file alias="art/logo_256_old.png">../../art/logo_256_old.png</file>
     <file alias="art/logo_256_no_margin.png">../../art/logo_256_no_margin.png</file>
+    <file alias="art/logo_256_no_margin_blue.png">../../art/logo_256_no_margin_blue.png</file>
+    <file alias="art/logo_256_no_margin_green.png">../../art/logo_256_no_margin_green.png</file>
+    <file alias="art/logo_256_no_margin_orange.png">../../art/logo_256_no_margin_orange.png</file>
+    <file alias="art/logo_256_no_margin_red.png">../../art/logo_256_no_margin_red.png</file>
+    <file alias="art/logo_256_no_margin_old.png">../../art/logo_256_no_margin_old.png</file>
     <file alias="art/themeimage.jpg">../../art/themeimage.jpg</file>
     <file alias="art/dice_idle.tgs">../../art/dice_idle.tgs</file>
     <file alias="art/dart_idle.tgs">../../art/dart_idle.tgs</file>

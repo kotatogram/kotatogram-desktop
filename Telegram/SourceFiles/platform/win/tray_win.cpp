@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/win/tray_win.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
@@ -127,6 +128,7 @@ bool DarkTasbarValueValid/* = false*/;
 	static auto ScaledLogoNoMargin = base::flat_map<int, QImage>();
 	static auto ScaledLogoDark = base::flat_map<int, QImage>();
 	static auto ScaledLogoLight = base::flat_map<int, QImage>();
+	static auto CustomIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	const auto darkMode = IsDarkTaskbar();
 	auto &scaled = (monochrome && darkMode)
@@ -138,23 +140,28 @@ bool DarkTasbarValueValid/* = false*/;
 		: ScaledLogo;
 
 	auto result = [&] {
+		const auto idx = CustomIcon.isNull()
+			? ::Kotato::JsonSettings::GetInt("custom_app_icon")
+			: 0;
 		if (const auto it = scaled.find(args.size); it != scaled.end()) {
 			return it->second;
 		} else if (monochrome && darkMode) {
 			return MonochromeIconFor(args.size, *darkMode);
 		}
 		return scaled.emplace(
-			args.size,
-			(smallIcon
-				? Window::LogoNoMargin()
-				: Window::Logo()
-			).scaledToWidth(args.size, Qt::SmoothTransformation)
+			args.size + idx,
+			!CustomIcon.isNull()
+				? CustomIcon.scaledToWidth(args.size, Qt::SmoothTransformation)
+				: (smallIcon
+					? Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon"))
+					: Window::Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))
+				).scaledToWidth(args.size, Qt::SmoothTransformation)
 		).first->second;
 	}();
 	if ((!monochrome || !darkMode) && supportMode) {
 		Window::ConvertIconToBlack(result);
 	}
-	if (!args.count) {
+	if (::Kotato::JsonSettings::GetBool("disable_tray_counter") || !args.count) {
 		return result;
 	} else if (smallIcon) {
 		if (monochrome && darkMode) {

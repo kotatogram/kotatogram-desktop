@@ -34,8 +34,8 @@ class SessionController;
 class TitleWidget;
 struct TermsLock;
 
-[[nodiscard]] const QImage &Logo();
-[[nodiscard]] const QImage &LogoNoMargin();
+[[nodiscard]] const QImage &Logo(int variant = 0);
+[[nodiscard]] const QImage &LogoNoMargin(int variant = 0);
 void OverrideApplicationIcon(QImage image);
 [[nodiscard]] QIcon CreateIcon(
 	Main::Session *session = nullptr,
@@ -210,6 +210,8 @@ private:
 	object_ptr<Ui::RpWidget> _outdated;
 	object_ptr<Ui::RpWidget> _body;
 	object_ptr<TWidget> _rightColumn = { nullptr };
+
+	int _customIconId = 0;
 
 	bool _isActive = false;
 
