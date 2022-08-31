@@ -119,6 +119,7 @@ private:
 #else // Qt >= 6.5.0
 		Core::App().settings().setSystemDarkMode(Platform::IsDarkMode());
 #endif // Qt < 6.5.0
+		Core::App().domain().notifyUnreadBadgeChanged();
 	});
 }
 #endif // Qt < 6.6.0

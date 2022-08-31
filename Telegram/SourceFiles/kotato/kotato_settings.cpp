@@ -336,6 +336,16 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "always_show_top_userpic", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "disable_tray_counter", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = Platform::IsLinux(), }},
+	{ "use_telegram_panel_icon", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "custom_app_icon", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0,
+		.limitHandler = IntLimit(0, 5), }},
 };
 
 using OldOptionKey = QString;
