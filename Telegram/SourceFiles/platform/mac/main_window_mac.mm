@@ -116,6 +116,7 @@ private:
 - (void) darkModeChanged:(NSNotification *)aNotification {
 	Core::Sandbox::Instance().customEnterFromEventLoop([&] {
 		Core::App().settings().setSystemDarkMode(Platform::IsDarkMode());
+		Core::App().domain().notifyUnreadBadgeChanged();
 	});
 }
 

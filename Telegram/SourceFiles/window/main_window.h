@@ -35,8 +35,8 @@ class SessionController;
 class TitleWidget;
 struct TermsLock;
 
-[[nodiscard]] const QImage &Logo();
-[[nodiscard]] const QImage &LogoNoMargin();
+[[nodiscard]] const QImage &Logo(int variant = 0);
+[[nodiscard]] const QImage &LogoNoMargin(int variant = 0);
 [[nodiscard]] QIcon CreateIcon(
 	Main::Session *session = nullptr,
 	bool returnNullIfDefault = false);
@@ -209,6 +209,7 @@ private:
 
 	QIcon _icon;
 	bool _usingSupportIcon = false;
+	int _customIconId = 0;
 
 	bool _isActive = false;
 

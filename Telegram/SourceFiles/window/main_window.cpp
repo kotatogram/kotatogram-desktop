@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/main_window.h"
 
+#include "kotato/kotato_settings.h"
 #include "storage/localstorage.h"
 #include "platform/platform_specific.h"
 #include "ui/platform/ui_platform_window.h"
@@ -49,13 +50,41 @@ constexpr auto kSaveWindowPositionTimeout = crl::time(1000);
 
 } // namespace
 
-const QImage &Logo() {
+const QImage &Logo(int variant) {
 	static const auto result = QImage(u":/gui/art/logo_256.png"_q);
+	static const auto result_blue = QImage(u":/gui/art/logo_256_blue.png"_q);
+	static const auto result_green = QImage(u":/gui/art/logo_256_green.png"_q);
+	static const auto result_orange = QImage(u":/gui/art/logo_256_orange.png"_q);
+	static const auto result_red = QImage(u":/gui/art/logo_256_red.png"_q);
+	static const auto result_old = QImage(u":/gui/art/logo_256_old.png"_q);
+
+	switch (variant) {
+		case 1: return result_blue;
+		case 2: return result_green;
+		case 3: return result_orange;
+		case 4: return result_red;
+		case 5: return result_old;
+	}
+
 	return result;
 }
 
-const QImage &LogoNoMargin() {
+const QImage &LogoNoMargin(int variant) {
 	static const auto result = QImage(u":/gui/art/logo_256_no_margin.png"_q);
+	static const auto result_blue = QImage(u":/gui/art/logo_256_no_margin_blue.png"_q);
+	static const auto result_green = QImage(u":/gui/art/logo_256_no_margin_green.png"_q);
+	static const auto result_orange = QImage(u":/gui/art/logo_256_no_margin_orange.png"_q);
+	static const auto result_red = QImage(u":/gui/art/logo_256_no_margin_red.png"_q);
+	static const auto result_old = QImage(u":/gui/art/logo_256_no_margin_old.png"_q);
+
+	switch (variant) {
+		case 1: return result_blue;
+		case 2: return result_green;
+		case 3: return result_orange;
+		case 4: return result_red;
+		case 5: return result_old;
+	}
+
 	return result;
 }
 
@@ -111,7 +140,12 @@ QIcon CreateOfficialIcon(Main::Session *session) {
 	if (!support) {
 		return QIcon();
 	}
-	auto image = Logo();
+	const auto customIcon = QImage(cWorkingDir() + "tdata/icon.png");
+
+	auto image = customIcon.isNull()
+		? Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))
+		: customIcon;
+
 	ConvertIconToBlack(image);
 	return QIcon(Ui::PixmapFromImage(std::move(image)));
 }
@@ -125,6 +159,12 @@ QIcon CreateIcon(Main::Session *session, bool returnNullIfDefault) {
 	auto result = QIcon(Ui::PixmapFromImage(base::duplicate(Logo())));
 
 #if defined Q_OS_UNIX && !defined Q_OS_MAC
+	if ((session && session->supportMode())
+		|| (::Kotato::JsonSettings::GetInt("custom_app_icon") != 0)
+		|| QFileInfo::exists(cWorkingDir() + "tdata/icon.png")) {
+		return result;
+	}
+
 	const auto iconFromTheme = QIcon::fromTheme(
 		Platform::GetIconName(),
 		result);
@@ -414,9 +454,11 @@ void MainWindow::updateWindowIcon() {
 		? &sessionController()->session()
 		: nullptr;
 	const auto supportIcon = session && session->supportMode();
-	if (supportIcon != _usingSupportIcon || _icon.isNull()) {
+	const auto customAppIcon = ::Kotato::JsonSettings::GetInt("custom_app_icon");
+	if (supportIcon != _usingSupportIcon || _icon.isNull() || _customIconId != customAppIcon) {
 		_icon = CreateIcon(session);
 		_usingSupportIcon = supportIcon;
+		_customIconId = customAppIcon;
 	}
 	setWindowIcon(_icon);
 }

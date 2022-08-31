@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_notifications.h"
 
+#include "kotato/kotato_settings.h"
 #include "settings/settings_common.h"
 #include "ui/controls/chat_service_checkbox.h"
 #include "ui/effects/animations.h"
@@ -270,7 +271,7 @@ void NotificationsCount::prepareNotificationSampleSmall() {
 void NotificationsCount::prepareNotificationSampleUserpic() {
 	if (_notificationSampleUserpic.isNull()) {
 		_notificationSampleUserpic = Ui::PixmapFromImage(
-			Window::LogoNoMargin().scaled(
+			Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon")).scaled(
 				st::notifyPhotoSize * cIntRetinaFactor(),
 				st::notifyPhotoSize * cIntRetinaFactor(),
 				Qt::IgnoreAspectRatio,
