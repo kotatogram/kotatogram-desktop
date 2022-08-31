@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "platform/mac/tray_mac.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/platform/mac/base_utilities_mac.h"
 #include "core/application.h"
 #include "core/sandbox.h"
@@ -91,13 +92,35 @@ namespace {
 	return false;
 }
 
-[[nodiscard]] QImage TrayIconBack(bool darkMode) {
+[[nodiscard]] QImage TrayIconBack(bool darkMode, bool selected = false) {
 	static const auto WithColor = [](QColor color) {
 		return st::macTrayIcon.instance(color, 100);
 	};
-	static const auto DarkModeResult = WithColor({ 255, 255, 255 });
-	static const auto LightModeResult = WithColor({ 0, 0, 0, 180 });
-	auto result = darkMode ? DarkModeResult : LightModeResult;
+
+	QImage iconImageLight(cWorkingDir() + "tdata/icon.png");
+	QImage iconImageDark(cWorkingDir() + "tdata/icon_dark.png");
+	QImage iconImageLightSelected(cWorkingDir() + "tdata/icon_selected.png");
+	QImage iconImageDarkSelected(cWorkingDir() + "tdata/icon_dark_selected.png");
+
+
+	static const auto LightModeResult = iconImageLight.isNull()
+		? WithColor({ 0, 0, 0, 180 })
+		: iconImageLight;
+	static const auto DarkModeResult = iconImageDark.isNull()
+		? (iconImageLight.isNull()
+			? WithColor({ 255, 255, 255 })
+			: iconImageLight)
+		: iconImageDark;
+	static const auto LightModeSelectedResult = iconImageLightSelected.isNull()
+		? DarkModeResult
+		: iconImageLightSelected;
+	static const auto DarkModeSelectedResult = iconImageDarkSelected.isNull()
+		? LightModeSelectedResult
+		: iconImageDarkSelected;
+
+	auto result = darkMode
+		? (selected ? DarkModeSelectedResult : DarkModeResult)
+		: (selected ? LightModeSelectedResult : LightModeResult);
 	result.detach();
 	return result;
 }
@@ -190,20 +213,21 @@ void UpdateIcon(const NSStatusItem *status) {
 	const auto selectedSize = QSize(side, side);
 
 	auto result = TrayIconBack(darkMode);
-	auto resultActive = result;
-	resultActive.detach();
+	auto resultActive = TrayIconBack(darkMode, true);
 
-	const auto counter = Core::App().unreadBadge();
-	const auto muted = Core::App().unreadBadgeMuted();
+	if (!::Kotato::JsonSettings::GetBool("disable_tray_counter")) {
+		const auto counter = Core::App().unreadBadge();
+		const auto muted = Core::App().unreadBadgeMuted();
 
-	const auto &bg = (muted ? st::trayCounterBgMute : st::trayCounterBg);
-	const auto &fg = st::trayCounterFg;
-	const auto &fgInvert = st::trayCounterFgMacInvert;
-	const auto &bgInvert = st::trayCounterBgMacInvert;
+		const auto &bg = (muted ? st::trayCounterBgMute : st::trayCounterBg);
+		const auto &fg = st::trayCounterFg;
+		const auto &fgInvert = st::trayCounterFgMacInvert;
+		const auto &bgInvert = st::trayCounterBgMacInvert;
 
-	const auto &resultFg = !darkMode ? fg : muted ? fgInvert : fg;
-	PlaceCounter(result, side, counter, bg, resultFg);
-	PlaceCounter(resultActive, side, counter, bgInvert, fgInvert);
+		const auto &resultFg = !darkMode ? fg : muted ? fgInvert : fg;
+		PlaceCounter(result, side, counter, bg, resultFg);
+		PlaceCounter(resultActive, side, counter, bgInvert, fgInvert);
+	}
 
 	// Scale large pixmaps to fit the available menu bar area.
 	if (result.height() > maxImageHeight) {

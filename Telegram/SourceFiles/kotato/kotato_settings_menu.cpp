@@ -68,6 +68,32 @@ QString NetBoostLabel(int boost) {
 	return QString();
 }
 
+QString TrayIconLabel(int icon) {
+	switch (icon) {
+		case 0:
+			return ktr("ktg_settings_tray_icon_default");
+
+		case 1:
+			return ktr("ktg_settings_tray_icon_blue");
+
+		case 2:
+			return ktr("ktg_settings_tray_icon_green");
+
+		case 3:
+			return ktr("ktg_settings_tray_icon_orange");
+
+		case 4:
+			return ktr("ktg_settings_tray_icon_red");
+
+		case 5:
+			return ktr("ktg_settings_tray_icon_legacy");
+
+		default:
+			Unexpected("Icon in Settings::TrayIconLabel.");
+	}
+	return QString();
+}
+
 QString ChatIdLabel(int option) {
 	switch (option) {
 		case 0:
@@ -317,6 +343,62 @@ void SetupKotatoSystem(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_system"));
 
+	AddButton(
+		container,
+		rktr("ktg_settings_disable_tray_counter"),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("disable_tray_counter"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("disable_tray_counter"));
+	}) | rpl::start_with_next([controller](bool enabled) {
+		::Kotato::JsonSettings::Set("disable_tray_counter", enabled);
+		controller->session().data().notifyUnreadBadgeChanged();
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	if (Platform::IsLinux()) {
+		AddButton(
+			container,
+			rktr("ktg_settings_use_telegram_panel_icon"),
+			st::settingsButtonNoIcon
+		)->toggleOn(
+			rpl::single(::Kotato::JsonSettings::GetBool("use_telegram_panel_icon"))
+		)->toggledValue(
+		) | rpl::filter([](bool enabled) {
+			return (enabled != ::Kotato::JsonSettings::GetBool("use_telegram_panel_icon"));
+		}) | rpl::start_with_next([controller](bool enabled) {
+			::Kotato::JsonSettings::Set("use_telegram_panel_icon", enabled);
+			controller->session().data().notifyUnreadBadgeChanged();
+			::Kotato::JsonSettings::Write();
+		}, container->lifetime());
+	}
+
+	auto trayIconText = rpl::single(rpl::empty) | rpl::then(
+		controller->session().data().unreadBadgeChanges()
+	) | rpl::map([] {
+		return TrayIconLabel(::Kotato::JsonSettings::GetInt("custom_app_icon"));
+	});
+
+	AddButtonWithLabel(
+		container,
+		rktr("ktg_settings_tray_icon"),
+		trayIconText,
+		st::settingsButtonNoIcon
+	)->addClickHandler([=] {
+		Ui::show(Box<::Kotato::RadioBox>(
+			ktr("ktg_settings_tray_icon"),
+			ktr("ktg_settings_tray_icon_desc"),
+			::Kotato::JsonSettings::GetInt("custom_app_icon"),
+			6,
+			TrayIconLabel,
+			[=] (int value) {
+				::Kotato::JsonSettings::Set("custom_app_icon", value);
+				controller->session().data().notifyUnreadBadgeChanged();
+				::Kotato::JsonSettings::Write();
+			}, false));
+	});
 
 	AddSkip(container);
 }

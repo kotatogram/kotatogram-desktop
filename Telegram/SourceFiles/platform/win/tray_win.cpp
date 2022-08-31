@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/win/tray_win.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
@@ -32,8 +33,11 @@ constexpr auto kTooltipDelay = crl::time(10000);
 		bool supportMode,
 		bool smallIcon) {
 	static constexpr auto kCount = 3;
-	static auto ScaledLogo = std::array<QImage, kCount>();
-	static auto ScaledLogoNoMargin = std::array<QImage, kCount>();
+	static constexpr auto kLogoCount = 7;
+	static constexpr auto kTotalCount = kLogoCount * kCount;
+	static auto ScaledLogo = std::array<QImage, kTotalCount>();
+	static auto ScaledLogoNoMargin = std::array<QImage, kTotalCount>();
+	static auto CustomIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	struct Dimensions {
 		int index = 0;
@@ -62,13 +66,19 @@ constexpr auto kTooltipDelay = crl::time(10000);
 
 	auto &scaled = smallIcon ? ScaledLogoNoMargin : ScaledLogo;
 	auto result = [&] {
-		auto &image = scaled[d.index];
+		const auto idx = CustomIcon.isNull()
+			? ::Kotato::JsonSettings::GetInt("custom_app_icon")
+			: kLogoCount - 1;
+		auto &image = scaled[idx * kCount + d.index];
+
 		if (image.isNull()) {
-			image = (smallIcon
-				? Window::LogoNoMargin()
-				: Window::Logo()).scaledToWidth(
-					d.size,
-					Qt::SmoothTransformation);
+			image = !CustomIcon.isNull()
+				? CustomIcon.scaledToWidth(d.size, Qt::SmoothTransformation)
+				: (smallIcon
+					? Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon"))
+					: Window::Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))).scaledToWidth(
+						d.size,
+						Qt::SmoothTransformation);
 		}
 		return image;
 	}();
@@ -129,7 +139,8 @@ void Tray::updateIcon() {
 	if (!_icon) {
 		return;
 	}
-	const auto counter = Core::App().unreadBadge();
+	const auto disableTrayCounter = ::Kotato::JsonSettings::GetBool("disable_tray_counter");
+	const auto counter = disableTrayCounter ? 0 : Core::App().unreadBadge();
 	const auto muted = Core::App().unreadBadgeMuted();
 	const auto controller = Core::App().activePrimaryWindow();
 	const auto session = !controller
