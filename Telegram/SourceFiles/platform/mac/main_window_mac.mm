@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/mac/main_window_mac.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "data/data_session.h"
 #include "styles/style_window.h"
 #include "mainwindow.h"
@@ -66,13 +67,35 @@ namespace {
 // fullscreen mode, after that we'll hide the window no matter what.
 constexpr auto kHideAfterFullscreenTimeoutMs = 3000;
 
-[[nodiscard]] QImage TrayIconBack(bool darkMode) {
+[[nodiscard]] QImage TrayIconBack(bool darkMode, bool selected = false) {
 	static const auto WithColor = [](QColor color) {
 		return st::macTrayIcon.instance(color, 100);
 	};
-	static const auto DarkModeResult = WithColor({ 255, 255, 255 });
-	static const auto LightModeResult = WithColor({ 0, 0, 0, 180 });
-	auto result = darkMode ? DarkModeResult : LightModeResult;
+
+	QImage iconImageLight(cWorkingDir() + "tdata/icon.png");
+	QImage iconImageDark(cWorkingDir() + "tdata/icon_dark.png");
+	QImage iconImageLightSelected(cWorkingDir() + "tdata/icon_selected.png");
+	QImage iconImageDarkSelected(cWorkingDir() + "tdata/icon_dark_selected.png");
+
+
+	static const auto LightModeResult = iconImageLight.isNull()
+		? WithColor({ 0, 0, 0, 180 })
+		: iconImageLight;
+	static const auto DarkModeResult = iconImageDark.isNull()
+		? (iconImageLight.isNull()
+			? WithColor({ 255, 255, 255 })
+			: iconImageLight)
+		: iconImageDark;
+	static const auto LightModeSelectedResult = iconImageLightSelected.isNull()
+		? DarkModeResult
+		: iconImageLightSelected;
+	static const auto DarkModeSelectedResult = iconImageDarkSelected.isNull()
+		? LightModeSelectedResult
+		: iconImageDarkSelected;
+
+	auto result = darkMode
+		? (selected ? DarkModeSelectedResult : DarkModeResult)
+		: (selected ? LightModeSelectedResult : LightModeResult);
 	result.detach();
 	return result;
 }
@@ -127,6 +150,7 @@ private:
 - (void) darkModeChanged:(NSNotification *)aNotification {
 	Core::Sandbox::Instance().customEnterFromEventLoop([&] {
 		Core::App().settings().setSystemDarkMode(Platform::IsDarkMode());
+		Core::App().domain().notifyUnreadBadgeChanged();
 	});
 }
 
@@ -395,34 +419,23 @@ void MainWindow::updateIconCounters() {
 
 QIcon MainWindow::generateIconForTray(int counter, bool muted) const {
 	auto result = QIcon();
-	auto lightMode = TrayIconBack(false);
-	auto darkMode = TrayIconBack(true);
-	auto lightModeActive = darkMode;
-	auto darkModeActive = darkMode;
-	lightModeActive.detach();
-	darkModeActive.detach();
+	const auto dm = Platform::IsDarkMenuBar();
+	auto img = TrayIconBack(dm);
+	auto imgsel = TrayIconBack(dm, true);
+	img.detach();
+	imgsel.detach();
 	const auto size = 22 * cIntRetinaFactor();
 	const auto &bg = (muted ? st::trayCounterBgMute : st::trayCounterBg);
-	_placeCounter(lightMode, size, counter, bg, st::trayCounterFg);
-	_placeCounter(darkMode, size, counter, bg, muted ? st::trayCounterFgMacInvert : st::trayCounterFg);
-	_placeCounter(lightModeActive, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
-	_placeCounter(darkModeActive, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
+	if (!::Kotato::JsonSettings::GetBool("disable_tray_counter")) {
+		_placeCounter(img, size, counter, bg, (dm && muted) ? st::trayCounterFgMacInvert : st::trayCounterFg);
+		_placeCounter(imgsel, size, counter, st::trayCounterBgMacInvert, st::trayCounterFgMacInvert);
+	}
 	result.addPixmap(Ui::PixmapFromImage(
-		std::move(lightMode)),
-		QIcon::Normal,
-		QIcon::Off);
+		std::move(img)),
+		QIcon::Normal);
 	result.addPixmap(Ui::PixmapFromImage(
-		std::move(darkMode)),
-		QIcon::Normal,
-		QIcon::On);
-	result.addPixmap(Ui::PixmapFromImage(
-		std::move(lightModeActive)),
-		QIcon::Active,
-		QIcon::Off);
-	result.addPixmap(Ui::PixmapFromImage(
-		std::move(darkModeActive)),
-		QIcon::Active,
-		QIcon::On);
+		std::move(imgsel)),
+		QIcon::Active);
 	return result;
 }
 

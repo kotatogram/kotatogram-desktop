@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/notifications_utilities.h"
 
+#include "kotato/kotato_settings.h"
 #include "window/main_window.h"
 #include "base/platform/base_platform_file_utilities.h"
 #include "base/random.h"
@@ -80,7 +81,7 @@ QString CachedUserpics::get(
 				peer->saveUserpic(view, v.path, st::notifyMacPhotoSize);
 			}
 		} else {
-			LogoNoMargin().save(v.path, "PNG");
+			LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon")).save(v.path, "PNG");
 		}
 		i = _images.insert(key, v);
 		_someSavedFlag = true;

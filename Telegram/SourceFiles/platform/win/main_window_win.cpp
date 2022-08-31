@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "platform/win/main_window_win.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "styles/style_window.h"
 #include "platform/platform_specific.h"
 #include "platform/platform_notifications_manager.h"
@@ -101,8 +102,11 @@ uint32 kTaskbarCreatedMsgId = 0;
 		Main::Session *session,
 		bool smallIcon) {
 	static constexpr auto kCount = 3;
-	static auto ScaledLogo = std::array<QImage, kCount>();
-	static auto ScaledLogoNoMargin = std::array<QImage, kCount>();
+	static constexpr auto kLogoCount = 7;
+	static constexpr auto kTotalCount = kLogoCount * kCount;
+	static auto ScaledLogo = std::array<QImage, kTotalCount>();
+	static auto ScaledLogoNoMargin = std::array<QImage, kTotalCount>();
+	static auto CustomIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	struct Dimensions {
 		int index = 0;
@@ -131,13 +135,19 @@ uint32 kTaskbarCreatedMsgId = 0;
 
 	auto &scaled = smallIcon ? ScaledLogoNoMargin : ScaledLogo;
 	auto result = [&] {
-		auto &image = scaled[d.index];
+		const auto idx = CustomIcon.isNull()
+			? ::Kotato::JsonSettings::GetInt("custom_app_icon")
+			: kLogoCount - 1;
+		auto &image = scaled[idx * kCount + d.index];
+
 		if (image.isNull()) {
-			image = (smallIcon
-				? Window::LogoNoMargin()
-				: Window::Logo()).scaledToWidth(
-					d.size,
-					Qt::SmoothTransformation);
+			image = !CustomIcon.isNull()
+				? CustomIcon.scaledToWidth(d.size, Qt::SmoothTransformation)
+				: (smallIcon
+					? Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon"))
+					: Window::Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))).scaledToWidth(
+						d.size,
+						Qt::SmoothTransformation);
 		}
 		return image;
 	}();
@@ -317,9 +327,11 @@ void MainWindow::psTrayMenuUpdated() {
 void MainWindow::psSetupTrayIcon() {
 	if (!trayIcon) {
 		trayIcon = new QSystemTrayIcon(this);
-
-		const auto icon = QIcon(Ui::PixmapFromImage(
-			QImage(Window::LogoNoMargin())));
+		auto icon = QIcon(cWorkingDir() + "tdata/icon.png");
+		if (icon.isNull()) {
+			icon = QIcon(Ui::PixmapFromImage(
+				QImage(Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon")))));
+		}
 
 		trayIcon->setIcon(icon);
 		connect(
@@ -482,9 +494,16 @@ void MainWindow::updateIconCounters() {
 	if (trayIcon) {
 		// Force Qt to use right icon size, not the larger one.
 		QIcon forTrayIcon;
+		const auto disableTrayCounter = ::Kotato::JsonSettings::GetBool("disable_tray_counter");
+		auto forTrayIcon16 = disableTrayCounter
+			? iconWithCounter(16, 0, true)
+			: iconSmallPixmap16;
+		auto forTrayIcon32 = disableTrayCounter
+			? iconWithCounter(32, 0, true)
+			: iconSmallPixmap32;
 		forTrayIcon.addPixmap(iconSizeSmall.width() >= 20
-			? iconSmallPixmap32
-			: iconSmallPixmap16);
+			? forTrayIcon32
+			: forTrayIcon16);
 		trayIcon->setIcon(forTrayIcon);
 	}
 

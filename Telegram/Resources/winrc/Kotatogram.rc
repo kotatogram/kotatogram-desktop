@@ -26,6 +26,11 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_ICON1               ICON                    "..\\art\\icon256.ico"
+IDI_ICON2               ICON                    "..\\art\\icon256blue.ico"
+IDI_ICON3               ICON                    "..\\art\\icon256green.ico"
+IDI_ICON4               ICON                    "..\\art\\icon256orange.ico"
+IDI_ICON5               ICON                    "..\\art\\icon256red.ico"
+IDI_ICON6               ICON                    "..\\art\\icon256old.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

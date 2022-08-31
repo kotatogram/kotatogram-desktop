@@ -166,7 +166,9 @@ void SetupSections(
 	addSection(
 		rktr("ktg_settings_kotato"),
 		Type::Kotato,
-		&st::settingsIconKotato);
+		(::Kotato::JsonSettings::GetInt("custom_app_icon") == 5
+			? &st::settingsIconKotatoOld
+			: &st::settingsIconKotato));
 
 	SetupLanguageButton(container);
 
