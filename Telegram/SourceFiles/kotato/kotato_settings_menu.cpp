@@ -145,6 +145,22 @@ QString ChatIdLabel(int option) {
 	::Kotato::JsonSettings::Write(); \
 }, container->lifetime());
 
+#define SettingsMenuJsonFilterSwitch(LangKey, Option) AddButton( \
+	container, \
+	rktr(#LangKey), \
+	st::settingsButtonNoIcon \
+)->toggleOn( \
+	rpl::single(::Kotato::JsonSettings::GetBool(#Option)) \
+)->toggledValue( \
+) | rpl::filter([](bool enabled) { \
+	return (enabled != ::Kotato::JsonSettings::GetBool(#Option)); \
+}) | rpl::start_with_next([controller](bool enabled) { \
+	::Kotato::JsonSettings::Set(#Option, enabled); \
+	::Kotato::JsonSettings::Write(); \
+	controller->reloadFiltersMenu(); \
+	App::wnd()->fixOrder(); \
+}, container->lifetime());
+
 void SetupKotatoChats(
 	not_null<Window::SessionController*> controller,
 	not_null<Ui::VerticalLayout*> container) {
@@ -410,6 +426,10 @@ void SetupKotatoFolders(
 	AddSkip(container);
 	AddSubsectionTitle(container, rktr("ktg_settings_filters"));
 
+	SettingsMenuJsonFilterSwitch(ktg_settings_filters_only_unmuted_counter, folders/count_unmuted_only);
+	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_all, folders/hide_all_chats);
+	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_edit, folders/hide_edit_button);
+	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_folder_names, folders/hide_names);
 
 	AddSkip(container);
 }

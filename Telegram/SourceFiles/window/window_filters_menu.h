@@ -51,6 +51,7 @@ private:
 		bool toBeginning = false);
 	void setupMainMenuIcon();
 	void showMenu(QPoint position, FilterId id);
+	void showEditMenu(QPoint position);
 	void showEditBox(FilterId id);
 	void showRemoveBox(FilterId id);
 	void remove(FilterId id);
