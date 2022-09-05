@@ -489,7 +489,8 @@ void MainMenu::setupArchive() {
 		const auto f = folder();
 		return f
 			&& (!f->chatsList()->empty() || f->storiesCount() > 0)
-			&& controller->session().settings().archiveInMainMenu();
+			&& (controller->session().settings().archiveInMainMenu()
+				|| controller->hiddenAllChatsIndex() >= 0);
 	};
 
 	const auto wrap = _menu->add(

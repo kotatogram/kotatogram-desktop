@@ -2031,7 +2031,10 @@ void Filler::fillArchiveActions() {
 		addNewWindow();
 
 		const auto hidden = controller->session().settings().archiveCollapsed();
-		const auto inmenu = controller->session().settings().archiveInMainMenu();
+		// Without "All chats" the archive is reached from the main menu only.
+		const auto allHidden = (controller->hiddenAllChatsIndex() >= 0);
+		const auto inmenu = allHidden
+			|| controller->session().settings().archiveInMainMenu();
 		if (!inmenu && !Dialogs::Ui::CompactChatList()) {
 			const auto text = hidden
 				? tr::lng_context_archive_expand(tr::now)
@@ -2041,7 +2044,7 @@ void Filler::fillArchiveActions() {
 				controller->session().saveSettingsDelayed();
 			}, hidden ? &st::menuIconExpand : &st::menuIconCollapse);
 		}
-		{
+		if (!allHidden) {
 			const auto text = inmenu
 				? tr::lng_context_archive_to_list(tr::now)
 				: tr::lng_context_archive_to_menu(tr::now);

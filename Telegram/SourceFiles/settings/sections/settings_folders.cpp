@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_folders.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
 #include "boxes/filters/edit_filter_box.h"
@@ -1160,7 +1161,30 @@ void BuildViewSection(SectionBuilder &builder) {
 	});
 
 	builder.add([](const WidgetContext &ctx) {
-		const auto content = ctx.container;
+		const auto controller = ctx.controller;
+		const auto parent = ctx.container;
+
+		// Compact folders force icons only in the side bar.
+		const auto wrap = parent->add(
+			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+				parent,
+				object_ptr<Ui::VerticalLayout>(parent)));
+		wrap->toggleOn(rpl::combine(
+			controller->enoughSpaceForFiltersValue(),
+			rpl::single(
+				Core::App().settings().chatFiltersHorizontal()
+			) | rpl::then(
+				Core::App().settings().chatFiltersHorizontalChanges()),
+			rpl::single(rpl::empty) | rpl::then(
+				::Kotato::JsonSettings::Events(
+					"folders/hide_names"
+				) | rpl::to_empty)
+		) | rpl::map([](bool enoughSpace, bool horizontal, auto) {
+			return !enoughSpace
+				|| horizontal
+				|| !::Kotato::JsonSettings::GetBool("folders/hide_names");
+		}));
+		const auto content = wrap->entity();
 
 		Ui::AddSkip(content);
 		Ui::AddSubsectionTitle(

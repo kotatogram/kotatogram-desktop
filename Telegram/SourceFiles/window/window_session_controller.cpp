@@ -1681,7 +1681,14 @@ SessionController::SessionController(
 			processFiltersMenu();
 		}
 		checkOpenedFilter();
+		checkHiddenAllChats();
 		crl::on_main(this, processFiltersMenu);
+	}, lifetime());
+
+	::Kotato::JsonSettings::Events(
+		"folders/hide_all_chats"
+	) | rpl::on_next([=] {
+		checkHiddenAllChats();
 	}, lifetime());
 
 	session->data().itemIdChanged(
@@ -2035,6 +2042,16 @@ void SessionController::toggleFiltersMenu(bool enabled) {
 	_filtersMenuChanged.fire({});
 }
 
+void SessionController::reloadFiltersMenu() {
+	if (_filters) {
+		_filters = nullptr;
+		_filters = std::make_unique<FiltersMenu>(
+			widget()->bodyWidget(),
+			this);
+		_filtersMenuChanged.fire({});
+	}
+}
+
 rpl::producer<> SessionController::filtersMenuChanged() const {
 	return _filtersMenuChanged.events();
 }
@@ -2093,7 +2110,7 @@ void SessionController::openFolder(not_null<Data::Folder*> folder) {
 	} else if (_openedFolder.current() != folder) {
 		resetFakeUnreadWhileOpened();
 	}
-	if (activeChatsFilterCurrent() != 0) {
+	if (activeChatsFilterCurrent() != 0 && hiddenAllChatsIndex() < 0) {
 		setActiveChatsFilter(0);
 	} else if (adaptive().isOneColumn()) {
 		clearSectionStack(SectionShow::Way::ClearStack);
@@ -2108,7 +2125,11 @@ void SessionController::closeFolder() {
 		Core::App().closeWindow(_window);
 		return;
 	}
+	const auto opened = (_openedFolder.current() != nullptr);
 	_openedFolder = nullptr;
+	if (opened) {
+		checkHiddenAllChats();
+	}
 }
 
 bool SessionController::openCommunityInDifferentWindow(
@@ -2132,7 +2153,7 @@ void SessionController::openCommunity(not_null<Data::CommunityInfo*> info) {
 	} else if (_openedCommunity.current() != info) {
 		resetFakeUnreadWhileOpened();
 	}
-	if (activeChatsFilterCurrent() != 0) {
+	if (activeChatsFilterCurrent() != 0 && hiddenAllChatsIndex() < 0) {
 		setActiveChatsFilter(0);
 	} else if (adaptive().isOneColumn()) {
 		clearSectionStack(SectionShow::Way::ClearStack);
@@ -2174,8 +2195,12 @@ void SessionController::closeCommunity() {
 		Core::App().closeWindow(_window);
 		return;
 	}
+	const auto opened = (_openedCommunity.current() != nullptr);
 	_openedCommunityLifetime.destroy();
 	_openedCommunity = nullptr;
+	if (opened) {
+		checkHiddenAllChats();
+	}
 }
 
 const rpl::variable<Data::CommunityInfo*> &
@@ -3285,7 +3310,11 @@ not_null<MainWidget*> SessionController::content() const {
 }
 
 int SessionController::filtersWidth() const {
-	return _filters ? st::windowFiltersWidth : 0;
+	return _filters
+			? (::Kotato::JsonSettings::GetBool("folders/hide_names")
+				? st::windowFiltersWidthNoText
+				: st::windowFiltersWidth)
+			: 0;
 }
 
 bool SessionController::enoughSpaceForFilters() const {
@@ -3311,6 +3340,8 @@ void SessionController::setActiveChatsFilter(
 		const SectionShow &params) {
 	if (!isPrimary()) {
 		return;
+	} else if (!id && hiddenAllChatsIndex() >= 0) {
+		id = firstChatsFilterId();
 	}
 	const auto changed = (activeChatsFilterCurrent() != id);
 	if (changed) {
@@ -3324,6 +3355,35 @@ void SessionController::setActiveChatsFilter(
 	}
 	if (adaptive().isOneColumn()) {
 		clearSectionStack(params);
+	}
+}
+
+int SessionController::hiddenAllChatsIndex() const {
+	const auto &filters = session().data().chatsFilters();
+	if (!filters.has()
+		|| !::Kotato::JsonSettings::GetBool("folders/hide_all_chats")) {
+		return -1;
+	}
+	const auto &list = filters.list();
+	const auto i = ranges::find(list, FilterId(), &Data::ChatFilter::id);
+	return (i != end(list)) ? int(i - begin(list)) : -1;
+}
+
+FilterId SessionController::firstChatsFilterId() const {
+	const auto &filters = session().data().chatsFilters();
+	const auto hiddenAll = hiddenAllChatsIndex();
+	return (hiddenAll < 0)
+		? filters.defaultId()
+		: filters.list()[hiddenAll ? 0 : 1].id();
+}
+
+// Hidden "All chats" stays active only under an opened folder or community.
+void SessionController::checkHiddenAllChats() {
+	if (!activeChatsFilterCurrent()
+		&& !_openedFolder.current()
+		&& !_openedCommunity.current()
+		&& hiddenAllChatsIndex() >= 0) {
+		setActiveChatsFilter(firstChatsFilterId());
 	}
 }
 
@@ -4149,7 +4209,10 @@ bool CheckAndJumpToNearChatsFilter(
 	if (index == list->size() && id != 0) {
 		return false;
 	}
-	const auto changed = index + (isNext ? 1 : -1);
+	auto changed = index + (isNext ? 1 : -1);
+	if (changed == controller->hiddenAllChatsIndex()) {
+		changed += (isNext ? 1 : -1);
+	}
 	if (changed >= int(list->size()) || changed < 0) {
 		return false;
 	}

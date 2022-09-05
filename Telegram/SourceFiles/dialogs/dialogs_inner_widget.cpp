@@ -864,6 +864,7 @@ void InnerWidget::changeOpenedFolder(Data::Folder *folder) {
 	stopReorderPinned();
 	clearSelection();
 	_openedFolder = folder;
+	_filterId = computeFilterId();
 	refreshShownList();
 	refreshWithCollapsedRows(true);
 	if (_loadMoreCallback) {
@@ -883,14 +884,12 @@ void InnerWidget::changeOpenedForum(Data::Forum *forum) {
 	if (forum) {
 		saveChatsFilterScrollState(_filterId);
 	}
-	_filterId = forum
-		? 0
-		: _controller->activeChatsFilterCurrent();
 	if (_openedForum) {
 		// If we close it inside forum destruction we should not schedule.
 		session().data().forumIcons().scheduleUserpicsReset(_openedForum);
 	}
 	_openedForum = forum;
+	_filterId = computeFilterId();
 	_st = forum ? &Ui::ForumTopicRowStyle() : &Ui::ChatListRowStyle();
 	refreshShownList();
 	if (!forum && _openedCommunity) {
@@ -951,6 +950,7 @@ void InnerWidget::changeOpenedCommunity(Data::CommunityInfo *community) {
 	stopReorderPinned();
 	clearSelection();
 	_openedCommunity = community;
+	_filterId = computeFilterId();
 	refreshShownList();
 	_openedCommunityLifetime.destroy();
 	_communityRequestableList.destroy();
@@ -5662,6 +5662,13 @@ void InnerWidget::switchToFilter(FilterId filterId) {
 
 void InnerWidget::jumpToTop() {
 	_mustScrollTo.fire({ 0, -1 });
+}
+
+// Hidden "All chats" leaves the active filter under a folder or community.
+FilterId InnerWidget::computeFilterId() const {
+	return (_openedFolder || _openedForum || _openedCommunity)
+		? FilterId()
+		: _controller->activeChatsFilterCurrent();
 }
 
 void InnerWidget::saveChatsFilterScrollState(FilterId filterId) {

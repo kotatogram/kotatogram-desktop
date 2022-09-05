@@ -655,7 +655,13 @@ public:
 		FilterId id,
 		const SectionShow &params = SectionShow::Way::ClearStack);
 
+	// Index of "All chats" in the list if the option hides it, -1 otherwise.
+	[[nodiscard]] int hiddenAllChatsIndex() const;
+	// "All chats", or the first folder in its place when it is hidden.
+	[[nodiscard]] FilterId firstChatsFilterId() const;
+
 	void toggleFiltersMenu(bool enabled);
+	void reloadFiltersMenu();
 	[[nodiscard]] rpl::producer<> filtersMenuChanged() const;
 
 	[[nodiscard]] auto defaultChatTheme() const
@@ -761,6 +767,7 @@ private:
 	void checkOpenedFilter();
 	void suggestArchiveAndMute();
 	void activateFirstChatsFilter();
+	void checkHiddenAllChats();
 
 	int minimalThreeColumnWidth() const;
 	int countDialogsWidthFromRatio(int bodyWidth) const;

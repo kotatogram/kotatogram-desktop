@@ -828,7 +828,7 @@ void Widget::setupSwipeBack() {
 		const auto current = controller()->activeChatsFilterCurrent();
 		const auto &chatsFilters = session().data().chatsFilters();
 		if (chatsFilters.has()) {
-			return chatsFilters.defaultId() == current;
+			return controller()->firstChatsFilterId() == current;
 		}
 		return !current;
 	};
@@ -1267,7 +1267,7 @@ void Widget::setupTopBarSuggestions() {
 				return !folderOrForum
 					&& !search
 					&& !searchInPeer
-					&& (id == owner->chatsFilters().defaultId());
+					&& (id == controller()->firstChatsFilterId());
 			});
 			return TopBarSuggestionValue(
 				this,
@@ -2702,9 +2702,9 @@ void Widget::jumpToTop(bool belowPinned) {
 		if (belowPinned) {
 			const auto list = _openedForum
 				? _openedForum->topicsList()
-				: controller()->activeChatsFilterCurrent()
+				: _inner->filterId()
 				? session().data().chatsFilters().chatsList(
-					controller()->activeChatsFilterCurrent())
+					_inner->filterId())
 				: session().data().chatsList(_openedFolder);
 			const auto count = int(list->pinned()->order().size());
 			const auto row = _inner->st()->height;

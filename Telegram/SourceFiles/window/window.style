@@ -227,6 +227,7 @@ createThemeLink: InputField(defaultInputField) {
 }
 
 windowFiltersWidth: 72px;
+windowFiltersWidthNoText: 50px;
 windowFiltersButton: SideBarButton(defaultSideBarButton) {
 	textTop: 40px;
 	textSkip: 6px;

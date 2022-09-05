@@ -608,6 +608,7 @@ private:
 	void dragPinnedFromTouch();
 	[[nodiscard]] bool hasChatTypeFilter() const;
 
+	[[nodiscard]] FilterId computeFilterId() const;
 	void saveChatsFilterScrollState(FilterId filterId);
 	bool restoreChatsFilterScrollState(FilterId filterId);
 

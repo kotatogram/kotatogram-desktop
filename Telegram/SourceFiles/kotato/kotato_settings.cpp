@@ -309,6 +309,15 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 0,
 		.limitHandler = IntLimit(0, 5), }},
+	{ "folders/hide_edit_button", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "folders/hide_names", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "folders/hide_all_chats", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;

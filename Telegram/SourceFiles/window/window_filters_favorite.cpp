@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_filters_favorite.h"
 
+#include "kotato/kotato_settings.h"
 #include "apiwrap.h"
 #include "base/options.h"
 #include "base/qthelp_url.h"
@@ -257,8 +258,10 @@ bool FolderFavoriteButton::shown() const {
 }
 
 Ui::ChatsFiltersTabsMode FolderFavoriteButton::tabsMode() const {
-	return Ui::VerticalChatsFiltersTabsMode(
-		Core::App().settings().chatFiltersTabsMode());
+	return ::Kotato::JsonSettings::GetBool("folders/hide_names")
+		? Ui::ChatsFiltersTabsMode::IconsOnly
+		: Ui::VerticalChatsFiltersTabsMode(
+			Core::App().settings().chatFiltersTabsMode());
 }
 
 int FolderFavoriteButton::resizeGetHeight(int newWidth) {
