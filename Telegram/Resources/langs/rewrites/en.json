@@ -76,8 +76,13 @@
 		"other": "Recent stickers: show {count} stickers"
 	},
 	"ktg_settings_recent_stickers_limit_none": "Recent stickers: hide all",
+	"ktg_filters_context_edit_all": "Edit folders",
 	"ktg_settings_filters": "Folders",
+	"ktg_settings_filters_only_unmuted_counter": "Do not count muted chats",
+	"ktg_settings_filters_hide_edit": "Hide Edit button",
+	"ktg_settings_filters_hide_folder_names": "Compact folders",
 	"ktg_settings_messages": "Messages",
+	"ktg_settings_filters_hide_all": "Hide \"All chats\" folder",
 	"ktg_settings_tray_icon": "Tray icon",
 	"ktg_settings_tray_icon_default": "Default",
 	"ktg_settings_tray_icon_blue": "Blue",
@@ -100,6 +105,10 @@
 	"ktg_supergroup_id_copied": "Supergroup ID copied to clipboard.",
 	"ktg_channel_id_copied": "Channel ID copied to clipboard.",
 	"ktg_settings_forward": "Forward",
+	"ktg_filters_hide_folder": "Hide folder",
+	"ktg_filters_hide_button": "Hide button",
+	"ktg_filters_hide_all_chats_toast": "\"All Chats\" folder is hidden.\nYou can enable it back in Kotatogram Settings.",
+	"ktg_filters_hide_edit_toast": "Edit button is hidden.\nYou can enable it back in Kotatogram Settings.",
 	"ktg_in_app_update_disabled": "In-app updater is disabled.",
 	"dummy_last_string": ""
 }
