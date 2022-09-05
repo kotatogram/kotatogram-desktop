@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_filters_menu.h"
 
+#include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "mainwindow.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -20,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/filter_icons.h"
 #include "ui/wrap/vertical_layout_reorder.h"
 #include "ui/widgets/popup_menu.h"
+#include "ui/toast/toast.h"
 #include "ui/boxes/confirm_box.h"
 #include "boxes/filters/edit_filter_box.h"
 #include "settings/settings_common.h"
@@ -92,7 +95,9 @@ void FiltersMenu::setup() {
 
 	_parent->heightValue(
 	) | rpl::start_with_next([=](int height) {
-		const auto width = st::windowFiltersWidth;
+		const auto width = (::Kotato::JsonSettings::GetBool("folders/hide_names")
+							? st::windowFiltersWidthNoText
+							: st::windowFiltersWidth);
 		_outer.setGeometry({ 0, 0, width, height });
 		_menu.resizeToWidth(width);
 		_menu.move(0, 0);
@@ -119,7 +124,7 @@ void FiltersMenu::setup() {
 		const auto i = _filters.find(_activeFilterId);
 		if (i != end(_filters)) {
 			i->second->setActive(false);
-		} else if (!_activeFilterId) {
+		} else if (!_activeFilterId && _all) {
 			_all->setActive(false);
 		}
 		_activeFilterId = id;
@@ -127,7 +132,7 @@ void FiltersMenu::setup() {
 		if (j != end(_filters)) {
 			j->second->setActive(true);
 			scrollToButton(j->second);
-		} else if (!_activeFilterId) {
+		} else if (!_activeFilterId && _all) {
 			_all->setActive(true);
 			scrollToButton(_all);
 		}
@@ -207,21 +212,29 @@ void FiltersMenu::refresh() {
 	// so we have to restore it.
 	_scroll.scrollToY(oldTop);
 	const auto i = _filters.find(_activeFilterId);
-	scrollToButton((i != end(_filters)) ? i->second : _all);
+	if (i != end(_filters)) {
+		scrollToButton(i->second);
+	} else if (!::Kotato::JsonSettings::GetBool("folders/hide_all_chats")) {
+		scrollToButton(_all);
+	}
 }
 
 void FiltersMenu::setupList() {
-	_all = prepareButton(
-		_container,
-		0,
-		tr::lng_filters_all(tr::now),
-		Ui::FilterIcon::All);
+	if (!::Kotato::JsonSettings::GetBool("folders/hide_all_chats")) {
+		_all = prepareButton(
+			_container,
+			0,
+			tr::lng_filters_all(tr::now),
+			Ui::FilterIcon::All);
+	}
 	_list = _container->add(object_ptr<Ui::VerticalLayout>(_container));
-	_setup = prepareButton(
-		_container,
-		-1,
-		tr::lng_filters_setup(tr::now),
-		Ui::FilterIcon::Edit);
+	if (!::Kotato::JsonSettings::GetBool("folders/hide_edit_button")) {
+		_setup = prepareButton(
+			_container,
+			-1,
+			tr::lng_filters_setup(tr::now),
+			Ui::FilterIcon::Edit);
+	}
 	_reorder = std::make_unique<Ui::VerticalLayoutReorder>(_list, &_scroll);
 
 	_reorder->updates(
@@ -248,7 +261,7 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 	auto button = base::unique_qptr<Ui::SideBarButton>(container->add(
 		object_ptr<Ui::SideBarButton>(
 			container,
-			title,
+			(::Kotato::JsonSettings::GetBool("folders/hide_names") ? QString() : title),
 			st::windowFiltersButton)));
 	const auto raw = button.get();
 	const auto &icons = Ui::LookupFilterIcon(icon);
@@ -260,12 +273,22 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 		) | rpl::start_with_next([=](const Dialogs::UnreadState &state) {
 			const auto count = (state.chats + state.marks);
 			const auto muted = (state.chatsMuted + state.marksMuted);
-			const auto string = !count
-				? QString()
-				: (count > 99)
-				? "99+"
-				: QString::number(count);
-			raw->setBadge(string, count == muted);
+			if (::Kotato::JsonSettings::GetBool("folders/count_unmuted_only")) {
+				const auto unmuted = count - muted;
+				const auto string = !unmuted
+					? QString()
+					: (unmuted > 99)
+					? "99+"
+					: QString::number(unmuted);
+				raw->setBadge(string, false);
+			} else {
+				const auto string = !count
+					? QString()
+					: (count > 99)
+					? "99+"
+					: QString::number(count);
+				raw->setBadge(string, count == muted);
+			}
 		}, raw->lifetime());
 	}
 	raw->setActive(_session->activeChatsFilterCurrent() == id);
@@ -288,14 +311,18 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 			}
 		}
 	});
-	if (id > 0) {
-		raw->events(
-		) | rpl::filter([=](not_null<QEvent*> e) {
-			return e->type() == QEvent::ContextMenu;
-		}) | rpl::start_with_next([=] {
+	raw->events(
+	) | rpl::filter([=](not_null<QEvent*> e) {
+		return e->type() == QEvent::ContextMenu;
+	}) | rpl::start_with_next([=] {
+		if (id == -1) {
+			showEditMenu(QCursor::pos());
+		} else if (id) {
 			showMenu(QCursor::pos(), id);
-		}, raw->lifetime());
-	}
+		} else {
+			showAllMenu(QCursor::pos());
+		}
+	}, raw->lifetime());
 	return button;
 }
 
@@ -323,7 +350,7 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 
 	addAction(
 		tr::lng_filters_context_edit(tr::now),
-		[=] { showEditBox(id); },
+		crl::guard(&_outer, [=] { showEditBox(id); }),
 		&st::menuIconEdit);
 
 	auto filteredChats = [=] {
@@ -337,6 +364,68 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 		tr::lng_filters_context_remove(tr::now),
 		[=] { showRemoveBox(id); },
 		&st::menuIconDelete);
+	_popupMenu->popup(position);
+}
+
+void FiltersMenu::showAllMenu(QPoint position) {
+	if (_popupMenu) {
+		_popupMenu = nullptr;
+		return;
+	}
+	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
+		_all,
+		st::popupMenuWithIcons);
+	const auto addAction = [&](
+			const QString &text,
+			Fn<void()> callback,
+			const style::icon *icon) {
+		return _popupMenu->addAction(
+			text,
+			crl::guard(&_outer, std::move(callback)),
+			icon);
+	};
+	MenuAddMarkAsReadAllChatsAction(&_session->session().data(), addAction);
+	_popupMenu->addAction(
+		ktr("ktg_filters_context_edit_all"),
+		crl::guard(&_outer, [=] { _session->showSettings(Settings::Type::Folders); }),
+		&st::menuIconEdit);
+	_popupMenu->addAction(
+		ktr("ktg_filters_hide_folder"),
+		crl::guard(&_outer, [=] {
+			::Kotato::JsonSettings::Set("folders/hide_all_chats", true);
+			::Kotato::JsonSettings::Write();
+			_all = nullptr;
+			Ui::Toast::Show(Ui::Toast::Config{
+				.text = { ktr("ktg_filters_hide_all_chats_toast") },
+				.st = &st::windowArchiveToast,
+				.multiline = true,
+			});
+		}), &st::menuIconHide);
+	
+	_popupMenu->popup(position);
+}
+
+void FiltersMenu::showEditMenu(QPoint position) {
+	if (_popupMenu) {
+		_popupMenu = nullptr;
+		return;
+	}
+	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
+		_setup,
+		st::popupMenuWithIcons);
+	_popupMenu->addAction(
+		ktr("ktg_filters_hide_button"),
+		crl::guard(&_outer, [=] {
+			::Kotato::JsonSettings::Set("folders/hide_edit_button", true);
+			::Kotato::JsonSettings::Write();
+			_setup = nullptr;
+			Ui::Toast::Show(Ui::Toast::Config{
+				.text = { ktr("ktg_filters_hide_edit_toast") },
+				.st = &st::windowArchiveToast,
+				.multiline = true,
+			});
+		}), &st::menuIconHide);
+
 	_popupMenu->popup(position);
 }
 

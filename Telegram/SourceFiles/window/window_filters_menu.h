@@ -48,6 +48,8 @@ private:
 		Ui::FilterIcon icon);
 	void setupMainMenuIcon();
 	void showMenu(QPoint position, FilterId id);
+	void showAllMenu(QPoint position);
+	void showEditMenu(QPoint position);
 	void showEditBox(FilterId id);
 	void showRemoveBox(FilterId id);
 	void remove(FilterId id);
