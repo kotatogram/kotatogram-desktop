@@ -87,6 +87,7 @@
 	"ktg_settings_filters_only_unmuted_counter": "Do not count muted chats",
 	"ktg_settings_filters_hide_edit": "Hide Edit button",
 	"ktg_settings_filters_hide_folder_names": "Compact folders",
+	"ktg_settings_top_bar_mute": "Mute in profile top bar",
 	"ktg_settings_messages": "Messages",
 	"ktg_settings_filters_hide_all": "Hide \"All chats\" folder",
 	"ktg_settings_userpic_rounding": "Profile pictures rounding",
