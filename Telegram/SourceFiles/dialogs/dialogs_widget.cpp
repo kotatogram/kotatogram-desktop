@@ -856,10 +856,11 @@ void Widget::escape() {
 	if (controller()->openedFolder().current()) {
 		controller()->closeFolder();
 	} else if (!cancelSearch()) {
+		const auto defaultFilterId = session().account().defaultFilterId();
 		if (controller()->activeChatEntryCurrent().key) {
 			controller()->content()->dialogsCancelled();
-		} else if (controller()->activeChatsFilterCurrent()) {
-			controller()->setActiveChatsFilter(FilterId(0));
+		} else if (controller()->activeChatsFilterCurrent() != defaultFilterId) {
+			controller()->setActiveChatsFilter(defaultFilterId);
 		}
 	} else if (!_searchInChat && !controller()->selectingPeer()) {
 		if (controller()->activeChatEntryCurrent().key) {

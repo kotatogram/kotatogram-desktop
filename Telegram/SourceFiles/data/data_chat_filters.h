@@ -19,10 +19,11 @@ class Key;
 namespace Data {
 
 class Session;
+struct LocalFolder;
 
 class ChatFilter final {
 public:
-	enum class Flag : uchar {
+	enum class Flag : ushort {
 		Contacts    = 0x01,
 		NonContacts = 0x02,
 		Groups      = 0x04,
@@ -31,11 +32,20 @@ public:
 		NoMuted     = 0x20,
 		NoRead      = 0x40,
 		NoArchived  = 0x80,
+
+		// Local flags
+		Owned       = 0x0100,
+		Admin       = 0x0200,
+		NotOwned    = 0x0400,
+		NotAdmin    = 0x0800,
+		Recent      = 0x1000,
+		NoFilter    = 0x2000,
 	};
 	friend constexpr inline bool is_flag_type(Flag) { return true; };
 	using Flags = base::flags<Flag>;
 
 	ChatFilter() = default;
+	ChatFilter(FilterId id, bool isLocal = false);
 	ChatFilter(
 		FilterId id,
 		const QString &title,
@@ -43,15 +53,25 @@ public:
 		Flags flags,
 		base::flat_set<not_null<History*>> always,
 		std::vector<not_null<History*>> pinned,
-		base::flat_set<not_null<History*>> never);
+		base::flat_set<not_null<History*>> never,
+		bool isDefault = false,
+		bool isLocal = false,
+		int localCloudOrder = 0);
+
+	[[nodiscard]] static ChatFilter local(
+		const LocalFolder &data,
+		not_null<Session*> owner);
 
 	[[nodiscard]] static ChatFilter FromTL(
 		const MTPDialogFilter &data,
-		not_null<Session*> owner);
+		not_null<Session*> owner,
+		bool isLocal = false);
 	[[nodiscard]] MTPDialogFilter tl(FilterId replaceId = 0) const;
+	[[nodiscard]] LocalFolder toLocal(FilterId replaceId = 0) const;
 
 	[[nodiscard]] FilterId id() const;
 	[[nodiscard]] QString title() const;
+	[[nodiscard]] bool isDefault() const;
 	[[nodiscard]] QString iconEmoji() const;
 	[[nodiscard]] Flags flags() const;
 	[[nodiscard]] const base::flat_set<not_null<History*>> &always() const;
@@ -59,6 +79,12 @@ public:
 	[[nodiscard]] const base::flat_set<not_null<History*>> &never() const;
 
 	[[nodiscard]] bool contains(not_null<History*> history) const;
+
+	[[nodiscard]] bool isLocal() const;
+
+	void setLocalCloudOrder(int order) {
+		_cloudLocalOrder = order;
+	}
 
 private:
 	FilterId _id = 0;
@@ -68,6 +94,9 @@ private:
 	std::vector<not_null<History*>> _pinned;
 	base::flat_set<not_null<History*>> _never;
 	Flags _flags;
+	bool _isDefault = false;
+	bool _isLocal = false;
+	int _cloudLocalOrder = 0;
 
 };
 
@@ -129,6 +158,8 @@ public:
 		-> const std::vector<SuggestedFilter> &;
 	[[nodiscard]] rpl::producer<> suggestedUpdated() const;
 
+	void saveLocal();
+
 private:
 	void load(bool force);
 	void received(const QVector<MTPDialogFilter> &list);
@@ -156,5 +187,20 @@ private:
 	mtpRequestId _exceptionsLoadRequestId = 0;
 
 };
+
+struct LocalFolder {
+	QJsonObject toJson();
+
+	int id = 0;
+	int cloudOrder = 0;
+	QString name;
+	QString emoticon;
+	std::vector<uint64> always;
+	std::vector<uint64> never;
+	std::vector<uint64> pinned;
+	ChatFilter::Flags flags = Data::ChatFilter::Flags(0);
+};
+
+LocalFolder MakeLocalFolder(const QJsonObject &obj);
 
 } // namespace Data

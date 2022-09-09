@@ -1863,7 +1863,9 @@ int Session::pinnedCanPin(
 	const auto i = ranges::find(list, filterId, &Data::ChatFilter::id);
 	return (i == end(list))
 		|| (i->always().contains(history))
-		|| (i->always().size() < pinnedChatsLimit(folder, filterId));
+		|| (i->always().size() < (i->isLocal()
+			? std::numeric_limits<int>::max()
+			: pinnedChatsLimit(folder, filterId)));
 }
 
 int Session::pinnedChatsLimit(

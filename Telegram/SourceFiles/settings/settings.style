@@ -70,6 +70,7 @@ settingsIconEmoji: icon {{ "settings/emoji", settingsIconFg }};
 settingsIconThemes: icon {{ "settings/palette", settingsIconFg }};
 settingsIconKotato: icon {{ "settings/kotato", settingsIconFg }};
 settingsIconKotatoOld: icon {{ "settings/kotato_old", settingsIconFg }};
+settingsIconCloud: icon {{ "settings/cloud", settingsIconFg }};
 settingsIconGroup: icon {{ "settings/group", settingsIconFg }};
 settingsIconChannel: icon {{ "settings/channel", settingsIconFg }};
 settingsIconUser: icon {{ "settings/user", settingsIconFg }};

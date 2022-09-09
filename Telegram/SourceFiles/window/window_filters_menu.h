@@ -26,6 +26,8 @@ namespace Window {
 
 class SessionController;
 
+void ResetFiltersFirstLoad();
+
 class FiltersMenu final {
 public:
 	FiltersMenu(
@@ -52,6 +54,7 @@ private:
 	void setupMainMenuIcon();
 	void showMenu(QPoint position, FilterId id);
 	void showEditMenu(QPoint position);
+	void setDefaultFilter(FilterId id);
 	void showEditBox(FilterId id);
 	void showRemoveBox(FilterId id);
 	void remove(FilterId id);

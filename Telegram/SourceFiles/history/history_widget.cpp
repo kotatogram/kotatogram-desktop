@@ -138,6 +138,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/unread_badge.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
+#include "main/main_account.h"
 #include "main/session/send_as_peers.h"
 #include "window/notifications_manager.h"
 #include "window/window_adaptive.h"
@@ -2406,6 +2407,8 @@ void HistoryWidget::showHistory(
 			sponsored.request(_history);
 			_scroll->setTrackingContent(sponsored.canHaveFor(_history));
 		}
+		_history->owner().session().account().addToRecent(_peer->id);
+		_history->owner().chatsFilters().refreshHistory(_history);
 	} else {
 		_chooseForReport = nullptr;
 		refreshTopBarActiveChat();
