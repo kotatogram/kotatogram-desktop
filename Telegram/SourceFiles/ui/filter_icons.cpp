@@ -131,6 +131,66 @@ const auto kIcons = std::vector<FilterIcons>{
 		"\xF0\x9F\x92\xBC"_cs.utf16()
 	},
 	{
+		&st::foldersLocalBook,
+		&st::foldersLocalBookActive,
+		"\xF0\x9F\x94\x96"_cs.utf16()
+	},
+	{
+		&st::foldersLocalBrackets,
+		&st::foldersLocalBracketsActive,
+		"\xE2\x8C\xA8"_cs.utf16()
+	},
+	{
+		&st::foldersLocalCandle,
+		&st::foldersLocalCandleActive,
+		"\xF0\x9F\x95\xAF"_cs.utf16()
+	},
+	{
+		&st::foldersLocalCity,
+		&st::foldersLocalCityActive,
+		"\xF0\x9F\x8F\x99"_cs.utf16()
+	},
+	{
+		&st::foldersLocalDesktop,
+		&st::foldersLocalDesktopActive,
+		"\xF0\x9F\x96\xA5"_cs.utf16()
+	},
+	{
+		&st::foldersLocalEarth,
+		&st::foldersLocalEarthActive,
+		"\xF0\x9F\x8C\x8E"_cs.utf16()
+	},
+	{
+		&st::foldersLocalMusic,
+		&st::foldersLocalMusicActive,
+		"\xF0\x9F\x8E\xA7"_cs.utf16()
+	},
+	{
+		&st::foldersLocalNews,
+		&st::foldersLocalNewsActive,
+		"\xF0\x9F\x93\xB0"_cs.utf16()
+	},
+	{
+		&st::foldersLocalPhone,
+		&st::foldersLocalPhoneActive,
+		"\xF0\x9F\x93\xB1"_cs.utf16()
+	},
+	{
+		&st::foldersLocalSmile,
+		&st::foldersLocalSmileActive,
+		"\xF0\x9F\x99\x82"_cs.utf16()
+	},
+	{
+		&st::foldersLocalSun,
+		&st::foldersLocalSunActive,
+		"\xE2\x98\x80"_cs.utf16()
+	},
+	{
+		&st::foldersLocalVideo,
+		&st::foldersLocalVideoActive,
+		"\xF0\x9F\x93\xB9"_cs.utf16()
+	},
+	{
 		&st::filtersEdit,
 		&st::filtersEdit,
 		QString()

@@ -45,6 +45,19 @@ enum class FilterIcon : uchar {
 	Travel,
 	Work,
 
+	LocalBook,
+	LocalBrackets,
+	LocalCandle,
+	LocalCity,
+	LocalDesktop,
+	LocalEarth,
+	LocalMusic,
+	LocalNews,
+	LocalPhone,
+	LocalSmile,
+	LocalSun,
+	LocalVideo,
+
 	Edit,
 };
 

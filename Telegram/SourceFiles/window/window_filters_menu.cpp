@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_main_menu.h"
 #include "window/window_peer_menu.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "data/data_session.h"
 #include "data/data_chat_filters.h"
 #include "data/data_folder.h"
@@ -62,7 +63,13 @@ namespace {
 	});
 }
 
+bool FiltersFirstLoad = true;
+
 } // namespace
+
+void ResetFiltersFirstLoad() {
+	FiltersFirstLoad = true;
+}
 
 FiltersMenu::FiltersMenu(
 	not_null<Ui::RpWidget*> parent,
@@ -108,6 +115,7 @@ void FiltersMenu::setup() {
 	}, _outer.lifetime());
 
 	const auto filters = &_session->session().data().chatsFilters();
+	_activeFilterId = _session->activeChatsFilterCurrent();
 	rpl::single(
 		rpl::empty_value()
 	) | rpl::then(
@@ -116,7 +124,6 @@ void FiltersMenu::setup() {
 		refresh();
 	}, _outer.lifetime());
 
-	_activeFilterId = _session->activeChatsFilterCurrent();
 	_session->activeChatsFilter(
 	) | rpl::filter([=](FilterId id) {
 		return id != _activeFilterId;
@@ -216,6 +223,11 @@ void FiltersMenu::refresh() {
 		scrollToButton(i->second);
 	} else if (!::Kotato::JsonSettings::GetBool("folders/hide_all_chats")) {
 		scrollToButton(_all);
+	}
+
+	if (FiltersFirstLoad) {
+		_session->setActiveChatsFilter(_session->session().account().defaultFilterId());
+		FiltersFirstLoad = false;
 	}
 }
 
@@ -335,6 +347,7 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 	if (i == end(_filters)) {
 		return;
 	}
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
 		i->second.get(),
 		st::popupMenuWithIcons);
@@ -352,15 +365,24 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 		tr::lng_filters_context_edit(tr::now),
 		crl::guard(&_outer, [=] { showEditBox(id); }),
 		&st::menuIconEdit);
-
 	auto filteredChats = [=] {
 		return _session->session().data().chatsFilters().chatsList(id);
 	};
 	Window::MenuAddMarkAsReadChatListAction(
 		std::move(filteredChats),
 		addAction);
-
-	addAction(
+	if (defaultFilterId != id) {
+		_popupMenu->addAction(
+			ktr("ktg_filters_context_make_default"),
+			crl::guard(&_outer, [=] { setDefaultFilter(id); }),
+			&st::menuIconFave);
+	} else if (id) {
+		_popupMenu->addAction(
+			ktr("ktg_filters_context_reset_default"),
+			crl::guard(&_outer, [=] { setDefaultFilter(0); }),
+			&st::menuIconUnfave);
+	}
+	_popupMenu->addAction(
 		tr::lng_filters_context_remove(tr::now),
 		[=] { showRemoveBox(id); },
 		&st::menuIconDelete);
@@ -372,6 +394,7 @@ void FiltersMenu::showAllMenu(QPoint position) {
 		_popupMenu = nullptr;
 		return;
 	}
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
 		_all,
 		st::popupMenuWithIcons);
@@ -389,6 +412,12 @@ void FiltersMenu::showAllMenu(QPoint position) {
 		ktr("ktg_filters_context_edit_all"),
 		crl::guard(&_outer, [=] { _session->showSettings(Settings::Type::Folders); }),
 		&st::menuIconEdit);
+	if (defaultFilterId != 0) {
+		_popupMenu->addAction(
+			ktr("ktg_filters_context_make_default"),
+			crl::guard(&_outer, [=] { setDefaultFilter(0); }),
+			&st::menuIconFave);
+	}
 	_popupMenu->addAction(
 		ktr("ktg_filters_hide_folder"),
 		crl::guard(&_outer, [=] {
@@ -429,6 +458,14 @@ void FiltersMenu::showEditMenu(QPoint position) {
 	_popupMenu->popup(position);
 }
 
+void FiltersMenu::setDefaultFilter(FilterId id) {
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
+	if (defaultFilterId != id) {
+		_session->session().account().setDefaultFilterId(id);
+		Kotato::JsonSettings::Write();
+	}
+}
+
 void FiltersMenu::showEditBox(FilterId id) {
 	EditExistingFilter(_session, id);
 }
@@ -441,15 +478,37 @@ void FiltersMenu::showRemoveBox(FilterId id) {
 }
 
 void FiltersMenu::remove(FilterId id) {
-	_session->session().data().chatsFilters().apply(MTP_updateDialogFilter(
-		MTP_flags(MTPDupdateDialogFilter::Flag(0)),
-		MTP_int(id),
-		MTPDialogFilter()));
-	_session->session().api().request(MTPmessages_UpdateDialogFilter(
-		MTP_flags(MTPmessages_UpdateDialogFilter::Flag(0)),
-		MTP_int(id),
-		MTPDialogFilter()
-	)).send();
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
+	const auto filters = &_session->session().data().chatsFilters();
+	const auto &list = filters->list();
+	const auto i = ranges::find(list, id, &Data::ChatFilter::id);
+	Assert(i != end(list));
+	bool needSave = false;
+	if (i->isLocal()) {
+		filters->remove(id);
+		filters->saveLocal();
+		needSave = true;
+	} else {
+		_session->session().data().chatsFilters().apply(MTP_updateDialogFilter(
+			MTP_flags(MTPDupdateDialogFilter::Flag(0)),
+			MTP_int(id),
+			MTPDialogFilter()));
+		_session->session().api().request(MTPmessages_UpdateDialogFilter(
+			MTP_flags(MTPmessages_UpdateDialogFilter::Flag(0)),
+			MTP_int(id),
+			MTPDialogFilter()
+		)).send();
+	}
+	if (id == defaultFilterId) {
+		needSave = true;
+		_session->session().account().setDefaultFilterId(0);
+		if (id == _session->activeChatsFilterCurrent()) {
+			_session->setActiveChatsFilter(0);
+		}
+	}
+	if (needSave) {
+		Kotato::JsonSettings::Write();
+	}
 }
 
 void FiltersMenu::applyReorder(
@@ -479,6 +538,8 @@ void FiltersMenu::applyReorder(
 	_ignoreRefresh = true;
 	filters->saveOrder(order);
 	_ignoreRefresh = false;
+	filters->saveLocal();
+	Kotato::JsonSettings::Write();
 }
 
 } // namespace Window
