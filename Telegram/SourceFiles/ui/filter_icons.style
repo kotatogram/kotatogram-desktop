@@ -85,3 +85,28 @@ foldersPoo: icon {{ "folders/folders_poo", sideBarIconFg }};
 foldersPooActive: icon {{ "folders/folders_poo", sideBarIconFgActive }};
 
 filtersEdit: icon {{ "folders/folders_edit", sideBarIconFg }};
+
+foldersLocalBook: icon {{ "folders/folders_local_book", sideBarIconFg }};
+foldersLocalBookActive: icon {{ "folders/folders_local_book_active", sideBarIconFgActive }};
+foldersLocalBrackets: icon {{ "folders/folders_local_brackets", sideBarIconFg }};
+foldersLocalBracketsActive: icon {{ "folders/folders_local_brackets", sideBarIconFgActive }};
+foldersLocalCandle: icon {{ "folders/folders_local_candle", sideBarIconFg }};
+foldersLocalCandleActive: icon {{ "folders/folders_local_candle_active", sideBarIconFgActive }};
+foldersLocalCity: icon {{ "folders/folders_local_city", sideBarIconFg }};
+foldersLocalCityActive: icon {{ "folders/folders_local_city_active", sideBarIconFgActive }};
+foldersLocalDesktop: icon {{ "folders/folders_local_desktop", sideBarIconFg }};
+foldersLocalDesktopActive: icon {{ "folders/folders_local_desktop_active", sideBarIconFgActive }};
+foldersLocalEarth: icon {{ "folders/folders_local_earth", sideBarIconFg }};
+foldersLocalEarthActive: icon {{ "folders/folders_local_earth", sideBarIconFgActive }};
+foldersLocalMusic: icon {{ "folders/folders_local_music", sideBarIconFg }};
+foldersLocalMusicActive: icon {{ "folders/folders_local_music_active", sideBarIconFgActive }};
+foldersLocalNews: icon {{ "folders/folders_local_news", sideBarIconFg }};
+foldersLocalNewsActive: icon {{ "folders/folders_local_news_active", sideBarIconFgActive }};
+foldersLocalPhone: icon {{ "folders/folders_local_phone", sideBarIconFg }};
+foldersLocalPhoneActive: icon {{ "folders/folders_local_phone_active", sideBarIconFgActive }};
+foldersLocalSmile: icon {{ "folders/folders_local_smile", sideBarIconFg }};
+foldersLocalSmileActive: icon {{ "folders/folders_local_smile_active", sideBarIconFgActive }};
+foldersLocalSun: icon {{ "folders/folders_local_sun", sideBarIconFg }};
+foldersLocalSunActive: icon {{ "folders/folders_local_sun_active", sideBarIconFgActive }};
+foldersLocalVideo: icon {{ "folders/folders_local_video", sideBarIconFg }};
+foldersLocalVideoActive: icon {{ "folders/folders_local_video_active", sideBarIconFgActive }};

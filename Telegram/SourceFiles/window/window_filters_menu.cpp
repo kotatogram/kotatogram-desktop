@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_main_menu.h"
 #include "window/window_peer_menu.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "data/data_session.h"
 #include "data/data_chat_filters.h"
 #include "data/data_folder.h"
@@ -75,7 +76,13 @@ namespace {
 	});
 }
 
+bool FiltersFirstLoad = true;
+
 } // namespace
+
+void ResetFiltersFirstLoad() {
+	FiltersFirstLoad = true;
+}
 
 FiltersMenu::FiltersMenu(
 	not_null<Ui::RpWidget*> parent,
@@ -128,6 +135,7 @@ void FiltersMenu::setup() {
 	auto premium = Data::AmPremiumValue(&_session->session());
 
 	const auto filters = &_session->session().data().chatsFilters();
+	_activeFilterId = _session->activeChatsFilterCurrent();
 	rpl::combine(
 		rpl::single(rpl::empty) | rpl::then(filters->changed()),
 		std::move(premium)
@@ -135,7 +143,6 @@ void FiltersMenu::setup() {
 		refresh();
 	}, _outer.lifetime());
 
-	_activeFilterId = _session->activeChatsFilterCurrent();
 	_session->activeChatsFilter(
 	) | rpl::filter([=](FilterId id) {
 		return (id != _activeFilterId);
@@ -246,6 +253,11 @@ void FiltersMenu::refresh() {
 	// After the filters are refreshed, the scroll is reset,
 	// so we have to restore it.
 	_scroll.scrollToY(oldTop);
+
+	if (FiltersFirstLoad) {
+		_session->setActiveChatsFilter(_session->session().account().defaultFilterId());
+		FiltersFirstLoad = false;
+	}
 }
 
 void FiltersMenu::setupList() {
@@ -406,6 +418,7 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 	if ((i == end(_filters)) && id) {
 		return;
 	}
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
 		i->second.get(),
 		st::popupMenuWithIcons);
@@ -430,7 +443,17 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 			_session,
 			std::move(filteredChats),
 			addAction);
-
+		if (defaultFilterId != id) {
+			_popupMenu->addAction(
+				ktr("ktg_filters_context_make_default"),
+				crl::guard(&_outer, [=] { setDefaultFilter(id); }),
+				&st::menuIconFave);
+		} else {
+			_popupMenu->addAction(
+				ktr("ktg_filters_context_reset_default"),
+				crl::guard(&_outer, [=] { setDefaultFilter(0); }),
+				&st::menuIconUnfave);
+		}
 		addAction(
 			tr::lng_filters_context_remove(tr::now),
 			[=] { showRemoveBox(id); },
@@ -447,7 +470,12 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 			[=] { return _session->session().data().chatsList(); },
 			addAction,
 			std::move(customUnreadState));
-
+		if (defaultFilterId != id) {
+			_popupMenu->addAction(
+				ktr("ktg_filters_context_make_default"),
+				crl::guard(&_outer, [=] { setDefaultFilter(0); }),
+				&st::menuIconFave);
+		}
 		addAction(
 			tr::lng_filters_setup_menu(tr::now),
 			[=] { openFiltersSettings(); },
@@ -482,6 +510,14 @@ void FiltersMenu::showEditMenu(QPoint position) {
 		}), &st::menuIconHide);
 
 	_popupMenu->popup(position);
+}
+
+void FiltersMenu::setDefaultFilter(FilterId id) {
+	const auto defaultFilterId = _session->session().account().defaultFilterId();
+	if (defaultFilterId != id) {
+		_session->session().account().setDefaultFilterId(id);
+		Kotato::JsonSettings::Write();
+	}
 }
 
 void FiltersMenu::showEditBox(FilterId id) {
@@ -615,6 +651,8 @@ void FiltersMenu::applyReorder(
 	_ignoreRefresh = true;
 	filters->saveOrder(order);
 	_ignoreRefresh = false;
+	filters->saveLocal();
+	Kotato::JsonSettings::Write();
 }
 
 } // namespace Window

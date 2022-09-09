@@ -346,6 +346,11 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 0,
 		.limitHandler = IntLimit(0, 5), }},
+	{ "folders/default", {
+		.scope = SettingScope::Account,
+		.type = SettingType::IntSetting,
+		.defaultValue = 0,
+		.limitHandler = IntLimitMin(0), }},
 	{ "folders/count_unmuted_only", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
@@ -358,6 +363,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "folders/hide_all_chats", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "folders/local", {
+		.scope = SettingScope::Account,
+		.type = SettingType::QJsonArraySetting, }},
 };
 
 using OldOptionKey = QString;

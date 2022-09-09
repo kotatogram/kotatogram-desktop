@@ -1640,6 +1640,7 @@ void Widget::slideFinished() {
 
 void Widget::escape() {
 	if (!cancelSearch()) {
+		const auto defaultFilterId = session().account().defaultFilterId();
 		if (controller()->shownForum().current()) {
 			controller()->closeForum();
 		} else if (controller()->openedFolder().current()) {
@@ -1649,7 +1650,11 @@ void Widget::escape() {
 		} else {
 			const auto filters = &session().data().chatsFilters();
 			const auto &list = filters->list();
-			const auto first = list.empty() ? FilterId() : list.front().id();
+			const auto first = list.empty()
+				? FilterId()
+				: defaultFilterId != 0
+				? defaultFilterId
+				: list.front().id();
 			if (controller()->activeChatsFilterCurrent() != first) {
 				controller()->setActiveChatsFilter(first);
 			}

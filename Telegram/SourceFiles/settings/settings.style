@@ -80,6 +80,7 @@ settingsIconStickers: icon {{ "settings/stickers", settingsIconFg }};
 settingsIconEmoji: icon {{ "settings/emoji", settingsIconFg }};
 settingsIconKotato: icon {{ "settings/kotato", settingsIconFg }};
 settingsIconKotatoOld: icon {{ "settings/kotato_old", settingsIconFg }};
+settingsIconCloud: icon {{ "settings/cloud", settingsIconFg }};
 
 settingsPremiumIconWallpapers: icon {{ "settings/photo", settingsIconFg }};
 settingsPremiumIconStories: icon {{ "settings/stories", settingsIconFg }};

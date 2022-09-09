@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/emoji_config.h"
 #include "chat_helpers/emoji_sets_manager.h"
 #include "window/window_session_controller.h"
+#include "window/window_filters_menu.h"
 #include "window/themes/window_theme_editor.h"
 #include "ui/boxes/confirm_box.h"
 #include "data/data_peer.h"
@@ -221,6 +222,7 @@ void Controller::setupSideBar() {
 	}, _sessionController->lifetime());
 
 	if (_sessionController->session().settings().dialogsFiltersEnabled()) {
+		ResetFiltersFirstLoad();
 		_sessionController->toggleFiltersMenu(true);
 	} else {
 		sideBarChanged();

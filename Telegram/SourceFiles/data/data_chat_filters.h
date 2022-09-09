@@ -24,6 +24,7 @@ struct MoreChatsBarContent;
 namespace Data {
 
 class Session;
+struct LocalFolder;
 
 class ChatFilter final {
 public:
@@ -39,11 +40,20 @@ public:
 
 		Chatlist    = (1 << 8),
 		HasMyLinks  = (1 << 9),
+
+		// Local flags
+		Owned       = (1 << 10),
+		Admin       = (1 << 11),
+		NotOwned    = (1 << 12),
+		NotAdmin    = (1 << 13),
+		Recent      = (1 << 14),
+		NoFilter    = (1 << 15),
 	};
 	friend constexpr inline bool is_flag_type(Flag) { return true; };
 	using Flags = base::flags<Flag>;
 
 	ChatFilter() = default;
+	ChatFilter(FilterId id, bool isLocal = false);
 	ChatFilter(
 		FilterId id,
 		const QString &title,
@@ -51,7 +61,14 @@ public:
 		Flags flags,
 		base::flat_set<not_null<History*>> always,
 		std::vector<not_null<History*>> pinned,
-		base::flat_set<not_null<History*>> never);
+		base::flat_set<not_null<History*>> never,
+		bool isDefault = false,
+		bool isLocal = false,
+		int localCloudOrder = 0);
+
+	[[nodiscard]] static ChatFilter local(
+		const LocalFolder &data,
+		not_null<Session*> owner);
 
 	[[nodiscard]] ChatFilter withId(FilterId id) const;
 	[[nodiscard]] ChatFilter withTitle(const QString &title) const;
@@ -61,11 +78,14 @@ public:
 
 	[[nodiscard]] static ChatFilter FromTL(
 		const MTPDialogFilter &data,
-		not_null<Session*> owner);
+		not_null<Session*> owner,
+		bool isLocal = false);
 	[[nodiscard]] MTPDialogFilter tl(FilterId replaceId = 0) const;
+	[[nodiscard]] LocalFolder toLocal(FilterId replaceId = 0) const;
 
 	[[nodiscard]] FilterId id() const;
 	[[nodiscard]] QString title() const;
+	[[nodiscard]] bool isDefault() const;
 	[[nodiscard]] QString iconEmoji() const;
 	[[nodiscard]] Flags flags() const;
 	[[nodiscard]] bool chatlist() const;
@@ -76,6 +96,12 @@ public:
 
 	[[nodiscard]] bool contains(not_null<History*> history) const;
 
+	[[nodiscard]] bool isLocal() const;
+
+	void setLocalCloudOrder(int order) {
+		_cloudLocalOrder = order;
+	}
+
 private:
 	FilterId _id = 0;
 	QString _title;
@@ -84,6 +110,9 @@ private:
 	std::vector<not_null<History*>> _pinned;
 	base::flat_set<not_null<History*>> _never;
 	Flags _flags;
+	bool _isDefault = false;
+	bool _isLocal = false;
+	int _cloudLocalOrder = 0;
 
 };
 
@@ -176,6 +205,7 @@ public:
 	[[nodiscard]] const std::vector<not_null<PeerData*>> &moreChats(
 		FilterId id) const;
 	void moreChatsHide(FilterId id, bool localOnly = false);
+	void saveLocal();
 
 private:
 	struct MoreChatsData {
@@ -224,5 +254,20 @@ private:
 	base::Timer _moreChatsTimer;
 
 };
+
+struct LocalFolder {
+	QJsonObject toJson();
+
+	int id = 0;
+	int cloudOrder = 0;
+	QString name;
+	QString emoticon;
+	std::vector<uint64> always;
+	std::vector<uint64> never;
+	std::vector<uint64> pinned;
+	ChatFilter::Flags flags = Data::ChatFilter::Flags(0);
+};
+
+LocalFolder MakeLocalFolder(const QJsonObject &obj);
 
 } // namespace Data

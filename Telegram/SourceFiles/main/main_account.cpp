@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "main/main_account.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "storage/storage_account.h"
@@ -192,6 +193,11 @@ void Account::createSession(
 	_sessionValue = _session.get();
 
 	Ensures(_session != nullptr);
+
+	_defaultFilterId = ::Kotato::JsonSettings::GetInt(
+		"folders/default",
+		session().userId().bare,
+		_mtp->isTestMode());
 }
 
 void Account::destroySession(DestroyReason reason) {
@@ -599,6 +605,37 @@ void Account::destroyStaleAuthorizationKeys() {
 			return;
 		}
 	}
+}
+
+void Account::setDefaultFilterId(uint64 id) {
+	Expects(_mtp != nullptr);
+	Expects(_session != nullptr);
+
+	_defaultFilterId = id;
+
+	::Kotato::JsonSettings::Set(
+		"folders/default",
+		_defaultFilterId,
+		session().userId().bare,
+		_mtp->isTestMode());
+}
+
+bool Account::isCurrent(uint64 id, bool testMode) {
+	Expects(_mtp != nullptr);
+	Expects(_session != nullptr);
+
+	return id == session().userId().bare
+		&& _mtp->isTestMode() == testMode;
+}
+
+void Account::addToRecent(PeerId id) {
+	if (!_recent.contains(id.value)) {
+		_recent << id.value;
+	}
+}
+
+bool Account::isRecent(PeerId id) {
+	return _recent.contains(id.value);
 }
 
 void Account::setHandleLoginCode(Fn<void(QString)> callback) {

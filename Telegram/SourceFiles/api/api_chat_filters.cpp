@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_chat_filters.h"
 
+#include "kotato/kotato_settings.h"
 #include "apiwrap.h"
 #include "boxes/peer_list_box.h"
 #include "boxes/premium_limits_box.h"
@@ -671,11 +672,16 @@ void SaveNewFilterPinned(
 	const auto &order = session->data().pinnedChatsOrder(filterId);
 	auto &filters = session->data().chatsFilters();
 	const auto &filter = filters.applyUpdatedPinned(filterId, order);
-	session->api().request(MTPmessages_UpdateDialogFilter(
-		MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
-		MTP_int(filterId),
-		filter.tl()
-	)).send();
+	if (filter.isLocal()) {
+		filters.saveLocal();
+		Kotato::JsonSettings::Write();
+	} else {
+		session->api().request(MTPmessages_UpdateDialogFilter(
+			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
+			MTP_int(filterId),
+			filter.tl()
+		)).send();
+	}
 }
 
 void CheckFilterInvite(
