@@ -53,7 +53,8 @@ const auto kBadPrefix = u"http://"_q;
 	const auto domains = config.get<std::vector<QString>>(
 		"autologin_domains",
 		{});
-	if (token.isEmpty()
+	if (!::Kotato::JsonSettings::GetBool("telegram_sites_autologin")
+		|| token.isEmpty()
 		|| domain.isEmpty()
 		|| !ranges::contains(domains, domain)) {
 		return url;
