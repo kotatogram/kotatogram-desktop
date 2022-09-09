@@ -145,6 +145,9 @@ public:
 	void addTopBarEditButton(
 		not_null<Window::SessionController*> controller,
 		Wrap wrap);
+	void addTopBarNotificationsButton(
+		not_null<Window::SessionController*> controller,
+		Wrap wrap);
 
 	rpl::producer<std::optional<QColor>> edgeColor() const;
 
@@ -351,6 +354,7 @@ private:
 	Ui::Controls::SwipeBackResult _swipeBackData;
 
 	base::unique_qptr<Ui::IconButton> _topBarButton;
+	base::unique_qptr<Ui::IconButton> _notificationsButton;
 	base::unique_qptr<Ui::FadeWrap<Ui::IconButton>> _tabMenuToggle;
 	base::unique_qptr<Ui::FadeWrap<Ui::IconButton>> _tabSearchToggle;
 	base::unique_qptr<Ui::FadeWrap<Ui::IconButton>> _tabGroupToggle;

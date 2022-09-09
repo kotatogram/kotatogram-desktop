@@ -53,6 +53,20 @@ infoLayerTopBarBlackEdit: IconButton(infoLayerTopBarEdit) {
 	iconOver: icon {{ "menu/edit", windowBoldFg }};
 	ripple: universalRippleAnimation;
 }
+infoTopBarBlackNotifications: IconButton(infoTopBarBlackEdit) {
+	icon: icon {{ "info/info_notifications", windowBoldFg }};
+	iconOver: icon {{ "info/info_notifications", windowBoldFg }};
+	iconPosition: point(-1px, -1px);
+}
+infoLayerTopBarBlackNotifications: IconButton(infoLayerTopBarBlackEdit) {
+	icon: icon {{ "info/info_notifications", windowBoldFg }};
+	iconOver: icon {{ "info/info_notifications", windowBoldFg }};
+	iconPosition: point(-1px, -1px);
+}
+infoTopBarBlackNotificationsActive: icon {{
+	"info/info_notifications_active",
+	windowBoldFg
+}};
 infoProfileTopBarTitleTop: 113px;
 infoProfileTopBarStatusTop: 134px;
 infoProfileTopBarPhotoTop: 24px;

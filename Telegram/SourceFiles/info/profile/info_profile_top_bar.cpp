@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/profile/info_profile_top_bar.h"
 
 #include "kotato/kotato_radius.h"
+#include "kotato/kotato_settings.h"
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
 #include "api/api_user_privacy.h"
@@ -1034,7 +1035,7 @@ void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 		buttons.push_back(message);
 		_actions->add(message);
 	}
-	if (!peer->isSelf()) {
+	if (!peer->isSelf() && !::Kotato::JsonSettings::GetBool("profile_top_mute")) {
 		const auto notifications = Ui::CreateChild<TopBarActionButton>(
 			this,
 			tr::lng_profile_action_short_mute(tr::now),
@@ -1895,6 +1896,9 @@ int TopBar::calculateRightButtonsWidth() const {
 	if (_topBarButton) {
 		width += _topBarButton->width();
 	}
+	if (_notificationsButton) {
+		width += _notificationsButton->width();
+	}
 	if (_tabMenuToggle && _tabMenuToggle->toggled()) {
 		width += _tabMenuToggle->width();
 	}
@@ -2685,6 +2689,10 @@ void TopBar::updateRightButtonsPosition() {
 		_topBarButton->moveToRight(right, 0);
 		right += _topBarButton->width();
 	}
+	if (_notificationsButton) {
+		_notificationsButton->moveToRight(right, 0);
+		right += _notificationsButton->width();
+	}
 	if (_tabMenuToggle && _tabMenuToggle->toggled()) {
 		_tabMenuToggle->moveToRight(right, 0);
 		right += _tabMenuToggle->width();
@@ -3064,6 +3072,11 @@ void TopBar::setupButtons(
 				addTopBarEditButton(controller, wrap);
 			}
 		}
+		_notificationsButton = nullptr;
+		if (source == Source::Profile
+			&& ::Kotato::JsonSettings::GetBool("profile_top_mute")) {
+			addTopBarNotificationsButton(controller, wrap);
+		}
 		updateButtonsColorOverride();
 		raiseTabSearchOverlay();
 		raiseTabSelectionOverlay();
@@ -3093,6 +3106,50 @@ void TopBar::addTopBarEditButton(
 	}, _topBarButton->lifetime());
 }
 
+void TopBar::addTopBarNotificationsButton(
+		not_null<Window::SessionController*> controller,
+		Wrap wrap) {
+	const auto peer = _peer;
+	if (peer->isSelf()) {
+		return;
+	}
+	const auto topic = _key.topic();
+	_notificationsButton = base::make_unique_q<BackdropIconButton>(
+		this,
+		((wrap == Wrap::Layer)
+			? st::infoLayerTopBarBlackNotifications
+			: st::infoTopBarBlackNotifications));
+	const auto button = _notificationsButton.get();
+	button->show();
+
+	const auto topicRootId = topic ? topic->rootId() : MsgId();
+	const auto makeThread = [=] {
+		return topicRootId
+			? static_cast<Data::Thread*>(peer->forumTopicFor(topicRootId))
+			: peer->owner().history(peer).get();
+	};
+	MuteMenu::SetupMuteMenu(
+		button,
+		button->clicks() | rpl::to_empty,
+		makeThread,
+		controller->uiShow());
+	(topic
+		? NotificationsEnabledValue(topic)
+		: NotificationsEnabledValue(peer)
+	) | rpl::on_next([=](bool enabled) {
+		const auto icon = enabled
+			? &st::infoTopBarBlackNotificationsActive
+			: nullptr;
+		button->setIconOverride(icon, icon);
+		const auto text = enabled
+			? tr::lng_profile_action_short_mute(tr::now)
+			: tr::lng_profile_action_short_unmute(tr::now);
+		button->setAccessibleName(text);
+	}, button->lifetime());
+
+	updateRightButtonsPosition();
+}
+
 std::optional<QColor> TopBar::buttonsColorOverride() const {
 	const auto edgeColor = _edgeColor.current();
 	return edgeColor
@@ -3113,6 +3170,7 @@ void TopBar::updateButtonsColorOverride() {
 	apply(_tabSearchToggle ? _tabSearchToggle->entity() : nullptr);
 	apply(_tabGroupToggle ? _tabGroupToggle->entity() : nullptr);
 	apply(_topBarButton.get());
+	apply(_notificationsButton.get());
 }
 
 void TopBar::showTopBarMenu(

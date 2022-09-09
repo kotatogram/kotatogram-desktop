@@ -240,6 +240,7 @@ void SetupKotatoChats(
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
+	SettingsMenuJsonSwitch(ktg_settings_top_bar_mute, profile_top_mute);
 	SettingsMenuJsonSwitch(ktg_settings_disable_up_edit, disable_up_edit);
 	SettingsMenuJsonSwitch(ktg_settings_always_show_scheduled, always_show_scheduled);
 
