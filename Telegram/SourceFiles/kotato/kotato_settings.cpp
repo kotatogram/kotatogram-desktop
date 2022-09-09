@@ -376,6 +376,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "folders/local", {
 		.scope = SettingScope::Account,
 		.type = SettingType::QJsonArraySetting, }},
+	{ "telegram_sites_autologin", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 };
 
 using OldOptionKey = QString;
