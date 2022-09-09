@@ -362,7 +362,7 @@ public:
 	bool uniqueChatsInSearchResults() const;
 
 	void openFolder(not_null<Data::Folder*> folder);
-	void closeFolder();
+	void closeFolder(bool force = false);
 	const rpl::variable<Data::Folder*> &openedFolder() const;
 
 	void showForum(
@@ -534,6 +534,7 @@ public:
 		const SectionShow &params = SectionShow::Way::ClearStack);
 
 	void toggleFiltersMenu(bool enabled);
+	void reloadFiltersMenu();
 	[[nodiscard]] rpl::producer<> filtersMenuChanged() const;
 
 	[[nodiscard]] auto defaultChatTheme() const

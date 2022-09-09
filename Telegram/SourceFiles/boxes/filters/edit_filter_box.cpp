@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/filters/edit_filter_box.h"
 
+#include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "boxes/filters/edit_filter_chats_list.h"
 #include "boxes/filters/edit_filter_links.h"
 #include "boxes/premium_limits_box.h"
@@ -14,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/text/text_options.h"
+#include "ui/widgets/checkbox.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/wrap/slide_wrap.h"
@@ -34,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "history/history.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "apiwrap.h"
@@ -64,6 +68,12 @@ constexpr auto kAllTypes = {
 	Flag::NoMuted,
 	Flag::NoRead,
 	Flag::NoArchived,
+	Flag::Owned,
+	Flag::Admin,
+	Flag::NotOwned,
+	Flag::NotAdmin,
+	Flag::Recent,
+	Flag::NoFilter,
 };
 
 class FilterChatsPreview final : public Ui::RpWidget {
@@ -137,7 +147,9 @@ not_null<FilterChatsPreview*> SetupChatsPreview(
 			(rules.flags() & ~flag),
 			rules.always(),
 			rules.pinned(),
-			rules.never());
+			rules.never(),
+			rules.isDefault(),
+			rules.isLocal());
 		updateDefaultTitle(computed);
 		*data = std::move(computed);
 	}, preview->lifetime());
@@ -158,7 +170,9 @@ not_null<FilterChatsPreview*> SetupChatsPreview(
 			rules.flags(),
 			std::move(always),
 			std::move(pinned),
-			std::move(never));
+			std::move(never),
+			rules.isDefault(),
+			rules.isLocal());
 		updateDefaultTitle(computed);
 		*data = std::move(computed);
 	}, preview->lifetime());
@@ -343,7 +357,8 @@ void EditExceptions(
 			: tr::lng_filters_exclude_title()),
 		options,
 		rules.flags() & options,
-		include ? rules.always() : rules.never());
+		include ? rules.always() : rules.never(),
+		rules.isLocal());
 	const auto rawController = controller.get();
 	auto initBox = [=](not_null<PeerListBox*> box) {
 		box->setCloseByOutsideClick(false);
@@ -377,7 +392,9 @@ void EditExceptions(
 					| rawController->chosenOptions()),
 				include ? std::move(changed) : std::move(removeFrom),
 				std::move(pinned),
-				include ? std::move(removeFrom) : std::move(changed));
+				include ? std::move(removeFrom) : std::move(changed),
+				rules.isDefault(),
+				rules.isLocal());
 			updateDefaultTitle(computed);
 			*data = computed;
 			refresh();
@@ -428,7 +445,8 @@ void CreateIconSelector(
 	}, toggle->lifetime());
 
 	const auto panel = toggle->lifetime().make_state<Ui::FilterIconPanel>(
-		outer);
+		outer,
+		rules.isLocal());
 	toggle->installEventFilter(panel);
 	toggle->addClickHandler([=] {
 		panel->toggleAnimated();
@@ -446,7 +464,9 @@ void CreateIconSelector(
 			rules.flags(),
 			rules.always(),
 			rules.pinned(),
-			rules.never());
+			rules.never(),
+			rules.isDefault(),
+			rules.isLocal());
 	}, panel->lifetime());
 
 	const auto updatePanelGeometry = [=] {
@@ -578,10 +598,14 @@ void EditFilterBox(
 	}, box->lifetime());
 
 	box->setWidth(st::boxWideWidth);
-	box->setTitle(rpl::conditional(
-		state->creating.value(),
-		tr::lng_filters_new(),
-		tr::lng_filters_edit()));
+	const auto isLocal = filter.isLocal();
+	box->setTitle(rpl::single(state->creating.current()
+		? (isLocal
+			? ktr("ktg_filters_new_local")
+			: ktr("ktg_filters_new_cloud"))
+		: (isLocal
+			? ktr("ktg_filters_edit_local")
+			: ktr("ktg_filters_edit_cloud"))));
 	box->setCloseByOutsideClick(false);
 
 	Data::AmPremiumValue(
@@ -598,10 +622,12 @@ void EditFilterBox(
 			tr::lng_filters_new_name(),
 			filter.title()),
 		st::markdownLinkFieldPadding);
-	name->setMaxLength(kMaxFilterTitleLength);
 	name->setInstantReplaces(Ui::InstantReplaces::Default());
 	name->setInstantReplacesEnabled(
 		Core::App().settings().replaceEmojiValue());
+	if (!isLocal) {
+		name->setMaxLength(kMaxFilterTitleLength);
+	}
 	Ui::Emoji::SuggestionsController::Init(
 		box->getDelegate()->outerContainer(),
 		name,
@@ -624,7 +650,9 @@ void EditFilterBox(
 		if (nameEditing->custom) {
 			return;
 		}
-		const auto title = TrimDefaultTitle(DefaultTitle(filter));
+		const auto title = isLocal
+			? DefaultTitle(filter)
+			: TrimDefaultTitle(DefaultTitle(filter));
 		if (nameEditing->field->getLastText() != title) {
 			nameEditing->settingDefault = true;
 			nameEditing->field->setText(title);
@@ -648,10 +676,31 @@ void EditFilterBox(
 	constexpr auto kExcludeTypes = Flag::NoMuted
 		| Flag::NoArchived
 		| Flag::NoRead;
+	constexpr auto kExcludeTypesLocal = kExcludeTypes
+		| Flag::Owned
+		| Flag::Admin
+		| Flag::NotOwned
+		| Flag::NotAdmin
+		| Flag::Recent
+		| Flag::NoFilter;
 
 	box->setFocusCallback([=] {
 		name->setFocusFast();
 	});
+
+	const auto defaultFilterId = window->session().account().defaultFilterId();
+	const auto isCurrent = filter.id() == defaultFilterId;
+	const auto checkboxDefault = content->add(
+		object_ptr<Ui::Checkbox>(
+			box,
+			ktr("ktg_filters_default"),
+			(state->creating.current() ? false : isCurrent),
+			st::defaultBoxCheckbox),
+		style::margins(
+			st::boxPadding.left(),
+			st::boxPadding.bottom(),
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
 
 	AddSkip(content);
 	AddDivider(content);
@@ -695,7 +744,7 @@ void EditFilterBox(
 		excludeInner,
 		data,
 		updateDefaultTitle,
-		kExcludeTypes,
+		(isLocal ? kExcludeTypesLocal : kExcludeTypes),
 		&Data::ChatFilter::never);
 
 	AddSkip(excludeInner);
@@ -815,7 +864,7 @@ void EditFilterBox(
 			data->current().flags() & kTypes,
 			data->current().always());
 		exclude->updateData(
-			data->current().flags() & kExcludeTypes,
+			data->current().flags() & (isLocal ? kExcludeTypesLocal : kExcludeTypes),
 			data->current().never());
 	};
 	includeAdd->setClickedCallback([=] {
@@ -831,7 +880,7 @@ void EditFilterBox(
 		EditExceptions(
 			window,
 			box,
-			kExcludeTypes,
+			(isLocal ? kExcludeTypesLocal : kExcludeTypes),
 			data,
 			updateDefaultTitle,
 			refreshPreviews);
@@ -858,24 +907,42 @@ void EditExistingFilter(
 	Expects(id != 0);
 
 	const auto session = &window->session();
-	const auto &list = session->data().chatsFilters().list();
+	const auto filters = &session->data().chatsFilters();
+	const auto &list = filters->list();
 	const auto i = ranges::find(list, id, &Data::ChatFilter::id);
 	if (i == end(list)) {
 		return;
 	}
 	const auto doneCallback = [=](const Data::ChatFilter &result) {
 		Expects(id == result.id());
+		auto needSave = false;
 
-		const auto tl = result.tl();
-		session->data().chatsFilters().apply(MTP_updateDialogFilter(
-			MTP_flags(MTPDupdateDialogFilter::Flag::f_filter),
-			MTP_int(id),
-			tl));
-		session->api().request(MTPmessages_UpdateDialogFilter(
-			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
-			MTP_int(id),
-			tl
-		)).send();
+		if (result.isLocal()) {
+			filters->set(result);
+			filters->saveLocal();
+			needSave = true;
+		} else {
+			const auto tl = result.tl();
+			session->data().chatsFilters().apply(MTP_updateDialogFilter(
+				MTP_flags(MTPDupdateDialogFilter::Flag::f_filter),
+				MTP_int(id),
+				tl));
+			session->api().request(MTPmessages_UpdateDialogFilter(
+				MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
+				MTP_int(id),
+				tl
+			)).send();
+		}
+		const auto defaultFilterId = session->account().defaultFilterId();
+		const auto isCurrentDefault = result.id() == defaultFilterId;
+		if ((isCurrentDefault && !result.isDefault())
+			|| (!isCurrentDefault && result.isDefault())) {
+			 session->account().setDefaultFilterId(result.isDefault() ? result.id() : 0);
+			needSave = true;
+		}
+		if (needSave) {
+			Kotato::JsonSettings::Write();
+		}
 	};
 	const auto saveAnd = [=](
 			const Data::ChatFilter &data,
