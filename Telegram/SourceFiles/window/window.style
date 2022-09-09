@@ -306,6 +306,12 @@ windowFilterTypeNoArchived: icon {{ "folders/folders_type_archived", historyPeer
 windowFilterTypeNoRead: icon {{ "folders/folders_type_read", historyPeerUserpicFg }};
 windowFilterTypeNewChats: icon {{ "folders/folder_new_chats", historyPeerUserpicFg }};
 windowFilterTypeExistingChats: icon {{ "folders/folder_existing_chats", historyPeerUserpicFg }};
+windowFilterTypeOwned: icon {{ "folders/folders_type_not_owner", historyPeerUserpicFg }};
+windowFilterTypeAdmin: icon {{ "folders/folders_type_not_admin", historyPeerUserpicFg }};
+windowFilterTypeNotOwned: icon {{ "folders/folders_type_owner", historyPeerUserpicFg }};
+windowFilterTypeNotAdmin: icon {{ "folders/folders_type_admin", historyPeerUserpicFg }};
+windowFilterTypeRecent: icon {{ "folders/folders_type_recent", historyPeerUserpicFg }};
+windowFilterTypeNoFilter: icon {{ "folders/folders_type_filtered", historyPeerUserpicFg }};
 windowFilterChatsSectionSubtitleHeight: 28px;
 windowFilterChatsSectionSubtitle: FlatLabel(defaultFlatLabel) {
 	style: TextStyle(defaultTextStyle) {

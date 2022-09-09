@@ -19,7 +19,7 @@ class PanelAnimation;
 
 class FilterIconPanel final : public Ui::RpWidget {
 public:
-	FilterIconPanel(QWidget *parent);
+	FilterIconPanel(QWidget *parent, bool isLocal);
 	~FilterIconPanel();
 
 	void hideFast();
@@ -82,6 +82,7 @@ private:
 	QPixmap _cache;
 	Ui::Animations::Simple _a_opacity;
 	base::Timer _hideTimer;
+	bool _isLocal = false;
 
 };
 

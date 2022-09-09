@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/filters/edit_filter_chats_list.h"
 
+#include "kotato/kotato_lang.h"
 #include "data/data_premium_limits.h"
 #include "history/history.h"
 #include "window/window_session_controller.h"
@@ -38,6 +39,12 @@ constexpr auto kAllTypes = {
 	Flag::NoMuted,
 	Flag::NoRead,
 	Flag::NoArchived,
+	Flag::Owned,
+	Flag::Admin,
+	Flag::NotOwned,
+	Flag::NotAdmin,
+	Flag::Recent,
+	Flag::NoFilter,
 };
 
 struct RowSelectionChange {
@@ -232,6 +239,12 @@ auto TypeController::rowSelectionChanges() const
 	case Flag::NoMuted: return tr::lng_filters_type_no_muted(tr::now);
 	case Flag::NoArchived: return tr::lng_filters_type_no_archived(tr::now);
 	case Flag::NoRead: return tr::lng_filters_type_no_read(tr::now);
+	case Flag::Owned: return ktr("ktg_filters_exclude_not_owned");
+	case Flag::Admin: return ktr("ktg_filters_exclude_not_admin");
+	case Flag::NotOwned: return ktr("ktg_filters_exclude_owned");
+	case Flag::NotAdmin: return ktr("ktg_filters_exclude_admin");
+	case Flag::Recent: return ktr("ktg_filters_exclude_not_recent");
+	case Flag::NoFilter: return ktr("ktg_filters_exclude_filtered");
 	}
 	Unexpected("Flag in TypeName.");
 }
@@ -255,6 +268,12 @@ void PaintFilterChatsTypeIcon(
 		case Flag::NoMuted: return st::historyPeer6UserpicBg;
 		case Flag::NoArchived: return st::historyPeer4UserpicBg;
 		case Flag::NoRead: return st::historyPeer7UserpicBg;
+		case Flag::Owned: return st::historyPeer2UserpicBg;
+		case Flag::Admin: return st::historyPeer3UserpicBg;
+		case Flag::NotOwned: return st::historyPeer2UserpicBg;
+		case Flag::NotAdmin: return st::historyPeer3UserpicBg;
+		case Flag::Recent: return st::historyPeer6UserpicBg;
+		case Flag::NoFilter: return st::historyPeer7UserpicBg;
 		}
 		Unexpected("Flag in color paintFlagIcon.");
 	}();
@@ -270,6 +289,12 @@ void PaintFilterChatsTypeIcon(
 		case Flag::NoMuted: return st::historyPeer6UserpicBg2;
 		case Flag::NoArchived: return st::historyPeer4UserpicBg2;
 		case Flag::NoRead: return st::historyPeer7UserpicBg2;
+		case Flag::Owned: return st::historyPeer2UserpicBg2;
+		case Flag::Admin: return st::historyPeer3UserpicBg2;
+		case Flag::NotOwned: return st::historyPeer2UserpicBg2;
+		case Flag::NotAdmin: return st::historyPeer3UserpicBg2;
+		case Flag::Recent: return st::historyPeer6UserpicBg2;
+		case Flag::NoFilter: return st::historyPeer7UserpicBg2;
 		}
 		Unexpected("Flag in color paintFlagIcon.");
 	}();
@@ -285,6 +310,12 @@ void PaintFilterChatsTypeIcon(
 		case Flag::NoMuted: return st::windowFilterTypeNoMuted;
 		case Flag::NoArchived: return st::windowFilterTypeNoArchived;
 		case Flag::NoRead: return st::windowFilterTypeNoRead;
+		case Flag::Owned: return st::windowFilterTypeOwned;
+		case Flag::Admin: return st::windowFilterTypeAdmin;
+		case Flag::NotOwned: return st::windowFilterTypeNotOwned;
+		case Flag::NotAdmin: return st::windowFilterTypeNotAdmin;
+		case Flag::Recent: return st::windowFilterTypeRecent;
+		case Flag::NoFilter: return st::windowFilterTypeNoFilter;
 		}
 		Unexpected("Flag in icon paintFlagIcon.");
 	}();
@@ -334,7 +365,8 @@ EditFilterChatsListController::EditFilterChatsListController(
 	Flags selected,
 	const base::flat_set<not_null<History*>> &peers,
 	int limit,
-	Fn<void()> showLimitReached)
+	Fn<void()> showLimitReached,
+	bool isLocal)
 : ChatsListBoxController(session)
 , _session(session)
 , _showLimitReached(std::move(showLimitReached))
@@ -343,7 +375,8 @@ EditFilterChatsListController::EditFilterChatsListController(
 , _options(options & ~Flag::Chatlist)
 , _selected(selected)
 , _limit(limit)
-, _chatlist(options & Flag::Chatlist) {
+, _chatlist(options & Flag::Chatlist)
+, _isLocal(isLocal) {
 }
 
 Main::Session &EditFilterChatsListController::session() const {
@@ -368,7 +401,7 @@ int EditFilterChatsListController::selectedTypesCount() const {
 void EditFilterChatsListController::rowClicked(not_null<PeerListRow*> row) {
 	const auto count = delegate()->peerListSelectedRowsCount()
 		- selectedTypesCount();
-	if (count < _limit || row->checked()) {
+	if (count < _limit || row->checked() || _isLocal) {
 		delegate()->peerListSetRowChecked(row, !row->checked());
 		updateTitle();
 	} else if (const auto copy = _showLimitReached) {
@@ -491,6 +524,8 @@ auto EditFilterChatsListController::createRow(not_null<History*> history)
 void EditFilterChatsListController::updateTitle() {
 	const auto count = delegate()->peerListSelectedRowsCount()
 		- selectedTypesCount();
-	const auto additional = u"%1 / %2"_q.arg(count).arg(_limit);
+	const auto additional = _isLocal
+		? tr::lng_filters_chats_count(tr::now, lt_count_short, count)
+		: u"%1 / %2"_q.arg(count).arg(_limit);
 	delegate()->peerListSetAdditionalTitle(rpl::single(additional));
 }

@@ -51,7 +51,8 @@ public:
 		Flags selected,
 		const base::flat_set<not_null<History*>> &peers,
 		int limit,
-		Fn<void()> showLimitReached);
+		Fn<void()> showLimitReached,
+		bool isLocal = false);
 
 	[[nodiscard]] Main::Session &session() const override;
 	[[nodiscard]] Flags chosenOptions() const {
@@ -79,6 +80,7 @@ private:
 	Flags _selected;
 	int _limit = 0;
 	bool _chatlist = false;
+	bool _isLocal;
 
 	Fn<void(PeerListRowId)> _deselectOption;
 
