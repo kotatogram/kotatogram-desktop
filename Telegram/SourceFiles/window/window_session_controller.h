@@ -458,6 +458,8 @@ public:
 
 	void openFolder(not_null<Data::Folder*> folder);
 	void closeFolder();
+	void closeFolderToDefault();
+	[[nodiscard]] FilterId defaultChatsFilterId() const;
 	const rpl::variable<Data::Folder*> &openedFolder() const;
 
 	void showForum(

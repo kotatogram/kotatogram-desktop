@@ -133,7 +133,8 @@ Data::ChatFilter ChangedFilter(
 		filter.flags(),
 		std::move(always),
 		pinned,
-		std::move(never));
+		std::move(never),
+		filter.isLocal());
 	const auto in = result.contains(history);
 	if (in == add) {
 		return result;
@@ -153,7 +154,8 @@ Data::ChatFilter ChangedFilter(
 		filter.flags(),
 		std::move(always),
 		std::move(pinned),
-		std::move(never));
+		std::move(never),
+		filter.isLocal());
 }
 
 void ChangeFilterById(
@@ -168,11 +170,9 @@ void ChangeFilterById(
 		const auto was = *i;
 		const auto filter = ChangedFilter(was, history, add);
 		history->owner().chatsFilters().set(filter);
-		history->session().api().request(MTPmessages_UpdateDialogFilter(
-			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
-			MTP_int(filter.id()),
-			filter.tl()
-		)).done([=, chat = history->peer->name(), name = filter.title()] {
+		const auto showToast = [=,
+				chat = history->peer->name(),
+				name = filter.title()] {
 			const auto account = not_null(&history->session().account());
 			if (const auto controller = Core::App().windowFor(account)) {
 				const auto isStatic = name.isStatic;
@@ -192,7 +192,17 @@ void ChangeFilterById(
 					}),
 				});
 			}
-		}).fail([=](const MTP::Error &error) {
+		};
+		if (filter.isLocal()) {
+			history->owner().chatsFilters().saveLocal();
+			showToast();
+			return;
+		}
+		history->session().api().request(MTPmessages_UpdateDialogFilter(
+			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
+			MTP_int(filter.id()),
+			filter.tl()
+		)).done(showToast).fail([=](const MTP::Error &error) {
 			LOG(("API Error: failed to %1 a dialog to a folder. %2")
 				.arg(add ? u"add"_q : u"remove"_q)
 				.arg(error.type()));
@@ -263,6 +273,7 @@ ChooseFilterValidator::LimitData ChooseFilterValidator::limitReached(
 	const auto &chatsList = always ? i->always() : i->never();
 	return {
 		.reached = (i != end(list))
+			&& !i->isLocal()
 			&& !ranges::contains(chatsList, _history)
 			&& (chatsList.size() >= limit),
 		.count = int(chatsList.size()),
@@ -355,7 +366,10 @@ void FillChooseFilterMenu(
 	const auto limit = [session = &controller->session()] {
 		return Data::PremiumLimits(session).dialogFiltersCurrent();
 	};
-	if ((list.size() - 1) < limit()) {
+	const auto cloud = ranges::count_if(list, [](const auto &filter) {
+		return filter.id() && !filter.isLocal();
+	});
+	if (cloud < limit()) {
 		menu->addAction(tr::lng_filters_create(tr::now), [=] {
 			const auto strong = weak.get();
 			if (!strong) {

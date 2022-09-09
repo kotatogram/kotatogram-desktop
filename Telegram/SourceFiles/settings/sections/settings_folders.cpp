@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/sections/settings_folders.h"
 
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
 #include "boxes/filters/edit_filter_box.h"
@@ -32,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "ui/empty_userpic.h"
 #include "ui/filter_icons.h"
+#include "main/main_account.h"
 #include "ui/layers/generic_box.h"
 #include "ui/painter.h"
 #include "ui/rect.h"
@@ -59,6 +61,8 @@ namespace {
 using namespace Builder;
 using Flag = Data::ChatFilter::Flag;
 using Flags = Data::ChatFilter::Flags;
+
+auto currentDefaultRemoved = false;
 
 class FilterRowButton final : public Ui::RippleButton {
 public:
@@ -171,7 +175,11 @@ struct FilterRow {
 		? (result
 			+ (' ' + Ui::kQBullet + ' ')
 			+ tr::lng_filters_shareable_status(tr::now))
-		: result;
+		: (result
+			+ (' ' + Ui::kQBullet + ' ')
+			+ (filter.isLocal()
+				? ktr("ktg_filters_local")
+				: ktr("ktg_filters_cloud")));
 }
 
 FilterRowButton::FilterRowButton(
@@ -375,6 +383,22 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 	const auto limit = [=] {
 		return Data::PremiumLimits(session).dialogFiltersCurrent();
 	};
+	const auto account = &session->account();
+	const auto lastNewFilterId = std::make_shared<FilterId>(limit());
+	const auto generateNewId = [=] {
+		const auto filters = &controller->session().data().chatsFilters();
+
+		do {
+			++*lastNewFilterId;
+		} while (ranges::contains(filters->list(), *lastNewFilterId, &Data::ChatFilter::id)
+			|| ranges::contains(state->rows, *lastNewFilterId, [](const FilterRow &row) {
+				return row.filter.id();
+			}));
+
+		return *lastNewFilterId;
+	};
+
+	currentDefaultRemoved = false;
 
 	const auto find = [=](not_null<FilterRowButton*> button) {
 		const auto i = ranges::find(state->rows, button, &FilterRow::button);
@@ -382,9 +406,9 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		return &*i;
 	};
 	const auto showLimitReached = [=] {
-		const auto removed = ranges::count_if(
-			state->rows,
-			&FilterRow::removed);
+		const auto removed = ranges::count_if(state->rows, [](FilterRow row) {
+			return row.removed || row.filter.isLocal();
+		});
 		const auto count = int(state->rows.size() - removed);
 		if (count < limit()) {
 			return false;
@@ -392,6 +416,21 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		controller->show(Box(FiltersLimitBox, session, count));
 		return true;
 	};
+	const auto newCloudButton = AddButtonWithIcon(
+		container,
+		rktr("ktg_filters_create_cloud"),
+		st::settingsButton,
+		{ &st::settingsIconCloud }
+	);
+	if (highlights) {
+		highlights->push_back({ u"folders/create"_q, { newCloudButton.get() } });
+	}
+	const auto newLocalButton = AddButtonWithIcon(
+		container,
+		rktr("ktg_filters_create_local"),
+		st::settingsButton,
+		{ &st::menuIconShowInFolder }
+	);
 	const auto markForRemovalSure = [=](not_null<FilterRowButton*> button) {
 		const auto row = find(button);
 		auto suggestRemoving = Api::ExtractSuggestRemoving(row->filter);
@@ -466,16 +505,27 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 	const auto wrap = container->add(object_ptr<Ui::VerticalLayout>(
 		container));
 	const auto addFilter = [=](const Data::ChatFilter &filter) {
+		if (state->rows.size() == 0) {
+			AddSkip(wrap);
+			AddDivider(wrap);
+			AddSkip(wrap);
+		}
 		const auto button = wrap->add(
 			object_ptr<FilterRowButton>(wrap, session, filter));
 		button->removeRequests(
 		) | rpl::on_next([=] {
 			remove(button);
+			if (find(button)->filter.id() == account->defaultFilterId()) {
+				currentDefaultRemoved = true;
+			}
 		}, button->lifetime());
 		button->restoreRequests(
 		) | rpl::on_next([=] {
-			if (showLimitReached()) {
+			if (!find(button)->filter.isLocal() && showLimitReached()) {
 				return;
+			}
+			if (find(button)->filter.id() == account->defaultFilterId()) {
+				currentDefaultRemoved = false;
 			}
 			button->setRemoved(false);
 			find(button)->removed = false;
@@ -487,6 +537,11 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			}
 			const auto doneCallback = [=](const Data::ChatFilter &result) {
 				find(button)->filter = result;
+				if (result.isDefault()) {
+					account->setDefaultFilterId(result.id());
+				} else if (account->defaultFilterId() == result.id()) {
+					account->setDefaultFilterId(0);
+				}
 				button->updateData(result);
 			};
 			const auto saveAnd = [=](
@@ -563,20 +618,15 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		j->button->updateCount(j->filter);
 	}, container->lifetime());
 
-	const auto createButton = AddButtonWithIcon(
-		container,
-		tr::lng_filters_create(),
-		st::settingsButtonActive,
-		{ &st::settingsIconAdd, IconType::Round, &st::windowBgActive });
-	if (highlights) {
-		highlights->push_back({ u"folders/create"_q, { createButton.get() } });
-	}
-	createButton->setClickedCallback([=] {
+	newCloudButton->setClickedCallback([=] {
 		if (showLimitReached()) {
 			return;
 		}
 		const auto created = std::make_shared<FilterRowButton*>(nullptr);
 		const auto doneCallback = [=](const Data::ChatFilter &result) {
+			if (result.isDefault()) {
+				account->setDefaultFilterId(result.id());
+			}
 			if (const auto button = *created) {
 				find(button)->filter = result;
 				button->updateData(result);
@@ -593,7 +643,33 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		controller->window().show(Box(
 			EditFilterBox,
 			controller,
-			Data::ChatFilter(),
+			Data::ChatFilter(generateNewId()),
+			crl::guard(container, doneCallback),
+			crl::guard(container, saveAnd)));
+	});
+	newLocalButton->setClickedCallback([=] {
+		const auto created = std::make_shared<FilterRowButton*>(nullptr);
+		const auto doneCallback = [=](const Data::ChatFilter &result) {
+			if (result.isDefault()) {
+				account->setDefaultFilterId(result.id());
+			}
+			if (const auto button = *created) {
+				find(button)->filter = result;
+				button->updateData(result);
+			} else {
+				*created = addFilter(result);
+			}
+		};
+		const auto saveAnd = [=](
+				const Data::ChatFilter &data,
+				Fn<void(Data::ChatFilter)> next) {
+			doneCallback(data);
+			state->save(*created, next);
+		};
+		controller->window().show(Box(
+			EditFilterBox,
+			controller,
+			Data::ChatFilter(generateNewId(), true),
 			crl::guard(container, doneCallback),
 			crl::guard(container, saveAnd)));
 	});
@@ -612,11 +688,28 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		auto result = base::flat_map<not_null<FilterRowButton*>, FilterId>();
 		for (auto &row : state->rows) {
 			const auto id = row.filter.id();
-			if (row.removed) {
+			if (row.removed || row.filter.isLocal()) {
 				continue;
 			} else if (!id
 				|| !ranges::contains(list, id, &Data::ChatFilter::id)) {
 				result.emplace(row.button, chooseNextId());
+				if (account->defaultFilterId() == id) {
+					account->setDefaultFilterId(localId);
+				}
+			}
+		}
+
+		// We're prioritizing cloud IDs before local.
+		localId = limit();
+		for (auto &row : state->rows) {
+			const auto id = row.filter.id();
+			if (row.removed || !row.filter.isLocal()) {
+				continue;
+			} else if (!ranges::contains(list, id, &Data::ChatFilter::id)) {
+				result.emplace(row.button, chooseNextId());
+				if (account->defaultFilterId() == id) {
+					account->setDefaultFilterId(localId);
+				}
 			}
 		}
 		return result;
@@ -635,9 +728,10 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		auto removeRequests = std::vector<MTPmessages_UpdateDialogFilter>();
 		auto removeChatlistRequests = std::vector<MTPchatlists_LeaveChatlist>();
 
-		const auto &realFilters = session->data().chatsFilters();
+		auto &realFilters = session->data().chatsFilters();
 		const auto &list = realFilters.list();
 		order.reserve(state->rows.size());
+		auto localFoldersChanged = false;
 		for (auto &row : state->rows) {
 			if (row.button.get() == single) {
 				updated = row.filter;
@@ -658,6 +752,16 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 				if (row.button.get() == single) {
 					updated = row.filter;
 				}
+			}
+			if (row.filter.isLocal()) {
+				if (removed) {
+					realFilters.remove(id);
+				} else {
+					realFilters.set(row.filter);
+					order.push_back(newId);
+				}
+				localFoldersChanged = true;
+				continue;
 			}
 			const auto tl = removed
 				? MTPDialogFilter()
@@ -724,6 +828,9 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			session,
 			next,
 			updated,
+			account,
+			weakController = base::make_weak(controller),
+			localFoldersChanged,
 			order = std::move(order),
 			updates = std::move(updates),
 			addRequests = std::move(addRequests),
@@ -731,7 +838,7 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			removeChatlistRequests = std::move(removeChatlistRequests)
 		] {
 			const auto api = &session->api();
-			const auto filters = &session->data().chatsFilters();
+			auto &filters = session->data().chatsFilters();
 			const auto ids = std::make_shared<
 				base::flat_set<mtpRequestId>
 			>();
@@ -742,7 +849,7 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 				}
 			};
 			for (const auto &update : updates) {
-				filters->apply(update);
+				filters.apply(update);
 			}
 			auto previousId = mtpRequestId(0);
 			const auto sendRequests = [&](const auto &requests) {
@@ -764,10 +871,20 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			sendRequests(removeRequests);
 			sendRequests(removeChatlistRequests);
 			sendRequests(addRequests);
-			if (!order.empty() && !addRequests.empty()) {
-				filters->saveOrder(order, previousId);
+			if (!order.empty()
+				&& (!addRequests.empty() || localFoldersChanged)) {
+				filters.saveOrder(order, previousId);
 			}
 			checkFinished();
+			if (currentDefaultRemoved) {
+				account->setDefaultFilterId(0);
+				if (const auto controller = weakController.get()) {
+					controller->setActiveChatsFilter(0);
+				}
+			}
+			if (localFoldersChanged) {
+				filters.saveLocal();
+			}
 		});
 	};
 
@@ -786,9 +903,9 @@ void SetupRecommendedSection(
 	};
 
 	const auto showLimitReached = [=] {
-		const auto removed = ranges::count_if(
-			state->rows,
-			&FilterRow::removed);
+		const auto removed = ranges::count_if(state->rows, [](FilterRow row) {
+			return row.removed || row.filter.isLocal();
+		});
 		const auto count = int(state->rows.size() - removed);
 		if (count < limit()) {
 			return false;
@@ -856,7 +973,7 @@ void SetupRecommendedSection(
 			object_ptr<Ui::VerticalLayout>(container))
 	)->setDuration(0);
 	const auto aboutRows = nonEmptyAbout->entity();
-	Ui::AddDivider(aboutRows);
+	Ui::AddDividerText(aboutRows, rktr("ktg_filters_description"));
 	Ui::AddSkip(aboutRows);
 	const auto recommendedTitle = Ui::AddSubsectionTitle(
 		aboutRows,

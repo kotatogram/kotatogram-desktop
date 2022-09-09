@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_peer.h"
 #include "data/data_session.h"
 #include "lang/lang_keys.h"
+#include "main/main_account.h"
 #include "main/main_session.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/ui_utility.h"
@@ -27,6 +28,17 @@ void RemoveChatFilter(
 		not_null<Main::Session*> session,
 		FilterId filterId,
 		std::vector<not_null<PeerData*>> leave) {
+	const auto filters = &session->data().chatsFilters();
+	const auto &list = filters->list();
+	const auto i = ranges::find(list, filterId, &Data::ChatFilter::id);
+	if (i != end(list) && i->isLocal()) {
+		filters->remove(filterId);
+		filters->saveLocal();
+		if (session->account().defaultFilterId() == filterId) {
+			session->account().setDefaultFilterId(0);
+		}
+		return;
+	}
 	const auto api = &session->api();
 	session->data().chatsFilters().apply(MTP_updateDialogFilter(
 		MTP_flags(MTPDupdateDialogFilter::Flag(0)),

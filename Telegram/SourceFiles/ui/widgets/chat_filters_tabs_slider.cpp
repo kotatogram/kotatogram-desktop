@@ -200,8 +200,32 @@ int ChatsFiltersTabs::calculateLockedFromX() const {
 	return left ? left : std::numeric_limits<int>::max();
 }
 
-void ChatsFiltersTabs::setLockedFrom(int index) {
+int ChatsFiltersTabs::sectionIndexAt(int x) const {
+	auto left = 0;
+	auto index = 0;
+	enumerateSections([&](const Section &section) {
+		const auto currentRight = section.left + section.width;
+		if (x > left && x < currentRight) {
+			return false;
+		}
+		left = currentRight;
+		index++;
+		return true;
+	});
+	return index;
+}
+
+bool ChatsFiltersTabs::isLocked(int index) const {
+	return _lockedFrom
+		&& (index >= _lockedFrom)
+		&& !_unlocked.contains(index);
+}
+
+void ChatsFiltersTabs::setLockedFrom(
+		int index,
+		base::flat_set<int> unlocked) {
 	_lockedFrom = index;
+	_unlocked = std::move(unlocked);
 	_lockedFromX = calculateLockedFromX();
 	if (!index) {
 		_paletteLifetime.destroy();
@@ -288,7 +312,7 @@ void ChatsFiltersTabs::paintEvent(QPaintEvent *e) {
 			section.contentWidth,
 			_st.labelStyle.font->height);
 		if (rect.intersects(clip)) {
-			const auto locked = (_lockedFrom && (index >= _lockedFrom));
+			const auto locked = isLocked(index);
 			if (locked) {
 				constexpr auto kPremiumLockedOpacity = 0.6;
 				p.setOpacity(kPremiumLockedOpacity);
@@ -378,7 +402,8 @@ void ChatsFiltersTabs::paintEvent(QPaintEvent *e) {
 void ChatsFiltersTabs::mousePressEvent(QMouseEvent *e) {
 	const auto mouseButton = e->button();
 	if (mouseButton == Qt::MouseButton::LeftButton) {
-		_lockedPressed = (e->pos().x() >= _lockedFromX);
+		_lockedPressed = (e->pos().x() >= _lockedFromX)
+			&& isLocked(sectionIndexAt(e->pos().x()));
 		if (_lockedPressed) {
 			Ui::RpWidget::mousePressEvent(e);
 		} else {
@@ -420,21 +445,10 @@ void ChatsFiltersTabs::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void ChatsFiltersTabs::contextMenuEvent(QContextMenuEvent *e) {
-	const auto pos = e->pos();
-	if (pos.x() >= _lockedFromX) {
+	const auto index = sectionIndexAt(e->pos().x());
+	if (isLocked(index)) {
 		return;
 	}
-	auto left = 0;
-	auto index = 0;
-	enumerateSections([&](const Section &section) {
-		const auto currentRight = section.left + section.width;
-		if (pos.x() > left && pos.x() < currentRight) {
-			return false;
-		}
-		left = currentRight;
-		index++;
-		return true;
-	});
 	_contextMenuRequested.fire_copy(index);
 }
 

@@ -915,7 +915,7 @@ void Widget::setupSwipeBack() {
 				_swipeBackData = {};
 				if (controller()->openedFolder().current()) {
 					if (!controller()->windowId().folder()) {
-						controller()->closeFolder();
+						controller()->closeFolderToDefault();
 					}
 				}
 			});
@@ -3028,7 +3028,7 @@ void Widget::escape() {
 			}
 		} else if (controller()->openedFolder().current()) {
 			if (!controller()->windowId().folder()) {
-				controller()->closeFolder();
+				controller()->closeFolderToDefault();
 			}
 		} else if (controller()->openedCommunity().current()) {
 			if (!controller()->windowId().community()) {
@@ -3039,7 +3039,12 @@ void Widget::escape() {
 		} else if (controller()->isPrimary()) {
 			const auto filters = &session().data().chatsFilters();
 			const auto &list = filters->list();
-			const auto first = list.empty() ? FilterId() : list.front().id();
+			const auto defaultId = controller()->defaultChatsFilterId();
+			const auto first = list.empty()
+				? FilterId()
+				: defaultId
+				? defaultId
+				: list.front().id();
 			if (controller()->activeChatsFilterCurrent() != first) {
 				controller()->setActiveChatsFilter(first);
 			}

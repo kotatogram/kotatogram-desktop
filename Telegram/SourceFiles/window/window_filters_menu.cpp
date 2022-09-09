@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_main_menu.h"
 #include "window/window_peer_menu.h"
 #include "window/window_filters_favorite.h"
+#include "main/main_account.h"
 #include "main/main_session.h"
 #include "base/event_filter.h"
 #include "base/options.h"
@@ -372,9 +373,6 @@ void FiltersMenu::refresh() {
 	if (!reorderAll && hiddenAll != 0) {
 		_reorder->addPinnedInterval(0, 1);
 	}
-	_reorder->addPinnedInterval(
-		premiumFrom - ((hiddenAll >= 0 && hiddenAll < premiumFrom) ? 1 : 0),
-		std::max(1, int(filters->list().size()) - maxLimit));
 
 	// Remember which folder holds keyboard focus so the roving Tab-stop can be
 	// re-established on its replacement after the rebuild: the new buttons are
@@ -390,14 +388,22 @@ void FiltersMenu::refresh() {
 
 	auto now = base::flat_map<int, base::unique_qptr<Ui::SideBarButton>>();
 	const auto &currentFilter = _session->activeChatsFilterCurrent();
+	const auto &list = filters->list();
 	auto index = 0;
-	for (const auto &filter : filters->list()) {
-		const auto nextIsLocked = (index >= premiumFrom);
+	for (const auto &filter : list) {
+		const auto nextIsLocked = Data::ChatFilterLocked(
+			list,
+			index,
+			premiumFrom);
 		if (nextIsLocked && (currentFilter == filter.id())) {
 			_session->setActiveChatsFilter(FilterId(0));
 		}
+		const auto position = index
+			- ((hiddenAll >= 0 && index > hiddenAll) ? 1 : 0);
 		if (index++ == hiddenAll) {
 			continue;
+		} else if (nextIsLocked) {
+			_reorder->addPinnedInterval(position, 1);
 		}
 		auto button = prepareButton(
 			_list,
@@ -772,6 +778,11 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 	if ((i == end(_filters)) && id) {
 		return;
 	}
+	const auto account = &_session->session().account();
+	const auto defaultFilterId = account->defaultFilterId();
+	const auto setDefaultFilter = [=](FilterId id) {
+		account->setDefaultFilterId(id);
+	};
 	_popupMenu = base::make_unique_q<Ui::PopupMenu>(
 		i->second.get(),
 		st::popupMenuWithIcons);
@@ -790,7 +801,17 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 			MarkAsReadMenu::ChatListKind::Folder,
 			std::move(filteredChats),
 			addAction);
-
+		if (defaultFilterId != id) {
+			_popupMenu->addAction(
+				ktr("ktg_filters_context_make_default"),
+				crl::guard(&_outer, [=] { setDefaultFilter(id); }),
+				&st::menuIconFave);
+		} else {
+			_popupMenu->addAction(
+				ktr("ktg_filters_context_reset_default"),
+				crl::guard(&_outer, [=] { setDefaultFilter(0); }),
+				&st::menuIconUnfave);
+		}
 		addAction({
 			.text = tr::lng_filters_context_remove(tr::now),
 			.handler = crl::guard(&_outer, [=, this] {
@@ -805,7 +826,12 @@ void FiltersMenu::showMenu(QPoint position, FilterId id) {
 			MarkAsReadMenu::ChatListKind::AllChats,
 			[=] { return _session->session().data().chatsList(); },
 			addAction);
-
+		if (defaultFilterId != id) {
+			_popupMenu->addAction(
+				ktr("ktg_filters_context_make_default"),
+				crl::guard(&_outer, [=] { setDefaultFilter(0); }),
+				&st::menuIconFave);
+		}
 		addAction(
 			tr::lng_filters_setup_menu(tr::now),
 			crl::guard(&_outer, [=] { openFiltersSettings(); }),

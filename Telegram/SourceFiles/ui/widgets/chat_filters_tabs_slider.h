@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/flat_set.h"
 #include "ui/unread_badge_paint.h"
 #include "ui/widgets/chat_filters_tabs_mode.h"
 #include "ui/widgets/discrete_sliders.h"
@@ -40,10 +41,12 @@ public:
 	void setUnreadCount(int index, int unreadCount, bool muted);
 	void setTabsMode(ChatsFiltersTabsMode mode);
 	void setSectionIcons(std::vector<const style::internal::Icon*> icons);
-	void setLockedFrom(int index);
+	// Sections in `unlocked` stay available after the locked one.
+	void setLockedFrom(int index, base::flat_set<int> unlocked = {});
 	[[nodiscard]] int lockedFrom() const {
 		return _lockedFrom;
 	}
+	[[nodiscard]] bool isLocked(int index) const;
 
 	[[nodiscard]] rpl::producer<int> contextMenuRequested() const;
 	[[nodiscard]] rpl::producer<> lockedClicked() const;
@@ -77,6 +80,7 @@ protected:
 private:
 	[[nodiscard]] QImage cacheUnreadCount(int count, bool muted) const;
 	[[nodiscard]] int calculateLockedFromX() const;
+	[[nodiscard]] int sectionIndexAt(int x) const;
 	[[nodiscard]] auto sectionIcon(int index) const
 	-> const style::internal::Icon*;
 	[[nodiscard]] int iconExtraWidth(const style::internal::Icon *icon) const;
@@ -101,6 +105,7 @@ private:
 	int _cachedBadgeHeight = 0;
 	int _lockedFrom = 0;
 	int _lockedFromX = 0;
+	base::flat_set<int> _unlocked;
 	bool _lockedPressed = false;
 	std::optional<Ui::RoundRect> _bar;
 	std::optional<Ui::RoundRect> _barActive;

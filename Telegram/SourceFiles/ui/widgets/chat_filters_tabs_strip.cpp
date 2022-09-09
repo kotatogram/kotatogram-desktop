@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/chat_filters_tabs_strip.h"
 
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "api/api_chat_filters_remove_manager.h"
 #include "boxes/choose_filter_box.h"
 #include "boxes/filters/edit_filter_box.h"
@@ -23,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "lang/lang_keys.h"
 #include "menu/menu_mark_as_read.h"
+#include "main/main_account.h"
 #include "main/main_session.h"
 #include "settings/sections/settings_folders.h"
 #include "ui/widgets/menu/menu_action.h"
@@ -76,6 +78,11 @@ void ShowMenu(
 		}
 		id = list[index].id();
 	}
+	const auto account = &session->account();
+	const auto defaultFilterId = account->defaultFilterId();
+	const auto setDefaultFilter = [=](FilterId id) {
+		account->setDefaultFilterId(id);
+	};
 	state->menu = base::make_unique_q<Ui::PopupMenu>(
 		parent,
 		st::popupMenuWithIcons);
@@ -93,6 +100,17 @@ void ShowMenu(
 			MarkAsReadMenu::ChatListKind::Folder,
 			[=] { return session->data().chatsFilters().chatsList(id); },
 			addAction);
+		if (defaultFilterId != id) {
+			addAction(
+				ktr("ktg_filters_context_make_default"),
+				[=] { setDefaultFilter(id); },
+				&st::menuIconFave);
+		} else {
+			addAction(
+				ktr("ktg_filters_context_reset_default"),
+				[=] { setDefaultFilter(0); },
+				&st::menuIconUnfave);
+		}
 
 		auto showRemoveBox = [=] {
 			state->removeApi.request(base::make_weak(parent), controller, id);
@@ -109,6 +127,12 @@ void ShowMenu(
 			MarkAsReadMenu::ChatListKind::AllChats,
 			[=] { return session->data().chatsList(); },
 			addAction);
+		if (defaultFilterId != id) {
+			addAction(
+				ktr("ktg_filters_context_make_default"),
+				[=] { setDefaultFilter(0); },
+				&st::menuIconFave);
+		}
 
 		auto openFiltersSettings = [=] {
 			const auto filters = &session->data().chatsFilters();
@@ -175,7 +199,7 @@ void ShowFiltersListMenu(
 			action,
 			icon,
 			icon);
-		action->setEnabled(i < premiumFrom);
+		action->setEnabled(!Data::ChatFilterLocked(list, i, premiumFrom));
 		if (!title.text.empty()) {
 			const auto context = Core::TextContext({
 				.session = session,
@@ -448,9 +472,22 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 			const auto maxLimit = (reorderAll ? 1 : 0)
 				+ Data::PremiumLimits(session).dialogFiltersCurrent();
 			const auto premiumFrom = (reorderAll ? 0 : 1) + maxLimit;
-			slider->setLockedFrom((premiumFrom >= list.size())
-				? 0
-				: sectionIndex(premiumFrom));
+			auto lockedFrom = 0;
+			auto locked = std::vector<int>();
+			auto unlocked = base::flat_set<int>();
+			for (auto i = 0; i != int(list.size()); ++i) {
+				if (i == hidden) {
+					continue;
+				} else if (Data::ChatFilterLocked(list, i, premiumFrom)) {
+					if (!lockedFrom) {
+						lockedFrom = sectionIndex(i);
+					}
+					locked.push_back(sectionIndex(i));
+				} else if (lockedFrom) {
+					unlocked.emplace(sectionIndex(i));
+				}
+			}
+			slider->setLockedFrom(lockedFrom, std::move(unlocked));
 			slider->lockedClicked() | rpl::on_next([=] {
 				controller->show(Box(FiltersLimitBox, session, std::nullopt));
 			}, state->rebuildLifetime);
@@ -460,9 +497,9 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				if (!reorderAll && hidden != 0) {
 					state->reorder->addPinnedInterval(0, 1);
 				}
-				state->reorder->addPinnedInterval(
-					sectionIndex(premiumFrom),
-					std::max(1, int(list.size()) - maxLimit));
+				for (const auto section : locked) {
+					state->reorder->addPinnedInterval(section, 1);
+				}
 			}
 		}
 		if (trackActiveFilterAndUnreadAndReorder) {
@@ -591,15 +628,21 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					|| (request.action == Qt::Key_Backtab));
 		}) | rpl::on_next([=](const Shortcuts::ChatSwitchRequest &request) {
 			const auto count = slider->sectionsCount();
-			const auto locked = slider->lockedFrom();
-			const auto limit = locked ? locked : count;
-			if (limit <= 1) {
+			if (count <= 1) {
 				return;
 			}
 			const auto back = (request.action == Qt::Key_Backtab);
-			const auto current = std::min(slider->activeSection(), limit - 1);
-			const auto next = (current + (back ? -1 : 1) + limit) % limit;
-			slider->setActiveSection(next);
+			const auto current = slider->activeSection();
+			auto next = current;
+			for (auto i = 0; i != count; ++i) {
+				next = (next + (back ? -1 : 1) + count) % count;
+				if (!slider->isLocked(next)) {
+					break;
+				}
+			}
+			if (next != current) {
+				slider->setActiveSection(next);
+			}
 		}, wrap->lifetime());
 	}
 

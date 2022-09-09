@@ -873,11 +873,15 @@ void SaveNewFilterPinned(
 	const auto &order = session->data().pinnedChatsOrder(filterId);
 	auto &filters = session->data().chatsFilters();
 	const auto &filter = filters.applyUpdatedPinned(filterId, order);
-	session->api().request(MTPmessages_UpdateDialogFilter(
-		MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
-		MTP_int(filterId),
-		filter.tl()
-	)).send();
+	if (filter.isLocal()) {
+		filters.saveLocal();
+	} else {
+		session->api().request(MTPmessages_UpdateDialogFilter(
+			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
+			MTP_int(filterId),
+			filter.tl()
+		)).send();
+	}
 }
 
 void CheckFilterInvite(

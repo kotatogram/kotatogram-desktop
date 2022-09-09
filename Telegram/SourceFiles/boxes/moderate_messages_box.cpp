@@ -1713,12 +1713,17 @@ void DeleteChatBox(not_null<Ui::GenericBox*> box, not_null<PeerData*> peer) {
 		if (removeFromChats) {
 			const auto history = peer->owner().history(peer).get();
 			const auto removeFrom = removeFromChatsFilters(history);
+			auto localChanged = false;
 			for (const auto &filter : peer->owner().chatsFilters().list()) {
 				if (!ranges::contains(removeFrom, filter.id())) {
 					continue;
 				}
 				const auto result = filter.withoutAlways(history);
 				if (result == filter) {
+					continue;
+				} else if (result.isLocal()) {
+					peer->owner().chatsFilters().set(result);
+					localChanged = true;
 					continue;
 				}
 				const auto tl = result.tl();
@@ -1731,6 +1736,9 @@ void DeleteChatBox(not_null<Ui::GenericBox*> box, not_null<PeerData*> peer) {
 					MTP_int(filter.id()),
 					tl
 				)).send();
+			}
+			if (localChanged) {
+				peer->owner().chatsFilters().saveLocal();
 			}
 		}
 		// Don't delete old history by default,

@@ -59,6 +59,19 @@ enum class FilterIcon : uchar {
 	Setup,
 	// Poo,
 
+	LocalBook,
+	LocalBrackets,
+	LocalCandle,
+	LocalCity,
+	LocalDesktop,
+	LocalEarth,
+	LocalMusic,
+	LocalNews,
+	LocalPhone,
+	LocalSmile,
+	LocalSun,
+	LocalVideo,
+
 	Edit,
 };
 

@@ -24,6 +24,7 @@ struct MoreChatsBarContent;
 namespace Data {
 
 class Session;
+struct LocalFolder;
 
 struct ChatFilterTitle {
 	TextWithEntities text;
@@ -38,7 +39,7 @@ struct ChatFilterTitle {
 
 class ChatFilter final {
 public:
-	enum class Flag : ushort {
+	enum class Flag : uint32 {
 		Contacts    = (1 << 0),
 		NonContacts = (1 << 1),
 		Groups      = (1 << 2),
@@ -55,11 +56,21 @@ public:
 
 		NewChats      = (1 << 11), // Telegram Business exceptions.
 		ExistingChats = (1 << 12),
+
+		// Local flags
+		Owned       = (1 << 13),
+		Admin       = (1 << 14),
+		NotOwned    = (1 << 15),
+		NotAdmin    = (1 << 16),
+		Recent      = (1 << 17),
+		NoFilter    = (1 << 18),
+		LocalRulesMask = ((1 << 19) - (1 << 13)),
 	};
 	friend constexpr inline bool is_flag_type(Flag) { return true; };
 	using Flags = base::flags<Flag>;
 
 	ChatFilter() = default;
+	ChatFilter(FilterId id, bool isLocal = false);
 	ChatFilter(
 		FilterId id,
 		ChatFilterTitle title,
@@ -68,7 +79,12 @@ public:
 		Flags flags,
 		base::flat_set<not_null<History*>> always,
 		std::vector<not_null<History*>> pinned,
-		base::flat_set<not_null<History*>> never);
+		base::flat_set<not_null<History*>> never,
+		bool isLocal = false);
+
+	[[nodiscard]] static ChatFilter local(
+		const LocalFolder &data,
+		not_null<Session*> owner);
 
 	[[nodiscard]] ChatFilter withId(FilterId id) const;
 	[[nodiscard]] ChatFilter withTitle(ChatFilterTitle title) const;
@@ -78,14 +94,19 @@ public:
 		bool hasMyLinks) const;
 	[[nodiscard]] ChatFilter withoutAlways(not_null<History*>) const;
 
+	// Carries the "Default folder" checkbox from the edit box.
+	[[nodiscard]] ChatFilter withDefault(bool isDefault) const;
+
 	[[nodiscard]] static ChatFilter FromTL(
 		const MTPDialogFilter &data,
 		not_null<Session*> owner);
 	[[nodiscard]] MTPDialogFilter tl(FilterId replaceId = 0) const;
+	[[nodiscard]] LocalFolder toLocal() const;
 
 	[[nodiscard]] FilterId id() const;
 	[[nodiscard]] ChatFilterTitle title() const;
 	[[nodiscard]] const TextWithEntities &titleText() const;
+	[[nodiscard]] bool isDefault() const;
 	[[nodiscard]] QString iconEmoji() const;
 	[[nodiscard]] std::optional<uint8> colorIndex() const;
 	[[nodiscard]] Flags flags() const;
@@ -100,6 +121,8 @@ public:
 		not_null<History*> history,
 		bool ignoreFakeUnread = false) const;
 
+	[[nodiscard]] bool isLocal() const;
+
 private:
 	FilterId _id = 0;
 	TextWithEntities _title;
@@ -109,6 +132,8 @@ private:
 	std::vector<not_null<History*>> _pinned;
 	base::flat_set<not_null<History*>> _never;
 	Flags _flags;
+	bool _isDefault = false;
+	bool _isLocal = false;
 
 };
 
@@ -210,6 +235,7 @@ public:
 	[[nodiscard]] const std::vector<not_null<PeerData*>> &moreChats(
 		FilterId id) const;
 	void moreChatsHide(FilterId id, bool localOnly = false);
+	void saveLocal();
 
 	[[nodiscard]] bool tagsEnabled() const;
 	[[nodiscard]] rpl::producer<bool> tagsEnabledValue() const;
@@ -271,5 +297,27 @@ private:
 [[nodiscard]] bool CanRemoveFromChatFilter(
 	const ChatFilter &filter,
 	not_null<History*> history);
+
+struct LocalFolder {
+	QJsonObject toJson();
+
+	int id = 0;
+	int cloudOrder = 0;
+	QString name;
+	QString emoticon;
+	std::vector<uint64> always;
+	std::vector<uint64> never;
+	std::vector<uint64> pinned;
+	ChatFilter::Flags flags = Data::ChatFilter::Flags(0);
+};
+
+LocalFolder MakeLocalFolder(const QJsonObject &obj);
+
+// Only "All chats" and cloud folders take premium limit slots,
+// local folders are never locked.
+[[nodiscard]] bool ChatFilterLocked(
+	const std::vector<ChatFilter> &list,
+	int index,
+	int premiumFrom);
 
 } // namespace Data

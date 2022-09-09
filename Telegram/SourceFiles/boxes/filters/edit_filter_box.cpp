@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/filters/edit_filter_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "apiwrap.h"
 #include "base/event_filter.h"
 #include "boxes/filters/edit_filter_chats_list.h"
@@ -21,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "core/ui_integration.h"
+#include "ui/widgets/checkbox.h"
 #include "data/stickers/data_custom_emoji.h"
 #include "data/stickers/data_stickers.h"
 #include "data/data_channel.h"
@@ -53,6 +55,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/wrap/slide_wrap.h"
+#include "main/main_account.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "styles/style_settings.h"
@@ -102,7 +105,8 @@ not_null<FilterChatsPreview*> SetupChatsPreview(
 			(rules.flags() & ~flag),
 			rules.always(),
 			rules.pinned(),
-			rules.never());
+			rules.never(),
+			rules.isLocal());
 		updateDefaultTitle(computed);
 		*data = std::move(computed);
 	}, preview->lifetime());
@@ -124,7 +128,8 @@ not_null<FilterChatsPreview*> SetupChatsPreview(
 			rules.flags(),
 			std::move(always),
 			std::move(pinned),
-			std::move(never));
+			std::move(never),
+			rules.isLocal());
 		updateDefaultTitle(computed);
 		*data = std::move(computed);
 	}, preview->lifetime());
@@ -157,7 +162,8 @@ void EditExceptions(
 		rules.flags() & options,
 		include ? rules.always() : rules.never(),
 		limit,
-		showLimitReached);
+		showLimitReached,
+		rules.isLocal());
 	const auto rawController = controller.get();
 	auto initBox = [=](not_null<PeerListBox*> box) {
 		box->setCloseByOutsideClick(false);
@@ -192,7 +198,8 @@ void EditExceptions(
 					| rawController->chosenOptions()),
 				include ? std::move(changed) : std::move(removeFrom),
 				std::move(pinned),
-				include ? std::move(removeFrom) : std::move(changed));
+				include ? std::move(removeFrom) : std::move(changed),
+				rules.isLocal());
 			updateDefaultTitle(computed);
 			*data = computed;
 			refresh();
@@ -323,7 +330,8 @@ void CreateIconSelector(
 	}, toggle->lifetime());
 
 	const auto panel = toggle->lifetime().make_state<Ui::FilterIconPanel>(
-		outer);
+		outer,
+		rules.isLocal());
 	toggle->installEventFilter(panel);
 	toggle->addClickHandler([=] {
 		panel->toggleAnimated();
@@ -427,7 +435,8 @@ void CreateIconSelector(
 			rules.flags(),
 			rules.always(),
 			rules.pinned(),
-			rules.never());
+			rules.never(),
+			rules.isLocal());
 	}, panel->lifetime());
 
 	const auto updatePanelGeometry = [=] {
@@ -565,10 +574,14 @@ void EditFilterBox(
 	}, box->lifetime());
 
 	box->setWidth(st::boxWideWidth);
-	box->setTitle(rpl::conditional(
-		state->creating.value(),
-		tr::lng_filters_new(),
-		tr::lng_filters_edit()));
+	const auto isLocal = filter.isLocal();
+	box->setTitle(rpl::single(state->creating.current()
+		? (isLocal
+			? ktr("ktg_filters_new_local")
+			: ktr("ktg_filters_new_cloud"))
+		: (isLocal
+			? ktr("ktg_filters_edit_local")
+			: ktr("ktg_filters_edit_cloud"))));
 	box->setCloseByOutsideClick(false);
 
 	const auto session = &window->session();
@@ -592,22 +605,24 @@ void EditFilterBox(
 		current.text,
 		TextUtilities::ConvertEntitiesToTextTags(current.entities),
 	}, Ui::InputField::HistoryAction::Clear);
-	Ui::AddLengthLimitLabel(
-		name,
-		kMaxFilterTitleLength,
-		Ui::LengthLimitLabelOptions{
-			.customThreshold = 0,
-			.customUpdatePosition = [=](QSize parent, QSize label) {
-				return QPoint(
-					parent.width()
-						- st::windowFilterNameCharsLimitRightPosition.x()
-						- label.width() / 2,
-					st::windowFilterNameCharsLimitRightPosition.y());
-			},
-			.customCharactersCount = [=] {
-				return Ui::ComputeFieldCharacterCount(name);
-			},
-		});
+	if (!isLocal) {
+		Ui::AddLengthLimitLabel(
+			name,
+			kMaxFilterTitleLength,
+			Ui::LengthLimitLabelOptions{
+				.customThreshold = 0,
+				.customUpdatePosition = [=](QSize parent, QSize label) {
+					return QPoint(
+						parent.width()
+							- st::windowFilterNameCharsLimitRightPosition.x()
+							- label.width() / 2,
+						st::windowFilterNameCharsLimitRightPosition.y());
+				},
+				.customCharactersCount = [=] {
+					return Ui::ComputeFieldCharacterCount(name);
+				},
+			});
+	}
 
 	const auto nameEditing = box->lifetime().make_state<NameEditing>(
 		NameEditing{ name });
@@ -709,7 +724,9 @@ void EditFilterBox(
 		if (nameEditing->custom) {
 			return;
 		}
-		const auto title = TrimDefaultTitle(DefaultTitle(filter));
+		const auto title = isLocal
+			? DefaultTitle(filter)
+			: TrimDefaultTitle(DefaultTitle(filter));
 		if (nameEditing->field->getLastText() != title) {
 			nameEditing->settingDefault = true;
 			nameEditing->field->setText(title);
@@ -738,10 +755,31 @@ void EditFilterBox(
 	constexpr auto kExcludeTypes = Flag::NoMuted
 		| Flag::NoArchived
 		| Flag::NoRead;
+	constexpr auto kExcludeTypesLocal = kExcludeTypes
+		| Flag::Owned
+		| Flag::Admin
+		| Flag::NotOwned
+		| Flag::NotAdmin
+		| Flag::Recent
+		| Flag::NoFilter;
 
 	box->setFocusCallback([=] {
 		name->setFocusFast();
 	});
+
+	const auto defaultFilterId = window->session().account().defaultFilterId();
+	const auto isCurrent = filter.id() == defaultFilterId;
+	const auto checkboxDefault = content->add(
+		object_ptr<Ui::Checkbox>(
+			content,
+			ktr("ktg_filters_default"),
+			(state->creating.current() ? false : isCurrent),
+			st::defaultBoxCheckbox),
+		style::margins(
+			st::boxPadding.left(),
+			st::boxPadding.bottom(),
+			st::boxPadding.right(),
+			st::boxPadding.bottom()));
 
 	Ui::AddSkip(content);
 	Ui::AddDivider(content);
@@ -785,7 +823,7 @@ void EditFilterBox(
 		excludeInner,
 		data,
 		updateDefaultTitle,
-		kExcludeTypes,
+		(isLocal ? kExcludeTypesLocal : kExcludeTypes),
 		&Data::ChatFilter::never);
 
 	Ui::AddSkip(excludeInner);
@@ -983,7 +1021,9 @@ void EditFilterBox(
 		const auto staticTitle = !title.entities.isEmpty()
 			&& state->staticTitle.current();
 		const auto rules = data->current();
-		if (Ui::ComputeFieldCharacterCount(name) > kMaxFilterTitleLength
+		if ((!isLocal
+				&& (Ui::ComputeFieldCharacterCount(name)
+					> kMaxFilterTitleLength))
 			|| title.empty()) {
 			name->showError();
 			box->scrollToY(0);
@@ -1003,7 +1043,9 @@ void EditFilterBox(
 			: std::make_optional(rawColorIndex));
 		return rules.withTitle(
 			{ std::move(title), staticTitle }
-		).withColorIndex(colorIndex);
+		).withColorIndex(
+			colorIndex
+		).withDefault(checkboxDefault->checked());
 	};
 
 	Ui::AddSubsectionTitle(
@@ -1100,7 +1142,7 @@ void EditFilterBox(
 			data->current().flags() & kTypes,
 			data->current().always());
 		exclude->updateData(
-			data->current().flags() & kExcludeTypes,
+			data->current().flags() & (isLocal ? kExcludeTypesLocal : kExcludeTypes),
 			data->current().never());
 	};
 	includeAdd->setClickedCallback([=] {
@@ -1116,7 +1158,7 @@ void EditFilterBox(
 		EditExceptions(
 			window,
 			box,
-			kExcludeTypes,
+			(isLocal ? kExcludeTypesLocal : kExcludeTypes),
 			data,
 			updateDefaultTitle,
 			refreshPreviews);
@@ -1144,7 +1186,8 @@ void EditExistingFilter(
 	Expects(id != 0);
 
 	const auto session = &window->session();
-	const auto &list = session->data().chatsFilters().list();
+	const auto filters = &session->data().chatsFilters();
+	const auto &list = filters->list();
 	const auto i = ranges::find(list, id, &Data::ChatFilter::id);
 	if (i == end(list)) {
 		return;
@@ -1152,16 +1195,27 @@ void EditExistingFilter(
 	const auto doneCallback = [=](const Data::ChatFilter &result) {
 		Expects(id == result.id());
 
-		const auto tl = result.tl();
-		session->data().chatsFilters().apply(MTP_updateDialogFilter(
-			MTP_flags(MTPDupdateDialogFilter::Flag::f_filter),
-			MTP_int(id),
-			tl));
-		session->api().request(MTPmessages_UpdateDialogFilter(
-			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
-			MTP_int(id),
-			tl
-		)).send();
+		if (result.isLocal()) {
+			filters->set(result);
+			filters->saveLocal();
+		} else {
+			const auto tl = result.tl();
+			session->data().chatsFilters().apply(MTP_updateDialogFilter(
+				MTP_flags(MTPDupdateDialogFilter::Flag::f_filter),
+				MTP_int(id),
+				tl));
+			session->api().request(MTPmessages_UpdateDialogFilter(
+				MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
+				MTP_int(id),
+				tl
+			)).send();
+		}
+		const auto account = &session->account();
+		if (result.isDefault()) {
+			account->setDefaultFilterId(id);
+		} else if (account->defaultFilterId() == id) {
+			account->setDefaultFilterId(0);
+		}
 	};
 	const auto saveAnd = [=](
 			const Data::ChatFilter &data,

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "main/main_account.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "storage/storage_account.h"
@@ -199,6 +200,12 @@ void Account::createSession(
 	_sessionValue = _session.get();
 
 	Ensures(_session != nullptr);
+
+	_defaultFilterId = ::Kotato::JsonSettings::GetInt(
+		"folders/default",
+		session().userId().bare,
+		_mtp->isTestMode());
+	_recent.clear();
 }
 
 void Account::destroySession(DestroyReason reason) {
@@ -616,6 +623,31 @@ void Account::destroyStaleAuthorizationKeys() {
 			return;
 		}
 	}
+}
+
+void Account::setDefaultFilterId(FilterId id) {
+	Expects(_mtp != nullptr);
+	Expects(_session != nullptr);
+
+	if (_defaultFilterId == id) {
+		return;
+	}
+	_defaultFilterId = id;
+
+	::Kotato::JsonSettings::Set(
+		"folders/default",
+		_defaultFilterId,
+		session().userId().bare,
+		_mtp->isTestMode());
+	::Kotato::JsonSettings::Write();
+}
+
+void Account::addToRecent(PeerId id) {
+	_recent.emplace(id);
+}
+
+bool Account::isRecent(PeerId id) const {
+	return _recent.contains(id);
 }
 
 void Account::setHandleLoginCode(Fn<void(QString)> callback) {

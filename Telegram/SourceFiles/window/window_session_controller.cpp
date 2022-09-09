@@ -105,6 +105,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_app_config.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "main/main_session_settings.h"
 #include "lang/lang_keys.h"
 #include "apiwrap.h"
@@ -1657,7 +1658,7 @@ SessionController::SessionController(
 			&& !folder->storiesCount();
 	}) | rpl::on_next([=](Data::Folder *folder) {
 		folder->updateChatListSortPosition();
-		closeFolder();
+		closeFolderToDefault();
 	}, lifetime());
 
 	const auto processFiltersMenu = [this] {
@@ -2063,7 +2064,7 @@ void SessionController::checkOpenedFilter() {
 		const auto i = ranges::find(list, filterId, &Data::ChatFilter::id);
 		if (i == end(list)) {
 			setActiveChatsFilter(
-				0,
+				defaultChatsFilterId(),
 				{ anim::type::normal, anim::activation::background });
 		}
 	}
@@ -2076,7 +2077,8 @@ void SessionController::activateFirstChatsFilter() {
 		return;
 	}
 	_filtersActivated = true;
-	setActiveChatsFilter(session().data().chatsFilters().defaultId());
+	const auto id = defaultChatsFilterId();
+	setActiveChatsFilter(id ? id : session().data().chatsFilters().defaultId());
 }
 
 bool SessionController::uniqueChatsInSearchResults(
@@ -2130,6 +2132,26 @@ void SessionController::closeFolder() {
 	if (opened) {
 		checkHiddenAllChats();
 	}
+}
+
+void SessionController::closeFolderToDefault() {
+	const auto primary = isPrimary();
+	closeFolder();
+	if (!primary || activeChatsFilterCurrent()) {
+		return;
+	} else if (const auto id = defaultChatsFilterId()) {
+		setActiveChatsFilter(id);
+	}
+}
+
+FilterId SessionController::defaultChatsFilterId() const {
+	const auto id = session().account().defaultFilterId();
+	const auto &list = session().data().chatsFilters().list();
+	return (id && ranges::contains(list, id, &Data::ChatFilter::id))
+		? id
+		: (hiddenAllChatsIndex() >= 0)
+		? firstChatsFilterId()
+		: FilterId();
 }
 
 bool SessionController::openCommunityInDifferentWindow(
@@ -2390,6 +2412,10 @@ void SessionController::setActiveChatEntry(Dialogs::RowDescriptor row) {
 	}
 	if (const auto thread = row.key.thread()) {
 		session().recentPeers().chatOpenPush(thread);
+	}
+	if (nowHistory && !session().account().isRecent(nowHistory->peer->id)) {
+		session().account().addToRecent(nowHistory->peer->id);
+		session().data().chatsFilters().refreshHistory(nowHistory);
 	}
 	if (session().supportMode()) {
 		pushToChatEntryHistory(row);
@@ -3341,7 +3367,7 @@ void SessionController::setActiveChatsFilter(
 	if (!isPrimary()) {
 		return;
 	} else if (!id && hiddenAllChatsIndex() >= 0) {
-		id = firstChatsFilterId();
+		id = defaultChatsFilterId();
 	}
 	const auto changed = (activeChatsFilterCurrent() != id);
 	if (changed) {
@@ -3383,7 +3409,7 @@ void SessionController::checkHiddenAllChats() {
 		&& !_openedFolder.current()
 		&& !_openedCommunity.current()
 		&& hiddenAllChatsIndex() >= 0) {
-		setActiveChatsFilter(firstChatsFilterId());
+		setActiveChatsFilter(defaultChatsFilterId());
 	}
 }
 
@@ -4216,7 +4242,9 @@ bool CheckAndJumpToNearChatsFilter(
 	if (changed >= int(list->size()) || changed < 0) {
 		return false;
 	}
-	if (changed > Data::PremiumLimits(session).dialogFiltersCurrent()) {
+	const auto premiumFrom = 1
+		+ Data::PremiumLimits(session).dialogFiltersCurrent();
+	if (Data::ChatFilterLocked(*list, changed, premiumFrom)) {
 		return false;
 	}
 	if (jump) {

@@ -3158,7 +3158,7 @@ void MainWidget::handleHistoryBack() {
 			_dialogs->setInnerFocus();
 		}
 	} else {
-		_controller->closeFolder();
+		_controller->closeFolderToDefault();
 	}
 }
 
