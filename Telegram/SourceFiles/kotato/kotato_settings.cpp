@@ -363,6 +363,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "folders/hide_all_chats", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "profile_top_mute", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "folders/local", {
 		.scope = SettingScope::Account,
 		.type = SettingType::QJsonArraySetting, }},
