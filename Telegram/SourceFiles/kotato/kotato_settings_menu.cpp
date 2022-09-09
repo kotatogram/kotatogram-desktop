@@ -202,6 +202,12 @@ void SetupKotatoChats(
 	SettingsMenuJsonSwitch(ktg_settings_top_bar_mute, profile_top_mute);
 	SettingsMenuJsonSwitch(ktg_settings_disable_up_edit, disable_up_edit);
 
+#ifndef Q_OS_WIN
+	if (Ui::Platform::IsOverlapped(container, QRect()).has_value()) {
+		SettingsMenuJsonSwitch(ktg_settings_auto_scroll_unfocused, auto_scroll_unfocused);
+	}
+#endif
+
 	AddButton(
 		container,
 		rktr("ktg_settings_chat_list_compact"),

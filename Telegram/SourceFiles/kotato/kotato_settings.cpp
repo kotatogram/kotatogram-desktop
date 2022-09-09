@@ -406,6 +406,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "profile_top_mute", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "auto_scroll_unfocused", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "folders/local", {
 		.scope = SettingScope::Account,
 		.type = SettingType::QJsonArraySetting, }},
