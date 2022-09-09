@@ -197,6 +197,7 @@ private:
 
 	void addTopBarMenuButton();
 	void addProfileCallsButton();
+	void addProfileNotificationsButton();
 	void showTopBarMenu(bool check);
 	void deleteAllDownloads();
 

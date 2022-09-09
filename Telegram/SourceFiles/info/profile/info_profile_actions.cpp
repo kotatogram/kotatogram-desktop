@@ -604,7 +604,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			addTranslateToMenu(about.text, AboutValue(_peer));
 		}
 	}
-	if (!_peer->isSelf()) {
+	if (!_peer->isSelf() && !::Kotato::JsonSettings::GetBool("profile_top_mute")) {
 		// No notifications toggle for Self => no separator.
 		result->add(object_ptr<Ui::SlideWrap<>>(
 			result,
@@ -802,7 +802,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::fill() {
 	add(object_ptr<Ui::BoxContentDivider>(_wrap));
 	add(CreateSkipWidget(_wrap));
 	add(setupInfo());
-	if (!_peer->isSelf()) {
+	if (!_peer->isSelf() && !::Kotato::JsonSettings::GetBool("profile_top_mute")) {
 		add(setupMuteToggle());
 	}
 	setupMainButtons();
