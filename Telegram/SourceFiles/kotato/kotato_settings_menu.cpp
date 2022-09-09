@@ -339,6 +339,8 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 			}, true));
 	});
 
+	SettingsMenuJsonSwitch(ktg_settings_telegram_sites_autologin, telegram_sites_autologin);
+
 	Ui::AddSkip(container);
 }
 
