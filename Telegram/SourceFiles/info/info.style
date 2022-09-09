@@ -159,8 +159,19 @@ infoTopBarMenu: IconButton(infoTopBarBack) {
 	iconPosition: point(18px, -1px);
 	rippleAreaPosition: point(1px, 6px);
 }
-infoTopBarCall: IconButton(infoTopBarMenu) {
+
+infoTopBarNotifications: IconButton(infoTopBarMenu) {
 	width: 42px;
+	icon: icon {{ "info/info_notifications", boxTitleCloseFg }};
+	iconOver: icon {{ "info/info_notifications", boxTitleCloseFgOver }};
+	iconPosition: point(5px, -1px);
+	rippleAreaPosition: point(0px, 6px);
+}
+infoNotificationsActive: icon {{
+	"info/info_notifications_active",
+	windowBgActive
+}};
+infoTopBarCall: IconButton(infoTopBarNotifications) {
 	icon: icon {{ "top_bar_call", boxTitleCloseFg }};
 	iconOver: icon {{ "top_bar_call", boxTitleCloseFgOver }};
 	iconPosition: point(5px, -1px);
@@ -243,6 +254,12 @@ infoLayerTopBarMenu: IconButton(infoLayerTopBarClose) {
 	icon: icon {{ "title_menu_dots", boxTitleCloseFg }};
 	iconOver: icon {{ "title_menu_dots", boxTitleCloseFgOver }};
 	iconPosition: point(16px, -1px);
+}
+infoLayerTopBarNotifications: IconButton(infoLayerTopBarMenu) {
+	icon: icon {{ "info/info_notifications", boxTitleCloseFg }};
+	iconOver: icon {{ "info/info_notifications", boxTitleCloseFgOver }};
+	iconPosition: point(4px, -1px);
+	rippleAreaPosition: point(0px, 9px);
 }
 infoLayerTopBarCall: IconButton(infoLayerTopBarMenu) {
 	icon: icon {{ "top_bar_call", boxTitleCloseFg }};

@@ -202,6 +202,7 @@ private:
 
 	void addTopBarMenuButton();
 	void addProfileCallsButton();
+	void addProfileNotificationsButton();
 	void showTopBarMenu(bool check);
 
 	rpl::variable<Wrap> _wrap;
