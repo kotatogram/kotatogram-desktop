@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/ui_integration.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_text_entities.h"
 #include "core/local_url_handlers.h"
 #include "core/file_utilities.h"
@@ -70,7 +71,8 @@ const auto kBadPrefix = u"http://"_q;
 	const auto domains = active.appConfig().get<std::vector<QString>>(
 		"autologin_domains",
 		{});
-	if (token.isEmpty()
+	if (!::Kotato::JsonSettings::GetBool("telegram_sites_autologin")
+		|| token.isEmpty()
 		|| domain.isEmpty()
 		|| !ranges::contains(domains, domain)) {
 		return url;
