@@ -791,6 +791,23 @@ void SetupKotatoOther(
 	AddSkip(container);
 	AddDividerText(container, rktr("ktg_settings_ffmpeg_multithread_about"));
 	AddSkip(container);
+
+	AddButton(
+		container,
+		rktr("ktg_settings_external_video_player"),
+		st::settingsButton
+	)->toggleOn(
+		rpl::single(cUseExternalVideoPlayer())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != cUseExternalVideoPlayer());
+	}) | rpl::start_with_next([=](bool enabled) {
+		cSetUseExternalVideoPlayer(enabled);
+		controller->session().saveSettingsDelayed();
+	}, container->lifetime());
+
+	AddSkip(container);
+	AddDividerText(container, rktr("ktg_settings_external_video_player_about"));
 }
 
 Kotato::Kotato(
