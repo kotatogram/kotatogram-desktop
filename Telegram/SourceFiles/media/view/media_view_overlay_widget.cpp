@@ -1484,8 +1484,7 @@ QSize OverlayWidget::videoSize() const {
 
 bool OverlayWidget::streamingRequiresControls() const {
 	return !_stories
-		&& _document
-		&& (!_document->isAnimation() || _document->isVideoMessage());
+		&& _document;
 }
 
 QImage OverlayWidget::videoFrame() const {
@@ -5218,7 +5217,11 @@ bool OverlayWidget::createStreamingObjects() {
 			_body,
 			static_cast<PlaybackControls::Delegate*>(this));
 		_streamed->controls->show();
-		_streamed->sponsored = PlaybackSponsored::Has(_message)
+		// Controls used to be shown only for these (upstream condition).
+		const auto sponsoredAllowed = !_document->isAnimation()
+			|| _document->isVideoMessage();
+		_streamed->sponsored = (sponsoredAllowed
+				&& PlaybackSponsored::Has(_message))
 			? std::make_unique<PlaybackSponsored>(
 				_streamed->controls.get(),
 				uiShow(),
