@@ -243,7 +243,8 @@ base::weak_qptr<Ui::BoxContent> ShowSendNowMessagesBox(
 void ToggleMessagePinned(
 	not_null<Window::SessionNavigation*> navigation,
 	FullMsgId itemId,
-	bool pin);
+	bool pin,
+	Fn<void()> onHidden = Fn<void()>());
 [[nodiscard]] MessageIdsList MessagesToUnpin(
 	not_null<Main::Session*> session,
 	const MessageIdsList &items);
@@ -262,6 +263,11 @@ void HidePinnedBar(
 	MsgId topicRootId,
 	PeerId monoforumPeerId,
 	Fn<void()> onHidden);
+void SetPinnedBarHidden(
+	not_null<PeerData*> peer,
+	MsgId topicRootId,
+	PeerId monoforumPeerId,
+	bool hidden);
 void UnpinAllMessages(
 	not_null<Window::SessionNavigation*> navigation,
 	not_null<Data::Thread*> thread);

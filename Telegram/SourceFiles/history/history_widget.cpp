@@ -852,6 +852,14 @@ HistoryWidget::HistoryWidget(
 		}
 	}, lifetime());
 
+	session().changes().entryUpdates(
+		EntryUpdateFlag::PinVisible
+	) | rpl::on_next([=](const Data::EntryUpdate &update) {
+		if (_pinnedTracker) {
+			checkPinnedBarState();
+		}
+	}, lifetime());
+
 	using HistoryUpdateFlag = Data::HistoryUpdate::Flag;
 	session().changes().historyUpdates(
 		HistoryUpdateFlag::MessageSent
@@ -9499,9 +9507,7 @@ void HistoryWidget::checkPinnedBarState() {
 	Expects(_pinnedTracker != nullptr);
 	Expects(_list != nullptr);
 
-	const auto hiddenId = _peer->canPinMessages()
-		? MsgId(0)
-		: session().settings().hiddenPinnedMessageId(_peer->id);
+	const auto hiddenId = session().settings().hiddenPinnedMessageId(_peer->id);
 	const auto currentPinnedId = Data::ResolveTopPinnedId(
 		_peer,
 		MsgId(0), // topicRootId
@@ -10526,7 +10532,14 @@ void HistoryWidget::hidePinnedMessage() {
 		return;
 	}
 	if (_peer->canPinMessages()) {
-		Window::ToggleMessagePinned(controller(), id.message, false);
+		const auto peer = _peer;
+		Window::ToggleMessagePinned(
+			controller(),
+			id.message,
+			false,
+			[=] {
+				Window::SetPinnedBarHidden(peer, MsgId(0), PeerId(0), true);
+			});
 	} else {
 		const auto callback = [=] {
 			if (_pinnedTracker) {

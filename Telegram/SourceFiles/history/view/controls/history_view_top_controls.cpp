@@ -167,6 +167,14 @@ void TopControls::subscribeToPinnedMessages() {
 		}
 	}, _pinnedLifetime);
 
+	_history->session().changes().entryUpdates(
+		EntryUpdateFlag::PinVisible
+	) | rpl::on_next([=](const Data::EntryUpdate &update) {
+		if (_pinnedTracker) {
+			checkPinnedBarState();
+		}
+	}, _pinnedLifetime);
+
 	setupPinnedTracker();
 }
 
@@ -780,12 +788,10 @@ void TopControls::checkPinnedBarState() {
 	const auto migrated = migratedPeer();
 	const auto topicRootId = fullHistory ? MsgId(0) : _repliesRootId;
 	const auto monoforumPeerId = fullHistory ? PeerId(0) : _monoforumPeerId;
-	const auto hiddenId = _history->peer->canPinMessages()
-		? MsgId(0)
-		: _history->peer->session().settings().hiddenPinnedMessageId(
-			_history->peer->id,
-			topicRootId,
-			monoforumPeerId);
+	const auto hiddenId = _history->peer->session().settings().hiddenPinnedMessageId(
+		_history->peer->id,
+		topicRootId,
+		monoforumPeerId);
 	const auto currentPinnedId = Data::ResolveTopPinnedId(
 		_history->peer,
 		topicRootId,
@@ -1054,15 +1060,24 @@ void TopControls::hidePinnedMessage() {
 	if (!id.message) {
 		return;
 	}
+	const auto fullHistory = !_repliesRootId && !_topic && !_sublist;
+	const auto topicRootId = fullHistory ? MsgId(0) : _repliesRootId;
+	const auto monoforumPeerId = fullHistory ? PeerId(0) : _monoforumPeerId;
 	if (_history->peer->canPinMessages()) {
-		Window::ToggleMessagePinned(_controller, id.message, false);
+		const auto peer = _history->peer;
+		Window::ToggleMessagePinned(_controller, id.message, false, [=] {
+			Window::SetPinnedBarHidden(
+				peer,
+				topicRootId,
+				monoforumPeerId,
+				true);
+		});
 	} else {
-		const auto fullHistory = !_repliesRootId && !_topic && !_sublist;
 		Window::HidePinnedBar(
 			_controller,
 			_history->peer,
-			fullHistory ? MsgId(0) : _repliesRootId,
-			fullHistory ? PeerId(0) : _monoforumPeerId,
+			topicRootId,
+			monoforumPeerId,
 			crl::guard(_wrap.get(), [=] {
 				if (_pinnedTracker) {
 					checkPinnedBarState();
