@@ -8,9 +8,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_peer_menu.h"
 
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "api/api_chat_participants.h"
 #include "lang/lang_keys.h"
-#include "ui/boxes/confirm_box.h"
 #include "base/options.h"
 #include "boxes/delete_messages_box.h"
 #include "boxes/max_invite_box.h"
@@ -21,6 +21,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/add_participants_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/share_box.h"
+#include "kotato/boxes/kotato_unpin_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/boxes/report_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h"
@@ -174,9 +176,7 @@ private:
 	void addBotToGroup();
 	void addNewMembers();
 	void addDeleteContact();
-
-	void addChatActions(not_null<ChatData*> chat);
-	void addChannelActions(not_null<ChannelData*> channel);
+	void addHidePin();
 
 	not_null<SessionController*> _controller;
 	Dialogs::EntryState _request;
@@ -679,6 +679,23 @@ void Filler::addDeleteContact() {
 		&st::menuIconDelete);
 }
 
+void Filler::addHidePin() {
+	const auto history = _peer->owner().history(_peer);
+	if (history->hasPinnedMessages()) {
+		if (history->hasHiddenPinnedMessage()) {
+			_addAction(
+				ktr("ktg_pinned_message_show"),
+				[=] { history->switchPinnedHidden(false); },
+				&st::menuIconPin);
+		} else {
+			_addAction(
+				ktr("ktg_pinned_message_hide"),
+				[=] { history->switchPinnedHidden(true); },
+				&st::menuIconUnpin);
+		}
+	}
+}
+
 void Filler::addManageChat() {
 	if (!EditPeerInfoBox::Available(_peer)) {
 		return;
@@ -782,6 +799,7 @@ void Filler::fillChatsListActions() {
 void Filler::fillHistoryActions() {
 	addToggleMute();
 	addSupportInfo();
+	addHidePin();
 	addManageChat();
 	addCreatePoll();
 	addThemeEdit();
@@ -1483,22 +1501,7 @@ void ToggleMessagePinned(
 	if (pin) {
 		Ui::show(Box<PinMessageBox>(item->history()->peer, item->id));
 	} else {
-		const auto peer = item->history()->peer;
-		const auto session = &peer->session();
-		const auto callback = crl::guard(session, [=] {
-			Ui::hideLayer();
-			session->api().request(MTPmessages_UpdatePinnedMessage(
-				MTP_flags(MTPmessages_UpdatePinnedMessage::Flag::f_unpin),
-				peer->input,
-				MTP_int(itemId.msg)
-			)).done([=](const MTPUpdates &result) {
-				session->api().applyUpdates(result);
-			}).send();
-		});
-		Ui::show(Box<Ui::ConfirmBox>(
-			tr::lng_pinned_unpin_sure(tr::now),
-			tr::lng_pinned_unpin(tr::now),
-			callback));
+		Ui::show(Box<UnpinMessageBox>(item->history()->peer, item->id));
 	}
 }
 

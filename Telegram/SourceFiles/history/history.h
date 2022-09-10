@@ -464,6 +464,9 @@ public:
 	[[nodiscard]] bool hasPinnedMessages() const;
 	void setHasPinnedMessages(bool has);
 
+	bool hasHiddenPinnedMessage();
+	bool switchPinnedHidden(bool hidden);
+
 	// Still public data.
 	std::deque<std::unique_ptr<HistoryBlock>> blocks;
 
