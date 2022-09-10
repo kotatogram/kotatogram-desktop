@@ -594,6 +594,22 @@ void SetupKotatoOther(
 	});
 
 	SettingsMenuJsonSwitch(ktg_settings_call_confirm, confirm_before_calls);
+	SettingsMenuJsonSwitch(ktg_settings_remember_compress_images, remember_compress_images);
+	AddButton(
+		container,
+		rktr("ktg_settings_compress_images_default"),
+		st::settingsButtonNoIcon
+	)->toggleOn(
+		rpl::single(Core::App().settings().sendFilesWay().sendImagesAsPhotos())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != Core::App().settings().sendFilesWay().sendImagesAsPhotos());
+	}) | rpl::start_with_next([](bool enabled) {
+		auto way = Core::App().settings().sendFilesWay();
+		way.setSendImagesAsPhotos(enabled);
+		Core::App().settings().setSendFilesWay(way);
+		Core::App().saveSettingsDelayed();
+	}, container->lifetime());
 	SettingsMenuJsonSwitch(ktg_settings_ffmpeg_multithread, ffmpeg_multithread);
 
 	AddSkip(container);
