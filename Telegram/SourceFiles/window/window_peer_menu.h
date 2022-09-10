@@ -169,7 +169,8 @@ QPointer<Ui::BoxContent> ShowSendNowMessagesBox(
 void ToggleMessagePinned(
 	not_null<Window::SessionNavigation*> navigation,
 	FullMsgId itemId,
-	bool pin);
+	bool pin,
+	Fn<void()> onHidden = Fn<void()>());
 void HidePinnedBar(
 	not_null<Window::SessionNavigation*> navigation,
 	not_null<PeerData*> peer,
