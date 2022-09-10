@@ -87,6 +87,17 @@ void Tray::rebuildMenu() {
 		_tray.addAction(
 			std::move(notificationsText),
 			[=] { toggleSoundNotifications(); });
+
+		auto soundText = _textUpdates.events(
+		) | rpl::map([=] {
+			return Core::App().settings().soundNotify()
+				? ktr("ktg_settings_disable_sound_from_tray")
+				: ktr("ktg_settings_enable_sound_from_tray");
+		});
+
+		_tray.addAction(
+			std::move(soundText),
+			[=] { toggleSound(); });
 	}
 
 	_tray.addAction(rktr("ktg_quit_from_tray"), [] { Core::Quit(); });
@@ -130,6 +141,15 @@ rpl::producer<> Tray::hideToTrayRequests() const {
 	} else {
 		return triggers;
 	}
+}
+
+void Tray::toggleSound() {
+	auto &settings = Core::App().settings();
+	settings.setSoundNotify(!settings.soundNotify());
+	Core::App().saveSettingsDelayed();
+	using Change = Window::Notifications::ChangeType;
+	auto &notifications = Core::App().notifications();
+	notifications.notifySettingsChanged(Change::SoundEnabled);
 }
 
 void Tray::toggleSoundNotifications() {
