@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "media/view/media_view_overlay_widget.h"
 
+#include "kotato/kotato_lang.h"
 #include "apiwrap.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_peer_photo.h"
@@ -1065,8 +1066,8 @@ QSize OverlayWidget::videoSize() const {
 
 bool OverlayWidget::streamingRequiresControls() const {
 	return !_stories
-		&& _document
-		&& (!_document->isAnimation() || _document->isVideoMessage());
+		&& _document;
+		//&& (!_document->isAnimation() || _document->isVideoMessage());
 }
 
 QImage OverlayWidget::videoFrame() const {
@@ -4221,8 +4222,11 @@ float64 OverlayWidget::playbackControlsCurrentSpeed(bool lastNonDefault) {
 }
 
 void OverlayWidget::switchToPip() {
+	if (_document == nullptr) {
+		Ui::Toast::Show(_widget, ktr("ktg_pip_not_supported"));
+		return;
+	}
 	Expects(_streamed != nullptr);
-	Expects(_document != nullptr);
 
 	const auto document = _document;
 	const auto messageId = _message ? _message->fullId() : FullMsgId();
