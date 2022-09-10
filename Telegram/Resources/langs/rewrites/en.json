@@ -79,6 +79,8 @@
 	"ktg_settings_external_video_player": "External video player",
 	"ktg_settings_external_video_player_about": "When this option is enabled, autoplay is force-disabled and system video player is used to play videos.",
 	"ktg_settings_adaptive_bubbles": "Adaptive bubbles",
+	"ktg_settings_disable_sound_from_tray": "Disable sound",
+	"ktg_settings_enable_sound_from_tray": "Enable sound",
 	"ktg_settings_recent_stickers_limit": {
 		"zero": "Recent stickers: show {count} stickers",
 		"one": "Recent stickers: show {count} sticker",
