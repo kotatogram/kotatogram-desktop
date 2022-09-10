@@ -401,7 +401,7 @@ private:
 	void showKeyboardHideButton();
 	void toggleKeyboard(bool manual = true);
 	void startBotCommand();
-	void hidePinnedMessage();
+	void hidePinnedMessage(bool force = false);
 	void cancelFieldAreaState();
 	void unblockUser();
 	void sendBotStartCommand();

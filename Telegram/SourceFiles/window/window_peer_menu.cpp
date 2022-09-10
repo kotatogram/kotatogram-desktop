@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_peer_menu.h"
 
+#include "kotato/kotato_lang.h"
 #include "kotato/kotato_settings.h"
 #include "menu/menu_check_item.h"
 #include "boxes/share_box.h"
@@ -34,6 +35,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/share_box.h"
 #include "calls/calls_instance.h"
+#include "kotato/boxes/kotato_unpin_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "inline_bots/bot_attach_web_view.h" // InlineBots::PeerType.
 #include "ui/boxes/report_box.h"
 #include "ui/toast/toast.h"
@@ -289,6 +292,7 @@ private:
 	void addBotToGroup();
 	void addNewMembers();
 	void addDeleteContact();
+	void addHidePin();
 	void addTTLSubmenu(bool addSeparator);
 	void addGiftPremium();
 	void addCreateTopic();
@@ -926,6 +930,23 @@ void Filler::addDeleteContact() {
 	});
 }
 
+void Filler::addHidePin() {
+	if (!_thread) {
+		return;
+	}
+	if (_thread->hasPinnedMessages()) {
+		_addAction(
+			ktr("ktg_pinned_message_show"),
+			[=] { _thread->setHasPinnedMessages(false); },
+			&st::menuIconPin);
+	} else {
+		_addAction(
+			ktr("ktg_pinned_message_hide"),
+			[=] { _thread->setHasPinnedMessages(true); },
+			&st::menuIconPin);
+	}
+}
+
 void Filler::addDeleteTopic() {
 	if (!_topic || !_topic->canDelete()) {
 		return;
@@ -1216,6 +1237,7 @@ void Filler::fillHistoryActions() {
 	addToggleMuteSubmenu(true);
 	addInfo();
 	addSupportInfo();
+	addHidePin();
 	addManageChat();
 	addCreatePoll();
 	addThemeEdit();
@@ -2400,24 +2422,8 @@ void ToggleMessagePinned(
 			Box(PinMessageBox, item),
 			Ui::LayerOption::CloseOther);
 	} else {
-		const auto peer = item->history()->peer;
-		const auto session = &peer->session();
-		const auto callback = crl::guard(session, [=](Fn<void()> &&close) {
-			close();
-			session->api().request(MTPmessages_UpdatePinnedMessage(
-				MTP_flags(MTPmessages_UpdatePinnedMessage::Flag::f_unpin),
-				peer->input,
-				MTP_int(itemId.msg)
-			)).done([=](const MTPUpdates &result) {
-				session->api().applyUpdates(result);
-			}).send();
-		});
 		navigation->parentController()->show(
-			Ui::MakeConfirmBox({
-				.text = tr::lng_pinned_unpin_sure(),
-				.confirmed = callback,
-				.confirmText = tr::lng_pinned_unpin(),
-			}),
+			Box<UnpinMessageBox>(item->history()->peer, item->topicRootId(), item->id),
 			Ui::LayerOption::CloseOther);
 	}
 }
