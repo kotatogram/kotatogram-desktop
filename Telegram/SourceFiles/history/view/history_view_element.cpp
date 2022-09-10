@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item_components.h"
 #include "history/history_item_helpers.h"
+#include "data/components/scheduled_messages.h"
 #include "data/data_channel.h"
 #include "data/data_session.h"
 #include "iv/iv_cached_media.h"
@@ -750,6 +751,14 @@ QString DateTooltipText(not_null<Element*> view) {
 	}
 	if (const auto stars = item->out() ? item->starsPaid() : 0) {
 		dateText += '\n' + tr::lng_you_paid_stars(tr::now, lt_count, stars);
+	}
+	const auto id = item->isRegular()
+		? item->id
+		: (item->isScheduled() && !item->isSending() && !item->hasFailed())
+		? item->history()->session().scheduledMessages().lookupId(item)
+		: MsgId();
+	if (id) {
+		dateText += '\n' + ktr("ktg_message_id", {"id", QString::number(id.bare)});
 	}
 	return dateText;
 }
