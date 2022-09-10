@@ -1716,9 +1716,17 @@ Section DetailsFiller::makeInfo() {
 		}
 
 		{
+			// Collectible phones keep their own link.
+			auto phoneDrawableText = PhoneOrHiddenValue(
+				user
+			) | rpl::map([=](TextWithEntities &&phone) {
+				return (user->phone().isEmpty() || !phone.entities.isEmpty())
+					? std::move(phone)
+					: Ui::Text::Link(std::move(phone));
+			});
 			const auto phoneLabel = addInfoOneLine(
 				tr::lng_info_mobile_label(),
-				PhoneWithSpoilerValue(user, PhoneOrHiddenValue(user)),
+				PhoneWithSpoilerValue(user, std::move(phoneDrawableText)),
 				tr::lng_profile_copy_phone(tr::now),
 				st::infoProfileLabeledPadding,
 				st::popupMenuWithIcons).text;
@@ -1738,6 +1746,19 @@ Section DetailsFiller::makeInfo() {
 				AddPhoneSpoilerMenu(request.menu, user);
 			};
 			phoneLabel->setContextMenuHook(hook);
+			phoneLabel->setClickHandlerFilter([user](
+					const ClickHandlerPtr &handler,
+					Qt::MouseButton) {
+				if (handler->url() != u"internal:action"_q) {
+					return true;
+				}
+				const auto phoneText = user->phone();
+				if (!phoneText.isEmpty()) {
+					QGuiApplication::clipboard()->setText(Ui::FormatPhone(phoneText));
+					Ui::Toast::Show(ktr("ktg_phone_copied"));
+				}
+				return false;
+			});
 		}
 		auto label = user->isBot()
 			? tr::lng_info_about_label()
