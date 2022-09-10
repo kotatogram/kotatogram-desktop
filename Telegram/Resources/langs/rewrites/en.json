@@ -95,6 +95,7 @@
 	"ktg_hide_pinned_message": "Hide",
 	"ktg_stickers_copy_title": "Copy name",
 	"ktg_stickers_title_copied": "Sticker pack name copied to clipboard.",
+	"ktg_context_show_messages_from": "User messages",
 	"ktg_settings_tray_icon": "Tray icon",
 	"ktg_settings_tray_icon_default": "Default",
 	"ktg_settings_tray_icon_blue": "Blue",
