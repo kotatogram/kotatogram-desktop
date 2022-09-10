@@ -190,7 +190,7 @@ public:
 	void sendBotCommand(Bot::SendCommandRequest request);
 	void hideSingleUseKeyboard(PeerData *peer, MsgId replyTo);
 
-	void searchMessages(const QString &query, Dialogs::Key inChat);
+	void searchMessages(const QString &query, Dialogs::Key inChat, UserData *from = nullptr);
 
 	void setChatBackground(
 		const Data::WallPaper &background,

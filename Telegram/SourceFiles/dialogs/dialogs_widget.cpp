@@ -35,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "main/main_session_settings.h"
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
@@ -1524,7 +1525,10 @@ void Widget::showMainMenu() {
 	controller()->widget()->showMainMenu();
 }
 
-void Widget::searchMessages(const QString &query, Key inChat) {
+void Widget::searchMessages(
+		const QString &query,
+		Key inChat,
+		UserData *from) {
 	if (_childList) {
 		const auto forum = controller()->shownForum().current();
 		const auto topic = inChat.topic();
@@ -1565,12 +1569,18 @@ void Widget::searchMessages(const QString &query, Key inChat) {
 			cancelSearch();
 			setSearchInChat(inChat);
 		}
-		setSearchQuery(query);
+		if (!query.trimmed().isEmpty()) {
+			setSearchQuery(query);
+		}
 		applyFilterUpdate(true);
 		_searchTimer.cancel();
 		searchMessages();
 
 		session().local().saveRecentSearchHashtags(query);
+	}
+	if (inChat && from) {
+		setSearchInChat(inChat, from);
+		applyFilterUpdate(true);
 	}
 }
 
