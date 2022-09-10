@@ -132,6 +132,7 @@ struct ResultSelected {
 	Ui::MessageSendingAnimationFrom messageSendingFrom;
 	// Open in OverlayWidget;
 	bool open = false;
+	bool sendPreview = false;
 };
 
 } // namespace InlineBots

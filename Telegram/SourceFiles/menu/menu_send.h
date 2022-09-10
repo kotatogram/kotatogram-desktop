@@ -32,6 +32,7 @@ enum class Type {
 	Scheduled,
 	ScheduledToUser, // For "Send when online".
 	Reminder,
+	PreviewOnly,
 };
 
 enum class FillMenuResult {
@@ -53,6 +54,13 @@ FillMenuResult FillSendMenu(
 	Fn<void()> schedule,
 	Fn<void()> whenOnline,
 	const style::ComposeIcons *iconsOverride = nullptr);
+
+FillMenuResult FillSendPreviewMenu(
+	not_null<Ui::PopupMenu*> menu,
+	Type type,
+	Fn<void()> defaultSend,
+	Fn<void()> silent,
+	Fn<void()> schedule);
 
 void SetupMenuAndShortcuts(
 	not_null<Ui::RpWidget*> button,
