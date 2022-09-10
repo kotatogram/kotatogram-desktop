@@ -39,6 +39,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "main/main_session.h"
+#include "main/main_session_settings.h"
 #include "window/notifications_manager.h"
 #include "calls/calls_instance.h"
 #include "storage/localstorage.h"
@@ -3201,6 +3202,57 @@ bool History::hasPinnedMessages() const {
 void History::setHasPinnedMessages(bool has) {
 	_hasPinnedMessages = has;
 	session().changes().historyUpdated(this, UpdateFlag::PinnedMessages);
+}
+
+bool History::hasHiddenPinnedMessage() {
+	auto result = false;
+	const auto migrated = peer->migrateFrom();
+	const auto currentPinnedId = Data::ResolveTopPinnedId(peer, migrated);
+	const auto universalPinnedId = !currentPinnedId
+		? int32(0)
+		: (migrated && !peerIsChannel(currentPinnedId.peer))
+		? (currentPinnedId.msg - ServerMaxMsgId)
+		: currentPinnedId.msg;
+	if (universalPinnedId) {
+		const auto hiddenId = session().settings().hiddenPinnedMessageId(peer->id);
+		if (hiddenId == universalPinnedId) {
+			result = true;
+		}
+	} else {
+		session().api().requestFullPeer(peer);
+	}
+	return result;
+}
+
+bool History::switchPinnedHidden(bool hidden) {
+	auto result = false;
+	if (hidden) {
+		const auto migrated = peer->migrateFrom();
+		const auto currentPinnedId = Data::ResolveTopPinnedId(peer, migrated);
+		const auto universalPinnedId = !currentPinnedId
+			? int32(0)
+			: (migrated && !peerIsChannel(currentPinnedId.peer))
+			? (currentPinnedId.msg - ServerMaxMsgId)
+			: currentPinnedId.msg;
+		if (universalPinnedId) {
+			session().settings().setHiddenPinnedMessageId(peer->id, universalPinnedId);
+			session().saveSettingsDelayed();
+			result = true;
+		} else {
+			session().api().requestFullPeer(peer);
+		}
+	} else {
+		const auto hiddenId = session().settings().hiddenPinnedMessageId(peer->id);
+		if (hiddenId != 0) {
+			session().settings().setHiddenPinnedMessageId(peer->id, 0);
+			session().saveSettingsDelayed();
+			result = true;
+		}
+	}
+	if (result) {
+		session().changes().historyUpdated(this, UpdateFlag::PinnedMessages);
+	}
+	return result;
 }
 
 History::~History() = default;

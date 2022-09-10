@@ -849,6 +849,8 @@ PRIVATE
     kotato/boxes/kotato_fonts_box.h
     kotato/boxes/kotato_radio_box.cpp
     kotato/boxes/kotato_radio_box.h
+    kotato/boxes/kotato_unpin_box.cpp
+    kotato/boxes/kotato_unpin_box.h
     kotato/kotato_lang.cpp
     kotato/kotato_lang.h
     kotato/kotato_settings.cpp
