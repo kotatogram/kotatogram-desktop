@@ -708,7 +708,13 @@ const style::icon *ChatTypeIcon(
 		not_null<PeerData*> peer,
 		const PaintContext &context) {
 	if (const auto user = peer->asUser()) {
-		if (ShowUserBotIcon(user)) {
+		if (user->isInaccessible()) {
+			return &(context.active
+				? st::dialogsDeletedIconActive
+				: (context.selected
+					? st::dialogsDeletedIconOver
+					: st::dialogsDeletedIcon));
+		} else if (ShowUserBotIcon(user)) {
 			return &(context.active
 				? st::dialogsBotIconActive
 				: context.selected

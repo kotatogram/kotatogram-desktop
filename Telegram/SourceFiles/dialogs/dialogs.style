@@ -321,6 +321,9 @@ dialogsBotIconActive: icon {{ "dialogs/dialogs_bot", dialogsChatIconFgActive, po
 dialogsForumIcon: icon {{ "dialogs/dialogs_forum", dialogsChatIconFg, point(1px, 4px) }};
 dialogsForumIconOver: icon {{ "dialogs/dialogs_forum", dialogsChatIconFgOver, point(1px, 4px) }};
 dialogsForumIconActive: icon {{ "dialogs/dialogs_forum", dialogsChatIconFgActive, point(1px, 4px) }};
+dialogsDeletedIcon: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFg, point(1px, 4px) }};
+dialogsDeletedIconOver: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFgOver, point(1px, 4px) }};
+dialogsDeletedIconActive: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFgActive, point(1px, 4px) }};
 dialogsArchiveUserpic: icon {{ "archive_userpic", historyPeerUserpicFg }};
 dialogsRepliesUserpic: icon {{ "replies_userpic", historyPeerUserpicFg }};
 dialogsInaccessibleUserpic: icon {{ "dialogs/inaccessible_userpic", historyPeerUserpicFg }};
