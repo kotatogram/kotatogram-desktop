@@ -1903,12 +1903,17 @@ void Filler::addVideoChat() {
 }
 
 void Filler::fillContextMenuActions() {
+	const auto profileEnabled = ViewProfileInChatsListContextMenu.value();
+	const auto profileOnTop = ::Kotato::JsonSettings::GetBool("view_profile_on_top");
 	addNewWindow();
 	addUngroup();
 	addHidePromotion();
+	if (profileEnabled && profileOnTop) {
+		addInfo();
+	}
 	addToggleArchive();
 	addTogglePin();
-	if (ViewProfileInChatsListContextMenu.value()) {
+	if (profileEnabled && !profileOnTop) {
 		addInfo();
 	}
 	addToggleMuteSubmenu(false);
