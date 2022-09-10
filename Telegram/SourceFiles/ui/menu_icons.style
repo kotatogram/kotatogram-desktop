@@ -78,6 +78,7 @@ menuIconPersonal: icon {{ "menu/personal", menuIconColor }};
 menuIconPorn: icon {{ "menu/porn", menuIconColor }};
 menuIconViolence: icon {{ "menu/violence", menuIconColor }};
 menuIconHide: icon {{ "menu/hide", menuIconColor }};
+menuIconMention: icon {{ "menu/mention", menuSubmenuArrowFg }};
 menuIconMuteFor: icon {{ "menu/mute_for", menuIconColor }};
 menuIconSilent: icon {{ "menu/silent", menuIconColor }};
 menuIconCustomize: icon {{ "menu/customize", menuIconColor }};

@@ -2701,6 +2701,13 @@ int MainWidget::backgroundFromY() const {
 void MainWidget::searchInChat(Dialogs::Key chat) {
 	searchMessages(QString(), chat);
 }
+void MainWidget::mentionUser(PeerData *peer) {
+	if (!_history->peer() || !_history->peer()->canWrite()) {
+		return;
+	}
+
+	_history->mentionUser(peer);
+}
 
 bool MainWidget::contentOverlapped(const QRect &globalRect) {
 	return _history->contentOverlapped(globalRect)

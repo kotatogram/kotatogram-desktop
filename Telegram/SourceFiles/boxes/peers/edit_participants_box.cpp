@@ -1614,6 +1614,14 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 							: Dialogs::Key(),
 							user);
 				}), &st::menuIconSearch);
+			if (const auto openedPeer = mainwidget->peer()) {
+				if (Data::CanSendTexts(openedPeer) && participant->isUser()) {
+					result->addAction(
+						ktr("ktg_profile_mention_user"),
+						crl::guard(this, [=] { mainwidget->mentionUser(user); }),
+						&st::menuIconMention);
+				}
+			}
 		}
 	}
 	if (_role == Role::Kicked) {
