@@ -720,9 +720,9 @@ void MainWidget::hideSingleUseKeyboard(FullMsgId replyToId) {
 	_history->hideSingleUseKeyboard(replyToId);
 }
 
-void MainWidget::searchMessages(const QString &query, Dialogs::Key inChat) {
+void MainWidget::searchMessages(const QString &query, Dialogs::Key inChat, UserData *from) {
 	if (controller()->isPrimary()) {
-		_dialogs->searchMessages(query, inChat);
+		_dialogs->searchMessages(query, inChat, from);
 		if (isOneColumn()) {
 			_controller->clearSectionStack();
 		} else {
@@ -742,7 +742,7 @@ void MainWidget::searchMessages(const QString &query, Dialogs::Key inChat) {
 			const auto account = &session().account();
 			if (const auto window = Core::App().windowFor(account)) {
 				if (const auto controller = window->sessionController()) {
-					controller->content()->searchMessages(query, inChat);
+					controller->content()->searchMessages(query, inChat, from);
 					controller->widget()->activate();
 				}
 			}

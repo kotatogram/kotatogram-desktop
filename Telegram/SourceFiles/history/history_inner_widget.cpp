@@ -8,6 +8,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_inner_widget.h"
 
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
+#include "mainwidget.h"
 #include "core/file_utilities.h"
 #include "core/click_handler_types.h"
 #include "history/history_item_helpers.h"
@@ -2141,6 +2143,17 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			_menu->addAction(isPinned ? tr::lng_context_unpin_msg(tr::now) : tr::lng_context_pin_msg(tr::now), crl::guard(controller, [=] {
 				Window::ToggleMessagePinned(controller, pinItemId, !isPinned);
 			}), isPinned ? &st::menuIconUnpin : &st::menuIconPin);
+		}
+		const auto peer = item->history()->peer;
+		if (peer->isChat() || peer->isMegagroup()) {
+			_menu->addAction(ktr("ktg_context_show_messages_from"), [=] {
+				controller->content()->searchMessages(
+					" ",
+					(peer && !peer->isUser())
+						? peer->owner().history(peer).get()
+						: Dialogs::Key(),
+						item->from()->asUser());
+			}, &st::menuIconSearch);
 		}
 		if (!item->isService()
 			&& peerIsChannel(itemId.peer)
