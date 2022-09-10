@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item_components.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_text_entities.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "lang/lang_keys.h"
@@ -583,7 +584,14 @@ QString ReplyMarkupClickHandler::copyToClipboardText() const {
 
 QString ReplyMarkupClickHandler::copyToClipboardContextItemText() const {
 	const auto button = getUrlButton();
-	return button ? tr::lng_context_copy_link(tr::now) : QString();
+	using Type = HistoryMessageMarkupButton::Type;
+	return button
+		? ((button->type == Type::Url || button->type == Type::Auth) 
+			? tr::lng_context_copy_link(tr::now)
+			: (button->type == Type::Callback || button->type == Type::CallbackWithPassword)
+			? ktr("ktg_copy_btn_callback")
+			: QString())
+		: QString();
 }
 
 // Finds the corresponding button in the items markup struct.
@@ -597,10 +605,13 @@ const HistoryMessageMarkupButton *ReplyMarkupClickHandler::getButton() const {
 auto ReplyMarkupClickHandler::getUrlButton() const
 -> const HistoryMessageMarkupButton* {
 	if (const auto button = getButton()) {
+		/*
 		using Type = HistoryMessageMarkupButton::Type;
 		if (button->type == Type::Url || button->type == Type::Auth) {
 			return button;
 		}
+		*/
+		return button;
 	}
 	return nullptr;
 }
