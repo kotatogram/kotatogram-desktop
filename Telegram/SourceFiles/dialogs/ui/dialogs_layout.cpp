@@ -937,7 +937,13 @@ const style::icon *ChatTypeIcon(
 				? st::dialogsChannelIconOver
 				: st::dialogsChannelIcon));
 	} else if (const auto user = peer->asUser()) {
-		if (ShowUserBotIcon(user)) {
+		if (user->isInaccessible()) {
+			return &(active
+				? st::dialogsDeletedIconActive
+				: (selected
+					? st::dialogsDeletedIconOver
+					: st::dialogsDeletedIcon));
+		} else if (ShowUserBotIcon(user)) {
 			return &(active
 				? st::dialogsBotIconActive
 				: (selected

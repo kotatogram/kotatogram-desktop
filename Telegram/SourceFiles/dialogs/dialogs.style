@@ -214,6 +214,9 @@ dialogsChannelIconActive: icon {{ "dialogs/dialogs_channel", dialogsChatIconFgAc
 dialogsBotIcon: icon {{ "dialogs/dialogs_bot", dialogsChatIconFg, point(1px, 3px) }};
 dialogsBotIconOver: icon {{ "dialogs/dialogs_bot", dialogsChatIconFgOver, point(1px, 3px) }};
 dialogsBotIconActive: icon {{ "dialogs/dialogs_bot", dialogsChatIconFgActive, point(1px, 3px) }};
+dialogsDeletedIcon: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFg, point(1px, 4px) }};
+dialogsDeletedIconOver: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFgOver, point(1px, 4px) }};
+dialogsDeletedIconActive: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFgActive, point(1px, 4px) }};
 dialogsArchiveUserpic: icon {{ "archive_userpic", historyPeerUserpicFg }};
 dialogsRepliesUserpic: icon {{ "replies_userpic", historyPeerUserpicFg }};
 
