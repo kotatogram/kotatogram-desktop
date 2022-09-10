@@ -84,7 +84,7 @@ public:
 
 	void scrollToEntry(const RowDescriptor &entry);
 
-	void searchMessages(const QString &query, Key inChat = {});
+	void searchMessages(const QString &query, Key inChat = {}, UserData *from = nullptr);
 	void onSearchMore();
 
 	void updateForwardBar();

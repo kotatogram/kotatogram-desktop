@@ -86,6 +86,7 @@ menuIconImportTheme: icon {{ "menu/import_theme", menuSubmenuArrowFg }};
 menuIconExportTheme: icon {{ "menu/export_theme", menuSubmenuArrowFg }};
 menuIconRestore: icon {{ "menu/restore", menuSubmenuArrowFg }};
 menuIconSettings: icon {{ "menu/settings", menuSubmenuArrowFg }};
+menuIconSearch: icon {{ "menu/search", menuSubmenuArrowFg }};
 menuIconHide: icon {{ "menu/hide", menuSubmenuArrowFg }};
 
 mediaMenuIconStickers: icon {{ "menu/stickers", mediaviewMenuFg }};
