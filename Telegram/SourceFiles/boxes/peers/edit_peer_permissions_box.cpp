@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/edit_peer_permissions_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
@@ -108,21 +109,24 @@ void ApplyDependencies(
 
 std::vector<std::pair<ChatRestrictions, QString>> RestrictionLabels() {
 	const auto langKeys = {
-		tr::lng_rights_chat_send_text,
-		tr::lng_rights_chat_send_media,
-		tr::lng_rights_chat_send_stickers,
-		tr::lng_rights_chat_send_links,
-		tr::lng_rights_chat_send_polls,
-		tr::lng_rights_chat_add_members,
-		tr::lng_rights_group_pin,
-		tr::lng_rights_group_info,
+		tr::lng_rights_chat_send_text(tr::now),
+		tr::lng_rights_chat_send_media(tr::now),
+		ktr("ktg_rights_chat_send_stickers"),
+		ktr("ktg_rights_chat_send_gif"),
+		ktr("ktg_rights_chat_send_games"),
+		ktr("ktg_rights_chat_use_inline"),
+		tr::lng_rights_chat_send_links(tr::now),
+		tr::lng_rights_chat_send_polls(tr::now),
+		tr::lng_rights_chat_add_members(tr::now),
+		tr::lng_rights_group_pin(tr::now),
+		tr::lng_rights_group_info(tr::now),
 	};
 
 	std::vector<std::pair<ChatRestrictions, QString>> vector;
 	const auto restrictions = Data::ListOfRestrictions();
 	auto i = 0;
 	for (const auto &key : langKeys) {
-		vector.emplace_back(restrictions[i++], key(tr::now));
+		vector.emplace_back(restrictions[i++], key);
 	}
 	return vector;
 }
@@ -163,6 +167,7 @@ auto Dependencies(ChatRestrictions)
 	using Flag = ChatRestriction;
 
 	return {
+		/*
 		// stickers <-> gifs
 		{ Flag::SendGifs, Flag::SendStickers },
 		{ Flag::SendStickers, Flag::SendGifs },
@@ -177,9 +182,22 @@ auto Dependencies(ChatRestrictions)
 
 		// stickers -> send_messages
 		{ Flag::SendStickers, Flag::SendMessages },
+		*/
 
 		// embed_links -> send_messages
 		{ Flag::EmbedLinks, Flag::SendMessages },
+
+		// send_games -> send_messages
+		{ Flag::SendGames, Flag::SendMessages },
+
+		// send_gifs -> send_messages
+		{ Flag::SendGifs, Flag::SendMessages },
+
+		// send_inline -> send_messages
+		{ Flag::SendInline, Flag::SendMessages },
+
+		// send_stickers -> send_messages
+		{ Flag::SendStickers, Flag::SendMessages },
 
 		// send_media -> send_messages
 		{ Flag::SendMedia, Flag::SendMessages },
@@ -285,11 +303,13 @@ ChatRestrictions FixDependentRestrictions(ChatRestrictions restrictions) {
 
 	// Fix iOS bug of saving send_inline like embed_links.
 	// We copy send_stickers to send_inline.
+	/*
 	if (restrictions & ChatRestriction::SendStickers) {
 		restrictions |= ChatRestriction::SendInline;
 	} else {
 		restrictions &= ~ChatRestriction::SendInline;
 	}
+	*/
 
 	// Apply the strictest.
 	const auto fixOne = [&] {

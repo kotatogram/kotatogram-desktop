@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/admin_log/history_admin_log_item.h"
 
+#include "kotato/kotato_lang.h"
 #include "history/admin_log/history_admin_log_inner.h"
 #include "history/view/history_view_element.h"
 #include "history/history_location_manager.h"
@@ -180,6 +181,26 @@ const auto CollectChanges = [](
 		+ withPrefix(minusFlags & ~plusFlags, kMinus);
 };
 
+const auto CollectChangesKtg = [](auto &phraseMap, auto &ktgPhraseMap, auto plusFlags, auto minusFlags) {
+	auto withPrefix = [&ktgPhraseMap, &phraseMap](auto flags, QChar prefix) {
+		auto result = QString();
+		for (auto &phrase : ktgPhraseMap) {
+			if (flags & phrase.first) {
+				result.append('\n' + (prefix + ktr(phrase.second)));
+			}
+		}
+
+		for (auto &phrase : phraseMap) {
+			if (flags & phrase.first) {
+				result.append('\n' + (prefix + phrase.second(tr::now)));
+			}
+		}
+		return result;
+	};
+	const auto kMinus = QChar(0x2212);
+	return withPrefix(plusFlags & ~minusFlags, '+') + withPrefix(minusFlags & ~plusFlags, kMinus);
+};
+
 TextWithEntities GenerateAdminChangeText(
 		not_null<ChannelData*> channel,
 		const TextWithEntities &user,
@@ -243,17 +264,19 @@ QString GeneratePermissionsChangeText(
 		{ Flag::ViewMessages, tr::lng_admin_log_banned_view_messages },
 		{ Flag::SendMessages, tr::lng_admin_log_banned_send_messages },
 		{ Flag::SendMedia, tr::lng_admin_log_banned_send_media },
-		{ Flag::SendStickers
-			| Flag::SendGifs
-			| Flag::SendInline
-			| Flag::SendGames, tr::lng_admin_log_banned_send_stickers },
 		{ Flag::EmbedLinks, tr::lng_admin_log_banned_embed_links },
 		{ Flag::SendPolls, tr::lng_admin_log_banned_send_polls },
 		{ Flag::ChangeInfo, tr::lng_admin_log_admin_change_info },
 		{ Flag::InviteUsers, tr::lng_admin_log_admin_invite_users },
 		{ Flag::PinMessages, tr::lng_admin_log_admin_pin_messages },
 	};
-	return CollectChanges(phraseMap, prevRights.flags, newRights.flags);
+	static auto ktgPhraseMap = std::map<Flags, QString>{
+		{ Flag::SendStickers, "ktg_admin_log_banned_send_stickers" },
+		{ Flag::SendGifs, "ktg_admin_log_banned_send_gif" },
+		{ Flag::SendInline, "ktg_admin_log_banned_use_inline" },
+		{ Flag::SendGames, "ktg_admin_log_banned_send_games" },
+	};
+	return CollectChangesKtg(phraseMap, ktgPhraseMap, prevRights.flags, newRights.flags);
 }
 
 TextWithEntities GeneratePermissionsChangeText(

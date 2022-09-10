@@ -6836,9 +6836,11 @@ bool HistoryWidget::sendExistingDocument(
 		not_null<DocumentData*> document,
 		Api::SendOptions options,
 		std::optional<MsgId> localId) {
-	const auto error = _peer
-		? Data::RestrictionError(_peer, ChatRestriction::SendStickers)
-		: std::nullopt;
+	const auto error = !_peer
+		? std::nullopt
+		: document->sticker()
+			? Data::RestrictionError(_peer, ChatRestriction::SendStickers)
+			: Data::RestrictionError(_peer, ChatRestriction::SendGifs);
 	if (error) {
 		controller()->show(
 			Ui::MakeInformBox(*error),
