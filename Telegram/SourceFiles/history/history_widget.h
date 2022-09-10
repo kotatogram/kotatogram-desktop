@@ -273,6 +273,8 @@ public:
 		not_null<PhotoData*> photo,
 		Api::SendOptions options);
 
+	void mentionUser(PeerData *peer);
+
 	void showInfoTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback);

@@ -7542,6 +7542,25 @@ bool HistoryWidget::sendExistingPhoto(
 	return true;
 }
 
+void HistoryWidget::mentionUser(PeerData *peer) {
+	if (!peer || !peer->isUser()) {
+		return;
+	}
+
+	const auto user = peer->asUser();
+	QString replacement, entityTag;
+	if (user->username.isEmpty()) {
+		replacement = user->firstName;
+		if (replacement.isEmpty()) {
+			replacement = user->name;
+		}
+		entityTag = PrepareMentionTag(user);
+	} else {
+		replacement = '@' + user->username;
+	}
+	_field->insertTag(replacement, entityTag);
+}
+
 void HistoryWidget::showInfoTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback) {

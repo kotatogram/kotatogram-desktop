@@ -203,6 +203,8 @@ public:
 
 	bool contentOverlapped(const QRect &globalRect);
 
+	void mentionUser(PeerData *peer);
+
 	void showChooseReportMessages(
 		not_null<PeerData*> peer,
 		Ui::ReportReason reason,

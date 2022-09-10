@@ -2697,6 +2697,14 @@ int MainWidget::backgroundFromY() const {
 	return -getMainSectionTop();
 }
 
+void MainWidget::mentionUser(PeerData *peer) {
+	if (!_history->peer() || !_history->peer()->canWrite()) {
+		return;
+	}
+
+	_history->mentionUser(peer);
+}
+
 bool MainWidget::contentOverlapped(const QRect &globalRect) {
 	return _history->contentOverlapped(globalRect)
 		|| _playerPlaylist->overlaps(globalRect);
