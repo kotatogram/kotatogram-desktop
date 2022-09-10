@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwindow.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
 #include "data/data_document_media.h"
@@ -147,6 +148,9 @@ void MainWindow::createTrayIconMenu() {
 	const auto notificationAction = trayIconMenu->addAction(QString(), [=] {
 		toggleDisplayNotifyFromTray();
 	});
+	const auto soundAction = trayIconMenu->addAction(QString(), [=] {
+		toggleSoundNotifyFromTray();
+	});
 	trayIconMenu->addAction(ktr("ktg_quit_from_tray"), [=] {
 		quitFromTray();
 	});
@@ -166,6 +170,11 @@ void MainWindow::createTrayIconMenu() {
 			? tr::lng_disable_notifications_from_tray(tr::now)
 			: tr::lng_enable_notifications_from_tray(tr::now);
 		notificationAction->setText(notificationActionText);
+
+		auto soundActionText = Core::App().settings().soundNotify()
+			? ktr("ktg_settings_disable_sound_from_tray")
+			: ktr("ktg_settings_enable_sound_from_tray");
+		soundAction->setText(soundActionText);
 	}, lifetime());
 
 	_updateTrayMenuTextActions.fire({});
@@ -804,6 +813,24 @@ void MainWindow::toggleDisplayNotifyFromTray() {
 	if (flashBounceNotifyChanged) {
 		notifications.notifySettingsChanged(Change::FlashBounceEnabled);
 	}
+}
+
+void MainWindow::toggleSoundNotifyFromTray() {
+	if (controller().locked()) {
+		if (!isActive()) showFromTray();
+		Ui::show(Box<Ui::InformBox>(tr::lng_passcode_need_unblock(tr::now)));
+		return;
+	}
+	if (!sessionController()) {
+		return;
+	}
+
+	auto &settings = Core::App().settings();
+	settings.setSoundNotify(!settings.soundNotify());
+	account().session().saveSettings();
+	using Change = Window::Notifications::ChangeType;
+	auto &notifications = Core::App().notifications();
+	notifications.notifySettingsChanged(Change::SoundEnabled);
 }
 
 void MainWindow::closeEvent(QCloseEvent *e) {

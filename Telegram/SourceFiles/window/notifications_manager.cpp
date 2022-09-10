@@ -94,6 +94,8 @@ System::System()
 	) | rpl::start_with_next([=](ChangeType type) {
 		if (type == ChangeType::DesktopEnabled) {
 			clearAll();
+		} else if (type == ChangeType::SoundEnabled) {
+			App::wnd()->updateTrayMenu();
 		} else if (type == ChangeType::ViewParams) {
 			updateAll();
 		} else if (type == ChangeType::IncludeMuted

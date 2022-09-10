@@ -140,6 +140,7 @@ private:
 	void themeUpdated(const Window::Theme::BackgroundUpdate &data);
 
 	void toggleDisplayNotifyFromTray();
+	void toggleSoundNotifyFromTray();
 
 	QPixmap grabInner();
 
