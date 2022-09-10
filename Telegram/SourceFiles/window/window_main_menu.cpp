@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_main_menu.h"
 
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "window/themes/window_theme.h"
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
@@ -892,6 +893,7 @@ void MainMenu::rebuildAccounts() {
 		(inner->count() < Main::Domain::kMaxAccounts),
 		anim::type::instant);
 
+	_accountsCount = inner->count() ;
 	_reorder->start();
 }
 
@@ -930,9 +932,21 @@ not_null<Ui::SlideWrap<Ui::RippleButton>*> MainMenu::setupAddAccount(
 	}, button->lifetime());
 
 	const auto add = [=](MTP::Environment environment) {
-		Core::App().preventOrInvoke([=] {
-			Core::App().domain().addActivated(environment);
-		});
+		const auto sure = [=] {
+			Core::App().preventOrInvoke([=] {
+				Core::App().domain().addActivated(environment);
+			});
+		};
+		if (_accountsCount >= Main::Domain::kMaxAccountsWarn) {
+			Ui::show(
+				Box<Ui::ConfirmBox>(
+					ktr("ktg_too_many_accounts_warning"),
+					ktr("ktg_account_add_anyway"),
+					sure),
+				Ui::LayerOption::KeepOther);
+		} else {
+			sure();
+		}
 	};
 
 	button->setAcceptBoth(true);

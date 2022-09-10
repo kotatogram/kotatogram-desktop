@@ -155,6 +155,8 @@
 	"ktg_channel_status_not_in": "not subscribed",
 	"ktg_group_status_owner": "is owner",
 	"ktg_group_status_admin": "is admin",
+	"ktg_too_many_accounts_warning": "Warning! Using too many accounts at the same time is not recommended due to higher memory comsumption and possible crashes because of it.\n\nYou sure you want to add a new account?",
+	"ktg_account_add_anyway": "Add anyway",
 	"ktg_forward_go_to_chat": "Go to chat",
 	"ktg_settings_forward": "Forward",
 	"ktg_settings_forward_retain_selection": "Retain selection after forward",
