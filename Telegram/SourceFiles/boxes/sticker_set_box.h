@@ -79,6 +79,7 @@ private:
 	bool showMenu(not_null<Ui::IconButton*> button);
 	void addStickers();
 	void copyStickersLink();
+	void copyTitle();
 	void handleError(Error error);
 
 	const not_null<Window::SessionController*> _controller;
