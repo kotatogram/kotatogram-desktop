@@ -7,11 +7,15 @@ Copyright (C) 2017, Nicholas Guriev <guriev-ns@ya.ru>
 */
 #include "boxes/mute_settings_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
+#include "base/event_filter.h"
 #include "main/main_session.h"
 #include "data/data_session.h"
 #include "data/data_peer.h"
 #include "ui/special_buttons.h"
+#include "ui/widgets/dropdown_menu.h"
+#include "ui/widgets/input_fields.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
 #include "styles/style_layers.h"
@@ -20,11 +24,15 @@ Copyright (C) 2017, Nicholas Guriev <guriev-ns@ya.ru>
 namespace {
 
 constexpr auto kForeverHours = 24 * 365;
+constexpr auto kForeverSeconds = kForeverHours * 3600;
+constexpr auto kCustomFor = kForeverHours - 1;
 
 } // namespace
 
 MuteSettingsBox::MuteSettingsBox(QWidget *parent, not_null<PeerData*> peer)
-: _peer(peer) {
+: _peer(peer)
+, _forNumberInput(this, st::scheduleDateField)
+, _forPeriodInput(this, st::scheduleDateField) {
 }
 
 void MuteSettingsBox::prepare() {
@@ -55,12 +63,28 @@ void MuteSettingsBox::prepare() {
 	// in fact, this is mute only for 1 year
 	const auto group = std::make_shared<Ui::RadiobuttonGroup>(kForeverHours);
 	y += st::boxOptionListPadding.top();
-	for (const auto hours : { 1, 4, 18, 72, kForeverHours }) {
+
+	const auto makePeriodText = [=, this] (Period period) {
+		const auto currentValue = _forNumberInput->getLastText().toInt();
+		switch (period) {
+			case Period::Second: return ktr("ktg_notifications_mute_seconds", currentValue);
+			case Period::Minute: return ktr("ktg_notifications_mute_minutes", currentValue);
+			case Period::Hour: return ktr("ktg_notifications_mute_hours", currentValue);
+			case Period::Day: return ktr("ktg_notifications_mute_days", currentValue);
+
+			default:
+				return QString();
+		}
+	};
+
+	// Prefill input values, default is 1 hour
+	_forNumberInput->setText("1");
+	_forPeriodInput->setText(makePeriodText(_period));
+
+	for (const auto hours : { kCustomFor, kForeverHours }) {
 		const auto text = [&] {
-			if (hours < 24) {
-				return tr::lng_mute_duration_hours(tr::now, lt_count, hours);
-			} else if (hours < kForeverHours) {
-				return tr::lng_mute_duration_days(tr::now, lt_count, hours / 24);
+			if (hours == kCustomFor) {
+				return ktr("ktg_mute_for_selected_time");
 			} else {
 				return tr::lng_mute_duration_forever(tr::now);
 			}
@@ -68,17 +92,115 @@ void MuteSettingsBox::prepare() {
 		object_ptr<Ui::Radiobutton> option(this, group, hours, text);
 		option->moveToLeft(st::boxPadding.left(), y);
 		y += option->heightNoMargins() + st::boxOptionListSkip;
+
+		if (hours == kCustomFor) {
+			const auto fieldLeft = st::boxPadding.left()
+				+ st::autolockButton.margin.left()
+				+ st::autolockButton.margin.right()
+				+ st::defaultToggle.width
+				+ st::defaultToggle.border * 2;
+
+			_forNumberInput->resizeToWidth(st::scheduleTimeWidth);
+			_forNumberInput->moveToLeft(fieldLeft, y);
+
+			_forPeriodInput->resizeToWidth(st::scheduleDateWidth);
+			_forPeriodInput->moveToLeft(fieldLeft + st::scheduleTimeWidth + st::scheduleAtSkip, y);
+
+			y += _forNumberInput->heightNoMargins() + st::boxOptionListSkip;
+		}
 	}
+	group->setChangedCallback([this] (int hours) {
+		if (hours == kCustomFor) {
+			_forNumberInput->setFocus();
+		} else {
+			_forNumberInput->clearFocus();
+		}
+	});
 	y += st::boxOptionListPadding.bottom()
 		- st::boxOptionListSkip
 		+ st::defaultCheckbox.margin.bottom();
 
+	_forNumberInput->customTab(true);
+
+	_forNumberInput->documentContentsChanges(
+	) | rpl::start_with_next([=](const auto &value) {
+		_forNumberInput->hideError();
+		_forPeriodInput->setText(makePeriodText(_period));
+	}, _lifetime);
+
+	QObject::connect(_forNumberInput, &Ui::InputField::focused, [=] {
+		if (group->value() != kCustomFor) {
+			group->setValue(kCustomFor);
+		}
+	});
+
+	_forPeriodInput->rawTextEdit()->setTextInteractionFlags(Qt::NoTextInteraction);
+
+	const auto &forPeriodViewport = _forPeriodInput->rawTextEdit()->viewport();
+	base::install_event_filter(forPeriodViewport, [=](not_null<QEvent*> event) {
+		switch (event->type()) {
+			case QEvent::Leave:
+				if (_menu) {
+					_menu->hideAnimated();
+				}
+				return base::EventFilterResult::Cancel;
+
+			case QEvent::ContextMenu:
+			case QEvent::MouseButtonDblClick:
+				return base::EventFilterResult::Cancel;
+
+			case QEvent::MouseButtonPress:
+				if (group->value() != kCustomFor) {
+					group->setValue(kCustomFor);
+				}
+
+				_forNumberInput->setFocus();
+
+				if (_menu) {
+					_menu->hideAnimated(Ui::InnerDropdown::HideOption::IgnoreShow);
+					return base::EventFilterResult::Cancel;
+				}
+
+				_menu = base::make_unique_q<Ui::DropdownMenu>(window());
+				const auto weak = _menu.get();
+				_menu->setHiddenCallback([=] {
+					weak->deleteLater();
+				});
+
+				for (const auto period : { Period::Second, Period::Minute, Period::Hour, Period::Day }) {
+					const auto periodStr = makePeriodText(period);
+					_menu->addAction(periodStr, [=] {
+						_period = period;
+						_forPeriodInput->setText(periodStr);
+					});
+				}
+
+				const auto parentTopLeft = window()->mapToGlobal(QPoint());
+				const auto inputTopLeft = _forPeriodInput->mapToGlobal(QPoint());
+				const auto parentRect = QRect(parentTopLeft, window()->size());
+				const auto inputRect = QRect(inputTopLeft, _forPeriodInput->size());
+				_menu->move(
+					inputRect.x() + inputRect.width() + st::boxPadding.left() - _menu->width() - parentRect.x(),
+					inputRect.y() + inputRect.height() - parentRect.y());
+				_menu->showAnimated(Ui::PanelAnimation::Origin::TopRight);
+				return base::EventFilterResult::Cancel;
+		}
+
+		return base::EventFilterResult::Continue;
+	});
+
 	_save = [=] {
-		const auto muteForSeconds = group->value() * 3600;
-		_peer->owner().updateNotifySettings(
-			_peer,
-			muteForSeconds);
-		closeBox();
+		const auto muteForSeconds = (group->value() == kCustomFor)
+			? _forNumberInput->getLastText().toInt() * int(_period)
+			: group->value() * 3600;
+		if (muteForSeconds <= 0 || muteForSeconds > kForeverSeconds) {
+			_forNumberInput->showError();
+		} else {
+			_peer->owner().updateNotifySettings(
+				_peer,
+				muteForSeconds);
+			closeBox();
+		}
 	};
 	addButton(tr::lng_box_ok(), _save);
 	addButton(tr::lng_cancel(), [this] { closeBox(); });
