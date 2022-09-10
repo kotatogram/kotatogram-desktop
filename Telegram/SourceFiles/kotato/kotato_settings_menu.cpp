@@ -241,6 +241,21 @@ void SetupKotatoChats(
 		Ui::show(Box<FontsBox>());
 	});
 
+	container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_disable_chat_themes"),
+		st::settingsButtonNoIcon
+	))->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("disable_chat_themes"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("disable_chat_themes"));
+	}) | rpl::start_with_next([controller](bool enabled) {
+		::Kotato::JsonSettings::Set("disable_chat_themes", enabled);
+		controller->session().data().cloudThemes().refreshChatThemes();
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
 
 	Ui::AddSkip(container);
 	Ui::AddDivider(container);

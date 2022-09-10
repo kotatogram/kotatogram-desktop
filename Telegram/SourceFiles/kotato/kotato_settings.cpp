@@ -392,6 +392,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "forward_force_old_unquoted", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "disable_chat_themes", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;
