@@ -172,5 +172,7 @@
 	"ktg_settings_compress_images_default": "Compress images by default",
 	"ktg_forward_quiz_unquoted": "Sorry, quizzes that are currently open and unvoted on cannot be forwarded unquoted.",
 	"ktg_in_app_update_disabled": "In-app updater is disabled.",
+	"ktg_settings_view_profile_on_top": "Show \"View Profile\" first",
+	"ktg_settings_view_profile_on_top_about": "This option also enables \"Add \"View Profile\"\" from TDesktop's experimental settings.",
 	"dummy_last_string": ""
 }

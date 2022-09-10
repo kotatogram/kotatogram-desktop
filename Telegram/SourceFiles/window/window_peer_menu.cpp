@@ -855,10 +855,15 @@ void Filler::fill() {
 }
 
 void Filler::fillChatsListActions() {
+	const auto profileEnabled = ViewProfileInChatsListContextMenu.value();
+	const auto profileOnTop = ::Kotato::JsonSettings::GetBool("view_profile_on_top");
 	addHidePromotion();
+	if (profileEnabled && profileOnTop) {
+		addInfo();
+	}
 	addToggleArchive();
 	addTogglePin();
-	if (ViewProfileInChatsListContextMenu.value()) {
+	if (profileEnabled && !profileOnTop) {
 		addInfo();
 	}
 	addToggleMuteSubmenu(false);
