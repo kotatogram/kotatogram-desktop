@@ -256,6 +256,28 @@ void SetupKotatoChats(
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 
+	container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_settings_view_profile_on_top"),
+		st::settingsButtonNoIcon
+	))->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("view_profile_on_top"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("view_profile_on_top"));
+	}) | rpl::start_with_next([](bool enabled) {
+		::Kotato::JsonSettings::Set("view_profile_on_top", enabled);
+		if (enabled) {
+			auto &option = ::base::options::lookup<bool>(Window::kOptionViewProfileInChatsListContextMenu);
+			option.set(true);
+		}
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	Ui::AddSkip(container);
+	Ui::AddDividerText(container, rktr("ktg_settings_view_profile_on_top_about"));
+	Ui::AddSkip(container);
+
 
 	Ui::AddSkip(container);
 	Ui::AddDivider(container);

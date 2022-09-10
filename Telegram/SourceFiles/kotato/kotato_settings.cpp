@@ -398,6 +398,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "remember_compress_images", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "view_profile_on_top", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_peer_menu.h"
 
+#include "kotato/kotato_settings.h"
 #include "menu/menu_check_item.h"
 #include "boxes/share_box.h"
 #include "chat_helpers/compose/compose_show.h"
@@ -1235,7 +1236,6 @@ void Filler::fillChatsListActions() {
 		return;
 	}
 	addCreateTopic();
-	addInfo();
 	addViewAsMessages();
 	const auto &all = _peer->forum()->topicsList()->indexed()->all();
 	if (all.size() > kTopicsSearchMinCount) {
@@ -1277,11 +1277,16 @@ void Filler::addVideoChat() {
 }
 
 void Filler::fillContextMenuActions() {
+	const auto profileEnabled = ViewProfileInChatsListContextMenu.value();
+	const auto profileOnTop = ::Kotato::JsonSettings::GetBool("view_profile_on_top");
 	addNewWindow();
 	addHidePromotion();
+	if (profileEnabled && profileOnTop) {
+		addInfo();
+	}
 	addToggleArchive();
 	addTogglePin();
-	if (ViewProfileInChatsListContextMenu.value()) {
+	if (profileEnabled && !profileOnTop) {
 		addInfo();
 	}
 	addToggleMuteSubmenu(false);
