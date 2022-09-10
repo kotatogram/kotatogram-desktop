@@ -25,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "storage/file_download.h"
 #include "data/data_peer_values.h"
+#include "data/data_channel.h"
 #include "data/data_chat.h"
 #include "data/data_user.h"
 #include "data/data_session.h"
@@ -569,14 +570,22 @@ void PeerListRow::refreshStatus() {
 		if (!chat->amIn()) {
 			setStatusText(tr::lng_chat_status_unaccessible(tr::now));
 		} else if (chat->count > 0) {
-			setStatusText(tr::lng_chat_status_members(tr::now, lt_count_decimal, chat->count));
+			setStatusText(tr::lng_group_status(tr::now) + ", " + tr::lng_chat_status_members(tr::now, lt_count_decimal, chat->count));
 		} else {
 			setStatusText(tr::lng_group_status(tr::now));
 		}
 	} else if (peer()->isMegagroup()) {
-		setStatusText(tr::lng_group_status(tr::now));
+		if (peer()->asChannel()->membersCountKnown()) {
+			setStatusText(ktr("ktg_supergroup_status") + ", " + tr::lng_chat_status_members(tr::now, lt_count_decimal, peer()->asChannel()->membersCount()));
+		} else {
+			setStatusText(ktr("ktg_supergroup_status"));
+		}
 	} else if (peer()->isChannel()) {
-		setStatusText(tr::lng_channel_status(tr::now));
+		if (peer()->asChannel()->membersCountKnown()) {
+			setStatusText(tr::lng_channel_status(tr::now) + ", " + tr::lng_chat_status_subscribers(tr::now, lt_count_decimal, peer()->asChannel()->membersCount()));
+		} else {
+			setStatusText(tr::lng_channel_status(tr::now));
+		}
 	}
 }
 
