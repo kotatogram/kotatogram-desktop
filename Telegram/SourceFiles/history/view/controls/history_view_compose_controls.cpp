@@ -1842,9 +1842,22 @@ void ComposeControls::initTabbedSelector() {
 		setTabbedPanel(nullptr);
 	}
 
+	base::install_event_filter(_tabbedSelectorToggle, [=](not_null<QEvent*> e) {
+		if (e->type() == QEvent::ContextMenu) {
+			if (::Kotato::JsonSettings::GetBool("emoji_sidebar_right_click")) {
+				toggleTabbedSelectorMode();
+			} else if (_tabbedPanel) {
+				_tabbedPanel->toggleAnimated();
+			}
+			return base::EventFilterResult::Cancel;
+		}
+		return base::EventFilterResult::Continue;
+	});
+
 	_tabbedSelectorToggle->addClickHandler([=] {
-		if (_tabbedPanel && _tabbedPanel->isHidden()) {
-			_tabbedPanel->showAnimated();
+		if (_tabbedPanel && (_tabbedPanel->isHidden()
+				|| ::Kotato::JsonSettings::GetBool("emoji_sidebar_right_click"))) {
+			_tabbedPanel->toggleAnimated();
 		} else {
 			toggleTabbedSelectorMode();
 		}
@@ -2323,7 +2336,8 @@ void ComposeControls::toggleTabbedSelectorMode() {
 	}
 	if (_tabbedPanel) {
 		if (_window->canShowThirdSection()
-				&& !_window->adaptive().isOneColumn()) {
+				&& !_window->adaptive().isOneColumn()
+				&& ::Kotato::JsonSettings::GetBool("emoji_sidebar")) {
 			Core::App().settings().setTabbedSelectorSectionEnabled(true);
 			Core::App().saveSettingsDelayed();
 			pushTabbedSelectorToThirdSection(

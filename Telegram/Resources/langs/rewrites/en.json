@@ -174,5 +174,7 @@
 	"ktg_in_app_update_disabled": "In-app updater is disabled.",
 	"ktg_settings_view_profile_on_top": "Show \"View Profile\" first",
 	"ktg_settings_view_profile_on_top_about": "This option also enables \"Add \"View Profile\"\" from TDesktop's experimental settings.",
+	"ktg_settings_emoji_sidebar": "Enable emoji sidebar",
+	"ktg_settings_emoji_sidebar_right_click": "Emoji sidebar on right click",
 	"dummy_last_string": ""
 }
