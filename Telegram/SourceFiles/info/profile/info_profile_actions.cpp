@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
+#include "ui/text/format_values.h" // Ui::FormatPhone
 #include "ui/text/text_variant.h"
 #include "history/history_location_manager.h" // LocationClickHandler.
 #include "history/view/history_view_context_menu.h" // HistoryView::ShowReportPeerBox
@@ -393,7 +394,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 			std::move(label),
 			std::move(text),
 			st::infoLabeledOneLineInline);
-		result->setContextCopyText(contextCopyText);
+		result.text->setContextCopyText(contextCopyText);
 		return result;
 	};
 	if (const auto user = _peer->asUser()) {
@@ -411,7 +412,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				std::move(idDrawableText),
 				ktr("ktg_profile_copy_id"));
 
-			idInfo->setClickHandlerFilter([user](auto&&...) {
+			idInfo.text->setClickHandlerFilter([user](auto&&...) {
 				const auto idText = IDString(user);
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
@@ -428,6 +429,21 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				user->session().supportHelper().infoLabelValue(user),
 				user->session().supportHelper().infoTextValue(user));
 		}
+		
+		auto phoneDrawableText = rpl::combine(
+			PhoneValue(user),
+			UsernameValue(user),
+			AboutValue(user),
+			tr::lng_info_mobile_hidden()
+		) | rpl::map([](
+				const TextWithEntities &phone,
+				const TextWithEntities &username,
+				const TextWithEntities &bio,
+				const QString &hidden) {
+			return (phone.text.isEmpty() && username.text.isEmpty() && bio.text.isEmpty())
+				? Ui::Text::WithEntities(hidden)
+				: Ui::Text::Link(phone.text);
+		});
 
 		{
 			const auto phoneLabel = addInfoOneLine(
@@ -439,6 +455,14 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				AddPhoneMenu(request.menu, user);
 			};
 			phoneLabel->setContextMenuHook(hook);
+			phoneLabel->setClickHandlerFilter([user](auto&&...) {
+				const auto phoneText = user->phone();
+				if (!phoneText.isEmpty()) {
+					QGuiApplication::clipboard()->setText(Ui::FormatPhone(phoneText));
+					Ui::Toast::Show(ktr("ktg_phone_copied"));
+				}
+				return false;
+			});
 		}
 		auto label = user->isBot()
 			? tr::lng_info_about_label()
@@ -536,7 +560,7 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				std::move(idDrawableText),
 				ktr("ktg_profile_copy_id"));
 
-			idInfo->setClickHandlerFilter([peer = _peer](auto&&...) {
+			idInfo.text->setClickHandlerFilter([peer = _peer](auto&&...) {
 				const auto idText = IDString(peer);
 				if (!idText.isEmpty()) {
 					QGuiApplication::clipboard()->setText(idText);
