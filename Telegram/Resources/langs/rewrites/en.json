@@ -70,6 +70,8 @@
 	"ktg_settings_ffmpeg_multithread": "Multithread video decoding",
 	"ktg_settings_ffmpeg_multithread_about": "When enabled, CPU and RAM consumption is higher, video decodes faster. When disabled, CPU and RAM consumption is lower, video decodes slower. The more CPU cores you have, the more RAM consumption you have when this option is enabled. You can set exact number of threads in the JSON configuration file.",
 	"ktg_settings_adaptive_bubbles": "Adaptive bubbles",
+	"ktg_settings_disable_sound_from_tray": "Disable sound",
+	"ktg_settings_enable_sound_from_tray": "Enable sound",
 	"ktg_settings_recent_stickers_limit": {
 		"zero": "Recent stickers: show {count} stickers",
 		"one": "Recent stickers: show {count} sticker",
