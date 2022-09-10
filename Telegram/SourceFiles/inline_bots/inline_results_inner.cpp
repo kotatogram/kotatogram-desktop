@@ -259,7 +259,8 @@ void Inner::mouseReleaseEvent(QMouseEvent *e) {
 void Inner::selectInlineResult(
 		int index,
 		Api::SendOptions options,
-		bool open) {
+		bool open,
+		bool sendPreview) {
 	const auto item = _mosaic.maybeItemAt(index);
 	if (!item) {
 		return;
@@ -272,6 +273,7 @@ void Inner::selectInlineResult(
 				.bot = _inlineBot,
 				.options = std::move(options),
 				.open = open,
+				.sendPreview = sendPreview,
 			});
 		}
 	}
@@ -317,8 +319,23 @@ void Inner::contextMenuEvent(QContextMenuEvent *e) {
 		SendMenu::DefaultSilentCallback(send),
 		SendMenu::DefaultScheduleCallback(this, type, send));
 
+	const auto hideViaActions = [&] {
+		const auto sendPreview = [=, selected = _selected](Api::SendOptions options) {
+			selectInlineResult(selected, options, false, true);
+		};
+
+		SendMenu::FillSendPreviewMenu(
+			_menu,
+			type,
+			[=] { sendPreview({}); },
+			SendMenu::DefaultSilentCallback(sendPreview),
+			SendMenu::DefaultScheduleCallback(this, type, sendPreview));
+	};
+
 	const auto item = _mosaic.itemAt(_selected);
 	if (const auto previewDocument = item->getPreviewDocument()) {
+		hideViaActions();
+
 		auto callback = [&](
 				const QString &text,
 				Fn<void()> &&done,
@@ -326,6 +343,8 @@ void Inner::contextMenuEvent(QContextMenuEvent *e) {
 			_menu->addAction(text, std::move(done), icon);
 		};
 		ChatHelpers::AddGifAction(std::move(callback), previewDocument);
+	} else if (const auto previewPhoto = item->getPreviewPhoto()) {
+		hideViaActions();
 	}
 
 	if (!_menu->empty()) {

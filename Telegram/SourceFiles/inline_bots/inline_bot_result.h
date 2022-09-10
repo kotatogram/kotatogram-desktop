@@ -134,6 +134,7 @@ struct ResultSelected {
 	Api::SendOptions options;
 	// Open in OverlayWidget;
 	bool open = false;
+	bool sendPreview = false;
 };
 
 } // namespace InlineBots
