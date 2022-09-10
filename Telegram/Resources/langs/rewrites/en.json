@@ -30,6 +30,7 @@
 	"ktg_user_status_unaccessible": "account inaccessible",
 	"ktg_settings_show_json_settings": "Show settings file",
 	"ktg_settings_restart": "Restart Kotatogram",
+	"ktg_copy_btn_callback": "Copy callback data",
 	"ktg_settings_chats": "Chats",
 	"ktg_settings_sticker_height": "Sticker height: {pixels}px",
 	"ktg_settings_sticker_scale_both": "Apply to sticker width",
