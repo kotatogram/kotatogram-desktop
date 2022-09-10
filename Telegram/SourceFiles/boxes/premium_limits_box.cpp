@@ -1054,6 +1054,7 @@ void FileSizeLimitBox(
 		});
 }
 
+/*
 void AccountsLimitBox(
 		not_null<Ui::GenericBox*> box,
 		not_null<Main::Session*> session) {
@@ -1180,7 +1181,7 @@ void AccountsLimitBox(
 		box->addSkip(st::premiumAccountsPadding.bottom());
 	}
 }
-
+*/
 QString LimitsPremiumRef(const QString &addition) {
 	return "double_limits__" + addition;
 }

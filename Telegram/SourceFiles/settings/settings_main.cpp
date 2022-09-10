@@ -710,9 +710,21 @@ rpl::producer<QString> Main::title() {
 
 void Main::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	const auto &list = Core::App().domain().accounts();
-	if (list.size() < Core::App().domain().maxAccounts()) {
+	if (list.size() < ::Main::Domain::kMaxAccountsWarn) {
 		addAction(tr::lng_menu_add_account(tr::now), [=] {
 			Core::App().domain().addActivated(MTP::Environment{});
+		}, &st::menuIconAddAccount);
+	} else if (list.size() < Core::App().domain().maxAccounts()) {
+		addAction(tr::lng_menu_add_account(tr::now), [=] {
+			_controller->show(
+				Ui::MakeConfirmBox({
+					.text = ktr("ktg_too_many_accounts_warning"),
+					.confirmed = [=] {
+						Core::App().domain().addActivated(MTP::Environment{});
+					},
+					.confirmText = ktr("ktg_account_add_anyway"),
+				}),
+			Ui::LayerOption::KeepOther);
 		}, &st::menuIconAddAccount);
 	}
 	if (!_controller->session().supportMode()) {
