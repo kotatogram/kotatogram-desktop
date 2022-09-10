@@ -790,12 +790,12 @@ void MainWidget::hideSingleUseKeyboard(PeerData *peer, MsgId replyTo) {
 	_history->hideSingleUseKeyboard(peer, replyTo);
 }
 
-void MainWidget::searchMessages(const QString &query, Dialogs::Key inChat) {
+void MainWidget::searchMessages(const QString &query, Dialogs::Key inChat, UserData *from) {
 	// #TODO windows
 	if (!_dialogs) {
 		return;
 	}
-	_dialogs->searchMessages(query, inChat);
+	_dialogs->searchMessages(query, inChat, from);
 	if (isOneColumn()) {
 		Ui::showChatsList(&session());
 	} else {

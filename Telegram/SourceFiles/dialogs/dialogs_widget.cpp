@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
+#include "main/main_account.h"
 #include "main/main_session_settings.h"
 #include "apiwrap.h"
 #include "base/event_filter.h"
@@ -1059,7 +1060,8 @@ void Widget::showMainMenu() {
 
 void Widget::searchMessages(
 		const QString &query,
-		Key inChat) {
+		Key inChat,
+		UserData *from) {
 	auto inChatChanged = [&] {
 		if (inChat == _searchInChat) {
 			return false;
@@ -1075,13 +1077,19 @@ void Widget::searchMessages(
 			cancelSearch();
 			setSearchInChat(inChat);
 		}
-		_filter->setText(query);
+		if (!query.trimmed().isEmpty()) {
+			_filter->setText(query);
+		}
 		_filter->updatePlaceholder();
 		applyFilterUpdate(true);
 		_searchTimer.cancel();
 		searchMessages();
 
 		session().local().saveRecentSearchHashtags(query);
+	}
+	if (inChat && from) {
+		setSearchInChat(inChat, from);
+		applyFilterUpdate(true);
 	}
 }
 

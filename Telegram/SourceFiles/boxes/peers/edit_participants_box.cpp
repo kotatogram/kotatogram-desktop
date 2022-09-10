@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/edit_participants_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_chat_participants.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/peers/edit_participant_box.h"
@@ -17,8 +18,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/add_contact_box.h"
 #include "main/main_session.h"
 #include "mtproto/mtproto_config.h"
+#include "facades.h"
 #include "apiwrap.h"
 #include "lang/lang_keys.h"
+#include "mainwindow.h"
 #include "mainwidget.h"
 #include "dialogs/dialogs_indexed_list.h"
 #include "data/data_peer_values.h"
@@ -1544,6 +1547,20 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 			(participant->isUser()
 				? &st::menuIconProfile
 				: &st::menuIconInfo));
+	}
+	if (const auto window = App::wnd()) {
+		if (const auto mainwidget = window->sessionContent()) {
+			result->addAction(
+				ktr("ktg_context_show_messages_from"),
+				crl::guard(this, [=] {
+					mainwidget->searchMessages(
+						" ",
+						(_peer && !_peer->isUser())
+							? _peer->owner().history(_peer).get()
+							: Dialogs::Key(),
+							user);
+				}), &st::menuIconSearch);
+		}
 	}
 	if (_role == Role::Kicked) {
 		if (_peer->isMegagroup()
