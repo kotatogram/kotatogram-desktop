@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "kotato/kotato_radius.h"
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "api/api_polls.h"
 #include "chat_helpers/stickers_emoji_pack.h"
 #include "core/application.h"
@@ -3071,6 +3072,16 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				tr::lng_stats_title(tr::now),
 				std::move(callback),
 				&st::menuIconStats);
+		}
+		const auto history = item->history();
+		if (history->peer->isChat() || history->peer->isMegagroup()) {
+			const auto from = item->from();
+			_menu->addAction(
+				ktr("ktg_context_show_messages_from"),
+				crl::guard(controller, [=] {
+					controller->searchInChat(history, from);
+				}),
+				&st::menuIconSearch);
 		}
 	};
 	const auto addPhotoActions = [&](not_null<PhotoData*> photo, HistoryItem *item) {

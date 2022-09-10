@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_context_menu.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
 #include "api/api_global_privacy.h"
@@ -1383,6 +1384,30 @@ bool AddViewStatisticsAction(
 	return true;
 }
 
+void AddSearchFromAction(
+		not_null<Ui::PopupMenu*> menu,
+		const ContextMenuRequest &request,
+		not_null<ListWidget*> list) {
+	const auto item = request.item;
+	if (!item
+		|| !item->isRegular()
+		|| request.selectedItems.size() > 1) {
+		return;
+	}
+	const auto history = item->history();
+	if (!history->peer->isChat() && !history->peer->isMegagroup()) {
+		return;
+	}
+	const auto topic = item->topic();
+	const auto key = topic ? Dialogs::Key(topic) : Dialogs::Key(history);
+	const auto from = item->from();
+	const auto controller = list->controller();
+	menu->addAction(
+		ktr("ktg_context_show_messages_from"),
+		crl::guard(controller, [=] { controller->searchInChat(key, from); }),
+		&st::menuIconSearch);
+}
+
 void AddTopMessageActions(
 		not_null<Ui::PopupMenu*> menu,
 		const ContextMenuRequest &request,
@@ -1396,6 +1421,7 @@ void AddTopMessageActions(
 	AddFactcheckAction(menu, request, list);
 	AddPinMessageAction(menu, request, list);
 	AddViewStatisticsAction(menu, request, list);
+	AddSearchFromAction(menu, request, list);
 }
 
 void AddMessageActions(

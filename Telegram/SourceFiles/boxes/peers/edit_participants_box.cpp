@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/edit_participants_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_chat_participants.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "boxes/peers/edit_tag_control.h"
@@ -2100,6 +2101,18 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 					? &st::menuIconTagAdd
 					: &st::menuIconTagEdit));
 		}
+	}
+	const auto navigation = (_peer->isChat() || _peer->isMegagroup())
+		? _navigation
+		: nullptr;
+	if (navigation) {
+		const auto history = _peer->owner().history(_peer);
+		result->addAction(
+			ktr("ktg_context_show_messages_from"),
+			crl::guard(this, [=] {
+				navigation->searchInChat(history, participant);
+			}),
+			&st::menuIconSearch);
 	}
 	if (_role == Role::Kicked) {
 		if (_peer->isMegagroup()
