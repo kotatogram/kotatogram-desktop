@@ -78,8 +78,10 @@ void FileSizeLimitBox(
 	not_null<Main::Session*> session,
 	uint64 fileSizeBytes,
 	const style::PremiumLimits *stOverride = nullptr);
+/*
 void AccountsLimitBox(
 	not_null<Ui::GenericBox*> box,
 	not_null<Main::Session*> session);
+*/
 
 [[nodiscard]] QString LimitsPremiumRef(const QString &addition);

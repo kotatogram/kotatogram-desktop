@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_information.h"
 
+#include "kotato/kotato_lang.h"
 #include "kotato/kotato_radius.h"
 #include "settings/sections/settings_main.h"
 #include "settings/settings_builder.h"
@@ -1061,15 +1062,36 @@ not_null<Ui::SlideWrap<Ui::SettingsButton>*> AccountsList::setupAdd() {
 			}
 		}
 		if (!found && domain.accounts().size() >= domain.maxAccounts()) {
+			return;
+		}
+		const auto sure = [=] {
+			if (newWindow) {
+				_controller->session().domain().addActivated(
+					environment,
+					true);
+			} else {
+				_controller->window().preventOrInvoke([=] {
+					Core::App().setActivePrimaryWindow(
+						&_controller->window());
+					_controller->session().domain().addActivated(
+						environment);
+				});
+			}
+		};
+		if (!found
+			&& domain.accounts().size() >= Main::Domain::kMaxAccountsWarn) {
 			_controller->show(
-				Box(AccountsLimitBox, &_controller->session()));
-		} else if (newWindow) {
-			domain.addActivated(environment, true);
+				Ui::MakeConfirmBox({
+					.text = ktr("ktg_too_many_accounts_warning"),
+					.confirmed = [=](Fn<void()> &&close) {
+						close();
+						sure();
+					},
+					.confirmText = ktr("ktg_account_add_anyway"),
+				}),
+				Ui::LayerOption::KeepOther);
 		} else {
-			_controller->window().preventOrInvoke([=] {
-				Core::App().setActivePrimaryWindow(&_controller->window());
-				_controller->session().domain().addActivated(environment);
-			});
+			sure();
 		}
 	};
 
@@ -1193,7 +1215,7 @@ void AccountsList::rebuild() {
 		std::max(1, count - premiumLimit));
 
 	_addAccount->toggle(
-		(count < ::Main::Domain::kPremiumMaxAccounts),
+		(count < ::Main::Domain::kMaxAccounts),
 		anim::type::instant);
 
 	_reorder->start();

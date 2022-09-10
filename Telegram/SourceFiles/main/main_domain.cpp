@@ -269,7 +269,7 @@ void Domain::scheduleUpdateUnreadBadge() {
 
 not_null<Main::Account*> Domain::add(MTP::Environment environment) {
 	Expects(started());
-	Expects(_accounts.size() < kPremiumMaxAccounts);
+	Expects(_accounts.size() < kMaxAccounts);
 
 	static const auto cloneConfig = [](const MTP::Config &config) {
 		return std::make_unique<MTP::Config>(config);
@@ -516,6 +516,7 @@ void Domain::scheduleWriteAccounts() {
 }
 
 int Domain::maxAccounts() const {
+	/*
 	const auto premiumCount = ranges::count_if(accounts(), [](
 			const Main::Domain::AccountWithIndex &d) {
 		return d.account->sessionExists()
@@ -523,6 +524,8 @@ int Domain::maxAccounts() const {
 				|| d.account->session().isTestMode());
 	});
 	return std::min(int(premiumCount) + kMaxAccounts, kPremiumMaxAccounts);
+	*/
+	return kMaxAccounts;
 }
 
 rpl::producer<int> Domain::maxAccountsChanges() const {

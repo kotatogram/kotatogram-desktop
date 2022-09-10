@@ -671,8 +671,23 @@ void Main::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	const auto &list = Core::App().domain().accounts();
 	if (list.size() < Core::App().domain().maxAccounts()) {
 		addAction(tr::lng_menu_add_account(tr::now), [=] {
-			Core::App().setActivePrimaryWindow(&controller()->window());
-			Core::App().domain().addActivated(MTP::Environment{});
+			const auto add = [=] {
+				Core::App().setActivePrimaryWindow(&controller()->window());
+				Core::App().domain().addActivated(MTP::Environment{});
+			};
+			if (Core::App().domain().accounts().size()
+					< ::Main::Domain::kMaxAccountsWarn) {
+				add();
+				return;
+			}
+			controller()->show(Ui::MakeConfirmBox({
+				.text = ktr("ktg_too_many_accounts_warning"),
+				.confirmed = [=](Fn<void()> &&close) {
+					close();
+					add();
+				},
+				.confirmText = ktr("ktg_account_add_anyway"),
+			}));
 		}, &st::menuIconAddAccount);
 	}
 	if (!controller()->session().supportMode()) {
