@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/section_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "ui/ui_utility.h"
@@ -104,10 +105,21 @@ struct ResolvedPaper {
 [[nodiscard]] auto MaybeChatThemeDataValueFromPeer(
 	not_null<PeerData*> peer)
 -> rpl::producer<std::optional<Data::CloudTheme>> {
-	return PeerThemeTokenValue(
-		peer
-	) | rpl::map([=](const QString &token)
+	auto disabled = rpl::single(
+		QString()
+	) | rpl::then(
+		::Kotato::JsonSettings::Events("disable_chat_themes")
+	) | rpl::map([] {
+		return ::Kotato::JsonSettings::GetBool("disable_chat_themes");
+	});
+	return rpl::combine(
+		PeerThemeTokenValue(peer),
+		std::move(disabled)
+	) | rpl::map([=](const QString &token, bool disabled)
 	-> rpl::producer<std::optional<Data::CloudTheme>> {
+		if (disabled) {
+			return rpl::single(std::optional<Data::CloudTheme>());
+		}
 		return peer->owner().cloudThemes().themeForTokenValue(token);
 	}) | rpl::flatten_latest();
 }

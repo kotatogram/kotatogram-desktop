@@ -315,6 +315,8 @@ void SetupKotatoChats(
 		Ui::show(Box<FontsBox>());
 	});
 
+	SettingsMenuJsonSwitch(ktg_disable_chat_themes, disable_chat_themes);
+
 
 	Ui::AddSkip(container);
 	Ui::AddDivider(container);
