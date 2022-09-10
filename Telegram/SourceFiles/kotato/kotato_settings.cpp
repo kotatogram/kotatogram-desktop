@@ -408,6 +408,12 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "view_profile_on_top", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "emoji_sidebar", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
+	{ "emoji_sidebar_right_click", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;
