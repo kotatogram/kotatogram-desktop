@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_element.h"
 
+#include "kotato/kotato_lang.h"
 #include "kotato/kotato_settings.h"
 #include "api/api_chat_invite.h"
 #include "history/view/history_view_service_message.h"
@@ -271,6 +272,9 @@ QString DateTooltipText(not_null<Element*> view) {
 			dateText += '\n'
 				+ tr::lng_signed_author(tr::now, lt_user, msgsigned->author);
 		}
+	}
+	if (const auto msgId = view->data()->fullId().msg) {
+		dateText += '\n' + ktr("ktg_message_id", {"id", QString::number(msgId.bare)});
 	}
 	return dateText;
 }
