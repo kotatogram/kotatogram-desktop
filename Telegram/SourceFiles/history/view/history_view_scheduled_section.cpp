@@ -274,7 +274,21 @@ void ScheduledWidget::setupComposeControls() {
 
 	_composeControls->inlineResultChosen(
 	) | rpl::start_with_next([=](Selector::InlineChosen chosen) {
-		sendInlineResult(chosen.result, chosen.bot);
+		if (chosen.sendPreview) {
+			const auto request = chosen.result->openRequest();
+			if (const auto photo = request.photo()) {
+				sendExistingPhoto(photo);
+			} else if (const auto document = request.document()) {
+				sendExistingDocument(document);
+			}
+
+			addRecentBot(chosen.bot);
+			_composeControls->clear();
+			_composeControls->hidePanelsAnimated();
+			_composeControls->focus();
+		} else {
+			sendInlineResult(chosen.result, chosen.bot);
+		}
 	}, lifetime());
 
 	_composeControls->scrollRequests(
@@ -578,6 +592,20 @@ bool ScheduledWidget::showSendingFilesError(
 	return true;
 }
 
+void ScheduledWidget::addRecentBot(not_null<UserData*> bot) {
+	auto &bots = cRefRecentInlineBots();
+	const auto index = bots.indexOf(bot);
+	if (index) {
+		if (index > 0) {
+			bots.removeAt(index);
+		} else if (bots.size() >= RecentInlineBotsLimit) {
+			bots.resize(RecentInlineBotsLimit - 1);
+		}
+		bots.push_front(bot);
+		bot->session().local().writeRecentHashtagsAndBots();
+	}
+}
+
 Api::SendAction ScheduledWidget::prepareSendAction(
 		Api::SendOptions options) const {
 	auto result = Api::SendAction(_history, options);
@@ -818,17 +846,7 @@ void ScheduledWidget::sendInlineResult(
 	//_saveDraftStart = crl::now();
 	//onDraftSave();
 
-	auto &bots = cRefRecentInlineBots();
-	const auto index = bots.indexOf(bot);
-	if (index) {
-		if (index > 0) {
-			bots.removeAt(index);
-		} else if (bots.size() >= RecentInlineBotsLimit) {
-			bots.resize(RecentInlineBotsLimit - 1);
-		}
-		bots.push_front(bot);
-		bot->session().local().writeRecentHashtagsAndBots();
-	}
+	addRecentBot(bot);
 
 	_composeControls->hidePanelsAnimated();
 	_composeControls->focus();

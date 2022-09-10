@@ -195,6 +195,8 @@ private:
 	void clearSelected();
 	void setPinnedVisibility(bool shown);
 
+	void addRecentBot(not_null<UserData*> bot);
+
 	[[nodiscard]] Api::SendAction prepareSendAction(
 		Api::SendOptions options) const;
 	void send();
