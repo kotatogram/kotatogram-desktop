@@ -1189,7 +1189,20 @@ void HistoryWidget::initTabbedSelector() {
 		}
 		return (data.recipientOverride == _peer);
 	}) | rpl::start_with_next([=](ChatHelpers::InlineChosen data) {
-		sendInlineResult(data);
+		if (data.sendPreview) {
+			const auto request = data.result->openRequest();
+			if (const auto photo = request.photo()) {
+				sendExistingPhoto(photo, data.options);
+			} else if (const auto document = request.document()) {
+				sendExistingDocument(document, data.options);
+			}
+
+			addRecentBot(data.bot);
+			clearFieldText();
+			saveCloudDraft();
+		} else {
+			sendInlineResult(data);
+		}
 	}, lifetime());
 
 	selector->contextMenuRequested(
@@ -1563,6 +1576,17 @@ void HistoryWidget::applyInlineBotQuery(UserData *bot, const QString &query) {
 					} else if (const auto document = request.document()) {
 						controller()->openDocument(document, {}, {});
 					}
+				} else if (result.sendPreview) {
+					const auto request = result.result->openRequest();
+					if (const auto photo = request.photo()) {
+						sendExistingPhoto(photo, result.options);
+					} else if (const auto document = request.document()) {
+						sendExistingDocument(document, result.options);
+					}
+
+					addRecentBot(result.bot);
+					clearFieldText();
+					saveCloudDraft();
 				} else {
 					sendInlineResult(result);
 				}
@@ -6552,17 +6576,7 @@ void HistoryWidget::sendInlineResult(InlineBots::ResultSelected result) {
 	_saveDraftStart = crl::now();
 	saveDraft();
 
-	auto &bots = cRefRecentInlineBots();
-	const auto index = bots.indexOf(result.bot);
-	if (index) {
-		if (index > 0) {
-			bots.removeAt(index);
-		} else if (bots.size() >= RecentInlineBotsLimit) {
-			bots.resize(RecentInlineBotsLimit - 1);
-		}
-		bots.push_front(result.bot);
-		session().local().writeRecentHashtagsAndBots();
-	}
+	addRecentBot(result.bot);
 
 	hideSelectorControlsAnimated();
 
@@ -7901,6 +7915,20 @@ void HistoryWidget::messageDataReceived(
 		return;
 	} else if (_editMsgId == msgId || _replyToId == msgId) {
 		updateReplyEditTexts(true);
+	}
+}
+
+void HistoryWidget::addRecentBot(not_null<UserData*> bot) {
+	auto &bots = cRefRecentInlineBots();
+	const auto index = bots.indexOf(bot);
+	if (index) {
+		if (index > 0) {
+			bots.removeAt(index);
+		} else if (bots.size() >= RecentInlineBotsLimit) {
+			bots.resize(RecentInlineBotsLimit - 1);
+		}
+		bots.push_front(bot);
+		session().local().writeRecentHashtagsAndBots();
 	}
 }
 

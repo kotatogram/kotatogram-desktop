@@ -68,6 +68,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session_settings.h"
 #include "mainwidget.h"
 #include "data/data_session.h"
+#include "data/data_document.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
 #include "data/data_channel.h"
@@ -787,7 +788,20 @@ void RepliesWidget::setupComposeControls() {
 		controller()->sendingAnimation().appendSending(
 			chosen.messageSendingFrom);
 		const auto localId = chosen.messageSendingFrom.localId;
-		sendInlineResult(chosen.result, chosen.bot, chosen.options, localId);
+		if (chosen.sendPreview) {
+			const auto request = chosen.result->openRequest();
+			if (const auto photo = request.photo()) {
+				sendExistingPhoto(photo, chosen.options);
+			} else if (const auto document = request.document()) {
+				sendExistingDocument(document, chosen.options, localId);
+			}
+
+			addRecentBot(chosen.bot);
+			_composeControls->clear();
+			finishSending();
+		} else {
+			sendInlineResult(chosen.result, chosen.bot, chosen.options, localId);
+		}
 	}, lifetime());
 
 	_composeControls->scrollRequests(
@@ -1131,6 +1145,20 @@ bool RepliesWidget::showSendingFilesError(
 	return true;
 }
 
+void RepliesWidget::addRecentBot(not_null<UserData*> bot) {
+	auto &bots = cRefRecentInlineBots();
+	const auto index = bots.indexOf(bot);
+	if (index) {
+		if (index > 0) {
+			bots.removeAt(index);
+		} else if (bots.size() >= RecentInlineBotsLimit) {
+			bots.resize(RecentInlineBotsLimit - 1);
+		}
+		bots.push_front(bot);
+		bot->session().local().writeRecentHashtagsAndBots();
+	}
+}
+
 Api::SendAction RepliesWidget::prepareSendAction(
 		Api::SendOptions options) const {
 	auto result = Api::SendAction(_history, options);
@@ -1357,10 +1385,17 @@ bool RepliesWidget::sendExistingDocument(
 		return false;
 	}
 
-	Api::SendExistingDocument(
-		Api::MessageToSend(prepareSendAction(options)),
-		document,
-		localId);
+	if (document->hasRemoteLocation()) {
+		Api::SendExistingDocument(
+			Api::MessageToSend(prepareSendAction(options)),
+			document,
+			localId);
+	} else {
+		Api::SendWebDocument(
+			Api::MessageToSend(prepareSendAction(options)),
+			document,
+			localId);
+	}
 
 	_composeControls->cancelReplyMessage();
 	finishSending();
@@ -1431,17 +1466,7 @@ void RepliesWidget::sendInlineResult(
 	//_saveDraftStart = crl::now();
 	//onDraftSave();
 
-	auto &bots = cRefRecentInlineBots();
-	const auto index = bots.indexOf(bot);
-	if (index) {
-		if (index > 0) {
-			bots.removeAt(index);
-		} else if (bots.size() >= RecentInlineBotsLimit) {
-			bots.resize(RecentInlineBotsLimit - 1);
-		}
-		bots.push_front(bot);
-		bot->session().local().writeRecentHashtagsAndBots();
-	}
+	addRecentBot(bot);
 	finishSending();
 }
 
