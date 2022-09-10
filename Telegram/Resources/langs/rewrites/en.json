@@ -111,6 +111,7 @@
 	"ktg_settings_chat_id_disable": "Hide",
 	"ktg_settings_chat_id_telegram": "Telegram API",
 	"ktg_settings_chat_id_bot": "Bot API",
+	"ktg_message_id": "Message ID: {id}",
 	"ktg_settings_monospace_large_bubbles": "Expand bubbles with monospace",
 	"ktg_bot_id_copied": "Bot ID copied to clipboard.",
 	"ktg_user_id_copied": "User ID copied to clipboard.",
