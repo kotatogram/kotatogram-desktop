@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_common.h"
 
+#include "kotato/kotato_lang.h"
 #include "apiwrap.h"
 #include "api/api_cloud_password.h"
 #include "settings/cloud_password/settings_cloud_password_email_confirm.h"
@@ -34,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 #include "lang/lang_keys.h"
+#include "core/file_utilities.h"
 #include "mainwindow.h"
 #include "main/main_session.h"
 #include "main/main_domain.h"
@@ -333,12 +335,21 @@ void FillMenu(
 				Core::App().domain().addActivated(MTP::Environment{});
 			}, &st::menuIconAddAccount);
 		}
+		const auto customSettingsFile = cWorkingDir() + "tdata/kotato-settings-custom.json";
 		if (type != Kotato::Id() && !controller->session().supportMode()) {
 			addAction(
 				tr::lng_settings_information(tr::now),
 				[=] { showOther(Information::Id()); },
 				&st::menuIconInfo);
 		}
+		addAction(
+			ktr("ktg_settings_show_json_settings"),
+			[=] { File::ShowInFolder(customSettingsFile); },
+			&st::menuIconSettings);
+		addAction(
+			ktr("ktg_settings_restart"),
+			[] { Core::Restart(); },
+			&st::menuIconRestore);
 		if (type != Kotato::Id()) {
 			addAction({
 				.text = tr::lng_settings_logout(tr::now),
