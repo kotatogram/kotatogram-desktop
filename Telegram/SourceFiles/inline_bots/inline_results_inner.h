@@ -142,7 +142,8 @@ private:
 	void selectInlineResult(
 		int index,
 		Api::SendOptions options,
-		bool open);
+		bool open,
+		bool sendPreview = false);
 
 	not_null<Window::SessionController*> _controller;
 	const std::unique_ptr<Ui::PathShiftGradient> _pathGradient;

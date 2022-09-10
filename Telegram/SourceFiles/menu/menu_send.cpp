@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "menu/menu_send.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_common.h"
 #include "base/event_filter.h"
 #include "boxes/abstract_box.h"
@@ -67,6 +68,7 @@ FillMenuResult FillSendMenu(
 		: st::defaultComposeIcons;
 	const auto now = type;
 	if (now == Type::Disabled
+		|| now == Type::PreviewOnly
 		|| (!silent && now == Type::SilentOnly)) {
 		return FillMenuResult::None;
 	}
@@ -90,6 +92,38 @@ FillMenuResult FillSendMenu(
 			tr::lng_scheduled_send_until_online(tr::now),
 			whenOnline,
 			&icons.menuWhenOnline);
+	}
+	return FillMenuResult::Success;
+}
+
+FillMenuResult FillSendPreviewMenu(
+		not_null<Ui::PopupMenu*> menu,
+		Type type,
+		Fn<void()> defaultSend,
+		Fn<void()> silent,
+		Fn<void()> schedule) {
+	if (!defaultSend && !silent && !schedule) {
+		return FillMenuResult::None;
+	}
+	const auto now = type;
+	if (now == Type::Disabled) {
+		return FillMenuResult::None;
+	}
+
+	if (defaultSend) {
+		menu->addAction(ktr("ktg_send_preview"), defaultSend);
+	}
+	if (type != Type::PreviewOnly) {
+		if (silent && now != Type::Reminder) {
+			menu->addAction(ktr("ktg_send_silent_preview"), silent);
+		}
+		if (schedule && now != Type::SilentOnly) {
+			menu->addAction(
+				(now == Type::Reminder
+					? ktr("ktg_reminder_preview")
+					: ktr("ktg_schedule_preview")),
+				schedule);
+		}
 	}
 	return FillMenuResult::Success;
 }
@@ -130,6 +164,7 @@ void SetupMenuAndShortcuts(
 
 		const auto now = type();
 		if (now == Type::Disabled
+			|| now == Type::PreviewOnly
 			|| (!silent && now == Type::SilentOnly)) {
 			return;
 		}

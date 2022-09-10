@@ -389,6 +389,8 @@ private:
 	void requestMessageData(MsgId msgId);
 	void messageDataReceived(not_null<PeerData*> peer, MsgId msgId);
 
+	void addRecentBot(not_null<UserData*> bot);
+
 	[[nodiscard]] Api::SendAction prepareSendAction(
 		Api::SendOptions options) const;
 	void send(Api::SendOptions options);
