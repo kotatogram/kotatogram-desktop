@@ -627,6 +627,22 @@ void SetupKotatoOther(
 			}));
 	});
 
+	container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_settings_compress_images_default"),
+		st::settingsButtonNoIcon
+	))->toggleOn(
+		rpl::single(Core::App().settings().sendFilesWay().sendImagesAsPhotos())
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != Core::App().settings().sendFilesWay().sendImagesAsPhotos());
+	}) | rpl::on_next([](bool enabled) {
+		auto way = Core::App().settings().sendFilesWay();
+		way.setSendImagesAsPhotos(enabled);
+		Core::App().settings().setSendFilesWay(way);
+		Core::App().saveSettingsDelayed();
+	}, container->lifetime());
+
 	Ui::AddSkip(container);
 }
 
