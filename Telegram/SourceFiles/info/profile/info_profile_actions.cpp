@@ -28,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
+#include "ui/text/format_values.h" // Ui::FormatPhone
 #include "history/history_location_manager.h" // LocationClickHandler.
 #include "history/view/history_view_context_menu.h" // HistoryView::ShowReportPeerBox
 #include "boxes/abstract_box.h"
@@ -331,11 +332,36 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 				user->session().supportHelper().infoLabelValue(user),
 				user->session().supportHelper().infoTextValue(user));
 		}
+		
+		auto phoneDrawableText = rpl::combine(
+			PhoneValue(user),
+			UsernameValue(user),
+			AboutValue(user),
+			tr::lng_info_mobile_hidden()
+		) | rpl::map([](
+				const TextWithEntities &phone,
+				const TextWithEntities &username,
+				const TextWithEntities &bio,
+				const QString &hidden) {
+			return (phone.text.isEmpty() && username.text.isEmpty() && bio.text.isEmpty())
+				? Ui::Text::WithEntities(hidden)
+				: Ui::Text::Link(phone.text);
+		});
 
-		addInfoOneLine(
+		auto phoneInfo = addInfoOneLineInline(
 			tr::lng_info_mobile_label(),
-			PhoneOrHiddenValue(user),
+			std::move(phoneDrawableText),
 			tr::lng_profile_copy_phone(tr::now));
+
+		phoneInfo->setClickHandlerFilter([user](auto&&...) {
+			const auto phoneText = user->phone();
+			if (!phoneText.isEmpty()) {
+				QGuiApplication::clipboard()->setText(Ui::FormatPhone(phoneText));
+				Ui::Toast::Show(ktr("ktg_phone_copied"));
+			}
+			return false;
+		});
+		
 		auto label = user->isBot()
 			? tr::lng_info_about_label()
 			: tr::lng_info_bio_label();

@@ -133,6 +133,7 @@
 	"ktg_group_id_copied": "Group ID copied to clipboard.",
 	"ktg_supergroup_id_copied": "Supergroup ID copied to clipboard.",
 	"ktg_channel_id_copied": "Channel ID copied to clipboard.",
+	"ktg_phone_copied": "Phone copied to clipboard.",
 	"ktg_forward_go_to_chat": "Go to chat",
 	"ktg_settings_forward": "Forward",
 	"ktg_settings_forward_retain_selection": "Retain selection after forward",
