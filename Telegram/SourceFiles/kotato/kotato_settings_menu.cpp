@@ -278,6 +278,8 @@ void SetupKotatoChats(
 	Ui::AddDividerText(container, rktr("ktg_settings_view_profile_on_top_about"));
 	Ui::AddSkip(container);
 
+	SettingsMenuJsonSwitch(ktg_settings_emoji_sidebar, emoji_sidebar);
+	SettingsMenuJsonSwitch(ktg_settings_emoji_sidebar_right_click, emoji_sidebar_right_click);
 
 	Ui::AddSkip(container);
 	Ui::AddDivider(container);
