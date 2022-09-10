@@ -4740,17 +4740,10 @@ void FillSenderUserpicMenu(
 		controller->showPeerHistory(peer, Window::SectionShow::Way::Forward);
 	}, channel ? &st::menuIconChannel : &st::menuIconChatBubble);
 
-	const auto username = peer->username();
-	const auto mention = !username.isEmpty() || peer->isUser();
+	const auto mention = !peer->username().isEmpty() || peer->isUser();
 	if (const auto guard = mention ? fieldForMention : nullptr) {
 		addAction(tr::lng_context_mention(tr::now), crl::guard(guard, [=] {
-			if (!username.isEmpty()) {
-				fieldForMention->insertTag('@' + username);
-			} else {
-				fieldForMention->insertTag(
-					peer->shortName(),
-					PrepareMentionTag(peer->asUser()));
-			}
+			InsertMentionTag(fieldForMention, peer);
 		}), &st::menuIconUsername);
 	}
 

@@ -3793,6 +3793,10 @@ void ChatWidget::updateAdaptiveLayout() {
 		_topBar->height());
 }
 
+Ui::InputField *ChatWidget::fieldForMention() const {
+	return _composeControls->fieldForMention();
+}
+
 Dialogs::RowDescriptor ChatWidget::activeChat() const {
 	const auto messageId = _lastShownAt
 		? _lastShownAt

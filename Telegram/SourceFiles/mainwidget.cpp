@@ -3231,6 +3231,15 @@ int MainWidget::backgroundFromY() const {
 	return -getMainSectionTop();
 }
 
+Ui::InputField *MainWidget::fieldForMention() const {
+	if (_mainSection) {
+		const auto chat = dynamic_cast<HistoryView::ChatWidget*>(
+			_mainSection.data());
+		return chat ? chat->fieldForMention() : nullptr;
+	}
+	return _history->fieldForMention();
+}
+
 bool MainWidget::contentOverlapped(const QRect &globalRect) {
 	return _history->contentOverlapped(globalRect)
 		|| (_mainSection && _mainSection->contentOverlapped(globalRect))

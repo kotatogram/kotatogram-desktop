@@ -319,6 +319,8 @@ public:
 		not_null<PhotoData*> photo,
 		Api::SendOptions options);
 
+	[[nodiscard]] Ui::InputField *fieldForMention() const;
+
 	void showInfoTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback);

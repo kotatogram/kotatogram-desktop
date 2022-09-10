@@ -40,6 +40,7 @@ namespace Storage {
 namespace Ui {
 class ElasticScroll;
 class InnerDropdown;
+class InputField;
 class PlainShadow;
 class ScrollArea;
 struct PreparedList;
@@ -121,6 +122,7 @@ public:
 	[[nodiscard]] not_null<PeerData*> peer() const {
 		return _peer;
 	}
+	[[nodiscard]] Ui::InputField *fieldForMention() const;
 	Dialogs::RowDescriptor activeChat() const override;
 	bool preventsClose(Fn<void()> &&continueCallback) const override;
 

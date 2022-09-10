@@ -10100,6 +10100,12 @@ bool HistoryWidget::sendExistingPhoto(
 	return true;
 }
 
+Ui::InputField *HistoryWidget::fieldForMention() const {
+	return (_peer && _canSendTexts && _field->isVisible())
+		? _field.data()
+		: nullptr;
+}
+
 void HistoryWidget::showInfoTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback) {

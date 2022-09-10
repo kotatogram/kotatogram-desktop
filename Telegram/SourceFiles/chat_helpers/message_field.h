@@ -55,6 +55,9 @@ class Show;
 } // namespace Ui
 
 [[nodiscard]] QString PrepareMentionTag(not_null<UserData*> user);
+void InsertMentionTag(
+	not_null<Ui::InputField*> field,
+	not_null<PeerData*> peer);
 [[nodiscard]] TextWithTags PrepareEditText(not_null<HistoryItem*> item);
 [[nodiscard]] bool EditTextChanged(
 	not_null<HistoryItem*> item,

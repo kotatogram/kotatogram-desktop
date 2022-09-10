@@ -388,6 +388,17 @@ QString PrepareMentionTag(not_null<UserData*> user) {
 		+ QString::number(user->session().userId().bare);
 }
 
+void InsertMentionTag(
+		not_null<Ui::InputField*> field,
+		not_null<PeerData*> peer) {
+	const auto username = peer->username();
+	if (!username.isEmpty()) {
+		field->insertTag('@' + username);
+	} else if (const auto user = peer->asUser()) {
+		field->insertTag(user->shortName(), PrepareMentionTag(user));
+	}
+}
+
 TextWithTags PrepareEditText(not_null<HistoryItem*> item) {
 	auto original = item->history()->session().supportMode()
 		? StripSupportHashtag(item->originalText())

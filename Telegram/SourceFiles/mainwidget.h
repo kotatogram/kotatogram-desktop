@@ -66,6 +66,7 @@ struct Content;
 
 namespace Ui {
 class ChatTheme;
+class InputField;
 class ResizeArea;
 class PlainShadow;
 template <typename Widget>
@@ -193,6 +194,8 @@ public:
 	void setInnerFocus();
 
 	bool contentOverlapped(const QRect &globalRect);
+
+	[[nodiscard]] Ui::InputField *fieldForMention() const;
 
 	void showChooseReportMessages(
 		not_null<PeerData*> peer,

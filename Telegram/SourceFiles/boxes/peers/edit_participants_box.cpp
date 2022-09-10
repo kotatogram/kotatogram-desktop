@@ -22,6 +22,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/mtproto_config.h"
 #include "apiwrap.h"
 #include "lang/lang_keys.h"
+#include "chat_helpers/message_field.h" // InsertMentionTag
+#include "mainwidget.h"
 #include "dialogs/dialogs_indexed_list.h"
 #include "data/data_peer_values.h"
 #include "data/data_session.h"
@@ -2113,6 +2115,17 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				navigation->searchInChat(history, participant);
 			}),
 			&st::menuIconSearch);
+	}
+	const auto content = _navigation
+		? _navigation->parentController()->content().get()
+		: nullptr;
+	if (const auto field = (content && user)
+			? content->fieldForMention()
+			: nullptr) {
+		result->addAction(
+			ktr("ktg_profile_mention_user"),
+			crl::guard(field, [=] { InsertMentionTag(field, user); }),
+			&st::menuIconMention);
 	}
 	if (_role == Role::Kicked) {
 		if (_peer->isMegagroup()
