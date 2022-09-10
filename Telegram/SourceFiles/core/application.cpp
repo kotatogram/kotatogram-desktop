@@ -319,6 +319,7 @@ void Application::run() {
 		showAccount(account);
 	}, _lifetime);
 
+	/*
 	(
 		_domain->activeValue(
 		) | rpl::to_empty | rpl::filter([=] {
@@ -343,6 +344,7 @@ void Application::run() {
 			}
 		}
 	}, _lifetime);
+	*/
 
 	QCoreApplication::instance()->installEventFilter(this);
 

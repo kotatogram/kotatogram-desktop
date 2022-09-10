@@ -66,8 +66,10 @@ void FileSizeLimitBox(
 	not_null<Ui::GenericBox*> box,
 	not_null<Main::Session*> session,
 	uint64 fileSizeBytes);
+/*
 void AccountsLimitBox(
 	not_null<Ui::GenericBox*> box,
 	not_null<Main::Session*> session);
+*/
 
 [[nodiscard]] QString LimitsPremiumRef(const QString &addition);

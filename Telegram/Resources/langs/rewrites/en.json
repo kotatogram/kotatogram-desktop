@@ -130,6 +130,8 @@
 	"ktg_channel_status_not_in": "not subscribed",
 	"ktg_group_status_owner": "is owner",
 	"ktg_group_status_admin": "is admin",
+	"ktg_too_many_accounts_warning": "Warning! Using too many accounts at the same time is not recommended due to higher memory comsumption and possible crashes because of it.\n\nYou sure you want to add a new account?",
+	"ktg_account_add_anyway": "Add anyway",
 	"ktg_forward_go_to_chat": "Go to chat",
 	"ktg_settings_forward": "Forward",
 	"ktg_settings_forward_retain_selection": "Retain selection after forward",
@@ -188,5 +190,13 @@
 	"ktg_settings_view_profile_on_top_about": "This option also enables \"Add \"View Profile\"\" from TDesktop's experimental settings.",
 	"ktg_settings_emoji_sidebar": "Enable emoji sidebar",
 	"ktg_settings_emoji_sidebar_right_click": "Emoji sidebar on right click",
+	"ktg_premium_double_limits_about_accounts": {
+		"zero": "Connect {count} accounts with different mobile numbers in official apps",
+		"one": "Connect {count} account with different mobile numbers in official apps",
+		"two": "Connect {count} accounts with different mobile numbers in official apps",
+		"few": "Connect {count} accounts with different mobile numbers in official apps",
+		"many": "Connect {count} accounts with different mobile numbers in official apps",
+		"other": "Connect {count} accounts with different mobile numbers in official apps"
+	},
 	"dummy_last_string": ""
 }
