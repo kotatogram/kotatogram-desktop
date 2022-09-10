@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item_components.h"
 
+#include "kotato/kotato_lang.h"
 #include "kotato/kotato_radius.h"
 #include "api/api_text_entities.h"
 #include "base/qt/qt_key_modifiers.h"
@@ -105,6 +106,13 @@ base::options::toggle FastButtonsModeOption({
 		lt_task,
 		names.back(),
 		tr::marked);
+}
+
+[[nodiscard]] bool IsCallbackButton(const HistoryMessageMarkupButton *button) {
+	using Type = HistoryMessageMarkupButton::Type;
+	return button
+		&& (button->type == Type::Callback
+			|| button->type == Type::CallbackWithPassword);
 }
 
 } // namespace
@@ -744,11 +752,17 @@ QString ReplyMarkupClickHandler::dragText() const {
 
 // Copy to clipboard support.
 QString ReplyMarkupClickHandler::copyToClipboardText() const {
-	const auto button = getUrlButton();
+	const auto callback = getButton();
+	const auto button = IsCallbackButton(callback)
+		? callback
+		: getUrlButton();
 	return button ? QString::fromUtf8(button->data) : QString();
 }
 
 QString ReplyMarkupClickHandler::copyToClipboardContextItemText() const {
+	if (IsCallbackButton(getButton())) {
+		return ktr("ktg_copy_btn_callback");
+	}
 	const auto button = getUrlButton();
 	return button ? tr::lng_context_copy_link(tr::now) : QString();
 }
@@ -798,7 +812,10 @@ QString ReplyMarkupClickHandler::tooltip() const {
 				st::wrap_rtl(QString::fromUtf8(button->data)));
 		}
 	}
-	const auto button = getUrlButton();
+	const auto callback = getButton();
+	const auto button = IsCallbackButton(callback)
+		? callback
+		: getUrlButton();
 	const auto url = button ? QString::fromUtf8(button->data) : QString();
 	const auto text = _fullDisplayed ? QString() : buttonText();
 	if (!url.isEmpty() && !text.isEmpty()) {
