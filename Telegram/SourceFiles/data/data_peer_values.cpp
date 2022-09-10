@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_peer_values.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
@@ -49,7 +50,9 @@ int OnlinePhraseChangeInSeconds(LastseenStatus status, TimeId now) {
 }
 
 std::optional<QString> OnlineTextSpecial(not_null<UserData*> user) {
-	if (user->isNotificationsUser()) {
+	if (user->isInaccessible()) {
+		return ktr("ktg_user_status_unaccessible");
+	} else if (user->isNotificationsUser()) {
 		return tr::lng_status_service_notifications(tr::now);
 	} else if (user->isSupport()) {
 		return tr::lng_status_support(tr::now);

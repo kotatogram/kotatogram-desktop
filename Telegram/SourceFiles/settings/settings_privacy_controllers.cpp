@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_privacy_controllers.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_global_privacy.h"
 #include "api/api_peer_photo.h"
 #include "apiwrap.h"
@@ -457,6 +458,8 @@ std::unique_ptr<PeerListRow> BlockedBoxController::createRow(
 		const auto user = peer->asUser();
 		if (!user) {
 			return tr::lng_group_status(tr::now);
+		} else if (user->isInaccessible()) {
+			return ktr("ktg_user_status_unaccessible");
 		} else if (!user->phone().isEmpty()) {
 			return Ui::FormatPhone(user->phone());
 		} else if (!user->username().isEmpty()) {

@@ -27,6 +27,7 @@
 	"ktg_outdated_now": "So that Kotatogram Desktop can update to newer versions.",
 	"ktg_mac_menu_show": "Show Kotatogram",
 	"ktg_settings_kotato": "Kotatogram Settings",
+	"ktg_user_status_unaccessible": "account inaccessible",
 	"ktg_settings_chats": "Chats",
 	"ktg_settings_sticker_height": "Sticker height: {pixels}px",
 	"ktg_settings_sticker_scale_both": "Apply to sticker width",
