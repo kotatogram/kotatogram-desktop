@@ -407,6 +407,11 @@ dialogsChannelIcon: ThreeStateIcon {
 	over: icon {{ "dialogs/dialogs_channel", dialogsChatIconFgOver, point(3px, 4px) }};
 	active: icon {{ "dialogs/dialogs_channel", dialogsChatIconFgActive, point(3px, 4px) }};
 }
+dialogsDeletedIcon: ThreeStateIcon {
+	icon: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFg, point(1px, 4px) }};
+	over: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFgOver, point(1px, 4px) }};
+	active: icon {{ "dialogs/dialogs_deleted", dialogsChatIconFgActive, point(1px, 4px) }};
+}
 dialogsArchiveUserpic: icon {{ "archive_userpic", historyPeerUserpicFg }};
 dialogsRepliesUserpic: icon {{ "replies_userpic", historyPeerUserpicFg }};
 dialogsInaccessibleUserpic: icon {{ "dialogs/inaccessible_userpic", historyPeerUserpicFg }};
