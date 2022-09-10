@@ -60,6 +60,14 @@ struct Action {
 	std::shared_ptr<ChatHelpers::Show> show,
 	Fn<void(Api::SendOptions)> send);
 
+[[nodiscard]] Fn<void()> DefaultSilentCallback(
+	Fn<void(Api::SendOptions)> send);
+
+[[nodiscard]] Fn<void()> DefaultScheduleCallback(
+	std::shared_ptr<ChatHelpers::Show> show,
+	Details details,
+	Fn<void(Api::SendOptions)> send);
+
 FillMenuResult FillSendMenu(
 	not_null<Ui::PopupMenu*> menu,
 	std::shared_ptr<ChatHelpers::Show> maybeShow,
@@ -74,6 +82,13 @@ FillMenuResult AttachSendMenuEffect(
 	Details details,
 	Fn<void(Action, Details)> action,
 	std::optional<QPoint> desiredPositionOverride = std::nullopt);
+
+FillMenuResult FillSendPreviewMenu(
+	not_null<Ui::PopupMenu*> menu,
+	Type type,
+	Fn<void()> defaultSend,
+	Fn<void()> silent,
+	Fn<void()> schedule);
 
 void SetupMenuAndShortcuts(
 	not_null<Ui::RpWidget*> button,

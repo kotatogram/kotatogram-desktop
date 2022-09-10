@@ -2159,6 +2159,20 @@ void HistoryWidget::applyInlineBotQuery(UserData *bot, const QString &query) {
 							false,
 							{ .showDrawButton = showDrawButton });
 					}
+				} else if (result.sendPreview) {
+					const auto request = result.result->openRequest();
+					if (const auto photo = request.photo()) {
+						sendExistingPhoto(photo, result.options);
+					} else if (const auto document = request.document()) {
+						sendExistingDocument(
+							document,
+							Api::MessageToSend(
+								prepareSendAction(result.options)));
+					}
+
+					session().recentInlineBots().bump(result.bot);
+					clearFieldText();
+					saveCloudDraft();
 				} else {
 					sendInlineResult(result);
 				}

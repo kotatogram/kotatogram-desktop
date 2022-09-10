@@ -52,6 +52,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "data/data_chat.h"
 #include "data/data_channel.h"
+#include "data/components/recent_inline_bots.h"
 #include "data/data_file_origin.h"
 #include "data/data_forum.h"
 #include "data/data_forum_topic.h"
@@ -6413,6 +6414,20 @@ void ComposeControls::applyInlineBotQuery(
 					} else if (const auto document = request.document()) {
 						_regularWindow->openDocument(document, false, {});
 					}
+				} else if (result.sendPreview) {
+					const auto request = result.result->openRequest();
+					if (const auto photo = request.photo()) {
+						_photoChosen.fire({ photo, result.options });
+					} else if (const auto document = request.document()) {
+						_fileChosen.fire({
+							.document = document,
+							.options = result.options,
+							.messageSendingFrom = result.messageSendingFrom,
+						});
+					}
+					result.bot->session().recentInlineBots().bump(result.bot);
+					setText({});
+					saveCloudDraft();
 				} else {
 					_inlineResultChosen.fire_copy(result);
 				}

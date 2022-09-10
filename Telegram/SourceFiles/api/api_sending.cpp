@@ -711,6 +711,17 @@ void SendMusicSelectionBatch(
 	performRequest(performRequest, false);
 }
 
+// Web photos from inline bot results have no Telegram id, only a URL.
+[[nodiscard]] QString WebPhotoUrl(not_null<PhotoData*> photo) {
+	const auto &file = photo->location(Data::PhotoSize::Large).file().data;
+	if (const auto web = std::get_if<WebFileLocation>(&file)) {
+		return QString::fromUtf8(web->url());
+	} else if (const auto plain = std::get_if<PlainUrlLocation>(&file)) {
+		return plain->url;
+	}
+	return QString();
+}
+
 } // namespace
 
 void SendExistingDocument(
@@ -719,9 +730,21 @@ void SendExistingDocument(
 		std::optional<MsgId> localMessageId,
 		Fn<void()> doneCallback,
 		bool forwarding) {
+	const auto spoiler = message.action.options.mediaSpoiler;
 	const auto inputMedia = [=] {
+		if (!document->hasRemoteLocation()) {
+			// Web documents from inline bot results.
+			return MTP_inputMediaDocumentExternal(
+				MTP_flags(spoiler
+					? MTPDinputMediaDocumentExternal::Flag::f_spoiler
+					: MTPDinputMediaDocumentExternal::Flags(0)),
+				MTP_string(document->url()),
+				MTPint(), // ttl_seconds
+				MTPInputPhoto(), // video_cover
+				MTPint()); // video_timestamp
+		}
 		return MTP_inputMediaDocument(
-			MTP_flags(message.action.options.mediaSpoiler
+			MTP_flags(spoiler
 				? MTPDinputMediaDocument::Flag::f_spoiler
 				: MTPDinputMediaDocument::Flags(0)),
 			document->mtpInput(),
@@ -806,6 +829,12 @@ void SendExistingPhoto(
 		Fn<void()> doneCallback,
 		bool forwarding) {
 	const auto inputMedia = [=] {
+		if (const auto url = WebPhotoUrl(photo); !url.isEmpty()) {
+			return MTP_inputMediaPhotoExternal(
+				MTP_flags(0),
+				MTP_string(url),
+				MTPint()); // ttl_seconds
+		}
 		return MTP_inputMediaPhoto(
 			MTP_flags(0),
 			photo->mtpInput(),
