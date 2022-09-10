@@ -25,6 +25,8 @@ public:
 
 	[[nodiscard]] bool has() const;
 
+	void toggleSound();
+
 private:
 	void rebuildMenu();
 	void toggleSoundNotifications();

@@ -81,6 +81,8 @@
 	"ktg_profile_supergroup_id": "Supergroup ID",
 	"ktg_profile_channel_id": "Channel ID",
 	"ktg_settings_adaptive_bubbles": "Adaptive bubbles",
+	"ktg_settings_disable_sound_from_tray": "Disable sound",
+	"ktg_settings_enable_sound_from_tray": "Enable sound",
 	"ktg_settings_recent_stickers_limit": {
 		"zero": "Recent stickers: show {count} stickers",
 		"one": "Recent stickers: show {count} sticker",
