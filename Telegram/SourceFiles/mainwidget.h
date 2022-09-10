@@ -205,6 +205,8 @@ public:
 
 	void searchInChat(Dialogs::Key chat);
 
+	void mentionUser(PeerData *peer);
+
 	void showChooseReportMessages(
 		not_null<PeerData*> peer,
 		Ui::ReportReason reason,

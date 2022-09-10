@@ -2643,6 +2643,13 @@ void MainWidget::searchInChat(Dialogs::Key chat) {
 		_dialogs->setInnerFocus();
 	}
 }
+void MainWidget::mentionUser(PeerData *peer) {
+	if (!_history->peer() || !_history->peer()->canWrite()) {
+		return;
+	}
+
+	_history->mentionUser(peer);
+}
 
 bool MainWidget::contentOverlapped(const QRect &globalRect) {
 	return _history->contentOverlapped(globalRect)
