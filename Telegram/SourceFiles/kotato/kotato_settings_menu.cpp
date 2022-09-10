@@ -339,6 +339,26 @@ void SetupKotatoChats(
 	Ui::AddDividerText(container, rktr("ktg_settings_view_profile_on_top_about"));
 	Ui::AddSkip(container);
 
+	container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_settings_emoji_sidebar"),
+		st::settingsButtonNoIcon
+	))->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("emoji_sidebar"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("emoji_sidebar"));
+	}) | rpl::on_next([](bool enabled) {
+		::Kotato::JsonSettings::Set("emoji_sidebar", enabled);
+		if (!enabled
+			&& Core::App().settings().tabbedSelectorSectionEnabled()) {
+			Core::App().settings().setTabbedSelectorSectionEnabled(false);
+			Core::App().saveSettingsDelayed();
+		}
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	SettingsMenuJsonSwitch(ktg_settings_emoji_sidebar_right_click, emoji_sidebar_right_click);
 
 	Ui::AddSkip(container);
 	Ui::AddDivider(container);
