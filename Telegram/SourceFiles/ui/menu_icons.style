@@ -88,6 +88,7 @@ menuIconRestore: icon {{ "menu/restore", menuSubmenuArrowFg }};
 menuIconSettings: icon {{ "menu/settings", menuSubmenuArrowFg }};
 menuIconSearch: icon {{ "menu/search", menuSubmenuArrowFg }};
 menuIconHide: icon {{ "menu/hide", menuSubmenuArrowFg }};
+menuIconMention: icon {{ "menu/mention", menuSubmenuArrowFg }};
 
 mediaMenuIconStickers: icon {{ "menu/stickers", mediaviewMenuFg }};
 mediaMenuIconCancel: icon {{ "menu/cancel", mediaviewMenuFg }};
