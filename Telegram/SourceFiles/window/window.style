@@ -271,6 +271,8 @@ windowFilterSmallItem: PeerListItem(defaultPeerListItem) {
 	height: 44px;
 	photoPosition: point(13px, 5px);
 	namePosition: point(59px, 14px);
+	chatNamePosition: point(62px, 5px);
+	chatDescPosition: point(62px, 23px);
 	photoSize: 34px;
 	checkbox: RoundImageCheckbox(defaultPeerListCheckbox) {
 		imageRadius: 17px;
@@ -328,6 +330,12 @@ windowFilterChatsSectionSubtitle: FlatLabel(defaultFlatLabel) {
 	textFg: searchedBarFg;
 }
 windowFilterChatsSectionSubtitlePadding: margins(22px, 5px, 22px, 5px);
+windowFilterChatNameStyle: TextStyle(defaultTextStyle) {
+	font: font(11px semibold);
+}
+windowFilterChatDescStyle: TextStyle(defaultTextStyle) {
+	font: font(11px);
+}
 
 windowArchiveToast: Toast(defaultToast) {
 	minWidth: boxWideWidth;

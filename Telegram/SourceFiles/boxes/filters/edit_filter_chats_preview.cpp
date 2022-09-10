@@ -7,8 +7,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/filters/edit_filter_chats_preview.h"
 
+#include "kotato/kotato_lang.h"
 #include "boxes/filters/edit_filter_chats_list.h"
 #include "data/data_peer.h"
+#include "data/data_user.h"
+#include "data/data_chat.h"
+#include "data/data_channel.h"
 #include "history/history.h"
 #include "lang/lang_keys.h"
 #include "ui/text/text_options.h"
@@ -33,6 +37,56 @@ constexpr auto kAllTypes = {
 	Flag::NoRead,
 	Flag::NoArchived,
 };
+
+[[nodiscard]] QString ChatStatusText(not_null<PeerData*> peer) {
+	auto statuses = QStringList();
+	if (const auto user = peer->asUser()) {
+		const auto flags = user->flags();
+		if (user->isInaccessible()) {
+			statuses << ktr("ktg_user_status_unaccessible");
+		} else {
+			if (user->isSupport()) {
+				statuses << tr::lng_status_support(tr::now);
+			}
+			if (user->isBot()) {
+				statuses << tr::lng_status_bot(tr::now);
+			} else if (flags & UserDataFlag::MutualContact) {
+				statuses << ktr("ktg_status_mutual_contact");
+			} else if (flags & UserDataFlag::Contact) {
+				statuses << ktr("ktg_status_contact");
+			} else {
+				statuses << ktr("ktg_status_non_contact");
+			}
+		}
+	} else if (const auto chat = peer->asChat()) {
+		statuses << tr::lng_group_status(tr::now);
+		if (!chat->amIn()) {
+			statuses << ktr("ktg_group_status_not_in");
+		} else if (chat->amCreator()) {
+			statuses << ktr("ktg_group_status_owner");
+		} else if (chat->hasAdminRights()) {
+			statuses << ktr("ktg_group_status_admin");
+		}
+	} else if (const auto channel = peer->asChannel()) {
+		if (channel->isMegagroup()) {
+			statuses << ktr("ktg_supergroup_status");
+		} else if (channel->isCommunity()) {
+			statuses << tr::lng_community_status(tr::now);
+		} else {
+			statuses << tr::lng_channel_status(tr::now);
+		}
+		if (!channel->amIn()) {
+			statuses << (channel->isMegagroup()
+				? ktr("ktg_group_status_not_in")
+				: ktr("ktg_channel_status_not_in"));
+		} else if (channel->amCreator()) {
+			statuses << ktr("ktg_group_status_owner");
+		} else if (channel->hasAdminRights()) {
+			statuses << ktr("ktg_group_status_admin");
+		}
+	}
+	return statuses.join(u", "_q);
+}
 
 } // namespace
 
@@ -104,6 +158,8 @@ void FilterChatsPreview::paintEvent(QPaintEvent *e) {
 	const auto nameLeft = st.namePosition.x();
 	p.setFont(st::windowFilterSmallItem.nameStyle.font);
 	const auto nameTop = st.namePosition.y();
+	const auto chatNameTop = st.chatNamePosition.y();
+	const auto chatDescTop = st.chatDescPosition.y();
 	for (const auto &[flag, button] : _removeFlag) {
 		PaintFilterChatsTypeIcon(
 			p,
@@ -171,16 +227,27 @@ void FilterChatsPreview::paintEvent(QPaintEvent *e) {
 			p.setPen(st::contactsNameFg);
 			if (name.isEmpty()) {
 				name.setText(
-					st::msgNameStyle,
+					st::windowFilterChatNameStyle,
 					history->peer->name(),
 					Ui::NameTextOptions());
 			}
+			const auto available = button->x() - nameLeft;
 			name.drawLeftElided(
 				p,
 				nameLeft,
-				top + nameTop,
-				button->x() - nameLeft,
+				top + chatNameTop,
+				available,
 				width());
+
+			const auto &font = st::windowFilterChatDescStyle.font;
+			p.setPen(st::windowSubTextFg);
+			p.setFont(font);
+			p.drawTextLeft(
+				nameLeft,
+				top + chatDescTop,
+				width(),
+				font->elided(ChatStatusText(peer), available));
+			p.setFont(st.nameStyle.font);
 		}
 		top += st.height;
 	}

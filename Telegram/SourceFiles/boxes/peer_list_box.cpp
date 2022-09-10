@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peer_list_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "kotato/kotato_radius.h"
 #include "boxes/peer_list_section_headers.h"
 #include "boxes/peer_list_section_index.h"
@@ -32,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_peer_values.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_community.h"
 #include "data/data_session.h"
 #include "data/data_changes.h"
 #include "data/stickers/data_custom_emoji.h"
@@ -728,15 +730,27 @@ void PeerListRow::refreshStatus() {
 		if (!chat->amIn()) {
 			setStatusText(tr::lng_chat_status_unaccessible(tr::now));
 		} else if (chat->count > 0) {
-			setStatusText(tr::lng_chat_status_members(tr::now, lt_count_decimal, chat->count));
+			setStatusText(tr::lng_group_status(tr::now) + ", " + tr::lng_chat_status_members(tr::now, lt_count_decimal, chat->count));
 		} else {
 			setStatusText(tr::lng_group_status(tr::now));
 		}
 	} else if (peer()->isMegagroup()) {
-		setStatusText(tr::lng_group_status(tr::now));
+		if (peer()->asChannel()->membersCountKnown()) {
+			setStatusText(ktr("ktg_supergroup_status") + ", " + tr::lng_chat_status_members(tr::now, lt_count_decimal, peer()->asChannel()->membersCount()));
+		} else {
+			setStatusText(ktr("ktg_supergroup_status"));
+		}
 	} else if (const auto channel = peer()->asChannel()) {
 		if (channel->isCommunity()) {
-			setStatusText(tr::lng_community_status(tr::now));
+			const auto info = channel->communityInfo();
+			const auto count = info ? int(info->linkedPeers().size()) : 0;
+			if (count) {
+				setStatusText(tr::lng_community_status(tr::now) + ", " + tr::lng_community_chats(tr::now, lt_count, count));
+			} else {
+				setStatusText(tr::lng_community_status(tr::now));
+			}
+		} else if (channel->membersCountKnown()) {
+			setStatusText(tr::lng_channel_status(tr::now) + ", " + tr::lng_chat_status_subscribers(tr::now, lt_count_decimal, channel->membersCount()));
 		} else {
 			setStatusText(tr::lng_channel_status(tr::now));
 		}
