@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_information.h"
 
+#include "kotato/kotato_lang.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/vertical_layout_reorder.h"
 #include "ui/wrap/padding_wrap.h"
@@ -789,23 +790,21 @@ not_null<Ui::SlideWrap<Ui::SettingsButton>*> AccountsList::setupAdd() {
 	using Environment = MTP::Environment;
 	const auto add = [=](Environment environment, bool newWindow = false) {
 		auto &domain = _controller->session().domain();
-		auto found = false;
-		for (const auto &[index, account] : domain.accounts()) {
-			const auto raw = account.get();
-			if (!raw->sessionExists()
-				&& raw->mtp().environment() == environment) {
-				found = true;
-			}
-		}
-		if (!found && domain.accounts().size() >= domain.maxAccounts()) {
-			_controller->show(
-				Box(AccountsLimitBox, &_controller->session()));
-		} else if (newWindow) {
-			domain.addActivated(environment, true);
-		} else {
+		const auto sure = [=] {
 			_controller->window().preventOrInvoke([=] {
 				_controller->session().domain().addActivated(environment);
 			});
+		};
+		if (domain.accounts().size() >= Main::Domain::kMaxAccountsWarn) {
+			_controller->show(
+				Ui::MakeConfirmBox({
+					.text = ktr("ktg_too_many_accounts_warning"),
+					.confirmed = sure,
+					.confirmText = ktr("ktg_account_add_anyway"),
+				}),
+				Ui::LayerOption::KeepOther);
+		} else {
+			sure();
 		}
 	};
 

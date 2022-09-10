@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/premium_preview_box.h"
 
+#include "kotato/kotato_lang.h"
 #include "chat_helpers/stickers_lottie.h"
 #include "chat_helpers/stickers_emoji_pack.h"
 #include "data/data_file_origin.h"
@@ -1437,10 +1438,11 @@ void DoubledLimitsPreviewBox(
 		: (QString::number(nextMax) + QChar('+'));
 	entries.push_back({
 		tr::lng_premium_double_limits_subtitle_accounts(),
-		tr::lng_premium_double_limits_about_accounts(
-			lt_count,
-			rpl::single(float64(Main::Domain::kPremiumMaxAccounts)),
-			Ui::Text::RichLangValue),
+		rpl::single(Ui::Text::RichLangValue(
+			ktr("ktg_premium_double_limits_about_accounts",
+				float64(Main::Domain::kPremiumMaxAccounts),
+				{ "count", QString::number(Main::Domain::kPremiumMaxAccounts)})
+		)),
 		Main::Domain::kMaxAccounts,
 		Main::Domain::kPremiumMaxAccounts,
 		till,

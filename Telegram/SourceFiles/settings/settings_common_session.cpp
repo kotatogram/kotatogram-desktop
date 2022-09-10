@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/settings_main.h"
 #include "settings/settings_notifications.h"
 #include "settings/settings_privacy_security.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
 #include "window/themes/window_theme_editor_box.h"
 #include "window/window_controller.h"
@@ -60,11 +61,25 @@ void FillMenu(
 			[=] { api->cloudPassword().clearUnconfirmedPassword(); },
 			&st::menuIconCancel);
 	} else {
-		const auto &list = Core::App().domain().accounts();
-		if (list.size() < Core::App().domain().maxAccounts()) {
-			addAction(tr::lng_menu_add_account(tr::now), [=] {
-				Core::App().domain().addActivated(MTP::Environment{});
-			}, &st::menuIconAddAccount);
+		if (type != Kotato::Id()) {
+			const auto &list = Core::App().domain().accounts();
+			if (list.size() < ::Main::Domain::kMaxAccountsWarn) {
+				addAction(tr::lng_menu_add_account(tr::now), [=] {
+					Core::App().domain().addActivated(MTP::Environment{});
+				}, &st::menuIconAddAccount);
+			} else if (list.size() < ::Main::Domain::kMaxAccounts) {
+				addAction(tr::lng_menu_add_account(tr::now), [=] {
+					controller->show(
+						Ui::MakeConfirmBox({
+							.text = ktr("ktg_too_many_accounts_warning"),
+							.confirmed = [=] {
+								Core::App().domain().addActivated(MTP::Environment{});
+							},
+							.confirmText = ktr("ktg_account_add_anyway"),
+						}),
+					Ui::LayerOption::KeepOther);
+				}, &st::menuIconAddAccount);
+			}
 		}
 		const auto customSettingsFile = cWorkingDir() + "tdata/kotato-settings-custom.json";
 		if (type != Kotato::Id() && !controller->session().supportMode()) {
