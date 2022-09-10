@@ -20,6 +20,8 @@ void Load();
 void Write();
 void Finish();
 
+[[nodiscard]] QString CustomFilePath();
+
 [[nodiscard]] QVariant Get(
 	const QString &key,
 	uint64 accountId = 0,

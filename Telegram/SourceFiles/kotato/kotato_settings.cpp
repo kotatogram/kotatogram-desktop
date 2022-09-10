@@ -18,6 +18,11 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 namespace Kotato {
 namespace JsonSettings {
+
+QString CustomFilePath() {
+	return cWorkingDir() + qsl("tdata/kotato-settings-custom.json");
+}
+
 namespace {
 
 constexpr auto kWriteJsonTimeout = crl::time(5000);
@@ -375,10 +380,6 @@ const std::map<OldOptionKey, NewOptionKey, std::greater<OldOptionKey>> ReplacedO
 
 QString DefaultFilePath() {
 	return cWorkingDir() + qsl("tdata/kotato-settings-default.json");
-}
-
-QString CustomFilePath() {
-	return cWorkingDir() + qsl("tdata/kotato-settings-custom.json");
 }
 
 bool DefaultFileIsValid() {

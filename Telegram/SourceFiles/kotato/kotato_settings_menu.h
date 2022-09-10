@@ -27,6 +27,8 @@ void SetupKotatoOther(
 	not_null<Window::SessionController*> controller,
 	not_null<Ui::VerticalLayout*> container);
 
+void KotatoTopBarOptions(const Ui::Menu::MenuCallback &addAction);
+
 class Kotato : public Section<Kotato> {
 public:
 	Kotato(
