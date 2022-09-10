@@ -23,6 +23,8 @@ void SetupKotatoSystem(
 	not_null<Ui::VerticalLayout*> container);
 void SetupKotatoOther(not_null<Ui::VerticalLayout*> container);
 
+void KotatoTopBarOptions(const Ui::Menu::MenuCallback &addAction);
+
 class Kotato : public Section<Kotato> {
 public:
 	Kotato(

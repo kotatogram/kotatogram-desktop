@@ -721,6 +721,7 @@ void Main::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 			[=] { showOther(Information::Id()); },
 			&st::menuIconInfo);
 	}
+	KotatoTopBarOptions(addAction);
 	const auto window = &_controller->window();
 	addAction({
 		.text = tr::lng_settings_logout(tr::now),

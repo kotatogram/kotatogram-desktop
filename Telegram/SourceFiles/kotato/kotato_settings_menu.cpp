@@ -33,6 +33,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "lang/lang_keys.h"
 #include "core/update_checker.h"
 #include "core/application.h"
+#include "core/file_utilities.h"
 #include "storage/localstorage.h"
 #include "data/data_session.h"
 #include "data/data_cloud_themes.h"
@@ -43,6 +44,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "styles/style_settings.h"
 #include "ui/platform/ui_platform_utility.h"
 #include "ui/vertical_list.h"
+#include "styles/style_menu_icons.h"
 
 namespace Settings {
 
@@ -641,6 +643,19 @@ void SetupKotatoOther(
 	Ui::AddSkip(container);
 }
 
+void KotatoTopBarOptions(const Ui::Menu::MenuCallback &addAction) {
+	const auto customSettingsFile = cWorkingDir() + "tdata/kotato-settings-custom.json";
+
+	addAction(
+		ktr("ktg_settings_show_json_settings"),
+		[=] { File::ShowInFolder(customSettingsFile); },
+		&st::menuIconSettings);
+	addAction(
+		ktr("ktg_settings_restart"),
+		[] { Core::Restart(); },
+		&st::menuIconRestore);
+}
+
 Kotato::Kotato(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
@@ -654,7 +669,7 @@ rpl::producer<QString> Kotato::title() {
 }
 
 void Kotato::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
-	const auto window = &_controller->window();
+	KotatoTopBarOptions(addAction);
 }
 
 void Kotato::setupContent(not_null<Window::SessionController*> controller) {
