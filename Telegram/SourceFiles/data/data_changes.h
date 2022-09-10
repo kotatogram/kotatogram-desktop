@@ -209,7 +209,9 @@ struct EntryUpdate {
 		Height            = (1U << 4),
 		Destroyed         = (1U << 5),
 
-		LastUsedBit       = (1U << 5),
+		PinVisible        = (1U << 6),
+
+		LastUsedBit       = (1U << 6),
 	};
 	using Flags = base::flags<Flag>;
 	friend inline constexpr auto is_flag_type(Flag) { return true; }
