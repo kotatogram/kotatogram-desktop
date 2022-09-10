@@ -189,6 +189,7 @@
 	"ktg_disable_chat_themes": "Disable chat themes",
 	"ktg_settings_remember_compress_images": "Remember compress images",
 	"ktg_settings_compress_images_default": "Compress images by default",
+	"ktg_pip_not_supported": "Sorry, Picture-in-Picture mode is not supported here.",
 	"ktg_forward_quiz_unquoted": "Sorry, quizzes that are currently open and unvoted on cannot be forwarded unquoted.",
 	"ktg_in_app_update_disabled": "In-app updater is disabled.",
 	"ktg_settings_view_profile_on_top": "Show \"View Profile\" first",
