@@ -167,6 +167,7 @@
 	"ktg_forward_grouping_mode_separate": "Separate",
 	"ktg_forward_force_old_unquoted": "Old unquoted forward method",
 	"ktg_forward_force_old_unquoted_desc": "Old method copies messages content on client rather than server. Currently it's used only for \"Regroup media\" grouping mode, since new one doesn't support it. If for some reason unquoted forward doesn't work correctly, try switching this option.",
+	"ktg_disable_chat_themes": "Disable chat themes",
 	"ktg_forward_quiz_unquoted": "Sorry, quizzes that are currently open and unvoted on cannot be forwarded unquoted.",
 	"ktg_in_app_update_disabled": "In-app updater is disabled.",
 	"dummy_last_string": ""

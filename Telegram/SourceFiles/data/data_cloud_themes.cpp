@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_cloud_themes.h"
 
 #include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
 #include "window/themes/window_theme.h"
 #include "window/themes/window_theme_preview.h"
 #include "window/themes/window_theme_editor_box.h"
@@ -388,7 +389,7 @@ rpl::producer<> CloudThemes::chatThemesUpdated() const {
 std::optional<CloudTheme> CloudThemes::themeForEmoji(
 		const QString &emoticon) const {
 	const auto emoji = Ui::Emoji::Find(emoticon);
-	if (!emoji) {
+	if (!emoji || ::Kotato::JsonSettings::GetBool("disable_chat_themes")) {
 		return {};
 	}
 	const auto i = ranges::find(_chatThemes, emoji, [](const CloudTheme &v) {
