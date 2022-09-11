@@ -2408,8 +2408,10 @@ void InnerWidget::suggestRestrictParticipant(
 			return;
 		}
 	}
-	_menu->addAction(tr::lng_context_restrict_user(tr::now), [=] {
-		const auto user = participant->asUser();
+	const auto user = participant->asUser();
+	_menu->addAction((user
+		? tr::lng_context_restrict_user(tr::now)
+		: tr::lng_context_remove_from_group(tr::now)), [=] {
 		auto editRestrictions = [=](
 				bool hasAdminRights,
 				ChatRestrictionsInfo currentRights,
@@ -2486,7 +2488,7 @@ void InnerWidget::suggestRestrictParticipant(
 				editRestrictions(false, {}, nullptr, 0);
 			}).send();
 		}
-	}, &st::menuIconPermissions);
+	}, user ? &st::menuIconPermissions : &st::menuIconRemove);
 
 	{
 		const auto lifetime = std::make_shared<rpl::lifetime>();
