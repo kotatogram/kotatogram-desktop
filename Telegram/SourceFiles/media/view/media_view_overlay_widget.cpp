@@ -3480,13 +3480,15 @@ void OverlayWidget::initThemePreview() {
 	const auto path = _document->location().name();
 	const auto id = _themePreviewId = base::RandomValue<uint64>();
 	const auto weak = Ui::MakeWeak(_widget);
+	auto langStrings = CollectStrings();
 	crl::async([=, data = std::move(current)]() mutable {
 		auto preview = GeneratePreview(
 			bytes,
 			path,
 			fields,
 			std::move(data),
-			Window::Theme::PreviewType::Extended);
+			Window::Theme::PreviewType::Extended,
+			langStrings);
 		crl::on_main(weak, [=, result = std::move(preview)]() mutable {
 			const auto session = weakSession.get();
 			if (id != _themePreviewId || !session) {

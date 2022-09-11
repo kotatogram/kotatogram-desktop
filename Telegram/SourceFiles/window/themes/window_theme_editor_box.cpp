@@ -393,7 +393,8 @@ SendMediaReady PrepareThemeMedia(
 	PreparedPhotoThumbs thumbnails;
 	QVector<MTPPhotoSize> sizes;
 
-	auto thumbnail = GeneratePreview(content, QString()).scaled(
+	auto langStrings = CollectStrings();
+	auto thumbnail = GeneratePreview(content, QString(), langStrings).scaled(
 		320,
 		320,
 		Qt::KeepAspectRatio,
