@@ -1486,7 +1486,7 @@ void Widget::clearSearchCache() {
 
 void Widget::showCalendar() {
 	if (_searchInChat) {
-		controller()->showCalendar(_searchInChat, QDate());
+		controller()->showCalendar(_searchInChat, QDateTime());
 	}
 }
 
