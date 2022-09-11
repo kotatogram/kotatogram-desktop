@@ -1662,7 +1662,10 @@ void ComposeControls::initAutocomplete() {
 	_autocomplete->mentionChosen(
 	) | rpl::start_with_next([=](FieldAutocomplete::MentionChosen data) {
 		const auto user = data.user;
-		if (data.mention.isEmpty()) {
+		if (data.mention.isEmpty()
+			|| data.method == FieldAutocomplete::ChooseMethod::ByRightClick
+			|| data.method == FieldAutocomplete::ChooseMethod::ByCtrlEnter
+			|| data.method == FieldAutocomplete::ChooseMethod::ByCtrlClick) {
 			_field->insertTag(
 				user->firstName.isEmpty() ? user->name() : user->firstName,
 				PrepareMentionTag(user));

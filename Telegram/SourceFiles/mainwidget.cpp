@@ -2702,7 +2702,7 @@ void MainWidget::searchInChat(Dialogs::Key chat) {
 	searchMessages(QString(), chat);
 }
 void MainWidget::mentionUser(PeerData *peer) {
-	if (!_history->peer() || !_history->peer()->canWrite()) {
+	if (!_history->peer() || !Data::CanSendTexts(_history->peer())) {
 		return;
 	}
 
