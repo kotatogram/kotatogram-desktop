@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "main/main_session.h"
 #include "ui/basic_click_handlers.h"
+#include "base/qthelp_url.h"
 
 namespace Api {
 namespace {
@@ -318,7 +319,35 @@ MTPVector<MTPMessageEntity> EntitiesToMTP(
 			const auto external = UrlClickHandler::ExternalUrlFromInternalUrl(
 				entity.data());
 			const auto url = external.isEmpty() ? entity.data() : external;
-			if (!IsInternalUrl(url)) {
+			const auto inputUser = [&]() -> MTPInputUser {
+				static const auto regex = QRegularExpression(
+					u"^tg://user\\?(.+)"_q,
+					QRegularExpression::CaseInsensitiveOption);
+				const auto match = regex.match(url.trimmed());
+				if (!session || !match.hasMatch()) {
+					return MTP_inputUserEmpty();
+				}
+				const auto parsed = qthelp::url_parse_params(
+					match.captured(1),
+					qthelp::UrlParamNameTransform::ToLower);
+				auto success = false;
+				const auto uid = UserId(
+					parsed.value(u"id"_q).toULongLong(&success));
+				if (!success) {
+					return MTP_inputUserEmpty();
+				} else if (uid == session->userId()) {
+					return MTP_inputUserSelf();
+				} else if (const auto user = session->data().userLoaded(uid)) {
+					return user->inputUser();
+				}
+				return MTP_inputUserEmpty();
+			}();
+			if (inputUser.type() != mtpc_inputUserEmpty) {
+				v.push_back(MTP_inputMessageEntityMentionName(
+					offset,
+					length,
+					inputUser));
+			} else if (!IsInternalUrl(url)) {
 				v.push_back(MTP_messageEntityTextUrl(
 					offset,
 					length,
