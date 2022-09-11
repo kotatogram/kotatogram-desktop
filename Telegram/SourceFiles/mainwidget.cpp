@@ -1570,11 +1570,9 @@ void MainWidget::showHistory(
 		showParams.way = way;
 		showSection(std::move(memento), showParams);
 		if (_dialogs && !_dialogs->isHidden()) {
-			if (way != Way::Backward) {
-				_dialogs->scrollToEntry(Dialogs::RowDescriptor(
-					history,
-					FullMsgId(history->peer->id, showAtMsgId)));
-			}
+			_dialogs->scrollToEntry(Dialogs::RowDescriptor(
+				history,
+				FullMsgId(history->peer->id, showAtMsgId)));
 			_dialogs->update();
 		}
 		return;
@@ -1739,12 +1737,10 @@ void MainWidget::showHistory(
 	}
 
 	if (_dialogs && !_dialogs->isHidden()) {
-		if (!back) {
-			if (const auto history = _history->history()) {
-				_dialogs->scrollToEntry(Dialogs::RowDescriptor(
-					history,
-					FullMsgId(history->peer->id, showAtMsgId)));
-			}
+		if (const auto history = _history->history()) {
+			_dialogs->scrollToEntry(Dialogs::RowDescriptor(
+				history,
+				FullMsgId(history->peer->id, showAtMsgId)));
 		}
 		_dialogs->update();
 	}
@@ -2403,6 +2399,12 @@ bool MainWidget::showBackFromStack(const SectionShow &params) {
 		showNewSection(
 			sectionItem->takeMemento(),
 			params.withWay(SectionShow::Way::Backward));
+		// Returning to a chat section scrolls the chats list to it too.
+		const auto chat = dynamic_cast<HistoryView::ChatWidget*>(
+			_mainSection.data());
+		if (chat && _dialogs && !_dialogs->isHidden()) {
+			_dialogs->scrollToEntry(chat->activeChat());
+		}
 	}
 	if (_thirdSectionFromStack && _thirdSection) {
 		_controller->showSection(
