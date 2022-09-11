@@ -370,6 +370,7 @@ Data::ResolvedForwardDraft History::resolveForwardDraft(
 	return Data::ResolvedForwardDraft{
 		.items = owner().idsToItems(draft.ids),
 		.options = draft.options,
+		.groupOptions = draft.groupOptions,
 	};
 }
 
@@ -381,6 +382,7 @@ Data::ResolvedForwardDraft History::resolveForwardDraft(
 		setForwardDraft(topicRootId, {
 			.ids = owner().itemsToIds(result.items),
 			.options = result.options,
+			.groupOptions = result.groupOptions,
 		});
 	}
 	return result;
@@ -685,7 +687,8 @@ not_null<HistoryItem*> History::addNewLocalMessage(
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
-		HistoryMessageMarkupData &&markup) {
+		HistoryMessageMarkupData &&markup,
+		uint64 newGroupId) {
 	return addNewItem(
 		makeMessage(
 			id,
@@ -697,7 +700,8 @@ not_null<HistoryItem*> History::addNewLocalMessage(
 			postAuthor,
 			document,
 			caption,
-			std::move(markup)),
+			std::move(markup),
+			newGroupId),
 		true);
 }
 
@@ -711,7 +715,8 @@ not_null<HistoryItem*> History::addNewLocalMessage(
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
-		HistoryMessageMarkupData &&markup) {
+		HistoryMessageMarkupData &&markup,
+		uint64 newGroupId) {
 	return addNewItem(
 		makeMessage(
 			id,
@@ -723,7 +728,8 @@ not_null<HistoryItem*> History::addNewLocalMessage(
 			postAuthor,
 			photo,
 			caption,
-			std::move(markup)),
+			std::move(markup),
+			newGroupId),
 		true);
 }
 

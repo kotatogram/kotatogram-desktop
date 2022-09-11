@@ -88,6 +88,7 @@ struct SendingErrorRequest {
 	const HistoryItemsList *forward = nullptr;
 	const TextWithTags *text = nullptr;
 	bool ignoreSlowmodeCountdown = false;
+	bool isUnquotedForward = false;
 };
 [[nodiscard]] QString GetErrorTextForSending(
 	not_null<PeerData*> peer,

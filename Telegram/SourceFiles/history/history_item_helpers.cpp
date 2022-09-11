@@ -66,7 +66,7 @@ QString GetErrorTextForSending(
 		: peer->owner().history(peer);
 	if (request.forward) {
 		for (const auto &item : *request.forward) {
-			if (const auto error = item->errorTextForForward(thread)) {
+			if (const auto error = item->errorTextForForward(thread, request.isUnquotedForward)) {
 				return *error;
 			}
 		}
