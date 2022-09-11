@@ -110,7 +110,7 @@ ScheduledWidget::ScheduledWidget(
 	controller,
 	[=](not_null<DocumentData*> emoji) { listShowPremiumToast(emoji); },
 	ComposeControls::Mode::Scheduled,
-	SendMenu::Type::Disabled))
+	SendMenu::Type::PreviewOnly))
 , _cornerButtons(
 		_scroll.data(),
 		controller->chatStyle(),
@@ -133,6 +133,9 @@ ScheduledWidget::ScheduledWidget(
 		.section = Dialogs::EntryState::Section::Scheduled,
 	};
 	_topBar->setActiveChat(state, nullptr);
+	_topBar->setCustomTitle(_history->peer->isSelf()
+		? tr::lng_reminder_messages(tr::now)
+		: tr::lng_scheduled_messages(tr::now));
 	_composeControls->setCurrentDialogsEntryState(state);
 	controller->setCurrentDialogsEntryState(state);
 
