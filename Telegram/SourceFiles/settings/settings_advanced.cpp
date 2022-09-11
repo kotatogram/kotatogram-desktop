@@ -117,19 +117,12 @@ void SetupUpdate(
 		st::settingsButton).get();
 
 	if (showOther) {
-		const auto experimental = inner->add(
-			object_ptr<Ui::SlideWrap<Button>>(
-				inner,
+		const auto experimental = container->add(
 				object_ptr<Button>(
-					inner,
+					container,
 					tr::lng_settings_experimental(),
-					st::settingsButton)));
-		if (!install) {
-			experimental->toggle(true, anim::type::instant);
-		} else {
-			experimental->toggleOn(install->toggledValue());
-		}
-		experimental->entity()->setClickedCallback([=] {
+					st::settingsButton));
+		experimental->setClickedCallback([=] {
 			showOther(Type::Experimental);
 		});
 	}
