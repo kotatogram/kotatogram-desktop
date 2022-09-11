@@ -399,36 +399,13 @@ void BuildSectionButtons(SectionBuilder &builder) {
 	});
 
 	{ // Folders
-		const auto preload = [=] {
-			session->data().chatsFilters().requestSuggested();
-		};
-		const auto hasFilters = session->data().chatsFilters().has()
-			|| session->settings().dialogsFiltersEnabled();
-
-		auto shownProducer = hasFilters
-			? rpl::single(true) | rpl::type_erased
-			: (rpl::single(rpl::empty) | rpl::then(
-				session->appConfig().refreshed()
-			) | rpl::map([=] {
-			const auto enabled = session->appConfig().get<bool>(
-				u"dialog_filters_enabled"_q,
-				false);
-			if (enabled) {
-				preload();
-			}
-			return enabled;
-		}));
-
-		if (hasFilters) {
-			preload();
-		}
+		session->data().chatsFilters().requestSuggested();
 
 		builder.addButton({
 			.title = tr::lng_settings_section_filters(),
 			.icon = { &st::menuIconShowInFolder },
 			.onClick = [=] { showOther(FoldersId()); },
 			.keywords = { u"filters"_q, u"tabs"_q },
-			.shown = std::move(shownProducer),
 		});
 	}
 
