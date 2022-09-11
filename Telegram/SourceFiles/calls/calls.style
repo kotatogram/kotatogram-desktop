@@ -627,8 +627,8 @@ callTitlePinOnTop: IconButton(callTitleButton) {
 	iconOver: callTitlePinIconOver;
 }
 
-groupCallWidth: 380px;
-groupCallHeight: 520px;
+groupCallWidth: 370px;
+groupCallHeight: 340px;
 groupCallWidthRtmp: 720px;
 groupCallWidthRtmpMin: 240px;
 groupCallHeightRtmp: 580px;
