@@ -83,9 +83,7 @@ EditInfoBox::EditInfoBox(
 	_field->setMaxLength(kMaxSupportInfoLength);
 	_field->setSubmitSettings(
 		Core::App().settings().sendSubmitWay());
-	_field->setInstantReplaces(Ui::InstantReplaces::Default());
-	_field->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	_field->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	_field->setMarkdownReplacesEnabled(rpl::single(true));
 	_field->setEditLinkCallback(
 		DefaultEditLinkCallback(controller->uiShow(), _field));

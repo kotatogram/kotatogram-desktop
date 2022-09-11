@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/core_settings_proxy.h"
 #include "media/media_common.h"
 #include "window/themes/window_themes_embedded.h"
+#include "ui/widgets/input_fields.h"
 #include "ui/chat/attach/attach_send_files_way.h"
 #include "platform/platform_notifications_manager.h"
 #include "base/flags.h"
@@ -402,6 +403,9 @@ public:
 	}
 	void setReplaceEmoji(bool value) {
 		_replaceEmoji = value;
+		setInstantReplaces(value
+			? Ui::InstantReplaces::Default()
+			: Ui::InstantReplaces::Custom());
 	}
 	[[nodiscard]] bool replaceEmoji() const {
 		return _replaceEmoji.current();
@@ -411,6 +415,34 @@ public:
 	}
 	[[nodiscard]] rpl::producer<bool> replaceEmojiChanges() const {
 		return _replaceEmoji.changes();
+	}
+	void setInstantReplaces(Ui::InstantReplaces replaces) {
+		_instantReplaces = replaces;
+		_instantReplacesSet = true;
+	}
+	[[nodiscard]] Ui::InstantReplaces instantReplaces() {
+		if (!_instantReplacesSet) {
+			setInstantReplaces(replaceEmoji()
+				? Ui::InstantReplaces::Default()
+				: Ui::InstantReplaces::Custom());
+		}
+		return _instantReplaces.current();
+	}
+	[[nodiscard]] rpl::producer<Ui::InstantReplaces> instantReplacesValue() {
+		if (!_instantReplacesSet) {
+			setInstantReplaces(replaceEmoji()
+				? Ui::InstantReplaces::Default()
+				: Ui::InstantReplaces::Custom());
+		}
+		return _instantReplaces.value();
+	}
+	[[nodiscard]] rpl::producer<Ui::InstantReplaces> instantReplacesChanges() {
+		if (!_instantReplacesSet) {
+			setInstantReplaces(replaceEmoji()
+				? Ui::InstantReplaces::Default()
+				: Ui::InstantReplaces::Custom());
+		}
+		return _instantReplaces.changes();
 	}
 	[[nodiscard]] bool suggestEmoji() const {
 		return _suggestEmoji;
@@ -869,6 +901,8 @@ private:
 	bool _loopAnimatedStickers = true;
 	rpl::variable<bool> _largeEmoji = true;
 	rpl::variable<bool> _replaceEmoji = true;
+	rpl::variable<Ui::InstantReplaces> _instantReplaces;
+	bool _instantReplacesSet = false;
 	bool _suggestEmoji = true;
 	bool _suggestStickersByEmoji = true;
 	bool _suggestAnimatedEmoji = true;

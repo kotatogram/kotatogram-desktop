@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/premium_limits_box.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "ui/layers/generic_box.h"
+#include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
 #include "ui/text/text_options.h"
 #include "ui/widgets/checkbox.h"
@@ -707,12 +708,10 @@ void EditFilterBox(
 			tr::lng_filters_new_name(),
 			filter.title()),
 		st::markdownLinkFieldPadding);
-	name->setInstantReplaces(Ui::InstantReplaces::Default());
-	name->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
 	if (!isLocal) {
 		name->setMaxLength(kMaxFilterTitleLength);
 	}
+	name->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	Ui::Emoji::SuggestionsController::Init(
 		box->getDelegate()->outerContainer(),
 		name,
