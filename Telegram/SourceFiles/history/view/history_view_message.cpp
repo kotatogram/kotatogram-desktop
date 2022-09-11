@@ -361,6 +361,130 @@ QString FastReplyText() {
 
 } // namespace
 
+style::icon FromChatIcon(
+		const Ui::ChatPaintContext &context,
+		PeerId peerId) {
+	const auto st = context.st;
+	if (context.selected()) {
+		const style::icon icons[] = {
+			st->msgNameChat1IconSelected(),
+			st->msgNameChat2IconSelected(),
+			st->msgNameChat3IconSelected(),
+			st->msgNameChat4IconSelected(),
+			st->msgNameChat5IconSelected(),
+			st->msgNameChat6IconSelected(),
+			st->msgNameChat7IconSelected(),
+			st->msgNameChat8IconSelected(),
+		};
+		return icons[Data::DecideColorIndex(peerId)];
+	} else {
+		const style::icon icons[] = {
+			st->msgNameChat1Icon(),
+			st->msgNameChat2Icon(),
+			st->msgNameChat3Icon(),
+			st->msgNameChat4Icon(),
+			st->msgNameChat5Icon(),
+			st->msgNameChat6Icon(),
+			st->msgNameChat7Icon(),
+			st->msgNameChat8Icon(),
+		};
+		return icons[Data::DecideColorIndex(peerId)];
+	}
+}
+
+style::icon FromChannelIcon(
+		const Ui::ChatPaintContext &context,
+		PeerId peerId) {
+	const auto st = context.st;
+	if (context.selected()) {
+		const style::icon icons[] = {
+			st->msgNameChannel1IconSelected(),
+			st->msgNameChannel2IconSelected(),
+			st->msgNameChannel3IconSelected(),
+			st->msgNameChannel4IconSelected(),
+			st->msgNameChannel5IconSelected(),
+			st->msgNameChannel6IconSelected(),
+			st->msgNameChannel7IconSelected(),
+			st->msgNameChannel8IconSelected(),
+		};
+		return icons[Data::DecideColorIndex(peerId)];
+	} else {
+		const style::icon icons[] = {
+			st->msgNameChannel1Icon(),
+			st->msgNameChannel2Icon(),
+			st->msgNameChannel3Icon(),
+			st->msgNameChannel4Icon(),
+			st->msgNameChannel5Icon(),
+			st->msgNameChannel6Icon(),
+			st->msgNameChannel7Icon(),
+			st->msgNameChannel8Icon(),
+		};
+		return icons[Data::DecideColorIndex(peerId)];
+	}
+}
+
+style::icon FromDeletedIcon(
+		const Ui::ChatPaintContext &context,
+		PeerId peerId) {
+	const auto st = context.st;
+	if (context.selected()) {
+		const style::icon icons[] = {
+			st->msgNameDeleted1IconSelected(),
+			st->msgNameDeleted2IconSelected(),
+			st->msgNameDeleted3IconSelected(),
+			st->msgNameDeleted4IconSelected(),
+			st->msgNameDeleted5IconSelected(),
+			st->msgNameDeleted6IconSelected(),
+			st->msgNameDeleted7IconSelected(),
+			st->msgNameDeleted8IconSelected(),
+		};
+		return icons[Data::DecideColorIndex(peerId)];
+	} else {
+		const style::icon icons[] = {
+			st->msgNameDeleted1Icon(),
+			st->msgNameDeleted2Icon(),
+			st->msgNameDeleted3Icon(),
+			st->msgNameDeleted4Icon(),
+			st->msgNameDeleted5Icon(),
+			st->msgNameDeleted6Icon(),
+			st->msgNameDeleted7Icon(),
+			st->msgNameDeleted8Icon(),
+		};
+		return icons[Data::DecideColorIndex(peerId)];
+	}
+}
+
+style::icon FromBotIcon(
+		const Ui::ChatPaintContext &context,
+		PeerId peerId) {
+	const auto st = context.st;
+	if (context.selected()) {
+		const style::icon icons[] = {
+			st->msgNameBot1IconSelected(),
+			st->msgNameBot2IconSelected(),
+			st->msgNameBot3IconSelected(),
+			st->msgNameBot4IconSelected(),
+			st->msgNameBot5IconSelected(),
+			st->msgNameBot6IconSelected(),
+			st->msgNameBot7IconSelected(),
+			st->msgNameBot8IconSelected(),
+		};
+		return icons[Data::DecideColorIndex(peerId)];
+	} else {
+		const style::icon icons[] = {
+			st->msgNameBot1Icon(),
+			st->msgNameBot2Icon(),
+			st->msgNameBot3Icon(),
+			st->msgNameBot4Icon(),
+			st->msgNameBot5Icon(),
+			st->msgNameBot6Icon(),
+			st->msgNameBot7Icon(),
+			st->msgNameBot8Icon(),
+		};
+		return icons[Data::DecideColorIndex(peerId)];
+	}
+}
+
 struct Message::CommentsButton {
 	std::unique_ptr<Ui::RippleAnimation> ripple;
 	std::vector<UserpicInRow> userpics;
@@ -804,6 +928,25 @@ QSize Message::performCountOptimalSize() {
 						+ std::max(badgeWidth, replyWidth);
 				} else if (replyWidth) {
 					namew += st::msgPadding.right() + replyWidth;
+				}
+				const auto hasChatTypeIcon = [&]() {
+					if (item->isSponsored()) {
+						return true;
+					} else if (!item->isPost() && item->displayFrom()) {
+						const auto from = item->displayFrom();
+						if (from->isChat() || from->isMegagroup() || from->isChannel()) {
+							return true;
+						} else if (const auto user = from->asUser()) {
+							if (user->isInaccessible()
+								|| (user->isBot() && !user->isSupport() && !user->isRepliesChat())) {
+								return true;
+							}
+						}
+					}
+					return false;
+				}();
+				if (hasChatTypeIcon) {
+					namew += st::dialogsChatTypeSkip;
 				}
 				accumulate_max(maxWidth, namew);
 			} else if (via && !displayForwardedFrom()) {
@@ -1435,6 +1578,34 @@ void Message::paintFromName(
 	auto availableWidth = trect.width();
 	if (rightWidth) {
 		availableWidth -= st::msgPadding.right() + rightWidth;
+	}
+
+	const auto chatTypeIcon = [&]() -> std::optional<style::icon>  {
+		if (item->isSponsored()) {
+			return context.selected()
+					? context.st->msgNameSponsoredIconSelected()
+					: context.st->msgNameSponsoredIcon();
+		} else if (!item->isPost() && item->displayFrom()) {
+			const auto from = item->displayFrom();
+			if (from->isChat() || from->isMegagroup()) {
+				return FromChatIcon(context, from->id);
+			} else if (from->isChannel()) {
+				return FromChannelIcon(context, from->id);
+			} else if (const auto user = from->asUser()) {
+				if (user->isInaccessible()) {
+					return FromDeletedIcon(context, from->id);
+				} else if (user->isBot() && !user->isSupport() && !user->isRepliesChat()) {
+					return FromBotIcon(context, from->id);
+				}
+			}
+		}
+		return {};
+	}();
+
+	if (chatTypeIcon) {
+		chatTypeIcon->paint(p, QPoint(availableLeft, trect.top()), availableWidth);
+		availableLeft += chatTypeIcon->width() + st::dialogsChatTypeSkip;
+		availableWidth -= chatTypeIcon->width() + st::dialogsChatTypeSkip;
 	}
 
 	const auto stm = context.messageStyle();
@@ -2374,10 +2545,27 @@ bool Message::getStateFromName(
 	if (point.y() >= trect.top() && point.y() < trect.top() + st::msgNameFont->height) {
 		auto availableLeft = trect.left();
 		auto availableWidth = trect.width();
+		const auto item = data();
+		const auto hasChatTypeIcon = [&]() {
+			if (item->isSponsored()) {
+				return true;
+			} else if (!item->isPost() && item->displayFrom()) {
+				const auto from = item->displayFrom();
+				if (from->isChat() || from->isMegagroup() || from->isChannel()) {
+					return true;
+				} else if (const auto user = from->asUser()) {
+					if (user->isInaccessible()
+						|| (user->isBot() && !user->isSupport() && !user->isRepliesChat())) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}();
 		if (replyWidth) {
 			availableWidth -= st::msgPadding.right() + replyWidth;
 		}
-		const auto item = data();
+		const auto chatIconWidth = (hasChatTypeIcon) ? st::dialogsChatTypeSkip : 0;
 		const auto from = item->displayFrom();
 		const auto nameText = [&]() -> const Ui::Text::String * {
 			if (from) {
@@ -2391,7 +2579,7 @@ bool Message::getStateFromName(
 		}();
 		if (point.x() >= availableLeft
 			&& point.x() < availableLeft + availableWidth
-			&& point.x() < availableLeft + nameText->maxWidth()) {
+			&& point.x() < availableLeft + nameText->maxWidth() + chatIconWidth) {
 			outResult->link = fromLink();
 			return true;
 		}
