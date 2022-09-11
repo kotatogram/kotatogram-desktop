@@ -265,6 +265,204 @@ public:
 	[[nodiscard]] const style::icon &historyPollChoiceWrong() const {
 		return _historyPollChoiceWrong;
 	}
+	[[nodiscard]] const style::icon &msgNameChat1Icon() const {
+		return _msgNameChat1Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChat1IconSelected() const {
+		return _msgNameChat1IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChat2Icon() const {
+		return _msgNameChat2Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChat2IconSelected() const {
+		return _msgNameChat2IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChat3Icon() const {
+		return _msgNameChat3Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChat3IconSelected() const {
+		return _msgNameChat3IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChat4Icon() const {
+		return _msgNameChat4Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChat4IconSelected() const {
+		return _msgNameChat4IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChat5Icon() const {
+		return _msgNameChat5Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChat5IconSelected() const {
+		return _msgNameChat5IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChat6Icon() const {
+		return _msgNameChat6Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChat6IconSelected() const {
+		return _msgNameChat6IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChat7Icon() const {
+		return _msgNameChat7Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChat7IconSelected() const {
+		return _msgNameChat7IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChat8Icon() const {
+		return _msgNameChat8Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChat8IconSelected() const {
+		return _msgNameChat8IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel1Icon() const {
+		return _msgNameChannel1Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel1IconSelected() const {
+		return _msgNameChannel1IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel2Icon() const {
+		return _msgNameChannel2Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel2IconSelected() const {
+		return _msgNameChannel2IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel3Icon() const {
+		return _msgNameChannel3Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel3IconSelected() const {
+		return _msgNameChannel3IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel4Icon() const {
+		return _msgNameChannel4Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel4IconSelected() const {
+		return _msgNameChannel4IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel5Icon() const {
+		return _msgNameChannel5Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel5IconSelected() const {
+		return _msgNameChannel5IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel6Icon() const {
+		return _msgNameChannel6Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel6IconSelected() const {
+		return _msgNameChannel6IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel7Icon() const {
+		return _msgNameChannel7Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel7IconSelected() const {
+		return _msgNameChannel7IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel8Icon() const {
+		return _msgNameChannel8Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameChannel8IconSelected() const {
+		return _msgNameChannel8IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameBot1Icon() const {
+		return _msgNameBot1Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameBot1IconSelected() const {
+		return _msgNameBot1IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameBot2Icon() const {
+		return _msgNameBot2Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameBot2IconSelected() const {
+		return _msgNameBot2IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameBot3Icon() const {
+		return _msgNameBot3Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameBot3IconSelected() const {
+		return _msgNameBot3IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameBot4Icon() const {
+		return _msgNameBot4Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameBot4IconSelected() const {
+		return _msgNameBot4IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameBot5Icon() const {
+		return _msgNameBot5Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameBot5IconSelected() const {
+		return _msgNameBot5IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameBot6Icon() const {
+		return _msgNameBot6Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameBot6IconSelected() const {
+		return _msgNameBot6IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameBot7Icon() const {
+		return _msgNameBot7Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameBot7IconSelected() const {
+		return _msgNameBot7IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameBot8Icon() const {
+		return _msgNameBot8Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameBot8IconSelected() const {
+		return _msgNameBot8IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted1Icon() const {
+		return _msgNameDeleted1Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted1IconSelected() const {
+		return _msgNameDeleted1IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted2Icon() const {
+		return _msgNameDeleted2Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted2IconSelected() const {
+		return _msgNameDeleted2IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted3Icon() const {
+		return _msgNameDeleted3Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted3IconSelected() const {
+		return _msgNameDeleted3IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted4Icon() const {
+		return _msgNameDeleted4Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted4IconSelected() const {
+		return _msgNameDeleted4IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted5Icon() const {
+		return _msgNameDeleted5Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted5IconSelected() const {
+		return _msgNameDeleted5IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted6Icon() const {
+		return _msgNameDeleted6Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted6IconSelected() const {
+		return _msgNameDeleted6IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted7Icon() const {
+		return _msgNameDeleted7Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted7IconSelected() const {
+		return _msgNameDeleted7IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted8Icon() const {
+		return _msgNameDeleted8Icon;
+	}
+	[[nodiscard]] const style::icon &msgNameDeleted8IconSelected() const {
+		return _msgNameDeleted8IconSelected;
+	}
+	[[nodiscard]] const style::icon &msgNameSponsoredIcon() const {
+		return _msgNameSponsoredIcon;
+	}
+	[[nodiscard]] const style::icon &msgNameSponsoredIconSelected() const {
+		return _msgNameSponsoredIconSelected;
+	}
 
 private:
 	void assignPalette(not_null<const style::palette*> palette);
@@ -342,6 +540,72 @@ private:
 	style::icon _videoIcon = { Qt::Uninitialized };
 	style::icon _historyPollChoiceRight = { Qt::Uninitialized };
 	style::icon _historyPollChoiceWrong = { Qt::Uninitialized };
+	style::icon _msgNameChat1Icon = { Qt::Uninitialized };
+	style::icon _msgNameChat1IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChat2Icon = { Qt::Uninitialized };
+	style::icon _msgNameChat2IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChat3Icon = { Qt::Uninitialized };
+	style::icon _msgNameChat3IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChat4Icon = { Qt::Uninitialized };
+	style::icon _msgNameChat4IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChat5Icon = { Qt::Uninitialized };
+	style::icon _msgNameChat5IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChat6Icon = { Qt::Uninitialized };
+	style::icon _msgNameChat6IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChat7Icon = { Qt::Uninitialized };
+	style::icon _msgNameChat7IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChat8Icon = { Qt::Uninitialized };
+	style::icon _msgNameChat8IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChannel1Icon = { Qt::Uninitialized };
+	style::icon _msgNameChannel1IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChannel2Icon = { Qt::Uninitialized };
+	style::icon _msgNameChannel2IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChannel3Icon = { Qt::Uninitialized };
+	style::icon _msgNameChannel3IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChannel4Icon = { Qt::Uninitialized };
+	style::icon _msgNameChannel4IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChannel5Icon = { Qt::Uninitialized };
+	style::icon _msgNameChannel5IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChannel6Icon = { Qt::Uninitialized };
+	style::icon _msgNameChannel6IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChannel7Icon = { Qt::Uninitialized };
+	style::icon _msgNameChannel7IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameChannel8Icon = { Qt::Uninitialized };
+	style::icon _msgNameChannel8IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameBot1Icon = { Qt::Uninitialized };
+	style::icon _msgNameBot1IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameBot2Icon = { Qt::Uninitialized };
+	style::icon _msgNameBot2IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameBot3Icon = { Qt::Uninitialized };
+	style::icon _msgNameBot3IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameBot4Icon = { Qt::Uninitialized };
+	style::icon _msgNameBot4IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameBot5Icon = { Qt::Uninitialized };
+	style::icon _msgNameBot5IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameBot6Icon = { Qt::Uninitialized };
+	style::icon _msgNameBot6IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameBot7Icon = { Qt::Uninitialized };
+	style::icon _msgNameBot7IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameBot8Icon = { Qt::Uninitialized };
+	style::icon _msgNameBot8IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameDeleted1Icon = { Qt::Uninitialized };
+	style::icon _msgNameDeleted1IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameDeleted2Icon = { Qt::Uninitialized };
+	style::icon _msgNameDeleted2IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameDeleted3Icon = { Qt::Uninitialized };
+	style::icon _msgNameDeleted3IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameDeleted4Icon = { Qt::Uninitialized };
+	style::icon _msgNameDeleted4IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameDeleted5Icon = { Qt::Uninitialized };
+	style::icon _msgNameDeleted5IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameDeleted6Icon = { Qt::Uninitialized };
+	style::icon _msgNameDeleted6IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameDeleted7Icon = { Qt::Uninitialized };
+	style::icon _msgNameDeleted7IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameDeleted8Icon = { Qt::Uninitialized };
+	style::icon _msgNameDeleted8IconSelected = { Qt::Uninitialized };
+	style::icon _msgNameSponsoredIcon = { Qt::Uninitialized };
+	style::icon _msgNameSponsoredIconSelected = { Qt::Uninitialized };
 
 	rpl::event_stream<> _paletteChanged;
 
