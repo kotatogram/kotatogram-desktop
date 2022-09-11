@@ -101,8 +101,18 @@ public:
 		int y,
 		int outerWidth,
 		bool selected);
+	virtual int adminRankWidth() const;
+	virtual void paintAdminRank(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		bool selected);
 
 	virtual QSize rightActionSize() const {
+		return QSize();
+	}
+	virtual QSize placeholderSize() const {
 		return QSize();
 	}
 	virtual QMargins rightActionMargins() const {
@@ -230,6 +240,8 @@ public:
 		int availableWidth,
 		int outerWidth,
 		bool selected);
+
+	virtual bool hasAction();
 
 protected:
 	bool isInitialized() const {

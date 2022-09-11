@@ -60,6 +60,7 @@ public:
 
 	template <typename Widget>
 	Widget *addControl(object_ptr<Widget> widget, QMargins margin);
+	void setCustomStatus(const QString &status);
 
 protected:
 	int resizeGetHeight(int newWidth) override;
@@ -72,6 +73,7 @@ private:
 	Ui::Text::String _userName;
 	bool _hasAdminRights = false;
 	object_ptr<Ui::VerticalLayout> _rows;
+	QString _customStatus;
 
 };
 
@@ -109,6 +111,10 @@ Widget *EditParticipantBox::Inner::addControl(
 	return _rows->add(std::move(widget), margin);
 }
 
+void EditParticipantBox::Inner::setCustomStatus(const QString &status) {
+	_customStatus = status;
+}
+
 int EditParticipantBox::Inner::resizeGetHeight(int newWidth) {
 	_userPhoto->moveToLeft(
 		st::rightsPhotoMargin.left(),
@@ -138,6 +144,10 @@ void EditParticipantBox::Inner::paintEvent(QPaintEvent *e) {
 		namew,
 		width());
 	const auto statusText = [&] {
+		if (!_customStatus.isEmpty()) {
+			return _customStatus;
+		}
+
 		if (_user->isBot()) {
 			const auto seesAllMessages = _user->botInfo->readsAllHistory
 				|| _hasAdminRights;
@@ -166,6 +176,13 @@ EditParticipantBox::EditParticipantBox(
 , _hasAdminRights(hasAdminRights) {
 }
 
+void EditParticipantBox::setCustomStatus(const QString &status) {
+	_customStatus = status;
+	if (_inner) {
+		_inner->setCustomStatus(status);
+	}
+}
+
 void EditParticipantBox::prepare() {
 	_inner = setInnerWidget(object_ptr<Inner>(
 		this,
@@ -173,6 +190,7 @@ void EditParticipantBox::prepare() {
 		_user,
 		hasAdminRights()));
 	setDimensionsToContent(st::boxWideWidth, _inner);
+	_inner->setCustomStatus(_customStatus);
 }
 
 template <typename Widget>

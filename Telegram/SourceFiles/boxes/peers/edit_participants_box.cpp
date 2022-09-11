@@ -1912,10 +1912,17 @@ std::unique_ptr<PeerListRow> ParticipantsBoxController::createRow(
 	refreshCustomStatus(row.get());
 	if (_role == Role::Admins
 		&& user
-		&& !_additional.isCreator(user)
-		&& _additional.adminRights(user).has_value()
-		&& _additional.canEditAdmin(user)) {
-		row->setActionLink(tr::lng_profile_kick(tr::now));
+		&& (_additional.adminRights(user).has_value()
+			|| _additional.isCreator(user))) {
+		if (_additional.canEditAdmin(user) && !_additional.isCreator(user)) {
+			row->setActionLink(tr::lng_profile_kick(tr::now));
+		}
+		row->setAdminRank(channel
+			? channel->adminRank(user)
+			: (chat && _additional.isCreator(user))
+				? tr::lng_owner_badge(tr::now)
+				: QString(),
+			_additional.isCreator(user));
 	} else if (_role == Role::Kicked || _role == Role::Restricted) {
 		if (_additional.canRestrictParticipant(participant)) {
 			row->setActionLink(tr::lng_profile_delete_removed(tr::now));
@@ -1948,6 +1955,11 @@ auto ParticipantsBoxController::computeType(
 		? Rights::Admin
 		: Rights::Normal;
 	result.canRemove = _additional.canRemoveParticipant(participant);
+	if (user) {
+		if (const auto channel = _peer->asChannel()) {
+			result.adminRank = channel->adminRank(user);
+		}
+	}
 	return result;
 }
 

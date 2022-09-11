@@ -43,12 +43,24 @@ public:
 	using PeerListRow::PeerListRow;
 
 	void setActionLink(const QString &action);
+	void setActionPlaceholder(const QString &placeholder, bool active = false);
 
 	void lazyInitialize(const style::PeerListItem &st) override;
+	bool hasAction() override;
+
+	void setAdminRank(const QString &rank, bool isCreator = false);
+	int adminRankWidth() const override;
+	void paintAdminRank(
+		Painter &p,
+		int x,
+		int y,
+		int outerWidth,
+		bool selected) override;
 
 private:
 	void refreshActionLink();
 	QSize rightActionSize() const override;
+	QSize placeholderSize() const override;
 	QMargins rightActionMargins() const override;
 	void rightActionPaint(
 		Painter &p,
@@ -59,8 +71,13 @@ private:
 		bool actionSelected) override;
 
 	QString _action;
+	QString _actionPlaceholder;
+	bool _actionPlaceholderActive = false;
 	int _actionWidth = 0;
+	int _actionPlaceholderWidth = 0;
 
+	QString _adminRank;
+	bool _isCreator = false;
 };
 
 class PeerListGlobalSearchController : public PeerListSearchController {

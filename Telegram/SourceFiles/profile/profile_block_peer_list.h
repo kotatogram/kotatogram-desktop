@@ -43,6 +43,8 @@ public:
 			Creator,
 		};
 		AdminState adminState = AdminState::None;
+		QString adminRank;
+		int adminRankWidth = 0;
 		bool hasRemoveLink = false;
 		std::unique_ptr<Ui::RippleAnimation> ripple;
 	};

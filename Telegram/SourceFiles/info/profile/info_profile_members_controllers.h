@@ -26,6 +26,7 @@ public:
 	struct Type {
 		Rights rights;
 		bool canRemove = false;
+		QString adminRank;
 	};
 
 	MemberListRow(not_null<UserData*> user, Type type);
@@ -39,8 +40,8 @@ public:
 		int outerWidth,
 		bool selected,
 		bool actionSelected) override;
-	int nameIconWidth() const override;
-	void paintNameIcon(
+	int adminRankWidth() const override;
+	void paintAdminRank(
 		Painter &p,
 		int x,
 		int y,
