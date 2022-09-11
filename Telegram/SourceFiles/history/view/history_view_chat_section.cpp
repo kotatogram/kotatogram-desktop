@@ -6096,6 +6096,14 @@ void ChatWidget::setupShortcuts() {
 					return true;
 				});
 		}
+		request->check(Command::JumpToDate, 1) && request->handle([=] {
+			controller()->showCalendar({ _sublist
+				? Dialogs::Key(_sublist)
+				: _topic
+				? Dialogs::Key(_topic)
+				: Dialogs::Key(_history) });
+			return true;
+		});
 		request->check(Command::SaveDraft, 1) && request->handle([=] {
 			_composeControls->saveDraftToCloud();
 			return true;

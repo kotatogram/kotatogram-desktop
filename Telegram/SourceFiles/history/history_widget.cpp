@@ -2806,6 +2806,10 @@ void HistoryWidget::setupShortcuts() {
 				return true;
 			});
 		}
+		request->check(Command::JumpToDate, 1) && request->handle([=] {
+			controller()->showCalendar({ Dialogs::Key(_history) });
+			return true;
+		});
 		request->check(Command::SaveDraft, 1) && request->handle([=] {
 			saveDraft();
 			saveCloudDraft();

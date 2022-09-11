@@ -146,6 +146,7 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	//
 
 	{ qsl("save_draft")        , Command::SaveDraft },
+	{ qsl("jump_to_date")      , Command::JumpToDate },
 };
 
 const base::flat_map<Command, QString> &CommandNames() {
@@ -545,6 +546,7 @@ void Manager::fillDefaults() {
 	set(u"ctrl+r"_q                  , Command::RecordVoice);
 
 	set(u"ctrl+s"_q, Command::SaveDraft);
+	set(u"ctrl+h"_q, Command::JumpToDate);
 
 	_defaults = keysCurrents();
 }
