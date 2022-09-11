@@ -68,6 +68,20 @@
      <file alias="io.github.kotatogram.desktop">../../../../lib/xdg/io.github.kotatogram.desktop</file>
   </qresource>
   <qresource prefix="/ktg_lang">
+    <file alias="alttg.json">../../langs/rewrites/alttg.json</file>
+    <file alias="ar.json">../../langs/rewrites/ar.json</file>
+    <file alias="de.json">../../langs/rewrites/de.json</file>
     <file alias="en.json">../../langs/rewrites/en.json</file>
+    <file alias="es.json">../../langs/rewrites/es.json</file>
+    <file alias="fa.json">../../langs/rewrites/fa.json</file>
+    <file alias="fr.json">../../langs/rewrites/fr.json</file>
+    <file alias="he.json">../../langs/rewrites/he.json</file>
+    <file alias="it.json">../../langs/rewrites/it.json</file>
+    <file alias="pl.json">../../langs/rewrites/pl.json</file>
+    <file alias="pt-br.json">../../langs/rewrites/pt-br.json</file>
+    <file alias="ru.json">../../langs/rewrites/ru.json</file>
+    <file alias="tr.json">../../langs/rewrites/tr.json</file>
+    <file alias="uk.json">../../langs/rewrites/uk.json</file>
+    <file alias="zh.json">../../langs/rewrites/zh.json</file>
   </qresource>
 </RCC>
