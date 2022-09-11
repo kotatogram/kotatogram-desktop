@@ -768,7 +768,7 @@ void SendFilesBox::emojiFilterForGeometry(not_null<QEvent*> event) {
 
 void SendFilesBox::updateEmojiPanelGeometry() {
 	const auto parent = _emojiPanel->parentWidget();
-	const auto global = _emojiToggle->mapToGlobal({ 0, 0 });
+	const auto global = _emojiToggle->mapToGlobal(QPoint());
 	const auto local = parent->mapFromGlobal(global);
 	_emojiPanel->moveBottomRight(
 		local.y(),

@@ -970,8 +970,8 @@ void Content::setupContent(
 	const auto selectedCoords = [=] {
 		const auto coords = [=](Rows *rows, int index) {
 			const auto result = rows->rowScrollRequest(index);
-			const auto shift = rows->mapToGlobal({ 0, 0 }).y()
-				- mapToGlobal({ 0, 0 }).y();
+			const auto shift = rows->mapToGlobal(QPoint()).y()
+				- mapToGlobal(QPoint()).y();
 			return Ui::ScrollToRequest(
 				result.ymin + shift,
 				result.ymax + shift);

@@ -121,7 +121,7 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 				? request.ymin
 				: mapFromGlobal(_members->mapToGlobal({ 0, request.ymin })).y();
 			auto max = (request.ymin < 0)
-				? mapFromGlobal(_members->mapToGlobal({ 0, 0 })).y()
+				? mapFromGlobal(_members->mapToGlobal(QPoint())).y()
 				: (request.ymax < 0)
 				? request.ymax
 				: mapFromGlobal(_members->mapToGlobal({ 0, request.ymax })).y();
