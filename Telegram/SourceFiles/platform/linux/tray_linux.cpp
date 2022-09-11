@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QDir>
 #include <QtWidgets/QMenu>
 #include <QtWidgets/QSystemTrayIcon>
 
@@ -327,6 +328,7 @@ void Tray::createIcon() {
 		const auto iconThemeName = QIcon::themeName();
 		const auto counter = Core::App().unreadBadge();
 		const auto muted = Core::App().unreadBadgeMuted();
+		static const auto workdir = QDir::toNativeSeparators(QDir::cleanPath(cWorkingDir()));
 
 		_icon = base::make_unique_q<QSystemTrayIcon>(nullptr);
 		_icon->setIcon(_iconGraphic->trayIcon(
@@ -337,7 +339,7 @@ void Tray::createIcon() {
 			iconThemeName,
 			counter,
 			muted));
-		_icon->setToolTip(AppName.utf16());
+		_icon->setToolTip(AppName.utf16()+"\n"+workdir);
 
 		using Reason = QSystemTrayIcon::ActivationReason;
 		base::qt_signal_producer(
