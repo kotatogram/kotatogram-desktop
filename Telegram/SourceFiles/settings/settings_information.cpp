@@ -678,32 +678,20 @@ void SetupAccountsWrap(
 		}
 		const auto addAction = Ui::Menu::CreateAddActionCallback(
 			state->menu);
-		if (!state->menu && IsAltShift(raw->clickModifiers()) && !locked) {
-			state->menu = base::make_unique_q<Ui::PopupMenu>(
-				raw,
-				st::popupMenuWithIcons);
-			Window::MenuAddMarkAsReadAllChatsAction(window, addAction);
-			state->menu->popup(QCursor::pos());
-			return;
-		}
-		if (&session->account() == &Core::App().activeAccount()
-			|| state->menu) {
-			return;
-		}
 		state->menu = base::make_unique_q<Ui::PopupMenu>(
 			raw,
 			st::popupMenuWithIcons);
+		if (&session->account() != &Core::App().activeAccount()) {
+			addAction(tr::lng_menu_activate(tr::now), [=] {
+				Core::App().domain().activate(&session->account());
+			}, &st::menuIconProfile);
+		}
+
 		addAction(tr::lng_profile_copy_phone(tr::now), [=] {
 			const auto phone = rpl::variable<TextWithEntities>(
 				Info::Profile::PhoneValue(session->user()));
 			QGuiApplication::clipboard()->setText(phone.current().text);
 		}, &st::menuIconCopy);
-
-		if (!locked) {
-			addAction(tr::lng_menu_activate(tr::now), [=] {
-				Core::App().domain().activate(&session->account());
-			}, &st::menuIconProfile);
-		}
 
 		auto logoutCallback = [=] {
 			const auto callback = [=](Fn<void()> &&close) {
