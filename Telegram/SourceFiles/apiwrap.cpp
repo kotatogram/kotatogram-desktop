@@ -4146,6 +4146,9 @@ void ApiWrap::sendInlineResult(
 	if (silentPost) {
 		sendFlags |= MTPmessages_SendInlineBotResult::Flag::f_silent;
 	}
+	if (bot && action.options.hideVia) {
+		sendFlags |= MTPmessages_SendInlineBotResult::Flag::f_hide_via;
+	}
 	if (action.options.scheduled) {
 		flags |= MessageFlag::IsOrWasScheduled;
 		sendFlags |= MTPmessages_SendInlineBotResult::Flag::f_schedule_date;
@@ -4171,7 +4174,7 @@ void ApiWrap::sendInlineResult(
 		newId.msg,
 		messageFromId,
 		HistoryItem::NewMessageDate(action.options.scheduled),
-		bot ? peerToUser(bot->id) : 0,
+		bot && !action.options.hideVia ? peerToUser(bot->id) : 0,
 		action.replyTo,
 		messagePostAuthor);
 

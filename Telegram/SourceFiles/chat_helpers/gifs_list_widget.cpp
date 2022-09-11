@@ -442,6 +442,7 @@ void GifsListWidget::selectInlineResult(
 	}
 
 	forceSend |= base::IsCtrlPressed();
+	options.hideVia = true;
 	if (const auto photo = item->getPhoto()) {
 		using Data::PhotoSize;
 		const auto media = photo->activeMediaView();
