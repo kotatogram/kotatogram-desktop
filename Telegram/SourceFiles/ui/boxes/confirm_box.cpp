@@ -41,6 +41,9 @@ void ConfirmBox(not_null<Ui::GenericBox*> box, ConfirmBoxArgs &&args) {
 		if (args.labelFilter) {
 			label->setClickHandlerFilter(std::move(args.labelFilter));
 		}
+		if (args.labelSelectable) {
+			label->setSelectable(true);
+		}
 	}
 
 	const auto prepareCallback = [&](ConfirmBoxArgs::Callback &callback) {

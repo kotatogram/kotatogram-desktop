@@ -32,6 +32,7 @@ struct ConfirmBoxArgs {
 	Fn<bool(const ClickHandlerPtr&, Qt::MouseButton)> labelFilter;
 	std::optional<QMargins> labelPadding;
 	Text::MarkedContext labelContext;
+	bool labelSelectable = false;
 
 	v::text::data title = v::null;
 

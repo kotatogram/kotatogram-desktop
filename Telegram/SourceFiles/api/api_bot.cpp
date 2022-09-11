@@ -129,7 +129,10 @@ void SendBotCallbackData(
 			if (!show->valid()) {
 				return;
 			} else if (showAlert) {
-				show->showBox(Ui::MakeInformBox(message));
+				show->showBox(Ui::MakeInformBox({
+					.text = message,
+					.labelSelectable = true,
+				}));
 			} else {
 				if (withPassword) {
 					show->hideLayer();
