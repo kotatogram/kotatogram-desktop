@@ -38,6 +38,11 @@ object_ptr<Ui::RpWidget> SetupDetails(
 	not_null<Ui::RpWidget*> parent,
 	not_null<Data::ForumTopic*> topic);
 
+object_ptr<Ui::RpWidget> SetupManage(
+	not_null<Controller*> controller,
+	not_null<Ui::RpWidget*> parent,
+	not_null<PeerData*> peer);
+
 object_ptr<Ui::RpWidget> SetupActions(
 	not_null<Controller*> controller,
 	not_null<Ui::RpWidget*> parent,
