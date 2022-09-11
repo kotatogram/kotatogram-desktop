@@ -181,6 +181,7 @@
 	"ktg_send_silent_preview": "Send preview silent",
 	"ktg_reminder_preview": "Remind with preview",
 	"ktg_schedule_preview": "Send preview scheduled",
+	"ktg_language_reloaded": "Kotatogram-specific language strings were reloaded.",
 	"ktg_forward_remember_mode": "Remember forward mode",
 	"ktg_forward_mode": "Forward mode",
 	"ktg_forward_mode_quoted": "Quoted",
@@ -211,6 +212,7 @@
 	"ktg_settings_emoji_sidebar_right_click": "Emoji sidebar on right click",
 	"ktg_shortcuts_save_draft": "Save draft",
 	"ktg_shortcuts_jump_to_date": "Jump to date",
+	"ktg_shortcuts_reload_lang": "Reload Kotatogram language strings",
 	"ktg_premium_double_limits_about_accounts": {
 		"zero": "Connect {count} accounts with different mobile numbers in official apps",
 		"one": "Connect {count} account with different mobile numbers in official apps",

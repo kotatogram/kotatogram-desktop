@@ -133,6 +133,7 @@ struct Labeled {
 		separator,
 		{ C::SaveDraft, rktr("ktg_shortcuts_save_draft") },
 		{ C::JumpToDate, rktr("ktg_shortcuts_jump_to_date") },
+		{ C::ReloadLang, rktr("ktg_shortcuts_reload_lang") },
 	};
 }
 

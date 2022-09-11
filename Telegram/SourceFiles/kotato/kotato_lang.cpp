@@ -184,6 +184,10 @@ void Load(const QString &baseLangCode, const QString &langCode) {
 	LangChanges.fire({});
 }
 
+void Reload() {
+	Load(base::duplicate(BaseLangCode), base::duplicate(LangCode));
+}
+
 QString Translate(const QString &key, Var var1, Var var2, Var var3, Var var4) {
 	auto phrase = (CurrentValues.contains(key) && !CurrentValues.value(key).isEmpty())
 		? CurrentValues.value(key)

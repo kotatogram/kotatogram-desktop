@@ -33,6 +33,7 @@ struct EntVar {
 };
 
 void Load(const QString &baseLangCode, const QString &langCode);
+void Reload();
 
 QString Translate(
 	const QString &key,
