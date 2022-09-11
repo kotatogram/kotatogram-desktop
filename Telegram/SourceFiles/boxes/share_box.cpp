@@ -845,7 +845,7 @@ void ShareBox::innerSelectedChanged(
 		bool checked) {
 	if (checked) {
 		addPeerToMultiSelect(thread);
-		_select->clearQuery();
+		//_select->clearQuery();
 	} else {
 		_select->removeItem(thread->peer()->id.value);
 	}
