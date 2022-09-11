@@ -134,19 +134,12 @@ void SetupUpdate(
 		st::settingsButtonNoIcon).get();
 
 	if (showOther) {
-		const auto experimental = inner->add(
-			object_ptr<Ui::SlideWrap<Button>>(
-				inner,
+		const auto experimental = container->add(
 				CreateButton(
-					inner,
+					container,
 					tr::lng_settings_experimental(),
-					st::settingsButtonNoIcon)));
-		if (!install) {
-			experimental->toggle(true, anim::type::instant);
-		} else {
-			experimental->toggleOn(install->toggledValue());
-		}
-		experimental->entity()->setClickedCallback([=] {
+					st::settingsButtonNoIcon));
+		experimental->setClickedCallback([=] {
 			showOther(Experimental::Id());
 		});
 	}
