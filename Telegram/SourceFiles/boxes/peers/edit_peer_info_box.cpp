@@ -200,6 +200,8 @@ void SaveSlowmodeSeconds(
 	api->registerModifyRequest(key, requestId);
 }
 
+} // namespace
+
 void ShowEditPermissions(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<PeerData*> peer) {
@@ -242,8 +244,6 @@ void ShowEditPermissions(
 	};
 	navigation->parentController()->show(Box(std::move(createBox)));
 }
-
-} // namespace
 
 namespace {
 
