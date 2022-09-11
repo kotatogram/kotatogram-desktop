@@ -32,7 +32,7 @@ I'm trying to use my mobile phone number: ") + phone + qsl("\n\
 But Telegram says it's banned. Please help.\n\
 \n\
 App version: ") + version + qsl("\n\
-OS version: ") + ::Platform::SystemVersionPretty() + qsl("\n\
+OS version: ") + QSysInfo::prettyProductName() + qsl("\n\
 Locale: ") + ::Platform::SystemLanguage();
 
 	const auto url = "mailto:?to="
