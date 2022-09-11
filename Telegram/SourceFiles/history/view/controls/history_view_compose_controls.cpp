@@ -574,7 +574,7 @@ void FieldHeader::init() {
 				} else if (const auto reply = displayedReplyingToMessage()) {
 					_jumpToItemRequests.fire_copy(reply);
 				} else if (readyToForward()) {
-					_forwardPanel->editToNextOption();
+					_forwardPanel->showOptionsMenu(this, _show);
 				}
 			}
 		}

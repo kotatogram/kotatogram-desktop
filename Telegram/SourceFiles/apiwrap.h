@@ -342,7 +342,13 @@ public:
 	void forwardMessages(
 		Data::ResolvedForwardDraft &&draft,
 		SendAction action,
-		FnMut<void()> &&successCallback = nullptr);
+		FnMut<void()> &&successCallback = nullptr,
+		bool allowLocalCopy = true);
+	void forwardMessagesUnquoted(
+		Data::ResolvedForwardDraft &&draft,
+		const SendAction &action,
+		FnMut<void()> &&successCallback = nullptr,
+		bool richPagesResolved = false);
 	void shareContact(
 		const QString &phone,
 		const QString &firstName,
@@ -396,14 +402,20 @@ public:
 	void sendRichMessage(
 		not_null<HistoryItem*> item,
 		const MTPInputRichMessage &richMessage,
-		SendAction action);
+		SendAction action,
+		Fn<void()> doneCallback = nullptr,
+		bool forwarding = false);
 	void sendRichMessage(
 		std::shared_ptr<const Iv::RichPage> page,
 		const MTPInputRichMessage &richMessage,
-		SendAction action);
+		SendAction action,
+		Fn<void()> doneCallback = nullptr,
+		bool forwarding = false);
 	void sendMessage(
 		MessageToSend &&message,
-		std::optional<MsgId> localMessageId = std::nullopt);
+		std::optional<MsgId> localMessageId = std::nullopt,
+		Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback = nullptr,
+		bool forwarding = false);
 	void sendBotStart(
 		std::shared_ptr<Ui::Show> show,
 		not_null<UserData*> bot,

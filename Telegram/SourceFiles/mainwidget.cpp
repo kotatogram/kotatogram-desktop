@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mainwidget.h"
 
 #include "kotato/kotato_settings.h"
+#include "api/api_sending.h"
 #include "api/api_updates.h"
 #include "api/api_views.h"
 #include "data/components/scheduled_messages.h"
@@ -610,6 +611,9 @@ bool MainWidget::setForwardDraft(
 			.topicRootId = topicRootId,
 			.forward = &items,
 			.ignoreSlowmodeCountdown = true,
+			.forwardsLocally = Api::ForwardsLocally(
+				draft.options,
+				draft.groupOptions),
 		});
 	if (error) {
 		Data::ShowSendErrorToast(_controller, history->peer, error);

@@ -171,6 +171,7 @@ struct SendingErrorRequest {
 	bool ignoreSlowmodeCountdown = false;
 	bool richMessage = false;
 	bool ignoreRestrictions = false;
+	bool forwardsLocally = false;
 };
 [[nodiscard]] int ComputeSendingMessagesCount(
 	not_null<History*> history,

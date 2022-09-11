@@ -7,6 +7,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/controls/history_view_forward_panel.h"
 
+#include "kotato/kotato_lang.h"
+#include "kotato/kotato_settings.h"
+#include "api/api_sending.h"
+#include "chat_helpers/compose/compose_show.h"
+#include "ui/widgets/popup_menu.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_item_helpers.h"
@@ -19,7 +24,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "iv/editor/iv_editor_session.h"
 #include "main/main_session.h"
-#include "ui/chat/forward_options_box.h"
+#include "ui/layers/generic_box.h"
+//#include "ui/chat/forward_options_box.h"
 #include "ui/effects/spoiler_mess.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
@@ -52,6 +58,8 @@ constexpr auto kNameNoCaptionsVersion = -3;
 ForwardPanel::ForwardPanel(Fn<void()> repaint)
 : _repaint(std::move(repaint)) {
 }
+
+ForwardPanel::~ForwardPanel() = default;
 
 void ForwardPanel::update(
 		Data::Thread *to,
@@ -247,9 +255,129 @@ void ForwardPanel::applyOptions(Data::ForwardOptions options) {
 		_to->owningHistory()->setForwardDraft(topicRootId, monoforumPeerId, {
 			.ids = _to->owner().itemsToIds(_data.items),
 			.options = options,
+			.groupOptions = _data.groupOptions,
 		});
 		_repaint();
 	}
+}
+
+void ForwardPanel::applyGroupOptions(Data::GroupingOptions options) {
+	if (_data.items.empty() || _data.groupOptions == options) {
+		return;
+	}
+	_data.groupOptions = options;
+	_to->owningHistory()->setForwardDraft(
+		_to->topicRootId(),
+		_to->monoforumPeerId(),
+		{
+			.ids = _to->owner().itemsToIds(_data.items),
+			.options = _data.options,
+			.groupOptions = options,
+		});
+	_repaint();
+}
+
+void ForwardPanel::showOptionsMenu(
+		not_null<QWidget*> parent,
+		std::shared_ptr<ChatHelpers::Show> show) {
+	using Options = Data::ForwardOptions;
+	using Grouping = Data::GroupingOptions;
+	if (_data.items.empty() || !_to || _menu) {
+		return;
+	}
+	const auto session = &_to->session();
+	const auto &items = _data.items;
+	const auto hasMediaToGroup = [&] {
+		auto grouppable = 0;
+		for (const auto &item : items) {
+			const auto media = item->media();
+			grouppable = (media && media->canBeGrouped())
+				? (grouppable + 1)
+				: 0;
+			if (grouppable > 1) {
+				return true;
+			}
+		}
+		return false;
+	}();
+	const auto failed = [=](Options options, Grouping groupOptions) {
+		const auto error = GetErrorForSending(_to, {
+			.forward = &_data.items,
+			.ignoreSlowmodeCountdown = true,
+			.forwardsLocally = Api::ForwardsLocally(options, groupOptions),
+		});
+		if (error) {
+			show->showToast(error.text);
+		}
+		return bool(error);
+	};
+	const auto remember = [](const QString &key, int value) {
+		if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+			::Kotato::JsonSettings::Set(key, value);
+			::Kotato::JsonSettings::Write();
+		}
+	};
+
+	_menu = base::make_unique_q<Ui::PopupMenu>(
+		parent,
+		st::popupMenuWithIcons);
+	const auto addOption = [&](
+			Options options,
+			const QString &text,
+			int settingsValue) {
+		if (_data.options == options
+			|| NormalizeForwardOptions(session, items, options) != options) {
+			return;
+		}
+		_menu->addAction(text, crl::guard(this, [=] {
+			if (!failed(options, _data.groupOptions)) {
+				applyOptions(options);
+				remember(u"forward_mode"_q, settingsValue);
+			}
+		}));
+	};
+	addOption(Options::PreserveInfo, ktr("ktg_forward_menu_quoted"), 0);
+	addOption(Options::NoSenderNames, ktr("ktg_forward_menu_unquoted"), 1);
+	if (ItemsForwardCaptionsCount(items)) {
+		addOption(
+			Options::NoNamesAndCaptions,
+			ktr("ktg_forward_menu_uncaptioned"),
+			2);
+	}
+	if (hasMediaToGroup) {
+		_menu->addSeparator();
+		const auto addGrouping = [&](
+				Grouping groupOptions,
+				const QString &text,
+				int settingsValue) {
+			if (_data.groupOptions == groupOptions) {
+				return;
+			}
+			_menu->addAction(text, crl::guard(this, [=] {
+				if (!failed(_data.options, groupOptions)) {
+					applyGroupOptions(groupOptions);
+					remember(u"forward_grouping_mode"_q, settingsValue);
+				}
+			}));
+		};
+		addGrouping(
+			Grouping::GroupAsIs,
+			ktr("ktg_forward_menu_default_albums"),
+			0);
+		addGrouping(
+			Grouping::RegroupAll,
+			ktr("ktg_forward_menu_group_all_media"),
+			1);
+		addGrouping(
+			Grouping::Separate,
+			ktr("ktg_forward_menu_separate_messages"),
+			2);
+	}
+	if (_menu->empty()) {
+		_menu = nullptr;
+		return;
+	}
+	_menu->popup(QCursor::pos());
 }
 
 void ForwardPanel::editToNextOption() {

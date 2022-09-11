@@ -670,6 +670,10 @@ TodoListData *Media::todolist() const {
 	return nullptr;
 }
 
+const LocationPoint *Media::geoPoint() const {
+	return nullptr;
+}
+
 const WallPaper *Media::paper() const {
 	return nullptr;
 }
@@ -1741,6 +1745,11 @@ std::unique_ptr<Media> MediaLocation::clone(not_null<HistoryItem*> parent) {
 
 CloudImage *MediaLocation::location() const {
 	return _location;
+}
+
+const LocationPoint *MediaLocation::geoPoint() const {
+	// Venues and live locations can't be recreated from a point.
+	return (_title.isEmpty() && !_livePeriod) ? &_point : nullptr;
 }
 
 QString MediaLocation::typeString() const {

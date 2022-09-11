@@ -9042,7 +9042,7 @@ void HistoryWidget::mousePressEvent(QMouseEvent *e) {
 		|| (isReadyToForward && e->button() == Qt::LeftButton)) {
 		editDraftOptions();
 	} else if (isReadyToForward) {
-		_forwardPanel->editToNextOption();
+		_forwardPanel->showOptionsMenu(this, controller()->uiShow());
 	} else if (_kbReplyTo) {
 		controller()->showPeerHistory(
 			_kbReplyTo->history()->peer->id,

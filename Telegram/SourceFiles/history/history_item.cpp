@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item.h"
 
+#include "kotato/kotato_lang.h"
 #include "api/api_premium.h"
 #include "api/api_sensitive_content.h"
 #include "api/api_transcribes.h"
@@ -3414,7 +3415,8 @@ bool HistoryItem::requiresSendInlineRight() const {
 }
 
 Data::SendError HistoryItem::errorTextForForward(
-		not_null<Data::Thread*> to) const {
+		not_null<Data::Thread*> to,
+		bool forwardsLocally) const {
 	const auto requiredRight = requiredSendRight();
 	const auto requiresInline = requiresSendInlineRight();
 	const auto peer = to->peer();
@@ -3426,6 +3428,13 @@ Data::SendError HistoryItem::errorTextForForward(
 		return forInline ? forInline : tr::lng_forward_cant(tr::now);
 	} else if (const auto specific = errorTextForForwardIgnoreRights(to)) {
 		return specific;
+	} else if (forwardsLocally
+		&& _media
+		&& _media->poll()
+		&& _media->poll()->quiz()
+		&& !_media->poll()->voted()
+		&& !_media->poll()->closed()) {
+		return ktr("ktg_forward_quiz_unquoted");
 	} else if (!Data::CanSend(to, requiredRight, false)) {
 		return tr::lng_forward_cant(tr::now);
 	}

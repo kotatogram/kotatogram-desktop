@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_peer_menu.h"
 
+#include "kotato/kotato_settings.h"
 #include "base/call_delayed.h"
 #include "menu/menu_check_item.h"
 #include "menu/menu_mark_as_read.h"
@@ -48,6 +49,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/edit_forum_topic_box.h"
 #include "boxes/peers/edit_contact_box.h"
 #include "boxes/peers/prepare_short_info_box.h"
+#include "boxes/share_box.h"
 #include "calls/calls_instance.h"
 #include "inline_bots/bot_attach_web_view.h" // InlineBots::PeerType.
 #include "ui/toast/toast.h"
@@ -65,6 +67,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "main/main_app_config.h"
 #include "main/main_session.h"
+#include "main/session/session_show.h"
 #include "main/main_session_settings.h"
 #include "menu/menu_mute.h"
 #include "menu/menu_ttl_validator.h"
@@ -73,6 +76,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_blocked_peers.h"
 #include "api/api_chat_filters.h"
 #include "api/api_polls.h"
+#include "api/api_sending.h"
 #include "api/api_todo_lists.h"
 #include "api/api_updates.h"
 #include "mtproto/mtproto_config.h"
@@ -113,6 +117,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_forum.h"
 #include "data/data_forum_topic.h"
 #include "data/data_user.h"
+#include "data/data_game.h"
 #include "data/data_saved_messages.h"
 #include "data/data_saved_sublist.h"
 #include "data/data_histories.h"
@@ -137,6 +142,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_premium.h"
 
+#include <QtGui/QGuiApplication>
+#include <QtGui/QClipboard>
 #include <QAction>
 #include <QtWidgets/QApplication>
 
@@ -3103,9 +3110,241 @@ base::weak_qptr<Ui::BoxContent> ShowChooseRecipientBox(
 }
 
 base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
+		std::shared_ptr<Main::SessionShow> show,
+		Data::ForwardDraft &&draft,
+		Fn<void()> &&successCallback,
+		const ShareBoxStyleOverrides &st) {
+	struct ShareData {
+		Data::ForwardDraft draft;
+		int requestsLeft = 0;
+		Fn<void()> submitCallback;
+	};
+	const auto session = &show->session();
+	const auto owner = &session->data();
+	const auto items = owner->idsToItems(draft.ids);
+	if (items.empty()) {
+		return nullptr;
+	}
+	const auto weak = std::make_shared<base::weak_qptr<ShareBox>>();
+	const auto firstItem = items.front();
+	const auto history = firstItem->history();
+	const auto isGame = firstItem->getMessageBot()
+		&& firstItem->media()
+		&& (firstItem->media()->game() != nullptr);
+
+	const auto sendersCount = ItemsForwardSendersCount(items);
+	const auto captionsCount = ItemsForwardCaptionsCount(items);
+	const auto hasOnlyForcedForwardedInfo = !captionsCount
+		&& HistoryView::Controls::HasOnlyForcedForwardedInfo(items);
+	const auto showForwardOptions = !hasOnlyForcedForwardedInfo
+		&& (!HistoryView::Controls::HasRichPage(items)
+			|| HistoryView::Controls::CanHideForwardAuthor(session, items));
+	auto rights = std::vector<std::pair<ChatRestriction, bool>>();
+	for (const auto &item : items) {
+		rights.emplace_back(
+			item->requiredSendRight(),
+			item->requiresSendInlineRight());
+	}
+
+	const auto canCopyLink = [&] {
+		if (items.size() > 10) {
+			return false;
+		}
+
+		const auto groupId = firstItem->groupId();
+
+		for (const auto &item : items) {
+			if (groupId != item->groupId()) {
+				return false;
+			}
+		}
+
+		return (firstItem->hasDirectLink() || isGame);
+	}();
+
+	const auto hasMediaForGrouping = [&] {
+		if (items.size() > 1) {
+			auto grouppableMediaCount = 0;
+			for (const auto &item : items) {
+				if (item->media() && item->media()->canBeGrouped()) {
+					grouppableMediaCount++;
+				} else {
+					grouppableMediaCount = 0;
+				}
+				if (grouppableMediaCount > 1) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}();
+
+	const auto data = std::make_shared<ShareData>(ShareData{
+		.draft = std::move(draft),
+		.submitCallback = std::move(successCallback),
+	});
+
+	auto copyCallback = [=]() {
+		if (const auto item = owner->message(data->draft.ids[0])) {
+			if (item->hasDirectLink()) {
+				HistoryView::CopyPostLink(
+					show,
+					item->fullId(),
+					HistoryView::Context::History);
+			} else if (const auto bot = item->getMessageBot()) {
+				if (const auto media = item->media()) {
+					if (const auto game = media->game()) {
+						const auto link = session->createInternalLinkFull(
+							bot->username()
+							+ u"?game="_q
+							+ game->shortName);
+
+						QGuiApplication::clipboard()->setText(link);
+
+						show->showToast(
+							tr::lng_share_game_link_copied(tr::now));
+					}
+				}
+			}
+		}
+	};
+	auto submitCallback = [=](
+			std::vector<not_null<Data::Thread*>> &&result,
+			Fn<bool()> checkPaid,
+			TextWithTags &&comment,
+			Api::SendOptions options,
+			Data::ForwardOptions forwardOptions,
+			Data::GroupingOptions groupOptions) {
+		if (data->requestsLeft > 0) {
+			return; // Share clicked already.
+		}
+		const auto items = owner->idsToItems(data->draft.ids);
+		if (items.empty() || result.empty()) {
+			return;
+		}
+
+		const auto error = GetErrorForSending(result, {
+			.forward = &items,
+			.text = &comment,
+			.forwardsLocally = Api::ForwardsLocally(
+				forwardOptions,
+				groupOptions),
+		});
+		if (error.error) {
+			show->showBox(MakeSendErrorBox(error, result.size() > 1));
+			return;
+		} else if (!checkPaid()) {
+			return;
+		}
+
+		const auto checkAndClose = [=] {
+			if (!--data->requestsLeft) {
+				show->showToast(tr::lng_share_done(tr::now));
+				if (const auto strong = weak->get()) {
+					strong->closeBox();
+				}
+			}
+		};
+		auto &api = session->api();
+
+		data->draft.options = forwardOptions;
+		data->draft.groupOptions = groupOptions;
+
+		for (const auto &thread : result) {
+			auto action = Api::SendAction(thread, options);
+			action.clearDraft = false;
+
+			if (!comment.text.isEmpty()) {
+				auto message = Api::MessageToSend(action);
+				message.textWithTags = comment;
+				api.sendMessage(std::move(message));
+			}
+
+			++data->requestsLeft;
+			api.forwardMessages(
+				action.history->resolveForwardDraft(data->draft),
+				action,
+				checkAndClose);
+		}
+		if (data->submitCallback
+			&& !::Kotato::JsonSettings::GetBool("forward_retain_selection")) {
+			data->submitCallback();
+		}
+	};
+	auto filterCallback = [=](not_null<Data::Thread*> thread) {
+		if (const auto user = thread->peer()->asUser()) {
+			if (user->canSendIgnoreMoneyRestrictions()) {
+				return true;
+			}
+		}
+		for (const auto &[right, requiresInline] : rights) {
+			if (!Data::CanSend(thread, right)
+				|| (requiresInline
+					&& !Data::CanSend(thread, ChatRestriction::SendInline))) {
+				return false;
+			}
+		}
+		return !isGame || !thread->peer()->isBroadcast();
+	};
+	auto copyLinkCallback = canCopyLink
+		? Fn<void()>(std::move(copyCallback))
+		: Fn<void()>();
+	auto goToChatCallback = [=](
+			Data::Thread *thread,
+			Data::ForwardOptions forwardOptions,
+			Data::GroupingOptions groupOptions) {
+		const auto window = thread
+			? session->tryResolveWindow(thread->peer())
+			: nullptr;
+		if (!window) {
+			return;
+		}
+		if (data->submitCallback
+			&& !::Kotato::JsonSettings::GetBool("forward_retain_selection")) {
+			data->submitCallback();
+		}
+		auto draft = data->draft;
+		draft.options = forwardOptions;
+		draft.groupOptions = groupOptions;
+		window->content()->setForwardDraft(thread, std::move(draft));
+	};
+	auto box = Box<ShareBox>(ShareBox::Descriptor{
+		.session = session,
+		.copyCallback = std::move(copyLinkCallback),
+		.countMessagesCallback = ShareBox::DefaultForwardCountMessages(
+			history,
+			data->draft.ids),
+		.submitCallback = std::move(submitCallback),
+		.filterCallback = std::move(filterCallback),
+		.goToChatCallback = std::move(goToChatCallback),
+		.st = st,
+		.forwardOptions = {
+			.sendersCount = sendersCount,
+			.captionsCount = captionsCount,
+			.show = showForwardOptions,
+			.hasMedia = hasMediaForGrouping,
+			.isShare = false,
+			.options = data->draft.options,
+			.groupOptions = data->draft.groupOptions,
+		},
+		.moneyRestrictionError = ShareMessageMoneyRestrictionError(),
+	});
+	*weak = box.data();
+	show->showBox(std::move(box), Ui::LayerOption::KeepOther);
+	return weak->get();
+}
+
+base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 		std::shared_ptr<ChatHelpers::Show> show,
 		Data::ForwardDraft &&draft,
 		Fn<void()> &&successCallback) {
+	return ShowForwardMessagesBox(
+		std::shared_ptr<Main::SessionShow>(std::move(show)),
+		std::move(draft),
+		std::move(successCallback),
+		ShareBoxStyleOverrides());
+
+	/*
 	const auto session = &show->session();
 	const auto owner = &session->data();
 	const auto itemsList = owner->idsToItems(draft.ids);
@@ -3821,6 +4060,7 @@ base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 	}, state->box->lifetime());
 
 	return base::make_weak(state->box);
+	*/
 }
 
 base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(

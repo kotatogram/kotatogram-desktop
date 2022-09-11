@@ -47,12 +47,14 @@ class IndexedList;
 
 namespace Data {
 enum class ForwardOptions;
+enum class GroupingOptions;
 class Thread;
 } // namespace Data
 
 namespace Ui {
 class MultiSelect;
 class InputField;
+class DropdownMenu;
 struct ScrollToRequest;
 template <typename Widget>
 class SlideWrap;
@@ -104,7 +106,8 @@ public:
 		Fn<bool()> checkPaid,
 		TextWithTags&&,
 		Api::SendOptions,
-		Data::ForwardOptions)>;
+		Data::ForwardOptions option,
+		Data::GroupingOptions groupOption)>;
 	using FilterCallback = Fn<bool(not_null<Data::Thread*>)>;
 
 	[[nodiscard]] static auto DefaultForwardCountMessages(
@@ -115,6 +118,10 @@ public:
 		not_null<History*> history,
 		MessageIdsList msgIds,
 		std::optional<TimeId> videoTimestamp = {});
+	using GoToChatCallback = Fn<void(
+		Data::Thread*,
+		Data::ForwardOptions option,
+		Data::GroupingOptions groupOption)>;
 
 	struct Descriptor {
 		not_null<Main::Session*> session;
@@ -122,6 +129,7 @@ public:
 		CountMessagesCallback countMessagesCallback;
 		SubmitCallback submitCallback;
 		FilterCallback filterCallback;
+		GoToChatCallback goToChatCallback;
 		object_ptr<Ui::RpWidget> bottomWidget = { nullptr };
 		rpl::producer<QString> copyLinkText;
 		rpl::producer<QString> titleOverride;
@@ -131,6 +139,11 @@ public:
 			int sendersCount = 0;
 			int captionsCount = 0;
 			bool show = false;
+			bool hasMedia = false;
+			bool isShare = true;
+			Data::ForwardOptions options = Data::ForwardOptions::PreserveInfo;
+			Data::GroupingOptions groupOptions
+				= Data::GroupingOptions::GroupAsIs;
 		} forwardOptions;
 
 		using MoneyRestrictionError = RecipientMoneyRestrictionError;
@@ -152,6 +165,7 @@ private:
 
 	void submit(Api::SendOptions options);
 	void copyLink() const;
+	void goToChat(not_null<Data::Thread*> thread);
 	bool searchByUsername(bool useCache = false);
 
 	[[nodiscard]] SendMenu::Details sendMenuDetails() const;
@@ -162,6 +176,8 @@ private:
 	void selectedChanged();
 	void computeStarsCount();
 	void createButtons();
+	bool showForwardMenu(not_null<Ui::IconButton*> button);
+	void updateAdditionalTitle();
 	int getTopScrollSkip() const;
 	int getBottomScrollSkip() const;
 	int contentHeight() const;
@@ -185,7 +201,9 @@ private:
 	object_ptr<Ui::RpWidget> _bottomWidget;
 
 	base::unique_qptr<Ui::PopupMenu> _menu;
+	base::unique_qptr<Ui::DropdownMenu> _topMenu;
 	Ui::ForwardOptions _forwardOptions;
+	Data::GroupingOptions _groupOptions;
 
 	class Inner;
 	QPointer<Inner> _inner;

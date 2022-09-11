@@ -847,6 +847,7 @@ void DraftOptionsBox(
 				&show->session(),
 				state->forward.items,
 				*options);
+			forward.groupOptions = state->forward.groupOptions;
 			for (const auto &item : state->forward.items) {
 				forward.ids.push_back(item->fullId());
 			}
@@ -1061,6 +1062,7 @@ void DraftOptionsBox(
 			Window::ShowForwardMessagesBox(show, {
 				.ids = show->session().data().itemsToIds(draft.items),
 				.options = draft.options,
+				.groupOptions = draft.groupOptions,
 			});
 		});
 

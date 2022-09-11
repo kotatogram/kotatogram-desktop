@@ -175,7 +175,8 @@ object_ptr<ShareBox> ShareInviteLinkBox(
 			Fn<bool()> checkPaid,
 			TextWithTags &&comment,
 			Api::SendOptions options,
-			Data::ForwardOptions) {
+			Data::ForwardOptions,
+			Data::GroupingOptions) {
 		if (*sending || result.empty()) {
 			return;
 		}

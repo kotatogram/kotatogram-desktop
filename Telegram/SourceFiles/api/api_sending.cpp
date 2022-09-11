@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_sending.h"
 
+#include "kotato/kotato_settings.h"
 #include "api/api_text_entities.h"
 #include "base/random.h"
 #include "base/unixtime.h"
@@ -68,7 +69,11 @@ void InnerFillMessagePostFlags(
 	}
 }
 
-void SendSimpleMedia(SendAction action, MTPInputMedia inputMedia) {
+void SendSimpleMedia(
+		SendAction action,
+		MTPInputMedia inputMedia,
+		Fn<void()> done = nullptr,
+		bool forwarding = false) {
 	const auto history = action.history;
 	const auto peer = history->peer;
 	const auto session = &history->session();
@@ -78,7 +83,8 @@ void SendSimpleMedia(SendAction action, MTPInputMedia inputMedia) {
 	action.generateLocal = false;
 	api->sendAction(action);
 
-	if (!action.options.scheduled
+	if (!forwarding
+		&& !action.options.scheduled
 		&& !action.options.shortcutId
 		&& session->ephemeralMessages().sendSimpleMedia(
 			history,
@@ -171,11 +177,16 @@ void SendSimpleMedia(SendAction action, MTPInputMedia inputMedia) {
 			MTP_long(starsPaid),
 			SuggestToMTP(action.options.suggest)
 		), [=](const MTPUpdates &result, const MTP::Response &response) {
+		if (done) {
+			done();
+		}
 	}, [=](const MTP::Error &error, const MTP::Response &response) {
 		api->sendMessageFail(error, peer, randomId);
 	});
 
-	api->finishForwarding(action);
+	if (!forwarding) {
+		api->finishForwarding(action);
+	}
 }
 
 template <typename MediaData>
@@ -184,7 +195,9 @@ void SendExistingMedia(
 		not_null<MediaData*> media,
 		Fn<MTPInputMedia()> inputMedia,
 		Data::FileOrigin origin,
-		std::optional<MsgId> localMessageId) {
+		std::optional<MsgId> localMessageId,
+		Fn<void()> doneCallback = nullptr,
+		bool forwarding = false) {
 	const auto history = message.action.history;
 	const auto peer = history->peer;
 	const auto session = &history->session();
@@ -318,7 +331,6 @@ void SendExistingMedia(
 	const auto performRequest = [=](const auto &repeatRequest) -> void {
 		auto &histories = history->owner().histories();
 		const auto session = &history->session();
-		const auto usedFileReference = media->fileReference();
 		histories.sendPreparedMessage(
 			history,
 			action.replyTo,
@@ -343,6 +355,7 @@ void SendExistingMedia(
 		}, [=](const MTP::Error &error, const MTP::Response &response) {
 			if (error.code() == 400
 				&& error.type().startsWith(u"FILE_REFERENCE_"_q)) {
+				const auto usedFileReference = media->fileReference();
 				api->refreshFileReference(origin, [=](const auto &result) {
 					if (media->fileReference() != usedFileReference) {
 						repeatRequest(repeatRequest);
@@ -357,7 +370,9 @@ void SendExistingMedia(
 	};
 	performRequest(performRequest);
 
-	api->finishForwarding(action);
+	if (!forwarding) {
+		api->finishForwarding(action);
+	}
 }
 
 struct MusicSendRequestItem {
@@ -701,7 +716,9 @@ void SendMusicSelectionBatch(
 void SendExistingDocument(
 		MessageToSend &&message,
 		not_null<DocumentData*> document,
-		std::optional<MsgId> localMessageId) {
+		std::optional<MsgId> localMessageId,
+		Fn<void()> doneCallback,
+		bool forwarding) {
 	const auto inputMedia = [=] {
 		return MTP_inputMediaDocument(
 			MTP_flags(message.action.options.mediaSpoiler
@@ -718,7 +735,9 @@ void SendExistingDocument(
 		document,
 		inputMedia,
 		document->stickerOrGifOrigin(),
-		std::move(localMessageId));
+		std::move(localMessageId),
+		(doneCallback ? std::move(doneCallback) : nullptr),
+		forwarding);
 
 	if (document->sticker()) {
 		document->owner().stickers().incrementSticker(document);
@@ -783,7 +802,9 @@ void SendMusicSelection(
 void SendExistingPhoto(
 		MessageToSend &&message,
 		not_null<PhotoData*> photo,
-		std::optional<MsgId> localMessageId) {
+		std::optional<MsgId> localMessageId,
+		Fn<void()> doneCallback,
+		bool forwarding) {
 	const auto inputMedia = [=] {
 		return MTP_inputMediaPhoto(
 			MTP_flags(0),
@@ -796,10 +817,23 @@ void SendExistingPhoto(
 		photo,
 		inputMedia,
 		Data::FileOrigin(),
-		std::move(localMessageId));
+		std::move(localMessageId),
+		(doneCallback ? std::move(doneCallback) : nullptr),
+		forwarding);
 }
 
-bool SendDice(MessageToSend &message) {
+bool ForwardsLocally(
+		Data::ForwardOptions options,
+		Data::GroupingOptions groupOptions) {
+	return (options != Data::ForwardOptions::PreserveInfo)
+		&& ((groupOptions == Data::GroupingOptions::RegroupAll)
+			|| ::Kotato::JsonSettings::GetBool("forward_force_old_unquoted"));
+}
+
+bool SendDice(
+		MessageToSend &message,
+		Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback,
+		bool forwarding) {
 	const auto full = QStringView(message.textWithTags.text).trimmed();
 	auto length = 0;
 	if (!Ui::Emoji::Find(full.data(), full.data() + full.size(), &length)
@@ -940,14 +974,24 @@ bool SendDice(MessageToSend &message) {
 			MTP_long(starsPaid),
 			SuggestToMTP(action.options.suggest)
 		), [=](const MTPUpdates &result, const MTP::Response &response) {
+		if (doneCallback) {
+			doneCallback(result, response.requestId);
+		}
 	}, [=](const MTP::Error &error, const MTP::Response &response) {
 		api->sendMessageFail(error, peer, randomId, newId);
 	});
-	api->finishForwarding(action);
+	if (!forwarding) {
+		api->finishForwarding(action);
+	}
 	return true;
 }
 
-void SendLocation(SendAction action, float64 lat, float64 lon) {
+void SendLocation(
+		SendAction action,
+		float64 lat,
+		float64 lon,
+		Fn<void()> done,
+		bool forwarding) {
 	SendSimpleMedia(
 		action,
 		MTP_inputMediaGeoPoint(
@@ -955,7 +999,9 @@ void SendLocation(SendAction action, float64 lat, float64 lon) {
 				MTP_flags(0),
 				MTP_double(lat),
 				MTP_double(lon),
-				MTPint()))); // accuracy_radius
+				MTPint())), // accuracy_radius
+		std::move(done),
+		forwarding);
 }
 
 void SendVenue(SendAction action, Data::InputVenue venue) {

@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 class History;
 class HistoryItem;
+struct ShareBoxStyleOverrides;
 
 namespace Api {
 struct SendOptions;
@@ -196,6 +197,11 @@ base::weak_qptr<Ui::BoxContent> ShowChooseRecipientBox(
 	rpl::producer<QString> titleOverride = nullptr,
 	FnMut<void()> &&successCallback = nullptr,
 	InlineBots::PeerTypes typesRestriction = 0);
+base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
+	std::shared_ptr<Main::SessionShow> show,
+	Data::ForwardDraft &&draft,
+	Fn<void()> &&successCallback,
+	const ShareBoxStyleOverrides &st);
 base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 	std::shared_ptr<ChatHelpers::Show> show,
 	Data::ForwardDraft &&draft,
