@@ -380,6 +380,12 @@ bool ResolveUsernameOrPhone(
 	if (domain == u"telegrampassport"_q) {
 		return ShowPassportForm(controller, params);
 	} else if (!validDomain(domain) && !validPhone(phone)) {
+		const auto searchParam = params.value(qsl("query"));
+		if (!searchParam.isEmpty()) {
+			controller->content()->searchMessages(
+				searchParam + ' ',
+				Dialogs::Key());
+		}
 		return false;
 	}
 	using ResolveType = Window::ResolveType;
@@ -464,6 +470,7 @@ bool ResolveUsernameOrPhone(
 			? std::make_optional(params.value(u"voicechat"_q))
 			: std::nullopt),
 		.clickFromMessageId = myContext.itemId,
+		.searchQuery = params.value(qsl("query")),
 		.clickFromAttachBotWebviewUrl = myContext.attachBotWebviewUrl,
 	});
 	return true;
