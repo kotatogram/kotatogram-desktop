@@ -361,11 +361,6 @@ void PeerListBox::peerListSetRowChecked(
 		}
 		PeerListContentDelegate::peerListSetRowChecked(row, checked);
 		peerListUpdateRow(row);
-
-		// This call deletes row from _searchRows.
-		if (_select && trackSelected && !base::IsShiftPressed()) {
-			_select->entity()->clearQuery();
-		}
 	} else {
 		// The itemRemovedCallback will call changeCheckState() here.
 		if (_select && trackSelected) {
@@ -383,9 +378,6 @@ void PeerListBox::peerListSetForeignRowChecked(
 		anim::type animated) {
 	if (checked) {
 		addSelectItem(row, animated);
-
-		// This call deletes row from _searchRows.
-		_select->entity()->clearQuery();
 	} else {
 		// The itemRemovedCallback will call changeCheckState() here.
 		_select->entity()->removeItem(row->id());

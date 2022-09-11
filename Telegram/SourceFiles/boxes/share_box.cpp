@@ -627,6 +627,10 @@ void ShareBox::keyPressEvent(QKeyEvent *e) {
 			_inner->activateSkipPage(contentHeight(), -1);
 		} else if (e->key() == Qt::Key_PageDown) {
 			_inner->activateSkipPage(contentHeight(), 1);
+		} else if (e->key() == Qt::Key_Escape
+			&& !_select->getQuery().isEmpty()) {
+			// The query is kept after selection, so clear it first.
+			_select->clearQuery();
 		} else {
 			BoxContent::keyPressEvent(e);
 		}
@@ -961,7 +965,6 @@ void ShareBox::innerSelectedChanged(
 		bool checked) {
 	if (checked) {
 		addPeerToMultiSelect(thread);
-		_select->clearQuery();
 	} else {
 		_select->removeItem(thread->peer()->id.value);
 	}
