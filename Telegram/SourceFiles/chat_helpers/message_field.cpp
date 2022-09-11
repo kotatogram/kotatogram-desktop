@@ -174,9 +174,9 @@ void EditLinkBox(
 			tr::lng_formatting_link_text(),
 			startText),
 		st::markdownLinkFieldPadding);
-	text->setInstantReplaces(Ui::InstantReplaces::Default());
+	text->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	text->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue(),
+		rpl::single(true),
 		Core::App().settings().systemTextReplaceValue());
 	Ui::Emoji::SuggestionsController::Init(
 		box->getDelegate()->outerContainer(),
@@ -578,9 +578,9 @@ auto InitMessageFieldHandlers(MessageFieldHandlersArgs &&args)
 	}, [paused] {
 		return On(PowerSaving::kChatSpoiler) || paused();
 	});
-	field->setInstantReplaces(Ui::InstantReplaces::Default());
+	field->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	field->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue(),
+		rpl::single(true),
 		Core::App().settings().systemTextReplaceValue());
 	field->setMarkdownReplacesEnabled(rpl::single(Ui::MarkdownEnabledState{
 		Ui::MarkdownEnabled{
@@ -680,9 +680,9 @@ Fn<void(not_null<Ui::InputField*>)> FactcheckFieldIniter(
 			}
 			return TextUtilities::JoinTag(all);
 		});
-		field->setInstantReplaces(Ui::InstantReplaces::Default());
+		field->setInstantReplaces(Core::App().settings().instantReplacesValue());
 		field->setInstantReplacesEnabled(
-			Core::App().settings().replaceEmojiValue(),
+			rpl::single(true),
 			Core::App().settings().systemTextReplaceValue());
 		field->setMarkdownReplacesEnabled(rpl::single(
 			Ui::MarkdownEnabledState{

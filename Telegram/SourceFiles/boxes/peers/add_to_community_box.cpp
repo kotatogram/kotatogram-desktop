@@ -170,9 +170,9 @@ void CommunityIdentityBox::prepare() {
 		st::defaultInputField,
 		tr::lng_community_create_name());
 	_title->setMaxLength(Ui::EditPeer::kMaxGroupChannelTitle);
-	_title->setInstantReplaces(Ui::InstantReplaces::Default());
+	_title->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	_title->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue(),
+		rpl::single(true),
 		Core::App().settings().systemTextReplaceValue());
 	Ui::Emoji::SuggestionsController::Init(
 		getDelegate()->outerContainer(),

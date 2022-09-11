@@ -182,9 +182,9 @@ void InitField(
 		not_null<QWidget*> container,
 		not_null<Ui::InputField*> field,
 		not_null<Main::Session*> session) {
-	field->setInstantReplaces(Ui::InstantReplaces::Default());
+	field->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	field->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue(),
+		rpl::single(true),
 		Core::App().settings().systemTextReplaceValue());
 	auto options = Ui::Emoji::SuggestionsController::Options();
 	options.suggestExactFirstWord = false;
