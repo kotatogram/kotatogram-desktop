@@ -3664,9 +3664,9 @@ void HistoryInner::mouseActionUpdate() {
 
 					if (point.x() >= dateLeft && point.x() < dateLeft + dateWidth) {
 						if (!_scrollDateLink) {
-							_scrollDateLink = std::make_shared<Window::DateClickHandler>(item->history(), view->dateTime().date());
+							_scrollDateLink = std::make_shared<Window::DateClickHandler>(item->history(), view->dateTime());
 						} else {
-							static_cast<Window::DateClickHandler*>(_scrollDateLink.get())->setDate(view->dateTime().date());
+							static_cast<Window::DateClickHandler*>(_scrollDateLink.get())->setDate(view->dateTime());
 						}
 						dragState = TextState(
 							nullptr,

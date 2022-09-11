@@ -24,12 +24,7 @@ namespace {
 constexpr auto kMinimalSchedule = TimeId(10);
 
 QString DayString(const QDate &date) {
-	return tr::lng_month_day(
-		tr::now,
-		lt_month,
-		Lang::MonthDay(date.month())(tr::now),
-		lt_day,
-		QString::number(date.day()));
+	return langDayOfMonthFull(date);
 }
 
 QString TimeString(QTime time) {

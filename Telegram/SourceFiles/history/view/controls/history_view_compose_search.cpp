@@ -809,7 +809,7 @@ ComposeSearch::Inner::Inner(
 	_bottomBar->showCalendarRequests(
 	) | rpl::start_with_next([=] {
 		hideList();
-		_window->showCalendar({ _history }, QDate());
+		_window->showCalendar({ _history }, QDateTime());
 	}, _bottomBar->lifetime());
 
 	_bottomBar->showBoxFromRequests(

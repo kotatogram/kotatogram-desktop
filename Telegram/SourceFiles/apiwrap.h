@@ -265,7 +265,7 @@ public:
 
 	void resolveJumpToDate(
 		Dialogs::Key chat,
-		const QDate &date,
+		const QDateTime &date,
 		Fn<void(not_null<PeerData*>, MsgId)> callback);
 
 	using SliceType = Data::LoadDirection;
@@ -472,13 +472,13 @@ private:
 	void resolveJumpToHistoryDate(
 		not_null<PeerData*> peer,
 		MsgId topicRootId,
-		const QDate &date,
+		const QDateTime &date,
 		Fn<void(not_null<PeerData*>, MsgId)> callback);
 	template <typename Callback>
 	void requestMessageAfterDate(
 		not_null<PeerData*> peer,
 		MsgId topicRootId,
-		const QDate &date,
+		const QDateTime &date,
 		Callback &&callback);
 
 	void sharedMediaDone(
