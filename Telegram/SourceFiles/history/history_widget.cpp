@@ -411,7 +411,10 @@ HistoryWidget::HistoryWidget(
 	) | rpl::start_with_next([=](FieldAutocomplete::MentionChosen data) {
 		auto replacement = QString();
 		auto entityTag = QString();
-		if (data.mention.isEmpty()) {
+		if (data.mention.isEmpty()
+			|| data.method == FieldAutocomplete::ChooseMethod::ByRightClick
+			|| data.method == FieldAutocomplete::ChooseMethod::ByCtrlEnter
+			|| data.method == FieldAutocomplete::ChooseMethod::ByCtrlClick) {
 			replacement = data.user->firstName;
 			if (replacement.isEmpty()) {
 				replacement = data.user->name();
@@ -7509,14 +7512,14 @@ void HistoryWidget::mentionUser(PeerData *peer) {
 
 	const auto user = peer->asUser();
 	QString replacement, entityTag;
-	if (user->username.isEmpty()) {
+	if (user->username().isEmpty()) {
 		replacement = user->firstName;
 		if (replacement.isEmpty()) {
-			replacement = user->name;
+			replacement = user->name();
 		}
 		entityTag = PrepareMentionTag(user);
 	} else {
-		replacement = '@' + user->username;
+		replacement = '@' + user->username();
 	}
 	_field->insertTag(replacement, entityTag);
 }
