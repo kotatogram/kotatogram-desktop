@@ -243,6 +243,7 @@ public:
 	// to (this) received from the server "same" document.
 	void collectLocalData(not_null<DocumentData*> local);
 
+	[[nodiscard]] QString url() const;
 	[[nodiscard]] QString filename() const;
 	[[nodiscard]] QString mimeString() const;
 	[[nodiscard]] bool hasMimeType(QLatin1String mime) const;

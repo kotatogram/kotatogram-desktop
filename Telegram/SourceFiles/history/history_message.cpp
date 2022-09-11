@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/format_values.h"
 #include "ui/item_text_options.h"
 #include "core/ui_integration.h"
+#include "window/window_peer_menu.h"
 #include "storage/storage_shared_media.h"
 #include "mtproto/mtproto_config.h"
 #include "data/notify/data_notify_settings.h"
@@ -112,14 +113,15 @@ QString GetErrorTextForSending(
 		not_null<PeerData*> peer,
 		const HistoryItemsList &items,
 		const TextWithTags &comment,
-		bool ignoreSlowmodeCountdown) {
+		bool ignoreSlowmodeCountdown,
+		bool unquoted) {
 	if (!peer->canWrite()) {
 		return tr::lng_forward_cant(tr::now);
 	}
 
 	for (const auto &item : items) {
 		if (const auto media = item->media()) {
-			const auto error = media->errorTextForForward(peer);
+			const auto error = media->errorTextForForward(peer, unquoted);
 			if (!error.isEmpty() && error != qstr("skip")) {
 				return error;
 			}
@@ -235,8 +237,9 @@ MTPMessageReplyHeader NewMessageReplyHeader(const Api::SendAction &action) {
 QString GetErrorTextForSending(
 		not_null<PeerData*> peer,
 		const HistoryItemsList &items,
-		bool ignoreSlowmodeCountdown) {
-	return GetErrorTextForSending(peer, items, {}, ignoreSlowmodeCountdown);
+		bool ignoreSlowmodeCountdown,
+		bool unquoted) {
+	return GetErrorTextForSending(peer, items, {}, ignoreSlowmodeCountdown, unquoted);
 }
 
 TextWithEntities DropCustomEmoji(TextWithEntities text) {
@@ -531,7 +534,8 @@ HistoryMessage::HistoryMessage(
 	const QString &postAuthor,
 	not_null<DocumentData*> document,
 	const TextWithEntities &caption,
-	HistoryMessageMarkupData &&markup)
+	HistoryMessageMarkupData &&markup,
+	uint64 newGroupId)
 : HistoryItem(
 		history,
 		id,
@@ -551,6 +555,11 @@ HistoryMessage::HistoryMessage(
 		document,
 		skipPremiumEffect);
 	setText(caption);
+
+	if (newGroupId) {
+		setGroupId(
+			MessageGroupId::FromRaw(history->peer->id, newGroupId));
+	}	
 }
 
 HistoryMessage::HistoryMessage(
@@ -564,7 +573,8 @@ HistoryMessage::HistoryMessage(
 	const QString &postAuthor,
 	not_null<PhotoData*> photo,
 	const TextWithEntities &caption,
-	HistoryMessageMarkupData &&markup)
+	HistoryMessageMarkupData &&markup,
+	uint64 newGroupId)
 : HistoryItem(
 		history,
 		id,
@@ -580,6 +590,11 @@ HistoryMessage::HistoryMessage(
 
 	_media = std::make_unique<Data::MediaPhoto>(this, photo);
 	setText(caption);
+
+	if (newGroupId) {
+		setGroupId(
+			MessageGroupId::FromRaw(history->peer->id, newGroupId));
+	}
 }
 
 HistoryMessage::HistoryMessage(

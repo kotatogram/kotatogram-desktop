@@ -51,14 +51,22 @@ enum class ForwardOptions {
 	NoNamesAndCaptions,
 };
 
+enum class GroupingOptions {
+	GroupAsIs,
+	RegroupAll,
+	Separate,
+};
+
 struct ForwardDraft {
 	MessageIdsList ids;
 	ForwardOptions options = ForwardOptions::PreserveInfo;
+	GroupingOptions groupOptions = GroupingOptions::GroupAsIs;
 };
 
 struct ResolvedForwardDraft {
 	HistoryItemsList items;
 	ForwardOptions options = ForwardOptions::PreserveInfo;
+	GroupingOptions groupOptions = GroupingOptions::GroupAsIs;
 };
 
 } // namespace Data
@@ -193,7 +201,8 @@ public:
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
-		HistoryMessageMarkupData &&markup);
+		HistoryMessageMarkupData &&markup,
+		uint64 newGroupId = 0);
 	not_null<HistoryItem*> addNewLocalMessage(
 		MsgId id,
 		MessageFlags flags,
@@ -204,7 +213,8 @@ public:
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
-		HistoryMessageMarkupData &&markup);
+		HistoryMessageMarkupData &&markup,
+		uint64 newGroupId = 0);
 	not_null<HistoryItem*> addNewLocalMessage(
 		MsgId id,
 		MessageFlags flags,

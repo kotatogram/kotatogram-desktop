@@ -406,6 +406,12 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "profile_top_mute", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "forward_retain_selection", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
+	{ "forward_on_click", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "auto_scroll_unfocused", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
@@ -415,6 +421,20 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "telegram_sites_autologin", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = true, }},
+	{ "forward_remember_mode", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
+	{ "forward_mode", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0,
+		.limitHandler = IntLimit(0, 2), }},
+	{ "forward_grouping_mode", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 0,
+		.limitHandler = IntLimit(0, 2), }},
+	{ "forward_force_old_unquoted", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 };
 
 using OldOptionKey = QString;

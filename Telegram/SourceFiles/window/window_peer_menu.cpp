@@ -25,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/add_bot_to_chat_box.h"
 #include "boxes/peers/add_participants_box.h"
 #include "boxes/peers/edit_contact_box.h"
+#include "boxes/share_box.h"
 #include "ui/boxes/report_box.h"
 #include "ui/toast/toast.h"
 #include "ui/text/format_values.h"
@@ -43,11 +44,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_blocked_peers.h"
 #include "api/api_chat_filters.h"
 #include "api/api_polls.h"
+#include "api/api_sending.h"
 #include "api/api_updates.h"
+#include "api/api_text_entities.h"
 #include "mtproto/mtproto_config.h"
 #include "history/history.h"
 #include "history/history_item.h"
 #include "history/history_message.h" // GetErrorTextForSending.
+#include "history/history_widget.h"
+#include "history/view/history_view_element.h"
 #include "history/view/history_view_context_menu.h"
 #include "window/window_adaptive.h" // Adaptive::isThreeColumn
 #include "window/window_session_controller.h"
@@ -65,9 +70,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_chat.h"
 #include "data/data_drafts.h"
 #include "data/data_user.h"
+#include "data/data_game.h"
+#include "data/data_web_page.h"
 #include "data/data_scheduled_messages.h"
 #include "data/data_histories.h"
 #include "data/data_chat_filters.h"
+#include "data/data_file_origin.h"
 #include "dialogs/dialogs_key.h"
 #include "core/application.h"
 #include "export/export_manager.h"
@@ -77,6 +85,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h" // st::windowMinWidth
 #include "styles/style_menu_icons.h"
 
+#include <QtGui/QGuiApplication>
+#include <QtGui/QClipboard>
 #include <QAction>
 
 namespace Window {
@@ -1215,6 +1225,7 @@ void BlockSenderFromRepliesBox(
 		Window::ClearReply{ id });
 }
 
+/*
 QPointer<Ui::BoxContent> ShowForwardMessagesBox(
 		not_null<Window::SessionNavigation*> navigation,
 		Data::ForwardDraft &&draft,
@@ -1267,15 +1278,244 @@ QPointer<Ui::BoxContent> ShowForwardMessagesBox(
 		std::move(initBox)), Ui::LayerOption::KeepOther);
 	return weak->data();
 }
+*/
+
+QPointer<Ui::BoxContent> ShowForwardMessagesBox(
+		not_null<Window::SessionNavigation*> navigation,
+		Data::ForwardDraft &&draft,
+		FnMut<void()> &&successCallback) {
+	struct ShareData {
+		ShareData(not_null<PeerData*> peer, Data::ForwardDraft &&fwdDraft, FnMut<void()> &&callback)
+		: peer(peer)
+		, draft(std::move(fwdDraft))
+		, submitCallback(std::move(callback)) {
+		}
+		not_null<PeerData*> peer;
+		Data::ForwardDraft draft;
+		int requestsLeft = 0;
+		FnMut<void()> submitCallback;
+	};
+	const auto weak = std::make_shared<QPointer<ShareBox>>();
+	const auto firstItem = navigation->session().data().message(draft.ids[0]);
+	const auto history = firstItem->history();
+	const auto owner = &history->owner();
+	const auto session = &history->session();
+	const auto isGame = firstItem->getMessageBot()
+		&& firstItem->media()
+		&& (firstItem->media()->game() != nullptr);
+
+	const auto items = history->owner().idsToItems(draft.ids);
+	const auto hasCaptions = ranges::any_of(items, [](auto item) {
+		return item->media()
+			&& !item->originalText().text.isEmpty()
+			&& item->media()->allowsEditCaption();
+	});
+	const auto hasOnlyForcedForwardedInfo = hasCaptions
+		? false
+		: ranges::all_of(items, [](auto item) {
+			return item->media() && item->media()->forceForwardedInfo();
+		});
+
+	const auto canCopyLink = [=] {
+		if (draft.ids.size() > 10) {
+			return false;
+		}
+
+		const auto groupId = firstItem->groupId();
+
+		for (const auto item : items) {
+			if (groupId != item->groupId()) {
+				return false;
+			}
+		}
+
+		return (firstItem->hasDirectLink() || isGame);
+	}();
+
+	const auto hasMediaForGrouping = [=] {
+		if (draft.ids.size() > 1) {
+			auto grouppableMediaCount = 0;
+			for (const auto item : items) {
+				if (item->media() && item->media()->canBeGrouped()) {
+					grouppableMediaCount++;
+				} else {
+					grouppableMediaCount = 0;
+				}
+				if (grouppableMediaCount > 1) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}();
+
+	const auto data = std::make_shared<ShareData>(history->peer, std::move(draft), std::move(successCallback));
+
+	auto copyCallback = [=]() {
+		if (const auto item = owner->message(data->draft.ids[0])) {
+			if (item->hasDirectLink()) {
+				HistoryView::CopyPostLink(
+					navigation->parentController(),
+					item->fullId(),
+					HistoryView::Context::History);
+			} else if (const auto bot = item->getMessageBot()) {
+				if (const auto media = item->media()) {
+					if (const auto game = media->game()) {
+						const auto link = session->createInternalLinkFull(
+							bot->username
+							+ qsl("?game=")
+							+ game->shortName);
+
+						QGuiApplication::clipboard()->setText(link);
+
+						Ui::Toast::Show(tr::lng_share_game_link_copied(tr::now));
+					}
+				}
+			}
+		}
+	};
+	auto submitCallback = [=](
+			std::vector<not_null<PeerData*>> &&result,
+			TextWithTags &&comment,
+			Api::SendOptions options,
+			Data::ForwardOptions forwardOptions,
+			Data::GroupingOptions groupOptions) {
+		if (data->requestsLeft > 0) {
+			return; // Share clicked already.
+		}
+		auto items = history->owner().idsToItems(data->draft.ids);
+		if (items.empty() || result.empty()) {
+			return;
+		}
+
+		const auto error = [&] {
+			for (const auto peer : result) {
+				const auto error = GetErrorTextForSending(
+					peer,
+					items,
+					comment,
+					false, /* ignoreSlowmodeCountdown */
+					forwardOptions != Data::ForwardOptions::PreserveInfo);
+				if (!error.isEmpty()) {
+					return std::make_pair(error, peer);
+				}
+			}
+			return std::make_pair(QString(), result.front());
+		}();
+		if (!error.first.isEmpty()) {
+			auto text = TextWithEntities();
+			if (result.size() > 1) {
+				text.append(
+					Ui::Text::Bold(error.second->name())
+				).append("\n\n");
+			}
+			text.append(error.first);
+			Ui::show(
+				Ui::MakeInformBox(text),
+				Ui::LayerOption::KeepOther);
+			return;
+		}
+
+		const auto checkAndClose = [=] {
+			data->requestsLeft--;
+			if (!data->requestsLeft) {
+				Ui::Toast::Show(tr::lng_share_done(tr::now));
+				Ui::hideLayer();
+			}
+		};
+		auto &api = owner->session().api();
+
+		data->draft.options = forwardOptions;
+		data->draft.groupOptions = groupOptions;
+
+		for (const auto peer : result) {
+			const auto history = owner->history(peer);
+			auto action = Api::SendAction(history);
+			action.options = options;
+			action.clearDraft = false;
+
+			if (!comment.text.isEmpty()) {
+				auto message = ApiWrap::MessageToSend(action);
+				message.textWithTags = comment;
+				api.sendMessage(std::move(message));
+			}
+
+			data->requestsLeft++;
+			auto resolved = history->resolveForwardDraft(data->draft);
+
+			api.forwardMessages(std::move(resolved), action, [=] {
+				checkAndClose();
+			});
+		}
+		if (data->submitCallback
+			&& !::Kotato::JsonSettings::GetBool("forward_retain_selection")) {
+			data->submitCallback();
+		}
+	};
+	auto filterCallback = [](PeerData *peer) {
+		return peer->canWrite();
+	};
+	auto copyLinkCallback = canCopyLink
+		? Fn<void()>(std::move(copyCallback))
+		: Fn<void()>();
+	auto goToChatCallback = [navigation, data](
+			PeerData *peer,
+			Data::ForwardOptions forwardOptions,
+			Data::GroupingOptions groupOptions) {
+		if (data->submitCallback
+			&& !::Kotato::JsonSettings::GetBool("forward_retain_selection")) {
+			data->submitCallback();
+		}
+		data->draft.options = forwardOptions;
+		data->draft.groupOptions = groupOptions;
+		navigation->parentController()->content()->setForwardDraft(peer->id, std::move(data->draft));
+	};
+	*weak = Ui::show(
+		Box<ShareBox>(ShareBox::Descriptor{
+			.session = session,
+			.copyCallback = std::move(copyLinkCallback),
+			.submitCallback = std::move(submitCallback),
+			.filterCallback = std::move(filterCallback),
+			.goToChatCallback = std::move(goToChatCallback),
+			.forwardOptions = {
+				.messagesCount = int(draft.ids.size()),
+				.show = !hasOnlyForcedForwardedInfo,
+				.hasCaptions = hasCaptions,
+				.hasMedia = hasMediaForGrouping,
+				.isShare = false,
+			},
+		}),
+		Ui::LayerOption::KeepOther);
+	return weak->data();
+}
 
 QPointer<Ui::BoxContent> ShowForwardMessagesBox(
 		not_null<Window::SessionNavigation*> navigation,
 		MessageIdsList &&items,
 		FnMut<void()> &&successCallback) {
+	const auto options = [] {
+		switch (::Kotato::JsonSettings::GetInt("forward_mode")) {
+			case 1: return Data::ForwardOptions::NoSenderNames;
+			case 2: return Data::ForwardOptions::NoNamesAndCaptions;
+			default: return Data::ForwardOptions::PreserveInfo;
+		}
+	}();
+
+	const auto groupOptions = [] {
+		switch (::Kotato::JsonSettings::GetInt("forward_grouping_mode")) {
+			case 1: return Data::GroupingOptions::RegroupAll;
+			case 2: return Data::GroupingOptions::Separate;
+			default: return Data::GroupingOptions::GroupAsIs;
+		}
+	}();
+
 	return ShowForwardMessagesBox(
 		navigation,
-		Data::ForwardDraft{ .ids = std::move(items) },
-		std::move(successCallback));
+		Data::ForwardDraft{
+			.ids = std::move(items),
+			.options = options,
+			.groupOptions = groupOptions,
+		}, std::move(successCallback));
 }
 
 QPointer<Ui::BoxContent> ShowSendNowMessagesBox(

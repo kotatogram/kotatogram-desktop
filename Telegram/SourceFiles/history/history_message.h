@@ -43,12 +43,14 @@ void RequestDependentMessageData(
 [[nodiscard]] QString GetErrorTextForSending(
 	not_null<PeerData*> peer,
 	const HistoryItemsList &items,
-	bool ignoreSlowmodeCountdown = false);
+	bool ignoreSlowmodeCountdown = false,
+	bool unquoted = false);
 [[nodiscard]] QString GetErrorTextForSending(
 	not_null<PeerData*> peer,
 	const HistoryItemsList &items,
 	const TextWithTags &comment,
-	bool ignoreSlowmodeCountdown = false);
+	bool ignoreSlowmodeCountdown = false,
+	bool unquoted = false);
 [[nodiscard]] TextWithEntities DropCustomEmoji(TextWithEntities text);
 
 class HistoryMessage final : public HistoryItem {
@@ -95,7 +97,8 @@ public:
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
-		HistoryMessageMarkupData &&markup); // local document
+		HistoryMessageMarkupData &&markup,
+		uint64 newGroupId = 0); // local document
 	HistoryMessage(
 		not_null<History*> history,
 		MsgId id,
@@ -107,7 +110,8 @@ public:
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
-		HistoryMessageMarkupData &&markup); // local photo
+		HistoryMessageMarkupData &&markup,
+		uint64 newGroupId = 0); // local photo
 	HistoryMessage(
 		not_null<History*> history,
 		MsgId id,

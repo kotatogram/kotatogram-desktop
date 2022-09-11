@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_widget.h"
 
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "api/api_editing.h"
 #include "api/api_bot.h"
 #include "api/api_chat_participants.h"
@@ -40,7 +41,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/message_sending_animation_controller.h"
 #include "ui/text/text_utilities.h" // Ui::Text::ToUpper
 #include "ui/text/format_values.h"
-#include "ui/chat/forward_options_box.h"
+//#include "ui/chat/forward_options_box.h"
 #include "ui/chat/message_bar.h"
 #include "ui/chat/attach/attach_send_files_way.h"
 #include "ui/chat/choose_send_as.h"
@@ -6089,10 +6090,59 @@ void HistoryWidget::mousePressEvent(QMouseEvent *e) {
 		updateField();
 	} else if (_inReplyEditForward) {
 		if (readyToForward()) {
+			if (_toForward.items.empty() || e->button() != Qt::LeftButton) {
+				return;
+			}
+			const auto draft = std::move(_toForward);
+			session().data().cancelForwarding(_history);
+			auto list = session().data().itemsToIds(draft.items);
+			Window::ShowForwardMessagesBox(controller(), {
+				.ids = session().data().itemsToIds(draft.items),
+				.options = draft.options,
+				.groupOptions = draft.groupOptions,
+			});
+		} else {
+			Ui::showPeerHistory(_peer, _editMsgId ? _editMsgId : replyToId());
+		}
+	}
+}
+
+void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
+	if (_menu) {
+		return;
+	}
+	const auto hasSecondLayer = (_editMsgId
+		|| _replyToId
+		|| readyToForward()
+		|| _kbReplyTo);
+	_replyForwardPressed = hasSecondLayer && QRect(
+		0,
+		_field->y() - st::historySendPadding - st::historyReplyHeight,
+		st::historyReplySkip,
+		st::historyReplyHeight).contains(e->pos());
+	if (_replyForwardPressed && !_fieldBarCancel->isHidden()) {
+		return;
+	} else if (_inReplyEditForward) {
+		if (readyToForward()) {
 			using Options = Data::ForwardOptions;
-			const auto now = _toForward.options;
+			using GroupingOptions = Data::GroupingOptions;
 			const auto count = _toForward.items.size();
-			const auto dropNames = (now != Options::PreserveInfo);
+			const auto hasMediaToGroup = [&] {
+				if (count > 1) {
+					auto grouppableMediaCount = 0;
+					for (const auto item : _toForward.items) {
+						if (item->media() && item->media()->canBeGrouped()) {
+							grouppableMediaCount++;
+						} else {
+							grouppableMediaCount = 0;
+						}
+						if (grouppableMediaCount > 1) {
+							return true;
+						}
+					}
+				}
+				return false;
+			}();
 			const auto hasCaptions = [&] {
 				for (const auto item : _toForward.items) {
 					if (const auto media = item->media()) {
@@ -6104,71 +6154,76 @@ void HistoryWidget::mousePressEvent(QMouseEvent *e) {
 				}
 				return false;
 			}();
-			const auto hasOnlyForcedForwardedInfo = [&] {
-				if (hasCaptions) {
-					return false;
-				}
-				for (const auto item : _toForward.items) {
-					if (const auto media = item->media()) {
-						if (!media->forceForwardedInfo()) {
-							return false;
-						}
-					} else {
-						return false;
-					}
-				}
-				return true;
-			}();
-			const auto dropCaptions = (now == Options::NoNamesAndCaptions);
-			const auto weak = Ui::MakeWeak(this);
-			const auto changeRecipient = crl::guard(weak, [=] {
-				if (_toForward.items.empty()) {
-					return;
-				}
-				const auto draft = std::move(_toForward);
-				session().data().cancelForwarding(_history);
-				auto list = session().data().itemsToIds(draft.items);
-				Window::ShowForwardMessagesBox(controller(), {
-					.ids = session().data().itemsToIds(draft.items),
-					.options = draft.options,
-				});
-			});
-			if (hasOnlyForcedForwardedInfo) {
-				changeRecipient();
-				return;
-			}
-			const auto optionsChanged = crl::guard(weak, [=](
-					Ui::ForwardOptions options) {
-				const auto newOptions = (options.hasCaptions
-					&& options.dropCaptions)
-					? Options::NoNamesAndCaptions
-					: options.dropNames
-					? Options::NoSenderNames
-					: Options::PreserveInfo;
+			const auto addForwardOption = [=](
+					Options newOptions,
+					const QString &langKey,
+					int settingsKey) {
 				if (_history && _toForward.options != newOptions) {
-					_toForward.options = newOptions;
-					_history->setForwardDraft({
-						.ids = session().data().itemsToIds(_toForward.items),
-						.options = newOptions,
+					_menu->addAction(ktr(langKey), [=] {
+						const auto error = GetErrorTextForSending(
+							_history->peer,
+							_toForward.items,
+							true,
+							newOptions != Options::PreserveInfo);
+						if (!error.isEmpty()) {
+							Ui::ShowMultilineToast({
+								.text = { error }
+							});
+							return;
+						}
+						_toForward.options = newOptions;
+						_history->setForwardDraft({
+							.ids = session().data().itemsToIds(_toForward.items),
+							.options = newOptions,
+							.groupOptions = _toForward.groupOptions,
+						});
+						updateField();
+						if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+							::Kotato::JsonSettings::Set("forward_mode", settingsKey);
+							::Kotato::JsonSettings::Write();
+						}
 					});
-					updateField();
 				}
-			});
-			controller()->show(Box(
-				Ui::ForwardOptionsBox,
-				count,
-				Ui::ForwardOptions{
-					.dropNames = dropNames,
-					.hasCaptions = hasCaptions,
-					.dropCaptions = dropCaptions,
-				},
-				optionsChanged,
-				changeRecipient));
-		} else {
-			controller()->showPeerHistory(
-				_peer,
-				Window::SectionShow::Way::Forward,
-				_editMsgId ? _editMsgId : replyToId());
+			};
+
+			_menu = base::make_unique_q<Ui::PopupMenu>(this);
+			
+			addForwardOption(Options::PreserveInfo, "ktg_forward_menu_quoted", 0);
+			addForwardOption(Options::NoSenderNames, "ktg_forward_menu_unquoted", 1);
+			if (hasCaptions) {
+				addForwardOption(Options::NoNamesAndCaptions, "ktg_forward_menu_uncaptioned", 2);
+			}
+
+			if (hasMediaToGroup && count > 1) {
+				const auto addGroupingOption = [=](
+						GroupingOptions newOptions,
+						const QString &langKey,
+						int settingsKey) {
+					if (_history && _toForward.groupOptions != newOptions) {
+						_menu->addAction(ktr(langKey), [=] {
+							_toForward.groupOptions = newOptions;
+							_history->setForwardDraft({
+								.ids = session().data().itemsToIds(_toForward.items),
+								.options = _toForward.options,
+								.groupOptions = newOptions,
+							});
+							updateForwardingTexts();
+							updateField();
+							if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+								::Kotato::JsonSettings::Set("forward_grouping_mode", settingsKey);
+								::Kotato::JsonSettings::Write();
+							}
+						});
+					}
+				};
+
+				_menu->addSeparator();
+				addGroupingOption(GroupingOptions::GroupAsIs, "ktg_forward_menu_default_albums", 0);
+				addGroupingOption(GroupingOptions::RegroupAll, "ktg_forward_menu_group_all_media", 1);
+				addGroupingOption(GroupingOptions::Separate, "ktg_forward_menu_separate_messages", 2);
+			}
+
+			_menu->popup(QCursor::pos());
 		}
 	}
 }
@@ -6780,10 +6835,17 @@ bool HistoryWidget::sendExistingDocument(
 		return false;
 	}
 
-	Api::SendExistingDocument(
-		Api::MessageToSend(prepareSendAction(options)),
-		document,
-		localId);
+	if (document->hasRemoteLocation()) {
+		Api::SendExistingDocument(
+			Api::MessageToSend(prepareSendAction(options)),
+			document,
+			localId);
+	} else {
+		Api::SendWebDocument(
+			Api::MessageToSend(prepareSendAction(options)),
+			document,
+			localId);
+	}
 
 	if (_fieldAutocomplete->stickersShown()) {
 		clearFieldText();
@@ -7588,6 +7650,8 @@ void HistoryWidget::updateForwardingTexts() {
 		auto insertedPeers = base::flat_set<not_null<PeerData*>>();
 		auto insertedNames = base::flat_set<QString>();
 		auto fullname = QString();
+		auto hasMediaToGroup = false;
+		auto grouppableMediaCount = 0;
 		auto names = std::vector<QString>();
 		names.reserve(_toForward.items.size());
 		for (const auto item : _toForward.items) {
@@ -7608,8 +7672,20 @@ void HistoryWidget::updateForwardingTexts() {
 			} else {
 				Unexpected("Corrupt forwarded information in message.");
 			}
+			if (!hasMediaToGroup) {
+				if (item->media() && item->media()->canBeGrouped()) {
+					grouppableMediaCount++;
+				} else {
+					grouppableMediaCount = 0;
+				}
+				if (grouppableMediaCount > 1) {
+					hasMediaToGroup = true;
+				}
+			}
 		}
-		if (!keepNames) {
+		if (!keepCaptions) {
+			from = ktr("ktg_forward_sender_names_and_captions_removed");
+		} else if (!keepNames) {
 			from = tr::lng_forward_sender_names_removed(tr::now);
 		} else if (names.size() > 2) {
 			from = tr::lng_forwarding_from(tr::now, lt_count, names.size() - 1, lt_user, names[0]);
@@ -7634,8 +7710,19 @@ void HistoryWidget::updateForwardingTexts() {
 				text = DropCustomEmoji(std::move(text));
 			}
 		} else {
-			text = Ui::Text::PlainLink(
-				tr::lng_forward_messages(tr::now, lt_count, count));
+			auto forwardText = tr::lng_forward_messages(tr::now, lt_count, count);
+
+			switch (_toForward.groupOptions) {
+				case Data::GroupingOptions::RegroupAll:
+					forwardText += ", " + ktr("ktg_forward_subtitle_group_all_media");
+					break;
+
+				case Data::GroupingOptions::Separate:
+					forwardText += ", " + ktr("ktg_forward_subtitle_separate_messages");
+					break;
+			}
+
+			text = Ui::Text::PlainLink(forwardText);
 		}
 	}
 	_toForwardFrom.setText(st::msgNameStyle, from, Ui::NameTextOptions());
