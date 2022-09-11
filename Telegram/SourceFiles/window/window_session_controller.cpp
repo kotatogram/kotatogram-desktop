@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_session_controller.h"
 
+#include "kotato/kotato_lang.h"
 #include "kotato/kotato_settings.h"
 #include "apiwrap.h"
 #include "api/api_cloud_password.h"
@@ -96,9 +97,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "calls/group/calls_group_call.h"
 #include "calls/group/calls_group_common.h"
 #include "calls/group/calls_group_invite_controller.h"
+#include "ui/boxes/choose_date_time.h"
 #include "ui/boxes/calendar_box.h"
 #include "ui/boxes/collectible_info_box.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/widgets/popup_menu.h"
 #include "ui/dynamic_thumbnails.h"
 #include "ui/ui_utility.h"
 #include "mainwidget.h"
@@ -132,6 +135,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h" // st::boxLabel
+#include "styles/style_info.h"
+#include "styles/style_menu_icons.h"
 
 namespace Window {
 namespace {
@@ -328,6 +333,58 @@ void MainWindowShow::processChosenSticker(
 	}
 }
 
+void ChooseJumpDateTimeBox(
+	not_null<Ui::GenericBox*> box,
+	QDateTime minDate,
+	QDateTime maxDate,
+	QDateTime highlighted,
+	Fn<void(TimeId, Fn<void()> close)> onDone,
+	Fn<void(Fn<void()> close)> onBegnning,
+	Fn<void()> onCalendar) {
+	// An empty chat has no last message date.
+	const auto max = maxDate.isNull()
+		? base::unixtime::now()
+		: base::unixtime::serialize(maxDate);
+	// The box picks whole minutes, so allow the first message's one.
+	const auto min = std::min(base::unixtime::serialize(minDate), max)
+		/ 60 * 60;
+	Ui::ChooseDateTimeBox(box,
+		Ui::ChooseDateTimeBoxArgs{
+			.title = rktr("ktg_jump_to_date_title"),
+			.submit = rktr("ktg_jump_to_date_button"),
+			.done = [=](TimeId result) {
+				onDone(result, crl::guard(box, [=] { box->closeBox(); }));
+			},
+			.min = [=] { return min; },
+			.time = base::unixtime::serialize(highlighted),
+			.max = [=] { return max; },
+		});
+	const auto topMenuButton = box->addTopButton(st::infoTopBarMenu);
+	const auto menu = std::make_shared<base::unique_qptr<Ui::PopupMenu>>();
+	topMenuButton.data()->setClickedCallback([=] {
+		*menu = base::make_unique_q<Ui::PopupMenu>(
+			topMenuButton.data(),
+			st::popupMenuWithIcons);
+		(*menu)->addAction(
+			ktr("ktg_jump_to_beginning"),
+			[=] { onBegnning(crl::guard(box, [=] { box->closeBox(); })); },
+			&st::menuIconToBeginning);
+		(*menu)->addAction(
+			ktr("ktg_show_calendar"),
+			onCalendar,
+			&st::menuIconSchedule);
+
+		(*menu)->setForcedOrigin(Ui::PanelAnimation::Origin::TopRight);
+		const auto buttonTopLeft = topMenuButton.data()->mapToGlobal(QPoint());
+		const auto buttonRect = QRect(buttonTopLeft, topMenuButton.data()->size());
+		const auto pos = QPoint(
+			buttonRect.x() + buttonRect.width(),
+			buttonRect.y() + buttonRect.height());
+		(*menu)->popup(pos);
+		return true;
+	});
+}
+
 } // namespace
 
 const char kOptionExternalMediaViewer[] = "external-media-viewer";
@@ -356,13 +413,13 @@ bool operator!=(const PeerThemeOverride &a, const PeerThemeOverride &b) {
 	return !(a == b);
 }
 
-DateClickHandler::DateClickHandler(Dialogs::Key chat, QDate date)
+DateClickHandler::DateClickHandler(Dialogs::Key chat, QDateTime date)
 : _chat(chat)
 , _weak(chat.topic())
 , _date(date) {
 }
 
-void DateClickHandler::setDate(QDate date) {
+void DateClickHandler::setDate(QDateTime date) {
 	_date = date;
 }
 
@@ -2915,11 +2972,11 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 	const auto currentPeerDate = [&] {
 		if (topic) {
 			if (const auto item = topic->lastMessage()) {
-				return base::unixtime::parse(item->date()).date();
+				return base::unixtime::parse(item->date());
 			}
-			return QDate();
+			return QDateTime();
 		} else if (history->scrollTopItem) {
-			return history->scrollTopItem->dateTime().date();
+			return history->scrollTopItem->dateTime();
 		} else if (history->loadedAtTop()
 			&& !history->isEmpty()
 			&& history->peer->migrateFrom()) {
@@ -2927,41 +2984,41 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 				if (migrated->scrollTopItem) {
 					// We're up in the migrated history.
 					// So current date is the date of first message here.
-					return history->blocks.front()->messages.front()->dateTime().date();
+					return history->blocks.front()->messages.front()->dateTime();
 				}
 			}
 		} else if (const auto item = history->lastMessage()) {
-			return base::unixtime::parse(item->date()).date();
+			return base::unixtime::parse(item->date());
 		}
-		return QDate();
+		return QDateTime();
 	}();
 	const auto maxPeerDate = [&] {
 		if (topic) {
 			if (const auto item = topic->lastMessage()) {
-				return base::unixtime::parse(item->date()).date();
+				return base::unixtime::parse(item->date());
 			}
-			return QDate();
+			return QDateTime();
 		}
 		const auto check = history->peer->migrateTo()
 			? history->owner().historyLoaded(history->peer->migrateTo())
 			: history;
 		if (const auto item = check ? check->lastMessage() : nullptr) {
-			return base::unixtime::parse(item->date()).date();
+			return base::unixtime::parse(item->date());
 		}
-		return QDate();
+		return QDateTime();
 	}();
 	const auto minPeerDate = [&] {
 		const auto startDate = [&] {
 			// Telegram was launched in August 2013 :)
-			return QDate(2013, 8, 1);
+			return QDate(2013, 8, 1).startOfDay();
 		};
 		if (topic) {
-			return base::unixtime::parse(topic->creationDate()).date();
+			return base::unixtime::parse(topic->creationDate());
 		} else if (const auto chat = history->peer->migrateFrom()) {
 			if (const auto history = chat->owner().historyLoaded(chat)) {
 				if (history->loadedAtTop()) {
 					if (!history->isEmpty()) {
-						return history->blocks.front()->messages.front()->dateTime().date();
+						return history->blocks.front()->messages.front()->dateTime();
 					}
 				} else {
 					return startDate();
@@ -2970,9 +3027,9 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 		}
 		if (history->loadedAtTop()) {
 			if (!history->isEmpty()) {
-				return history->blocks.front()->messages.front()->dateTime().date();
+				return history->blocks.front()->messages.front()->dateTime();
 			}
-			return QDate::currentDate();
+			return QDateTime::currentDateTime();
 		}
 		return startDate();
 	}();
@@ -2980,7 +3037,7 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 		? requestedDate
 		: !currentPeerDate.isNull()
 		? currentPeerDate
-		: QDate::currentDate();
+		: QDateTime::currentDateTime();
 	const auto performJump = descriptor.customJump;
 	struct ButtonState {
 		enum class Type {
@@ -3042,11 +3099,11 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 	};
 	struct SearchCalendarResult {
 		Fn<void(QDate, Ui::CalendarImageSetter)> factory;
-		Fn<void(const QDate &, Fn<void()>)> customJump;
+		Fn<void(const QDateTime &, Fn<void()>)> customJump;
 	};
 	const auto searchCalendarResult = [&]() -> SearchCalendarResult {
 		using Factory = Fn<void(QDate, Ui::CalendarImageSetter)>;
-		using CustomJump = Fn<void(const QDate &, Fn<void()>)>;
+		using CustomJump = Fn<void(const QDateTime &, Fn<void()>)>;
 		if (!descriptor.mediaPhoto && !descriptor.mediaVideo) {
 			return {};
 		}
@@ -3071,9 +3128,8 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 		};
 		auto customJump = CustomJump(nullptr);
 		if (const auto performJump = descriptor.customJump) {
-			customJump = [=](const QDate &d, Fn<void()> close) {
-				const auto date = base::unixtime::serialize(
-					QDateTime(d, QTime()));
+			customJump = [=](const QDateTime &d, Fn<void()> close) {
+				const auto date = base::unixtime::serialize(d);
 				if (const auto msgId = search->resolveMsgIdByDate(date)) {
 					performJump(FullMsgId(history->peer->id, *msgId), close);
 				}
@@ -3083,7 +3139,9 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 	}();
 	const auto weak = base::make_weak(this);
 	const auto weakThread = base::make_weak(chat.thread());
-	const auto jump = [=](const QDate &date, Fn<void()> close) {
+	const auto jump = searchCalendarResult.customJump
+		? std::move(searchCalendarResult.customJump)
+		: [=](const QDateTime &date, Fn<void()> close) {
 		const auto open = [=](not_null<PeerData*> peer, MsgId id) {
 			if (const auto strong = weak.get()) {
 				if (performJump) {
@@ -3107,19 +3165,33 @@ void SessionController::showCalendar(ShowCalendarDescriptor &&descriptor) {
 		}
 	};
 	const auto requireImage = !!searchCalendarResult.customJump;
-	show(Box<Ui::CalendarBox>(Ui::CalendarBoxArgs{
-		.month = highlighted,
-		.highlighted = highlighted,
-		.callback = searchCalendarResult.customJump
-			? std::move(searchCalendarResult.customJump)
-			: jump,
-		.minDate = minPeerDate,
-		.maxDate = maxPeerDate,
-		.allowsSelection = history->peer->isUser(),
-		.selectionChanged = selectionChanged,
-		.dynamicImageForDate = std::move(searchCalendarResult.factory),
-		.requireImage = requireImage,
-	}));
+	const auto showCalendarCallback = [=] {
+		show(Box<Ui::CalendarBox>(Ui::CalendarBoxArgs{
+			.month = highlighted.date(),
+			.highlighted = highlighted.date(),
+			.callback = [=](const QDate &date, Fn<void()> close) {
+				jump(date.startOfDay(), close);
+			},
+			.minDate = minPeerDate.date(),
+			.maxDate = maxPeerDate.date(),
+			.allowsSelection = history->peer->isUser(),
+			.selectionChanged = selectionChanged,
+			.dynamicImageForDate = std::move(searchCalendarResult.factory),
+			.requireImage = requireImage,
+		}), Ui::LayerOption::CloseOther);
+	};
+	show(Box(ChooseJumpDateTimeBox,
+			minPeerDate,
+			maxPeerDate,
+			highlighted,
+			[=](TimeId result, Fn<void()> close) {
+				jump(base::unixtime::parse(result), close);
+			},
+			[=](Fn<void()> close) {
+				jump(minPeerDate, close);
+			},
+			std::move(showCalendarCallback)),
+		Ui::LayerOption::KeepOther);
 }
 
 void SessionController::showPassportForm(const Passport::FormRequest &request) {

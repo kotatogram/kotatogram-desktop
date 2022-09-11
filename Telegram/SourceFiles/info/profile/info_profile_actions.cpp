@@ -1445,7 +1445,7 @@ Section DetailsFiller::makeInfo() {
 				const auto weak = base::make_weak(window);
 				window->session().api().resolveJumpToDate(
 					Dialogs::Key(peer->owner().history(peer)),
-					base::unixtime::parse(joinDate.toULongLong()).date(),
+					base::unixtime::parse(joinDate.toULongLong()),
 					[=](not_null<PeerData*> p, MsgId m) {
 						const auto f = Window::SectionShow::Way::Forward;
 						if (const auto strong = weak.get()) {

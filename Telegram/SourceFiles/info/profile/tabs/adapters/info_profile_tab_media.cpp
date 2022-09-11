@@ -267,7 +267,7 @@ private:
 		addAction(tr::lng_calendar(tr::now), [=] {
 			controller->showCalendar({
 				.chat = Dialogs::Key(peer->owner().history(peer)),
-				.date = QDate::currentDate(),
+				.date = QDateTime::currentDateTime(),
 				.mediaPhoto = (type != SharedMediaType::Video),
 				.mediaVideo = (type != SharedMediaType::Photo),
 				.customJump = crl::guard(

@@ -5323,7 +5323,7 @@ void ChatWidget::listUpdateDateLink(
 		link = nullptr;
 		return;
 	}
-	const auto date = view->dateTime().date();
+	const auto date = view->dateTime();
 	if (!link) {
 		link = std::make_shared<Window::DateClickHandler>(key, date);
 	} else {

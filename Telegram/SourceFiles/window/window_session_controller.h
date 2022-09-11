@@ -133,15 +133,15 @@ bool operator!=(const PeerThemeOverride &a, const PeerThemeOverride &b);
 
 class DateClickHandler : public ClickHandler {
 public:
-	DateClickHandler(Dialogs::Key chat, QDate date);
+	DateClickHandler(Dialogs::Key chat, QDateTime date);
 
-	void setDate(QDate date);
+	void setDate(QDateTime date);
 	void onClick(ClickContext context) const override;
 
 private:
 	Dialogs::Key _chat;
 	base::weak_ptr<Data::ForumTopic> _weak;
-	QDate _date;
+	QDateTime _date;
 
 };
 
@@ -572,7 +572,7 @@ public:
 
 	struct ShowCalendarDescriptor {
 		Dialogs::Key chat;
-		QDate date;
+		QDateTime date;
 		bool mediaPhoto = false;
 		bool mediaVideo = false;
 		Fn<void(FullMsgId, Fn<void()>)> customJump;
