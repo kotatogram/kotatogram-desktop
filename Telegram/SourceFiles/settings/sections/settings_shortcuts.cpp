@@ -134,6 +134,7 @@ struct Labeled {
 		{ C::SaveDraft, rktr("ktg_shortcuts_save_draft") },
 		{ C::JumpToDate, rktr("ktg_shortcuts_jump_to_date") },
 		{ C::ReloadLang, rktr("ktg_shortcuts_reload_lang") },
+		{ C::Restart, rktr("ktg_settings_restart") },
 	};
 }
 
