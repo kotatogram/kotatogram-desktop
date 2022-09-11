@@ -75,7 +75,7 @@ void PinMessageBox(
 			auto object = object_ptr<Ui::Checkbox>(
 				box,
 				tr::lng_pinned_notify(tr::now),
-				true,
+				false,
 				st::urlAuthCheckbox);
 			object->setAllowTextLines();
 			state->notify = Ui::MakeWeak(object.data());
