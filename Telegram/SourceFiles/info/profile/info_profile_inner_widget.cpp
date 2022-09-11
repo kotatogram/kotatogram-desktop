@@ -242,6 +242,13 @@ object_ptr<Ui::RpWidget> InnerWidget::setupContent(
 			origin);
 	}
 
+	if (!_sublist && !_peer->isMonoforum()) {
+		if (auto manage = SetupManage(_controller, result.data(), _peer)) {
+			stack.addPlainSeparator();
+			stack.add(Section{ .widget = std::move(manage) });
+		}
+	}
+
 	const auto thirdColumn = (_controller->wrap() == Wrap::Side);
 	const auto tabs = UseProfileMediaTabs() && !thirdColumn;
 	auto sharedTracker = Ui::MultiSlideTracker();
