@@ -111,6 +111,12 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ qsl("jump_to_date")      , Command::JumpToDate },
 	{ qsl("reload_lang")       , Command::ReloadLang },
 	{ qsl("restart_app")       , Command::Restart },
+
+	{ qsl("pinned_1")          , Command::ChatPinned1 },
+	{ qsl("pinned_2")          , Command::ChatPinned2 },
+	{ qsl("pinned_3")          , Command::ChatPinned3 },
+	{ qsl("pinned_4")          , Command::ChatPinned4 },
+	{ qsl("pinned_5")          , Command::ChatPinned5 },
 };
 
 const auto CommandNames = base::flat_map<Command, QString>{
@@ -162,6 +168,13 @@ const auto CommandNames = base::flat_map<Command, QString>{
 	{ Command::JumpToDate     , u"jump_to_date"_q },
 	{ Command::ReloadLang     , u"reload_lang"_q },
 	{ Command::Restart        , u"restart_app"_q },
+
+
+	{ Command::ChatPinned1    , u"pinned_1"_q },
+	{ Command::ChatPinned2    , u"pinned_2"_q },
+	{ Command::ChatPinned3    , u"pinned_3"_q },
+	{ Command::ChatPinned4    , u"pinned_4"_q },
+	{ Command::ChatPinned5    , u"pinned_5"_q },
 };
 
 class Manager {
