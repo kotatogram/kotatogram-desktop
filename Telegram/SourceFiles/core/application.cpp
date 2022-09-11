@@ -1769,6 +1769,10 @@ void Application::startShortcuts() {
 			Ui::Toast::Show(ktr("ktg_language_reloaded"));
 			return true;
 		});
+		request->check(Command::Restart) && request->handle([=] {
+			Restart();
+			return true;
+		});
 	}, _lifetime);
 }
 
