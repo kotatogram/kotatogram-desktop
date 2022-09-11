@@ -481,17 +481,10 @@ void TopBarWidget::paintTopBar(Painter &p) {
 	const auto now = crl::now();
 	const auto history = _activeChat.key.history();
 	const auto folder = _activeChat.key.folder();
-	if (folder
-		|| history->peer->sharedMediaInfo()
-		|| (_activeChat.section == Section::Scheduled)
-		|| (_activeChat.section == Section::Pinned)) {
+	if (folder || history->peer->sharedMediaInfo()) {
 		// #TODO feed name emoji.
 		auto text = (_activeChat.section == Section::Scheduled)
-			? ((history && history->peer->isSelf())
-				? tr::lng_reminder_messages(tr::now)
-				: tr::lng_scheduled_messages(tr::now))
-			: (_activeChat.section == Section::Pinned)
-			? _customTitleText
+			? tr::lng_reminder_messages(tr::now)
 			: folder
 			? folder->chatListName()
 			: history->peer->isSelf()
@@ -508,25 +501,33 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			(height() - st::historySavedFont->height) / 2,
 			width(),
 			text);
-	} else if (_activeChat.section == Section::Replies) {
+	} else if (_activeChat.section == Section::Replies
+			|| _activeChat.section == Section::Scheduled
+			|| _activeChat.section == Section::Pinned) {
 		p.setPen(st::dialogsNameFg);
-		p.setFont(st::semiboldFont);
-		p.drawTextLeft(
-			nameleft,
-			nametop,
-			width(),
-			tr::lng_manage_discussion_group(tr::now));
+
+		Ui::Text::String textStr;
+		textStr.setText(
+			st::semiboldTextStyle,
+			(_activeChat.section == Section::Replies
+				? tr::lng_manage_discussion_group(tr::now)
+				: history->peer->isSelf()
+				? tr::lng_saved_messages(tr::now)
+				: history->peer->topBarNameText().toString()),
+			Ui::NameTextOptions());
+		textStr.drawElided(p, nameleft, nametop, width());
 
 		p.setFont(st::dialogsTextFont);
 		if (!paintConnectingState(p, nameleft, statustop, width())
-			&& !paintSendAction(
-				p,
-				nameleft,
-				statustop,
-				availableWidth,
-				width(),
-				st::historyStatusFgTyping,
-				now)) {
+			&& (_activeChat.section != Section::Replies
+				|| !paintSendAction(
+					p,
+					nameleft,
+					statustop,
+					availableWidth,
+					width(),
+					st::historyStatusFgTyping,
+					now))) {
 			p.setPen(st::historyStatusFg);
 			p.drawTextLeft(nameleft, statustop, width(), _customTitleText);
 		}
