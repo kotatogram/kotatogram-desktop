@@ -744,7 +744,7 @@ void ClearCallsBox(
 		object_ptr<Ui::Checkbox>(
 			box,
 			tr::lng_delete_for_everyone_check(tr::now),
-			false,
+			true,
 			st::defaultBoxCheckbox),
 		style::margins(
 			st::boxPadding.left(),

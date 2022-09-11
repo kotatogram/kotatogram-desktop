@@ -1638,7 +1638,7 @@ void DeleteChatBox(not_null<Ui::GenericBox*> box, not_null<PeerData*> peer) {
 					: tr::lng_delete_for_everyone_check(
 						tr::now,
 						tr::marked),
-				false,
+				(maybeUser != nullptr), // Groups: deletes for all members.
 				st::defaultBoxCheckbox));
 	}();
 
