@@ -7771,8 +7771,16 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 		prepareChatAddUserText,
 		prepareChatJoinedByLink,
 		prepareChatCreate,
-		PrepareEmptyText<MTPDmessageActionChatMigrateTo>,
-		PrepareEmptyText<MTPDmessageActionChannelMigrateFrom>,
+		[](const MTPDmessageActionChatMigrateTo &) {
+			auto result = PreparedServiceText();
+			result.text = ktre("ktg_action_group_migrate");
+			return result;
+		},
+		[](const MTPDmessageActionChannelMigrateFrom &) {
+			auto result = PreparedServiceText();
+			result.text = ktre("ktg_action_group_migrate");
+			return result;
+		},
 		PrepareEmptyText<MTPDmessageActionHistoryClear>,
 		prepareChannelCreate,
 		prepareChatDeletePhoto,
