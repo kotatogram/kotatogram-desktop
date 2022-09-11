@@ -20,6 +20,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "styles/style_window.h"
 
+#include <QtCore/QDir>
 #include <QtWidgets/QSystemTrayIcon>
 
 namespace Platform {
@@ -109,7 +110,8 @@ void Tray::createIcon() {
 	if (!_icon) {
 		_icon = base::make_unique_q<QSystemTrayIcon>(nullptr);
 		updateIcon();
-		_icon->setToolTip(AppName.utf16());
+		static const auto workdir = QDir::toNativeSeparators(QDir::cleanPath(cWorkingDir()));
+		_icon->setToolTip(AppName.utf16()+"\n"+workdir);
 		using Reason = QSystemTrayIcon::ActivationReason;
 		base::qt_signal_producer(
 			_icon.get(),
