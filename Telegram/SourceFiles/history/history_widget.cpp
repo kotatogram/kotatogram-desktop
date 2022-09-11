@@ -413,7 +413,7 @@ HistoryWidget::HistoryWidget(
 
 	_fieldAutocomplete->mentionChosen(
 	) | rpl::start_with_next([=](FieldAutocomplete::MentionChosen data) {
-		insertMention(data.user);
+		insertMention(data.user, data.method);
 	}, lifetime());
 
 	_fieldAutocomplete->hashtagChosen(
@@ -1443,9 +1443,12 @@ void HistoryWidget::start() {
 	session().data().stickers().notifySavedGifsUpdated();
 }
 
-void HistoryWidget::insertMention(UserData *user) {
+void HistoryWidget::insertMention(UserData *user, FieldAutocomplete::ChooseMethod method) {
 	QString replacement, entityTag;
-	if (user->username.isEmpty()) {
+	if (user->username.isEmpty()
+		|| method == FieldAutocomplete::ChooseMethod::ByRightClick
+		|| method == FieldAutocomplete::ChooseMethod::ByCtrlEnter
+		|| method == FieldAutocomplete::ChooseMethod::ByCtrlClick) {
 		replacement = user->firstName;
 		if (replacement.isEmpty()) {
 			replacement = user->name();
@@ -6938,7 +6941,7 @@ void HistoryWidget::mentionUser(PeerData *peer) {
 	if (user->username.isEmpty()) {
 		replacement = user->firstName;
 		if (replacement.isEmpty()) {
-			replacement = user->name;
+			replacement = user->name();
 		}
 		entityTag = PrepareMentionTag(user);
 	} else {

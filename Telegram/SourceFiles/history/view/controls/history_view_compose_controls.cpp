@@ -1494,8 +1494,11 @@ void ComposeControls::initAutocomplete() {
 			_field->insertTag(string);
 		}
 	};
-	const auto insertMention = [=](not_null<UserData*> user) {
-		if (user->username.isEmpty()) {
+	const auto insertMention = [=](not_null<UserData*> user, FieldAutocomplete::ChooseMethod method) {
+		if (user->username.isEmpty()
+			|| method == FieldAutocomplete::ChooseMethod::ByRightClick
+			|| method == FieldAutocomplete::ChooseMethod::ByCtrlEnter
+			|| method == FieldAutocomplete::ChooseMethod::ByCtrlClick) {
 			_field->insertTag(
 				user->firstName.isEmpty() ? user->name() : user->firstName,
 				PrepareMentionTag(user));
@@ -1506,7 +1509,7 @@ void ComposeControls::initAutocomplete() {
 
 	_autocomplete->mentionChosen(
 	) | rpl::start_with_next([=](FieldAutocomplete::MentionChosen data) {
-		insertMention(data.user);
+		insertMention(data.user, data.method);
 	}, _autocomplete->lifetime());
 
 	_autocomplete->hashtagChosen(
