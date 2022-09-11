@@ -651,16 +651,6 @@ void SetupAccountsWrap(
 		} else if (which != Qt::RightButton) {
 			return;
 		}
-		if (!state->menu && IsAltShift(raw->clickModifiers()) && !locked) {
-			state->menu = base::make_unique_q<Ui::PopupMenu>(
-				raw,
-				st::popupMenuWithIcons);
-			Window::MenuAddMarkAsReadAllChatsAction(
-				window,
-				Ui::Menu::CreateAddActionCallback(state->menu));
-			state->menu->popup(QCursor::pos());
-			return;
-		}
 		if (session == &window->session() || state->menu) {
 			return;
 		}
@@ -685,6 +675,9 @@ void SetupAccountsWrap(
 			addAction(tr::lng_menu_activate(tr::now), [=] {
 				callback({});
 			}, &st::menuIconProfile);
+			Window::MenuAddMarkAsReadAllChatsAction(
+				window,
+				Ui::Menu::CreateAddActionCallback(state->menu));
 		}
 
 		auto logoutCallback = [=] {
