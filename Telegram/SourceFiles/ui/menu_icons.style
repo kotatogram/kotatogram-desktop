@@ -79,6 +79,7 @@ menuIconViolence: icon {{ "menu/violence", menuIconColor }};
 menuIconSearch: icon {{ "menu/search", menuIconColor }};
 menuIconHide: icon {{ "menu/hide", menuIconColor }};
 menuIconMention: icon {{ "menu/mention", menuSubmenuArrowFg }};
+menuIconToBeginning: icon {{ "menu/to_beginning", menuSubmenuArrowFg }};
 menuIconMuteFor: icon {{ "menu/mute_for", menuIconColor }};
 menuIconSilent: icon {{ "menu/silent", menuIconColor }};
 menuIconCustomize: icon {{ "menu/customize", menuIconColor }};
