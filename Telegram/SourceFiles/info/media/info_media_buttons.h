@@ -9,7 +9,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include <rpl/mappers.h>
 #include <rpl/map.h>
-#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "storage/storage_shared_media.h"
 #include "info/info_memento.h"

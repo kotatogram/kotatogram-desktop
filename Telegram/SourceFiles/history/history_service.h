@@ -112,7 +112,6 @@ public:
 	bool isService() const override {
 		return true;
 	}
-
 	ItemPreview toPreview(ToPreviewOptions options) const override;
 	TextWithEntities inReplyText() const override;
 

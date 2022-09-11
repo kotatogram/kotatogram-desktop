@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/media/info_media_empty_widget.h"
 
-#include "kotato/kotato_lang.h"
 #include "ui/widgets/labels.h"
 #include "styles/style_info.h"
 #include "lang/lang_keys.h"

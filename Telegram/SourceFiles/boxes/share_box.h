@@ -176,4 +176,5 @@ private:
 	PeopleQueries _peopleQueries;
 
 	Ui::Animations::Simple _scrollAnimation;
+
 };
