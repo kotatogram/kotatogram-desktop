@@ -119,6 +119,19 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ qsl("account8")          , Command::ShowAccount8 },
 	{ qsl("account9")          , Command::ShowAccount9 },
 	{ qsl("last_account")      , Command::ShowAccountLast },
+
+	// Kotatogram: legacy keys
+	{ qsl("folder_all")        , Command::ShowAllChats },
+	{ qsl("folder_1")          , Command::ShowFolder1 },
+	{ qsl("folder_2")          , Command::ShowFolder2 },
+	{ qsl("folder_3")          , Command::ShowFolder3 },
+	{ qsl("folder_4")          , Command::ShowFolder4 },
+	{ qsl("folder_5")          , Command::ShowFolder5 },
+	{ qsl("folder_6")          , Command::ShowFolder6 },
+	{ qsl("folder_last")       , Command::ShowFolderLast },
+
+	{ qsl("folder_next")       , Command::FolderNext },
+	{ qsl("folder_previous")   , Command::FolderPrevious },
 };
 
 const auto CommandNames = base::flat_map<Command, QString>{
