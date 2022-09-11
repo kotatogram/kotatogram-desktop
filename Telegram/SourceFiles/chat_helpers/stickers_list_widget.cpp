@@ -3719,6 +3719,10 @@ bool StickersListWidget::setHasTitle(const Set &set) const {
 
 bool StickersListWidget::stickerHasDeleteButton(const Set &set, int index) const {
 	if (set.id == Data::Stickers::RecentSetId) {
+		// Any recent sticker can be removed, not only the custom ones.
+		if (!_isMasks && !_isEffects) {
+			return true;
+		}
 		Assert(index >= 0 && index < _custom.size());
 		return _custom[index];
 	}
