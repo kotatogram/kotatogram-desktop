@@ -388,7 +388,7 @@ void Generator::generateData() {
 	addRow("Davy Jones", 5, "4:00", Ui::Text::Colorized("Keynote.pdf"));
 
 	_topBarName.setText(st::msgNameStyle, "Eva Summer", Ui::NameTextOptions());
-	_topBarStatus = "online";
+	_topBarStatus = tr::lng_status_online(tr::now);
 	_topBarStatusActive = true;
 
 	addPhotoBubble(":/gui/art/themeimage.jpg", "To reach a port, we must sail. " + QString::fromUtf8("\xf0\x9f\xa5\xb8"), "7:00", Status::None);
