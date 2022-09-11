@@ -46,6 +46,7 @@ struct PeerByLinkInfo {
 	InlineBots::PeerTypes attachBotChooseTypes;
 	std::optional<QString> voicechatHash;
 	FullMsgId clickFromMessageId;
+	QString searchQuery;
 	QString clickFromAttachBotWebviewUrl;
 };
 
