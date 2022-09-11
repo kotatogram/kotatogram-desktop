@@ -74,6 +74,7 @@ auto PlainPrimaryUsernameValue(not_null<PeerData*> peer) {
 	}) | rpl::flatten_latest();
 }
 
+/*
 void StripExternalLinks(TextWithEntities &text) {
 	const auto local = [](const QString &url) {
 		return !UrlRequiresConfirmation(QUrl::fromUserInput(url));
@@ -91,6 +92,7 @@ void StripExternalLinks(TextWithEntities &text) {
 		ranges::remove_if(text.entities, notLocal),
 		text.entities.end());
 }
+*/
 
 } // namespace
 
@@ -227,14 +229,18 @@ TextWithEntities AboutWithEntities(
 	} else if (isBot) {
 		flags |= TextParseHashtags | TextParseBotCommands;
 	}
+	/*
 	const auto stripExternal = peer->isChat()
 		|| peer->isMegagroup()
 		|| (user && !isBot && !isPremium);
+	*/
 	auto result = TextWithEntities{ value };
 	TextUtilities::ParseEntities(result, flags);
+	/*
 	if (stripExternal) {
 		StripExternalLinks(result);
 	}
+	*/
 	return result;
 }
 
