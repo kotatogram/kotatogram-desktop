@@ -149,13 +149,31 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ qsl("jump_to_date")      , Command::JumpToDate },
 	{ qsl("reload_lang")       , Command::ReloadLang },
 	{ qsl("restart_app")       , Command::Restart },
+
+	{ qsl("pinned_1")          , Command::ChatPinned1 },
+	{ qsl("pinned_2")          , Command::ChatPinned2 },
+	{ qsl("pinned_3")          , Command::ChatPinned3 },
+	{ qsl("pinned_4")          , Command::ChatPinned4 },
+	{ qsl("pinned_5")          , Command::ChatPinned5 },
+};
+
+// Kotatogram names of commands upstream has its own names for:
+// still read from the custom file, never written.
+const auto LegacyNames = base::flat_set<QString>{
+	qsl("pinned_1"),
+	qsl("pinned_2"),
+	qsl("pinned_3"),
+	qsl("pinned_4"),
+	qsl("pinned_5"),
 };
 
 const base::flat_map<Command, QString> &CommandNames() {
 	static const auto result = [&] {
 		auto result = base::flat_map<Command, QString>();
 		for (const auto &[name, command] : CommandByName) {
-			result.emplace(command, name);
+			if (!LegacyNames.contains(name)) {
+				result.emplace(command, name);
+			}
 		}
 		return result;
 	}();
