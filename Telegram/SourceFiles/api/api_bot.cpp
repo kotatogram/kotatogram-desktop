@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/choose_peer_box.h"
 #include "lang/lang_keys.h"
 #include "core/core_cloud_password.h"
+#include "kotato/boxes/kotato_confirm_box.h"
 #include "core/click_handler_types.h"
 #include "data/data_changes.h"
 #include "data/data_peer.h"
@@ -115,7 +116,7 @@ void SendBotCallbackData(
 			if (!show->valid()) {
 				return;
 			} else if (showAlert) {
-				show->showBox(Ui::MakeInformBox(message));
+				show->showBox(Box<Kotato::InformBox>(message));
 			} else {
 				if (withPassword) {
 					show->hideLayer();
