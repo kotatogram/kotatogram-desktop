@@ -472,6 +472,35 @@ struct BadgePillGeometry {
 	};
 }
 
+// Chat type icon before the author name, painted with the name color.
+[[nodiscard]] const style::icon *FromNameIcon(
+		not_null<HistoryItem*> item,
+		PeerData *from) {
+	if (item->isPost() || !from) {
+		return nullptr;
+	} else if (from->isChat() || from->isMegagroup()) {
+		return &st::msgNameChatIcon;
+	} else if (from->isChannel()) {
+		return &st::msgNameChannelIcon;
+	} else if (const auto user = from->asUser()) {
+		if (user->isInaccessible()) {
+			return &st::msgNameDeletedIcon;
+		} else if (user->isBot()
+			&& !user->isSupport()
+			&& !user->isRepliesChat()) {
+			return &st::msgNameBotIcon;
+		}
+	}
+	return nullptr;
+}
+
+[[nodiscard]] int FromNameIconSkip(
+		not_null<HistoryItem*> item,
+		PeerData *from) {
+	const auto icon = FromNameIcon(item, from);
+	return icon ? (icon->width() + st::dialogsChatTypeSkip) : 0;
+}
+
 } // namespace
 
 const char kOptionUnlimitedMessageWidth[]
@@ -1541,6 +1570,7 @@ QSize Message::performCountOptimalSize() {
 				if (Has<RightBadge>()) {
 					namew += st::msgPadding.right() + rightBadgeWidth();
 				}
+				namew += FromNameIconSkip(item, from);
 				accumulate_max(maxWidth, namew);
 				accumulate_max(nonTextMax, namew);
 			} else if (via && !displayForwardedFrom()) {
@@ -2517,6 +2547,12 @@ void Message::paintFromName(
 		context,
 		colorIndex(),
 		colorCollectible());
+	if (const auto icon = FromNameIcon(item, from)) {
+		icon->paint(p, availableLeft, trect.top(), width(), nameFg);
+		const auto skip = FromNameIconSkip(item, from);
+		availableLeft += skip;
+		availableWidth -= skip;
+	}
 	const auto nameText = [&] {
 		if (from) {
 			validateFromNameText(from);
@@ -4225,6 +4261,10 @@ bool Message::getStateFromName(
 		}
 		const auto item = data();
 		const auto from = displayFrom();
+		const auto nameLeft = availableLeft;
+		const auto iconSkip = FromNameIconSkip(item, from);
+		availableLeft += iconSkip;
+		availableWidth -= iconSkip;
 		const auto nameText = [&]() -> const Ui::Text::String * {
 			if (from) {
 				validateFromNameText(from);
@@ -4265,7 +4305,7 @@ bool Message::getStateFromName(
 				return true;
 			}
 		}
-		if (point.x() >= availableLeft
+		if (point.x() >= nameLeft
 			&& point.x() < availableLeft + availableWidth
 			&& point.x() < availableLeft + nameWidth) {
 			outResult->link = fromLink();
@@ -6357,6 +6397,7 @@ void Message::fromNameUpdated(int width) const {
 	const auto available = width
 		- st::msgPadding.left()
 		- st::msgPadding.right()
+		- FromNameIconSkip(item, from)
 		- (_fromNameStatus
 			? (st::dialogsPremiumIcon.icon.width()
 				+ st::msgServiceFont->spacew)
