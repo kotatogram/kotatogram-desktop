@@ -118,17 +118,17 @@ TopBarWidget::TopBarWidget(
 : RpWidget(parent)
 , _controller(controller)
 , _primaryWindow(controller->isPrimary())
-, _clear(this, tr::lng_selected_clear(), st::topBarClearButton)
-, _forward(this, tr::lng_selected_forward(), st::defaultActiveButton)
-, _sendNow(this, tr::lng_selected_send_now(), st::defaultActiveButton)
-, _delete(this, tr::lng_selected_delete(), st::defaultActiveButton)
-, _back(this, st::historyTopBarBack)
-, _cancelChoose(this, st::topBarCloseChoose)
-, _call(this, st::topBarCall)
-, _groupCall(this, st::topBarGroupCall)
-, _search(this, st::topBarSearch)
-, _infoToggle(this, st::topBarInfo)
-, _menuToggle(this, st::topBarMenuToggle)
+, _clear(this, tr::lng_selected_clear(), st::ktgTopBarClearButton)
+, _forward(this, tr::lng_selected_forward(), st::ktgTopBarActiveButton)
+, _sendNow(this, tr::lng_selected_send_now(), st::ktgTopBarActiveButton)
+, _delete(this, tr::lng_selected_delete(), st::ktgTopBarActiveButton)
+, _back(this, st::ktgHistoryTopBarBack)
+, _cancelChoose(this, st::ktgTopBarCloseChoose)
+, _call(this, st::ktgTopBarCall)
+, _groupCall(this, st::ktgTopBarGroupCall)
+, _search(this, st::ktgTopBarSearch)
+, _infoToggle(this, st::ktgTopBarInfo)
+, _menuToggle(this, st::ktgTopBarMenuToggle)
 , _titlePeerText(st::windowMinWidth / 3)
 , _onlineUpdater([=] { updateOnlineDisplay(); }) {
 	setAttribute(Qt::WA_OpaquePaintEvent);
@@ -286,7 +286,7 @@ void TopBarWidget::updateConnectingState() {
 	} else if (!_connecting) {
 		_connecting = std::make_unique<Ui::InfiniteRadialAnimation>(
 			[=] { connectingAnimationCallback(); },
-			st::topBarConnectingAnimation);
+			st::ktgTopBarConnectingAnimation);
 		_connecting->start();
 		update();
 	}
@@ -525,7 +525,7 @@ void TopBarWidget::paintEvent(QPaintEvent *e) {
 		: -st::topBarHeight;
 	const auto slidingTop = std::max(selectedButtonsTop, searchFieldTop);
 
-	p.fillRect(QRect(0, 0, width(), st::topBarHeight), st::topBarBg);
+	p.fillRect(QRect(0, 0, width(), st::topBarHeight), st::ktgTopBarBg);
 	if (slidingTop < 0) {
 		p.translate(0, slidingTop + st::topBarHeight);
 		paintTopBar(p);
@@ -548,12 +548,12 @@ void TopBarWidget::paintTopBar(Painter &p) {
 
 	if (_chooseForReportReason) {
 		const auto text = _chooseForReportReason->optionText;
-		p.setPen(st::dialogsNameFg);
+		p.setPen(st::ktgTopBarNameFg);
 		p.setFont(st::semiboldFont);
 		p.drawTextLeft(nameleft, nametop, width(), text);
 
 		p.setFont(st::dialogsTextFont);
-		p.setPen(st::historyStatusFg);
+		p.setPen(st::ktgTopBarStatusFg);
 		p.drawTextLeft(
 			nameleft,
 			statustop,
@@ -570,7 +570,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 	const auto topic = _activeChat.key.topic();
 	const auto namePeer = titleNamePeer();
 	if (topic && _activeChat.section == Section::Replies) {
-		p.setPen(st::dialogsNameFg);
+		p.setPen(st::ktgTopBarNameFg);
 		topic->chatListNameText().drawElided(
 			p,
 			nameleft,
@@ -585,9 +585,9 @@ void TopBarWidget::paintTopBar(Painter &p) {
 				statustop,
 				namewidth,
 				width(),
-				st::historyStatusFgTyping,
+				st::ktgTopBarStatusFgActive,
 				now)) {
-			p.setPen(st::historyStatusFg);
+			p.setPen(st::ktgTopBarStatusFg);
 			p.drawTextLeft(nameleft, statustop, width(), _customTitleText);
 		}
 	} else if (folder
@@ -619,7 +619,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 				text = st::historySavedFont->elided(text, namewidth);
 			}
 			p.setOpacity(opacity);
-			p.setPen(st::dialogsNameFg);
+			p.setPen(st::ktgTopBarNameFg);
 			p.setFont(st::historySavedFont);
 			p.drawTextLeft(
 				nameleft,
@@ -641,14 +641,13 @@ void TopBarWidget::paintTopBar(Painter &p) {
 			: titlePeer
 			? TopBarNameText(titlePeer, _activeChat)
 			: QString();
-		p.setPen(st::dialogsNameFg);
+		p.setPen(st::ktgTopBarNameFg);
 		p.setFont(st::semiboldFont);
 		p.drawTextLeft(
 			nameleft,
 			nametop,
 			width(),
 			st::semiboldFont->elided(title, namewidth));
-
 		p.setFont(st::dialogsTextFont);
 		if (!paintConnectingState(p, statusleft, statustop, width())
 			&& (_activeChat.section != Section::Replies
@@ -658,7 +657,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 					statustop,
 					statuswidth,
 					width(),
-					st::historyStatusFgTyping,
+					st::ktgTopBarStatusFgActive,
 					now))) {
 			paintStatus(p, statusleft, statustop, statuswidth, width());
 		}
@@ -705,7 +704,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 		});
 		namewidth -= badgeWidth;
 
-		p.setPen(st::dialogsNameFg);
+		p.setPen(st::ktgTopBarNameFg);
 		_title.draw(p, {
 			.position = { nameleft, nametop },
 			.availableWidth = namewidth,
@@ -720,7 +719,7 @@ void TopBarWidget::paintTopBar(Painter &p) {
 				statustop,
 				statuswidth,
 				width(),
-				st::historyStatusFgTyping,
+				st::ktgTopBarStatusFgActive,
 				now)) {
 			paintStatus(p, statusleft, statustop, statuswidth, width());
 		}
@@ -792,7 +791,7 @@ bool TopBarWidget::paintConnectingState(
 	left += st::topBarConnectingPosition.x()
 		+ st::topBarConnectingAnimation.size.width()
 		+ st::topBarConnectingSkip;
-	p.setPen(st::historyStatusFg);
+	p.setPen(st::ktgTopBarStatusFg);
 	p.drawTextLeft(left, top, outerWidth, tr::lng_status_connecting(tr::now));
 	return true;
 }
@@ -818,7 +817,7 @@ void TopBarWidget::paintStatus(
 			: (section == Section::WelcomeMessages)
 			? tr::lng_welcome_messages_title(tr::now)
 			: _customTitleText;
-		p.setPen(st::historyStatusFg);
+		p.setPen(st::ktgTopBarStatusFg);
 		p.drawTextLeft(
 			left,
 			top,
@@ -826,8 +825,8 @@ void TopBarWidget::paintStatus(
 			st::dialogsTextFont->elided(text, availableWidth));
 	} else {
 		p.setPen(_titlePeerTextOnline
-			? st::historyStatusFgActive
-			: st::historyStatusFg);
+			? st::ktgTopBarStatusFgActive
+			: st::ktgTopBarStatusFg);
 		_titlePeerText.drawLeftElided(
 			p,
 			left,
@@ -1178,7 +1177,7 @@ void TopBarWidget::updateControlsGeometry() {
 
 	auto widthLeft = std::min(
 		width() - buttonsWidth,
-		-2 * st::defaultActiveButton.width);
+		-2 * st::ktgTopBarActiveButton.width);
 	auto buttonFullWidth = std::min(-(widthLeft / 2), 0);
 	_forward->setFullWidth(buttonFullWidth);
 	_sendNow->setFullWidth(buttonFullWidth);
@@ -1199,7 +1198,7 @@ void TopBarWidget::updateControlsGeometry() {
 	_delete->moveToLeft(buttonsLeft, selectedButtonsTop);
 	{
 		const auto large = st::topBarActionButtonLargeRadius;
-		const auto &buttonSt = st::defaultActiveButton;
+		const auto &buttonSt = st::ktgTopBarActiveButton;
 		const auto small = buttonSt.radius
 			? buttonSt.radius
 			: st::buttonRadius;
@@ -1857,10 +1856,10 @@ void TopBarWidget::updateInfoToggleActive() {
 		&& (Core::App().settings().thirdSectionInfoEnabled()
 			|| Core::App().settings().tabbedReplacedWithInfo());
 	auto iconOverride = infoThirdActive
-		? &st::topBarInfoActive
+		? &st::ktgTopBarInfoActive
 		: nullptr;
 	auto rippleOverride = infoThirdActive
-		? &st::lightButtonBgOver
+		? &st::ktgTopBarIconBgActiveRipple
 		: nullptr;
 	_infoToggle->setIconOverride(iconOverride, iconOverride);
 	_infoToggle->setRippleColorOverride(rippleOverride);

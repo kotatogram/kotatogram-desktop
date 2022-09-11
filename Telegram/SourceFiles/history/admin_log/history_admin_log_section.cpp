@@ -112,7 +112,7 @@ FixedBar::FixedBar(
 , _channel(channel)
 , _field(this, st::defaultMultiSelectSearchField, tr::lng_dlg_filter())
 , _backButton(this)
-, _search(this, st::topBarSearch)
+, _search(this, st::ktgTopBarSearch)
 , _cancel(this, st::historyAdminLogCancelSearch) {
 	_backButton->moveToLeft(0, 0);
 	_backButton->setClickedCallback([=] { goBack(); });
@@ -179,10 +179,10 @@ void FixedBar::searchAnimationCallback() {
 	if (!_searchShownAnimation.animating()) {
 		_field->setVisible(_searchShown);
 		_search->setIconOverride(
-			_searchShown ? &st::topBarSearch.icon : nullptr,
-			_searchShown ? &st::topBarSearch.icon : nullptr);
+			_searchShown ? &st::ktgTopBarSearch.icon : nullptr,
+			_searchShown ? &st::ktgTopBarSearch.icon : nullptr);
 		_search->setRippleColorOverride(
-			_searchShown ? &st::topBarBg : nullptr);
+			_searchShown ? &st::ktgTopBarBg : nullptr);
 		_search->setCursor(
 			_searchShown ? style::cur_default : style::cur_pointer);
 		_backButton->setOpacity(1.);
@@ -272,7 +272,7 @@ void FixedBar::setAnimatingMode(bool enabled) {
 void FixedBar::paintEvent(QPaintEvent *e) {
 	if (!_animatingMode) {
 		auto p = QPainter(this);
-		p.fillRect(e->rect(), st::topBarBg);
+		p.fillRect(e->rect(), st::ktgTopBarBg);
 	}
 }
 

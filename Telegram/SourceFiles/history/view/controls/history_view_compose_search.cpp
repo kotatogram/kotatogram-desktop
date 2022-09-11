@@ -363,7 +363,7 @@ TopBar::TopBar(
 	PeerData *from,
 	const QString &query)
 : Ui::RpWidget(parent)
-, _cancel(base::make_unique_q<Ui::IconButton>(this, st::historyTopBarBack))
+, _cancel(base::make_unique_q<Ui::IconButton>(this, st::ktgHistoryTopBarBack))
 , _searchTagsSelected(Data::SearchTagsFromQuery(query))
 , _select(base::make_unique_q<Ui::MultiSelect>(
 	this,
@@ -399,7 +399,7 @@ TopBar::TopBar(
 	paintRequest(
 	) | rpl::on_next([=](const QRect &r) {
 		auto p = QPainter(this);
-		p.fillRect(r, st::dialogsBg);
+		p.fillRect(r, st::ktgTopBarBg);
 	}, lifetime());
 
 	_select->setQueryChangedCallback([=](const QString &) {

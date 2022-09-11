@@ -1340,3 +1340,100 @@ memberTagPillPadding: margins(5px, -1px, 5px, 0px);
 
 infoSecurityRiskIconSize: 16px;
 infoSecurityRiskIconMargin: margins(0px, 2px, 0px, 0px);
+
+ktgHistoryTopBarBack: IconButton(historyTopBarBack) {
+	icon: icon {{ "info/info_back", ktgTopBarBackIconFg }};
+	iconOver: icon {{ "info/info_back", ktgTopBarBackIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarBackIconBgRipple;
+	}
+}
+
+ktgTopBarCall: IconButton(topBarCall) {
+	icon: icon {{ "top_bar_call", ktgTopBarIconFg }};
+	iconOver: icon {{ "top_bar_call", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarSearch: IconButton(topBarSearch) {
+	icon: icon {{ "top_bar_search", ktgTopBarIconFg }};
+	iconOver: icon {{ "top_bar_search", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarInfo: IconButton(topBarInfo) {
+	icon: icon {{ "top_bar_profile", ktgTopBarIconFg }};
+	iconOver: icon {{ "top_bar_profile", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarInfoActive: icon {{ "top_bar_profile", ktgTopBarIconFgActive }};
+
+ktgTopBarMenuToggle: IconButton(topBarMenuToggle) {
+	icon: icon {{ "title_menu_dots", ktgTopBarIconFg }};
+	iconOver: icon {{ "title_menu_dots", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarActiveButton: RoundButton(defaultActiveButton) {
+	textFg: ktgTopBarActiveButtonFg;
+	textFgOver: ktgTopBarActiveButtonFgOver;
+	numbersTextFg: ktgTopBarActiveButtonSecondaryFg;
+	numbersTextFgOver: ktgTopBarActiveButtonSecondaryFgOver;
+	textBg: ktgTopBarActiveButtonBg;
+	textBgOver: ktgTopBarActiveButtonBgOver;
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarActiveButtonBgRipple;
+	}
+}
+
+ktgTopBarClearButton: RoundButton(topBarClearButton) {
+	textFg: ktgTopBarClearButtonFg;
+	textFgOver: ktgTopBarClearButtonFgOver;
+	numbersTextFg: ktgTopBarClearButtonFg;
+	numbersTextFgOver: ktgTopBarClearButtonFgOver;
+	textBg: ktgTopBarClearButtonBg;
+	textBgOver: ktgTopBarClearButtonBgOver;
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarClearButtonBgRipple;
+	}
+}
+
+ktgTopBarCloseChoose: IconButton(topBarCloseChoose) {
+	icon: icon {{ "info/info_close", ktgTopBarBackIconFg }};
+	iconOver: icon {{ "info/info_close", ktgTopBarBackIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarBackIconBgRipple;
+	}
+}
+
+ktgTopBarGroupCall: IconButton(topBarGroupCall) {
+	icon: icon {{ "top_bar_group_call", ktgTopBarIconFg }};
+	iconOver: icon {{ "top_bar_group_call", ktgTopBarIconFgOver }};
+
+	ripple: RippleAnimation(defaultRippleAnimation) {
+		color: ktgTopBarIconBgRipple;
+	}
+}
+
+ktgTopBarConnectingAnimation: InfiniteRadialAnimation(topBarConnectingAnimation) {
+	color: ktgTopBarStatusFg;
+}
+
+ktgTopBarBack: icon {{ "title_back", ktgTopBarBackIconFg }};

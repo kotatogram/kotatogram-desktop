@@ -337,7 +337,7 @@ void Item::setupTop() {
 	});
 	_top->paintRequest() | rpl::on_next([=](QRect clip) {
 		auto p = QPainter(_top.get());
-		p.fillRect(clip, st::topBarBg);
+		p.fillRect(clip, st::ktgTopBarBg);
 	}, _top->lifetime());
 
 	const auto topic = _thread->asTopic();
@@ -350,7 +350,7 @@ void Item::setupTop() {
 	const auto name = Ui::CreateChild<Ui::FlatLabel>(
 		_top.get(),
 		rpl::duplicate(nameValue),
-		st::previewName);
+		st::ktgPreviewName);
 	name->setAttribute(Qt::WA_TransparentForMouseEvents);
 	auto statusFields = StatusValue(
 		_thread->peer()
@@ -367,13 +367,13 @@ void Item::setupTop() {
 			(topic
 				? Info::Profile::NameValue(topic->peer())
 				: std::move(statusText)),
-			st::previewStatus);
+			st::ktgPreviewStatus);
 	if (status) {
 		std::move(
 			statusFields
 		) | rpl::on_next([=](const StatusFields &fields) {
 			status->setTextColorOverride(fields.active
-				? st::windowActiveTextFg->c
+				? st::ktgTopBarStatusFgActive->c
 				: std::optional<QColor>());
 		}, status->lifetime());
 		status->setAttribute(Qt::WA_TransparentForMouseEvents);

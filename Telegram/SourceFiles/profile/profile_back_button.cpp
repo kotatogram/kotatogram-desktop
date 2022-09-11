@@ -86,8 +86,8 @@ void BackButton::paintEvent(QPaintEvent *e) {
 
 	auto p = QPainter(this);
 
-	p.fillRect(e->rect(), st::profileBg);
-	st::topBarBack.paint(
+	p.fillRect(e->rect(), st::ktgTopBarBg);
+	st::ktgTopBarBack.paint(
 		p,
 		st::historyAdminLogTopBarLeft,
 		(st::topBarHeight - st::topBarBack.height()) / 2,
@@ -111,7 +111,7 @@ void BackButton::paintEvent(QPaintEvent *e) {
 		.availableWidth = _elisionWidth,
 		.elisionLines = 1,
 	};
-	p.setPen(st::dialogsNameFg);
+	p.setPen(st::ktgTopBarNameFg);
 	_text.draw(p, context);
 
 	if (!_subtext.isEmpty()) {
@@ -121,7 +121,7 @@ void BackButton::paintEvent(QPaintEvent *e) {
 			.availableWidth = _elisionWidth,
 			.elisionLines = 1,
 		};
-		p.setPen(st::historyStatusFg);
+		p.setPen(st::ktgTopBarStatusFg);
 		_subtext.draw(p, subtextContext);
 	}
 }
