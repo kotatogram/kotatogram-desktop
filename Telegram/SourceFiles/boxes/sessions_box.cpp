@@ -118,7 +118,7 @@ void RenameBox(not_null<Ui::GenericBox*> box) {
 		object_ptr<Ui::InputField>(
 			box,
 			st::settingsDeviceName,
-			rpl::single(Platform::DeviceModelPretty()),
+			rpl::single(QSysInfo::machineHostName()),
 			Core::App().settings().customDeviceModel()),
 		st::boxRowPadding - style::margins(
 			st::settingsDeviceName.textMargins.left(),

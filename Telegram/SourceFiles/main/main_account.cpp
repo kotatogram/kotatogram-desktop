@@ -419,8 +419,8 @@ void Account::startMtp(std::unique_ptr<MTP::Config> config) {
 
 	auto fields = base::take(_mtpFields);
 	fields.config = std::move(config);
-	fields.deviceModel = Platform::DeviceModelPretty();
-	fields.systemVersion = Platform::SystemVersionPretty();
+	fields.deviceModel = QSysInfo::machineHostName();
+	fields.systemVersion = QSysInfo::prettyProductName();
 	_mtp = std::make_unique<MTP::Instance>(
 		MTP::Instance::Mode::Normal,
 		std::move(fields));
@@ -565,8 +565,8 @@ void Account::destroyMtpKeys(MTP::AuthKeysList &&keys) {
 	destroyFields.mainDcId = MTP::Instance::Fields::kNoneMainDc;
 	destroyFields.config = std::make_unique<MTP::Config>(_mtp->config());
 	destroyFields.keys = std::move(keys);
-	destroyFields.deviceModel = Platform::DeviceModelPretty();
-	destroyFields.systemVersion = Platform::SystemVersionPretty();
+	destroyFields.deviceModel = QSysInfo::machineHostName();
+	destroyFields.systemVersion = QSysInfo::prettyProductName();
 	_mtpForKeysDestroy = std::make_unique<MTP::Instance>(
 		MTP::Instance::Mode::KeysDestroyer,
 		std::move(destroyFields));
