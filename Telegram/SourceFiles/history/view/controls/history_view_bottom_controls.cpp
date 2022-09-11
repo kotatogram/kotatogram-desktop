@@ -28,13 +28,97 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "ui/painter.h"
 #include "ui/ui_utility.h"
+#include "ui/unread_badge.h"
 #include "ui/widgets/buttons.h"
+#include "ui/widgets/labels.h"
 #include "window/section_widget.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
 namespace HistoryView {
+
+void SetupDiscussButton(
+		not_null<Ui::FlatButton*> button,
+		rpl::producer<ChannelData*> channel) {
+	const auto label = Ui::CreateChild<Ui::FlatLabel>(
+		button.get(),
+		tr::lng_channel_discuss() | rpl::map(tr::upper),
+		st::historyComposeButtonLabel);
+	const auto badge = Ui::CreateChild<Ui::UnreadBadge>(button.get());
+	label->show();
+
+	std::move(
+		channel
+	) | rpl::map([=](ChannelData *channel) -> rpl::producer<ChannelData*> {
+		if (channel && channel->isBroadcast()) {
+			return channel->session().changes().peerFlagsValue(
+				channel,
+				Data::PeerUpdate::Flag::DiscussionLink
+			) | rpl::map([=] {
+				return channel->discussionLink();
+			});
+		}
+		return rpl::single<ChannelData*>(nullptr);
+	}) | rpl::flatten_latest(
+	) | rpl::distinct_until_changed(
+	) | rpl::map([=](ChannelData *chat)
+	-> rpl::producer<std::tuple<int, bool>> {
+		if (chat) {
+			using UpdateFlag = Data::PeerUpdate::Flag;
+			return rpl::merge(
+				chat->session().changes().historyUpdates(
+					Data::HistoryUpdate::Flag::UnreadView
+				) | rpl::filter([=](const Data::HistoryUpdate &update) {
+					return (update.history->peer == chat);
+				}) | rpl::to_empty,
+
+				chat->session().changes().peerFlagsValue(
+					chat,
+					UpdateFlag::Notifications | UpdateFlag::ChannelAmIn
+				) | rpl::to_empty
+			) | rpl::map([=] {
+				const auto history = chat->amIn()
+					? chat->owner().historyLoaded(chat)
+					: nullptr;
+				return history
+					? std::make_tuple(
+						history->chatListBadgesState().unreadCounter,
+						!history->chatListBadgesState().unreadMuted)
+					: std::make_tuple(0, false);
+			});
+		} else {
+			return rpl::single(std::make_tuple(0, false));
+		}
+	}) | rpl::flatten_latest(
+	) | rpl::distinct_until_changed(
+	) | rpl::on_next([=](int count, bool active) {
+		badge->setText(QString::number(count), active);
+		badge->setVisible(count > 0);
+	}, badge->lifetime());
+
+	rpl::combine(
+		badge->shownValue(),
+		badge->widthValue(),
+		label->widthValue(),
+		button->widthValue()
+	) | rpl::on_next([=](
+			bool badgeShown,
+			int badgeWidth,
+			int labelWidth,
+			int width) {
+		const auto textTop = st::historyComposeButton.textTop;
+		const auto add = badgeShown
+			? (textTop + badgeWidth)
+			: 0;
+		const auto total = labelWidth + add;
+		label->moveToLeft((width - total) / 2, textTop, width);
+		badge->moveToRight((width - total) / 2, textTop, width);
+	}, button->lifetime());
+
+	label->setAttribute(Qt::WA_TransparentForMouseEvents);
+	badge->setAttribute(Qt::WA_TransparentForMouseEvents);
+}
 
 BottomControls::BottomControls(
 	QWidget *parent,
@@ -153,6 +237,17 @@ void BottomControls::updateControlsVisibility() {
 		toggleOne(_muteUnmute.get());
 		toggleOne(_botStart.get());
 		toggleOne(_unblock.get());
+		if (_discuss) {
+			const auto discuss = hasDiscussionGroup()
+				&& (shown == _joinChannel.get()
+					|| shown == _muteUnmute.get());
+			if (!discuss) {
+				_discuss->hide();
+			} else if (_discuss->isHidden()) {
+				_discuss->clearState();
+				_discuss->show();
+			}
+		}
 	};
 	const auto active = isButtonActive();
 	if (active) {
@@ -262,6 +357,22 @@ void BottomControls::setupButtons() {
 		_muteUnmute->setClickedCallback([=] {
 			_actionRequests.fire(BottomControlsAction::MuteUnmute);
 		});
+		_discuss = std::make_unique<Ui::FlatButton>(
+			this,
+			QString(),
+			st::historyComposeButton);
+		_discuss->hide();
+		SetupDiscussButton(
+			_discuss.get(),
+			rpl::single(_peer ? _peer->asChannel() : nullptr));
+		_discuss->setClickedCallback([=] {
+			const auto channel = _peer ? _peer->asChannel() : nullptr;
+			if (const auto chat = channel ? channel->discussionLink() : nullptr) {
+				_controller->showPeerHistory(
+					chat,
+					Window::SectionShow::Way::Forward);
+			}
+		});
 		_reportMessages->setClickedCallback([=] {
 			_actionRequests.fire(BottomControlsAction::Report);
 		});
@@ -327,11 +438,15 @@ void BottomControls::setupOverlayIconButton(
 		not_null<Ui::IconButton*> button,
 		bool alignRight,
 		Fn<void()> refresh) {
-	widthValue() | rpl::on_next([=](int width) {
+	// The parent is half-width next to the discussion group button.
+	rpl::merge(
+		_muteUnmute->widthValue(),
+		_joinChannel->widthValue()
+	) | rpl::on_next([=] {
 		if (alignRight) {
-			button->moveToRight(0, 0, width);
+			button->moveToRight(0, 0);
 		} else {
-			button->moveToLeft(0, 0, width);
+			button->moveToLeft(0, 0);
 		}
 	}, button->lifetime());
 	rpl::combine(
@@ -424,6 +539,17 @@ void BottomControls::setupPeerUpdates() {
 		refreshMuteUnmuteText();
 		updateControlsVisibility();
 	}, lifetime());
+
+	if (_discuss) {
+		_peer->session().changes().peerUpdates(
+			_peer,
+			Data::PeerUpdate::Flag::DiscussionLink
+				| Data::PeerUpdate::Flag::FullInfo
+		) | rpl::on_next([=] {
+			updateControlsVisibility();
+			updateButtonsGeometry();
+		}, lifetime());
+	}
 }
 
 void BottomControls::refreshJoinChannelText() {
@@ -581,8 +707,19 @@ bool BottomControls::isChoosingTheme() const {
 	return false;
 }
 
+bool BottomControls::hasDiscussionGroup() const {
+	const auto channel = _peer ? _peer->asChannel() : nullptr;
+	return channel
+		&& channel->isBroadcast()
+		&& (channel->flags() & ChannelDataFlag::HasLink);
+}
+
 void BottomControls::resizeEvent(QResizeEvent *e) {
 	RpWidget::resizeEvent(e);
+	updateButtonsGeometry();
+}
+
+void BottomControls::updateButtonsGeometry() {
 	const auto w = width();
 	if (_openChatButton) {
 		_openChatButton->setGeometry(0, 0, w, _openChatButton->height());
@@ -593,6 +730,11 @@ void BottomControls::resizeEvent(QResizeEvent *e) {
 		return;
 	}
 	const auto fullRect = QRect(0, 0, w, st::historyComposeButton.height);
+	// Join / mute share the row with the discussion group button.
+	const auto half = w / 2;
+	const auto joinOrMuteRect = (_discuss && hasDiscussionGroup())
+		? myrtlrect(0, 0, half, fullRect.height())
+		: fullRect;
 	if (_botStart) {
 		_botStart->setGeometry(fullRect);
 	}
@@ -600,13 +742,17 @@ void BottomControls::resizeEvent(QResizeEvent *e) {
 		_unblock->setGeometry(fullRect);
 	}
 	if (_joinChannel) {
-		_joinChannel->setGeometry(fullRect);
+		_joinChannel->setGeometry(joinOrMuteRect);
 	}
 	if (_joinGroup) {
 		_joinGroup->setGeometry(fullRect);
 	}
 	if (_muteUnmute) {
-		_muteUnmute->setGeometry(fullRect);
+		_muteUnmute->setGeometry(joinOrMuteRect);
+	}
+	if (_discuss) {
+		_discuss->setGeometry(
+			myrtlrect(half, 0, w - half, fullRect.height()));
 	}
 	if (_reportMessages) {
 		_reportMessages->setGeometry(fullRect);

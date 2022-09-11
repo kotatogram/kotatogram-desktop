@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 class History;
 class PeerData;
+class ChannelData;
 
 namespace Data {
 class ForumTopic;
@@ -53,6 +54,12 @@ struct BottomControlsDescriptor {
 	Data::SavedSublist *sublist = nullptr;
 	BottomControlsMode mode = BottomControlsMode::History;
 };
+
+// Label and discussion group unread badge for the "Discuss" button
+// under a broadcast channel.
+void SetupDiscussButton(
+	not_null<Ui::FlatButton*> button,
+	rpl::producer<ChannelData*> channel);
 
 class BottomControls final : public Ui::RpWidget {
 public:
@@ -108,8 +115,10 @@ private:
 	[[nodiscard]] bool isMuteUnmute() const;
 	[[nodiscard]] bool isReportMessages() const;
 	[[nodiscard]] bool isChoosingTheme() const;
+	[[nodiscard]] bool hasDiscussionGroup() const;
 
 	void resizeEvent(QResizeEvent *e) override;
+	void updateButtonsGeometry();
 
 	Window::SessionController * const _controller = nullptr;
 	History * const _history = nullptr;
@@ -124,6 +133,7 @@ private:
 	std::unique_ptr<Ui::FlatButton> _joinChannel;
 	std::unique_ptr<Ui::FlatButton> _joinGroup;
 	std::unique_ptr<Ui::FlatButton> _muteUnmute;
+	std::unique_ptr<Ui::FlatButton> _discuss;
 	std::unique_ptr<Ui::FlatButton> _reportMessages;
 	QPointer<Ui::IconButton> _giftToChannel;
 	QPointer<Ui::IconButton> _directMessage;

@@ -113,6 +113,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_view_pull_to_next_channel.h"
 #include "history/admin_log/history_admin_log_section.h"
 #include "history/view/controls/compose_controls_common.h"
+#include "history/view/controls/history_view_bottom_controls.h" // SetupDiscussButton
 #include "history/view/controls/history_view_characters_limit.h"
 #include "history/view/controls/history_view_compose_ai_button.h"
 #include "history/view/controls/history_view_compose_ai_tooltip.h"
@@ -317,6 +318,7 @@ HistoryWidget::HistoryWidget(
 	this,
 	tr::lng_channel_mute(tr::now).toUpper(),
 	st::historyComposeButton)
+, _discuss(this, QString(), st::historyComposeButton)
 , _reportMessages(this, QString(), st::historyComposeButton)
 , _attachToggle(this, st::historyAttach)
 , _tabbedSelectorToggle(this, st::historyAttachEmoji)
@@ -460,6 +462,12 @@ HistoryWidget::HistoryWidget(
 	_muteUnmute->addClickHandler([=] { toggleMuteUnmute(); });
 	setupGiftToChannelButton();
 	setupDirectMessageButton();
+	HistoryView::SetupDiscussButton(
+		_discuss.data(),
+		ActivePeerValue(controller) | rpl::map([](PeerData *peer) {
+			return peer ? peer->asChannel() : nullptr;
+		}));
+	_discuss->addClickHandler([=] { goToDiscussionGroup(); });
 	_reportMessages->addClickHandler([=] { reportSelectedMessages(); });
 	_field->submits(
 	) | rpl::on_next([=](Qt::KeyboardModifiers modifiers) {
@@ -651,6 +659,7 @@ HistoryWidget::HistoryWidget(
 	_botStart->hide();
 	_joinChannel->hide();
 	_muteUnmute->hide();
+	_discuss->hide();
 	_reportMessages->hide();
 
 	initVoiceRecordBar();
@@ -2823,8 +2832,12 @@ void HistoryWidget::setupGiftToChannelButton() {
 		_muteUnmute.data(),
 		st::historyGiftToChannel);
 	_giftToChannel->setAccessibleName(tr::lng_gift_channel_title(tr::now));
-	widthValue() | rpl::on_next([=](int width) {
-		_giftToChannel->moveToRight(0, 0, width);
+	// The parent is half-width next to the discussion group button.
+	rpl::merge(
+		_muteUnmute->widthValue(),
+		_joinChannel->widthValue()
+	) | rpl::on_next([=] {
+		_giftToChannel->moveToRight(0, 0);
 	}, _giftToChannel->lifetime());
 	_giftToChannel->setClickedCallback([=] {
 		Ui::ShowStarGiftBox(controller(), _peer);
@@ -2851,8 +2864,11 @@ void HistoryWidget::setupDirectMessageButton() {
 		_muteUnmute.data(),
 		st::historyDirectMessage);
 		_directMessage->setAccessibleName(tr::lng_profile_direct_messages(tr::now));
-	widthValue() | rpl::on_next([=](int width) {
-		_directMessage->moveToLeft(0, 0, width);
+	rpl::merge(
+		_muteUnmute->widthValue(),
+		_joinChannel->widthValue()
+	) | rpl::on_next([=] {
+		_directMessage->moveToLeft(0, 0);
 	}, _directMessage->lifetime());
 	_directMessage->setClickedCallback([=] {
 		if (const auto channel = _peer ? _peer->asChannel() : nullptr) {
@@ -4195,6 +4211,15 @@ void HistoryWidget::updateControlsVisibility() {
 			toggleOne(_muteUnmute);
 			toggleOne(_botStart);
 			toggleOne(_unblock);
+			const auto discuss = hasDiscussionGroup()
+				&& (shown == _joinChannel.data()
+					|| shown == _muteUnmute.data());
+			if (!discuss) {
+				_discuss->hide();
+			} else if (_discuss->isHidden()) {
+				_discuss->clearState();
+				_discuss->show();
+			}
 		};
 		if (isChoosingTheme()) {
 			_chooseTheme->show();
@@ -4272,6 +4297,7 @@ void HistoryWidget::updateControlsVisibility() {
 		_botStart->hide();
 		_joinChannel->hide();
 		_muteUnmute->hide();
+		_discuss->hide();
 		_reportMessages->hide();
 		_send->show();
 		updateSendButtonType();
@@ -4412,6 +4438,7 @@ void HistoryWidget::updateControlsVisibility() {
 		_botStart->hide();
 		_joinChannel->hide();
 		_muteUnmute->hide();
+		_discuss->hide();
 		_reportMessages->hide();
 		_attachToggle->hide();
 		if (_silent) {
@@ -6103,6 +6130,22 @@ void HistoryWidget::toggleMuteUnmute() {
 	session().data().notifySettings().update(_peer, muteForSeconds);
 }
 
+void HistoryWidget::goToDiscussionGroup() {
+	const auto channel = _peer ? _peer->asChannel() : nullptr;
+	const auto chat = channel ? channel->discussionLink() : nullptr;
+	if (!chat) {
+		return;
+	}
+	controller()->showPeerHistory(chat, Window::SectionShow::Way::Forward);
+}
+
+bool HistoryWidget::hasDiscussionGroup() const {
+	const auto channel = _peer ? _peer->asChannel() : nullptr;
+	return channel
+		&& channel->isBroadcast()
+		&& (channel->flags() & ChannelDataFlag::HasLink);
+}
+
 void HistoryWidget::reportSelectedMessages() {
 	if (!_list || !_chooseForReport || !_list->getSelectionState().count) {
 		return;
@@ -7485,7 +7528,7 @@ void HistoryWidget::moveFieldControls() {
 
 // (_botMenu.button) (_attachToggle|_replaceMedia) (_sendAs) ---- _inlineResults ------------------------------ _tabbedPanel ------ _fieldBarCancel
 // (_attachDocument|_attachPhoto) _field (_ttlInfo) (_scheduled) (_giftToUser) (_silent|_cmdStart|_kbShow) (_toggleSuggestPost) (_kbHide|_tabbedSelectorToggle) _send
-// (_botStart|_unblock|_joinChannel|_muteUnmute|_reportMessages)
+// (_botStart|_unblock|_joinChannel|_muteUnmute&_discuss|_reportMessages)
 
 	auto buttonsBottom = bottom - _attachToggle->height();
 	auto left = st::historySendRight;
@@ -7568,8 +7611,22 @@ void HistoryWidget::moveFieldControls() {
 		_botStart->height());
 	_botStart->setGeometry(fullWidthButtonRect);
 	_unblock->setGeometry(fullWidthButtonRect);
-	_joinChannel->setGeometry(fullWidthButtonRect);
-	_muteUnmute->setGeometry(fullWidthButtonRect);
+	// Join / mute share the row with the discussion group button.
+	const auto half = width() / 2;
+	const auto joinOrMuteRect = hasDiscussionGroup()
+		? myrtlrect(
+			0,
+			fullWidthButtonRect.y(),
+			half,
+			fullWidthButtonRect.height())
+		: fullWidthButtonRect;
+	_joinChannel->setGeometry(joinOrMuteRect);
+	_muteUnmute->setGeometry(joinOrMuteRect);
+	_discuss->setGeometry(myrtlrect(
+		half,
+		fullWidthButtonRect.y(),
+		width() - half,
+		fullWidthButtonRect.height()));
 	_reportMessages->setGeometry(fullWidthButtonRect);
 	if (_sendRestriction) {
 		_sendRestriction->setGeometry(fullWidthButtonRect);
@@ -8101,6 +8158,7 @@ void HistoryWidget::handleHistoryChange(not_null<const History*> history) {
 			const auto botStart = isBotStart();
 			const auto joinChannel = isJoinChannel();
 			const auto muteUnmute = isMuteUnmute();
+			const auto discuss = (muteUnmute || joinChannel) && hasDiscussionGroup();
 			const auto reportMessages = isReportMessages();
 			const auto update = false
 				|| (_reportMessages->isHidden() == reportMessages)
@@ -8111,7 +8169,8 @@ void HistoryWidget::handleHistoryChange(not_null<const History*> history) {
 				|| (!reportMessages
 					&& !unblock
 					&& !botStart
-					&& _joinChannel->isHidden() == joinChannel)
+					&& (_joinChannel->isHidden() == joinChannel
+						|| _discuss->isHidden() == discuss))
 				|| (!reportMessages
 					&& !unblock
 					&& !botStart
@@ -10815,9 +10874,12 @@ void HistoryWidget::handlePeerUpdate() {
 	}
 	if (!_showAnimation) {
 		const auto blockChanged = (_unblock->isHidden() == isBlocked());
+		const auto discussChanged = (isJoinChannel() || isMuteUnmute())
+			&& (_discuss->isHidden() == hasDiscussionGroup());
 		if (blockChanged
 			|| (!isBlocked()
-				&& (_joinChannel->isHidden() == isJoinChannel()))) {
+				&& (_joinChannel->isHidden() == isJoinChannel()))
+			|| discussChanged) {
 			resize = true;
 		}
 		if (updateCanSendMessage()) {
