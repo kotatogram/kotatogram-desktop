@@ -2052,26 +2052,34 @@ void SessionController::setupShortcuts() {
 
 		const auto app = &Core::App();
 		const auto accountsCount = int(app->domain().accounts().size());
+		const auto showAccount = [=](int index) {
+			const auto list = app->domain().orderedAccounts();
+			if (index >= list.size()) {
+				return false;
+			}
+			const auto account = list[index];
+			if (account == &session().account()) {
+				return false;
+			}
+			const auto window = app->separateWindowFor(account);
+			if (window) {
+				window->activate();
+			} else {
+				app->domain().maybeActivate(account);
+			}
+			return true;
+		};
 		auto &&accounts = ranges::views::zip(
 			kShowAccount,
 			ranges::views::ints(0, accountsCount));
 		for (const auto &[command, index] : accounts) {
 			request->check(command) && request->handle([=] {
-				const auto list = app->domain().orderedAccounts();
-				if (index >= list.size()) {
-					return false;
-				}
-				const auto account = list[index];
-				if (account == &session().account()) {
-					return false;
-				}
-				const auto window = app->separateWindowFor(account);
-				if (window) {
-					window->activate();
-				} else {
-					app->domain().maybeActivate(account);
-				}
-				return true;
+				return showAccount(index);
+			});
+		}
+		if (accountsCount > 0) {
+			request->check(C::ShowAccountLast) && request->handle([=] {
+				return showAccount(accountsCount - 1);
 			});
 		}
 

@@ -155,6 +155,11 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ qsl("pinned_3")          , Command::ChatPinned3 },
 	{ qsl("pinned_4")          , Command::ChatPinned4 },
 	{ qsl("pinned_5")          , Command::ChatPinned5 },
+
+	{ qsl("account7")          , Command::ShowAccount7 },
+	{ qsl("account8")          , Command::ShowAccount8 },
+	{ qsl("account9")          , Command::ShowAccount9 },
+	{ qsl("last_account")      , Command::ShowAccountLast },
 };
 
 // Kotatogram names of commands upstream has its own names for:
@@ -552,6 +557,16 @@ void Manager::fillDefaults() {
 		set(u"%1+%2"_q.arg(ctrl).arg(index), command);
 	}
 
+	auto &&accounts = ranges::views::zip(
+		kShowAccount,
+		ranges::views::ints(1, ranges::unreachable));
+
+	for (const auto [command, index] : accounts) {
+		set(u"alt+%1"_q.arg(index)   , command);
+	}
+
+	set(u"alt+0"_q                   , Command::ShowAccountLast);
+
 	set(u"%1+shift+down"_q.arg(ctrl) , Command::FolderNext);
 	set(u"%1+shift+up"_q.arg(ctrl)   , Command::FolderPrevious);
 
@@ -606,8 +621,8 @@ void Manager::writeDefaultFile() {
 		}
 	}
 
-	// Commands without a default value.
-	for (const auto c : ranges::views::concat(kShowAccount, kNoValue)) {
+	// Commands without a default value (Kotatogram has them for accounts).
+	for (const auto c : kNoValue) {
 		for (const auto &[name, command] : CommandByName) {
 			if (c == command) {
 				auto entry = QJsonObject();

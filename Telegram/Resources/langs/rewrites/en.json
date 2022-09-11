@@ -213,6 +213,7 @@
 	"ktg_shortcuts_save_draft": "Save draft",
 	"ktg_shortcuts_jump_to_date": "Jump to date",
 	"ktg_shortcuts_reload_lang": "Reload Kotatogram language strings",
+	"ktg_shortcuts_show_account_last": "Show last account",
 	"ktg_premium_double_limits_about_accounts": {
 		"zero": "Connect {count} accounts with different mobile numbers in official apps",
 		"one": "Connect {count} account with different mobile numbers in official apps",
