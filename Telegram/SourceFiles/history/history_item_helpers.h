@@ -103,6 +103,7 @@ struct SendingErrorRequest {
 	const Data::Story *story = nullptr;
 	const TextWithTags *text = nullptr;
 	bool ignoreSlowmodeCountdown = false;
+	bool isUnquotedForward = false;
 };
 [[nodiscard]] QString GetErrorTextForSending(
 	not_null<PeerData*> peer,

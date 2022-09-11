@@ -537,6 +537,7 @@ bool MainWidget::setForwardDraft(
 			.topicRootId = topicRootId,
 			.forward = &items,
 			.ignoreSlowmodeCountdown = true,
+			.isUnquotedForward = draft.options != Data::ForwardOptions::PreserveInfo,
 		});
 	if (!error.isEmpty()) {
 		_controller->show(Ui::MakeInformBox(error));

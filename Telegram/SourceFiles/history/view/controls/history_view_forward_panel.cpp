@@ -16,7 +16,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_media_types.h"
 #include "data/data_forum_topic.h"
 #include "main/main_session.h"
-#include "ui/chat/forward_options_box.h"
+#include "ui/layers/generic_box.h"
+//#include "ui/chat/forward_options_box.h"
 #include "ui/effects/spoiler_mess.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
@@ -237,6 +238,7 @@ bool ForwardPanel::empty() const {
 }
 
 void ForwardPanel::editOptions(std::shared_ptr<ChatHelpers::Show> show) {
+	/*
 	using Options = Data::ForwardOptions;
 	const auto now = _data.options;
 	const auto count = _data.items.size();
@@ -293,6 +295,7 @@ void ForwardPanel::editOptions(std::shared_ptr<ChatHelpers::Show> show) {
 		},
 		optionsChanged,
 		changeRecipient));
+	*/
 }
 
 void ForwardPanel::editToNextOption() {

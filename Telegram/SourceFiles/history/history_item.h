@@ -416,7 +416,8 @@ public:
 	[[nodiscard]] ChatRestriction requiredSendRight() const;
 	[[nodiscard]] bool requiresSendInlineRight() const;
 	[[nodiscard]] std::optional<QString> errorTextForForward(
-		not_null<Data::Thread*> to) const;
+		not_null<Data::Thread*> to,
+		bool isUnquotedForward) const;
 	[[nodiscard]] const HistoryMessageTranslation *translation() const;
 	[[nodiscard]] bool translationShowRequiresCheck(LanguageId to) const;
 	bool translationShowRequiresRequest(LanguageId to);

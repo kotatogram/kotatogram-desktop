@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_widget.h"
 
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "api/api_editing.h"
 #include "api/api_bot.h"
 #include "api/api_chat_participants.h"
@@ -6560,11 +6561,14 @@ void HistoryWidget::mousePressEvent(QMouseEvent *e) {
 			Window::SectionShow::Way::Forward,
 			_editMsgId);
 	} else if (isReadyToForward) {
-		if (e->button() != Qt::LeftButton) {
-			_forwardPanel->editToNextOption();
-		} else {
-			_forwardPanel->editOptions(controller()->uiShow());
+		if (_forwardPanel->items().empty() || e->button() != Qt::LeftButton) {
+			return;
 		}
+
+		_history->setForwardDraft(MsgId(), {});
+		Window::ShowForwardMessagesBox(controller(), Data::ForwardDraft{
+			.ids = session().data().itemsToIds(_forwardPanel->items())
+		});
 	} else if (_replyTo
 		&& ((e->modifiers() & Qt::ControlModifier)
 			|| (e->button() != Qt::LeftButton))) {
@@ -6576,6 +6580,116 @@ void HistoryWidget::mousePressEvent(QMouseEvent *e) {
 			_kbReplyTo->history()->peer->id,
 			Window::SectionShow::Way::Forward,
 			_kbReplyTo->id);
+	}
+}
+
+void HistoryWidget::contextMenuEvent(QContextMenuEvent *e) {
+	if (_menu) {
+		return;
+	}
+	if (_inDetails) {
+		if (readyToForward()) {
+			using Options = Data::ForwardOptions;
+			using GroupingOptions = Data::GroupingOptions;
+			const auto count = _forwardPanel->items().size();
+			const auto hasMediaToGroup = [&] {
+				if (count > 1) {
+					auto grouppableMediaCount = 0;
+					for (const auto item : _forwardPanel->items()) {
+						if (item->media() && item->media()->canBeGrouped()) {
+							grouppableMediaCount++;
+						} else {
+							grouppableMediaCount = 0;
+						}
+						if (grouppableMediaCount > 1) {
+							return true;
+						}
+					}
+				}
+				return false;
+			}();
+			const auto hasCaptions = [&] {
+				for (const auto item : _forwardPanel->items()) {
+					if (const auto media = item->media()) {
+						if (!item->originalText().text.isEmpty()
+							&& media->allowsEditCaption()) {
+							return true;
+						}
+					}
+				}
+				return false;
+			}();
+			const auto addForwardOption = [=](
+					Options newOptions,
+					const QString &langKey,
+					int settingsKey) {
+				const auto draft = _history->resolveForwardDraft(MsgId());
+				if (_history && draft.options != newOptions) {
+					_menu->addAction(ktr(langKey), [=] {
+						const auto error = GetErrorTextForSending(
+							_history->peer,
+							{
+								.topicRootId = MsgId(),
+								.forward = &_forwardPanel->items(),
+								.ignoreSlowmodeCountdown = true,
+								.isUnquotedForward = newOptions != Options::PreserveInfo,
+							});
+						if (!error.isEmpty()) {
+							controller()->showToast(error);
+							return;
+						}
+						_history->setForwardDraft(MsgId(), {
+							.ids = session().data().itemsToIds(_forwardPanel->items()),
+							.options = newOptions,
+							.groupOptions = draft.groupOptions,
+						});
+						updateField();
+						if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+							::Kotato::JsonSettings::Set("forward_mode", settingsKey);
+							::Kotato::JsonSettings::Write();
+						}
+					});
+				}
+			};
+
+			_menu = base::make_unique_q<Ui::PopupMenu>(this);
+			
+			addForwardOption(Options::PreserveInfo, "ktg_forward_menu_quoted", 0);
+			addForwardOption(Options::NoSenderNames, "ktg_forward_menu_unquoted", 1);
+			if (hasCaptions) {
+				addForwardOption(Options::NoNamesAndCaptions, "ktg_forward_menu_uncaptioned", 2);
+			}
+
+			if (hasMediaToGroup && count > 1) {
+				const auto addGroupingOption = [=](
+						GroupingOptions newOptions,
+						const QString &langKey,
+						int settingsKey) {
+					const auto draft = _history->resolveForwardDraft(MsgId());
+					if (_history && draft.groupOptions != newOptions) {
+						_menu->addAction(ktr(langKey), [=] {
+							_history->setForwardDraft(MsgId(), {
+								.ids = session().data().itemsToIds(_forwardPanel->items()),
+								.options = draft.options,
+								.groupOptions = newOptions,
+							});
+							updateField();
+							if (::Kotato::JsonSettings::GetBool("forward_remember_mode")) {
+								::Kotato::JsonSettings::Set("forward_grouping_mode", settingsKey);
+								::Kotato::JsonSettings::Write();
+							}
+						});
+					}
+				};
+
+				_menu->addSeparator();
+				addGroupingOption(GroupingOptions::GroupAsIs, "ktg_forward_menu_default_albums", 0);
+				addGroupingOption(GroupingOptions::RegroupAll, "ktg_forward_menu_group_all_media", 1);
+				addGroupingOption(GroupingOptions::Separate, "ktg_forward_menu_separate_messages", 2);
+			}
+
+			_menu->popup(QCursor::pos());
+		}
 	}
 }
 
@@ -7353,10 +7467,17 @@ bool HistoryWidget::sendExistingDocument(
 		return false;
 	}
 
-	Api::SendExistingDocument(
-		Api::MessageToSend(prepareSendAction(options)),
-		document,
-		localId);
+	if (document->hasRemoteLocation()) {
+		Api::SendExistingDocument(
+			Api::MessageToSend(prepareSendAction(options)),
+			document,
+			localId);
+	} else {
+		Api::SendWebDocument(
+			Api::MessageToSend(prepareSendAction(options)),
+			document,
+			localId);
+	}
 
 	if (_fieldAutocomplete->stickersShown()) {
 		clearFieldText();

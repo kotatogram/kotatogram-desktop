@@ -290,6 +290,10 @@ public:
 		Data::ResolvedForwardDraft &&draft,
 		const SendAction &action,
 		FnMut<void()> &&successCallback = nullptr);
+	void forwardMessagesUnquoted(
+		Data::ResolvedForwardDraft &&draft,
+		const SendAction &action,
+		FnMut<void()> &&successCallback = nullptr);
 	void shareContact(
 		const QString &phone,
 		const QString &firstName,
@@ -340,7 +344,10 @@ public:
 	void sendShortcutMessages(
 		not_null<PeerData*> peer,
 		BusinessShortcutId id);
-	void sendMessage(MessageToSend &&message);
+	void sendMessage(
+		MessageToSend &&message,
+		Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback = nullptr,
+		bool forwarding = false);
 	void sendBotStart(
 		not_null<UserData*> bot,
 		PeerData *chat = nullptr,

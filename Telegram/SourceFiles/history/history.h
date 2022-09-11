@@ -43,9 +43,16 @@ enum class ForwardOptions {
 	NoNamesAndCaptions,
 };
 
+enum class GroupingOptions {
+	GroupAsIs,
+	RegroupAll,
+	Separate,
+};
+
 struct ForwardDraft {
 	MessageIdsList ids;
 	ForwardOptions options = ForwardOptions::PreserveInfo;
+	GroupingOptions groupOptions = GroupingOptions::GroupAsIs;
 
 	friend inline auto operator<=>(
 		const ForwardDraft&,
@@ -57,6 +64,7 @@ using ForwardDrafts = base::flat_map<MsgId, ForwardDraft>;
 struct ResolvedForwardDraft {
 	HistoryItemsList items;
 	ForwardOptions options = ForwardOptions::PreserveInfo;
+	GroupingOptions groupOptions = GroupingOptions::GroupAsIs;
 };
 
 } // namespace Data

@@ -78,7 +78,8 @@ namespace Media::Stories {
 			std::vector<not_null<Data::Thread*>> &&result,
 			TextWithTags &&comment,
 			Api::SendOptions options,
-			Data::ForwardOptions forwardOptions) {
+			Data::ForwardOptions forwardOptions,
+			Data::GroupingOptions groupingOptions) {
 		if (state->requests) {
 			return; // Share clicked already.
 		}
