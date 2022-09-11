@@ -1990,6 +1990,22 @@ Section DetailsFiller::makeInfo() {
 			setupAboutContextMenu(about.text, AboutWithAdvancedValue(_peer));
 			SetupAboutPeerIdDrag(about.text, _peer);
 		}
+
+		if (const auto channel = _peer->asChannel()) {
+			const auto controller = _controller->parentController();
+			auto viewLinkedGroup = [=] {
+				controller->showPeerHistory(
+					channel->discussionLink(),
+					Window::SectionShow::Way::Forward);
+			};
+			AddMainButton(
+				result,
+				(channel->isBroadcast() ? tr::lng_channel_discuss() : tr::lng_manage_linked_channel()),
+				HasLinkedChatValue(channel),
+				std::move(viewLinkedGroup),
+				&tracker,
+				nullptr);
+		}
 	}
 	raw->toggleOn(tracker.atLeastOneShownValue());
 	raw->finishAnimating();

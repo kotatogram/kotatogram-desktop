@@ -111,6 +111,8 @@ struct LinkWithUrl {
 	not_null<UserData*> user);
 [[nodiscard]] rpl::producer<ChannelData*> PersonalChannelValue(
 	not_null<UserData*> user);
+[[nodiscard]] rpl::producer<bool> HasLinkedChatValue(
+	not_null<ChannelData*> channel);
 [[nodiscard]] rpl::producer<bool> AmInChannelValue(
 	not_null<ChannelData*> channel);
 [[nodiscard]] rpl::producer<int> MembersCountValue(not_null<PeerData*> peer);
