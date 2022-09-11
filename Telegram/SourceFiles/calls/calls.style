@@ -502,8 +502,8 @@ callErrorToast: Toast(defaultToast) {
 	minWidth: 240px;
 }
 
-groupCallWidth: 380px;
-groupCallHeight: 580px;
+groupCallWidth: 370px;
+groupCallHeight: 340px;
 groupCallWidthRtmp: 720px;
 groupCallWidthRtmpMin: 240px;
 groupCallHeightRtmp: 580px;
