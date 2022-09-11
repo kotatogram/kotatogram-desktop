@@ -729,6 +729,20 @@ void SessionNavigation::showPeerByLinkResolved(
 		: ShowAtUnreadMsgId;
 
 	const auto &replies = info.repliesInfo;
+	const auto searchQuery = info.searchQuery;
+	const auto peerSearchKey = [=] {
+		return peer->isUser()
+			? Dialogs::Key()
+			: Dialogs::Key(peer->owner().history(peer));
+	};
+	const auto applySearchQuery = [=](
+			not_null<SessionNavigation*> navigation,
+			Dialogs::Key inChat) {
+		if (!searchQuery.isEmpty()) {
+			navigation->searchMessages(searchQuery + ' ', inChat);
+		}
+	};
+
 	if (const auto threadId = std::get_if<ThreadId>(&replies)) {
 		const auto history = peer->owner().history(peer);
 		const auto controller = parentController();
@@ -741,6 +755,11 @@ void SessionNavigation::showPeerByLinkResolved(
 			}
 		}
 		showRepliesForMessage(history, threadId->id, msgId, params);
+		if (const auto topic = peer->forumTopicFor(threadId->id)) {
+			applySearchQuery(this, topic);
+		} else {
+			applySearchQuery(this, history);
+		}
 	} else if (const auto commentId = std::get_if<CommentId>(&replies)) {
 		const auto history = peer->owner().history(peer);
 		showRepliesForMessage(history, msgId, commentId->id, params);
@@ -817,6 +836,7 @@ void SessionNavigation::showPeerByLinkResolved(
 		if (!msgId || !useRequestedMessageId) {
 			applyBotStartToken();
 			parentController()->showForum(peer->forum(), params, msgId);
+			applySearchQuery(this, peerSearchKey());
 		} else if (const auto item = peer->owner().message(peer, msgId)) {
 			showMessageByLinkResolved(item, info);
 		} else {
@@ -833,6 +853,12 @@ void SessionNavigation::showPeerByLinkResolved(
 		if (bot || peer->isChannel()) {
 			crl::on_main(this, [=] {
 				showPeerHistory(peer, params);
+				applySearchQuery(this, peerSearchKey());
+			});
+		} else if (!searchQuery.isEmpty()) {
+			crl::on_main(this, [=] {
+				showPeerHistory(peer, params);
+				applySearchQuery(this, peerSearchKey());
 			});
 		} else {
 			showPeerInfo(peer, params);
@@ -844,6 +870,7 @@ void SessionNavigation::showPeerByLinkResolved(
 	} else if (const auto monoforum = peer->broadcastMonoforum()
 		; monoforum && resolveType == ResolveType::ChannelDirect) {
 		showPeerHistory(monoforum, params, ShowAtUnreadMsgId);
+		applySearchQuery(this, monoforum->owner().history(monoforum));
 	} else {
 		const auto attachBotUsername = info.attachBotUsername;
 		applyBotStartToken();
@@ -851,13 +878,16 @@ void SessionNavigation::showPeerByLinkResolved(
 			crl::on_main(this, [=] {
 				const auto history = peer->owner().history(peer);
 				showPeerHistory(history, params, msgId);
-
-				peer->session().attachWebView().openByUsername(
-					parentController(),
-					Api::SendAction(history),
-					attachBotUsername,
-					info.attachBotToggleCommand.value_or(QString()),
-					info.botAppFullScreen);
+				if (searchQuery.isEmpty()) {
+					peer->session().attachWebView().openByUsername(
+						parentController(),
+						Api::SendAction(history),
+						attachBotUsername,
+						info.attachBotToggleCommand.value_or(QString()),
+						info.botAppFullScreen);
+				} else {
+					applySearchQuery(this, peerSearchKey());
+				}
 			});
 		} else if (bot && info.attachBotMainOpen) {
 			const auto startCommand = info.attachBotToggleCommand.value_or(
@@ -918,8 +948,12 @@ void SessionNavigation::showPeerByLinkResolved(
 						peer,
 						params,
 						msgId);
+					applySearchQuery(
+						separate->sessionController(),
+						peerSearchKey());
 				} else {
 					showPeerHistory(peer, params, msgId);
+					applySearchQuery(this, peerSearchKey());
 				}
 			});
 		}
