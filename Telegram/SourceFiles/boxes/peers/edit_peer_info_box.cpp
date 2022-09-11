@@ -206,6 +206,8 @@ void SaveSlowmodeSeconds(
 	api->registerModifyRequest(key, requestId);
 }
 
+} // namespace
+
 void ShowEditPermissions(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<PeerData*> peer) {
@@ -250,8 +252,6 @@ void ShowEditPermissions(
 		});
 	}, box->lifetime());
 }
-
-} // namespace
 
 namespace {
 

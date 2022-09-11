@@ -237,6 +237,7 @@ public:
 		Fn<void()> callback,
 		const SectionShow &params) const;
 
+	bool areRecentActionsOpened();
 	void dialogsCancelled();
 
 protected:
