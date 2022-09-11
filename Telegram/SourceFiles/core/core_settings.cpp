@@ -1009,7 +1009,7 @@ void Settings::setThirdColumnWidth(int width) {
 
 QString Settings::deviceModel() const {
 	const auto custom = customDeviceModel();
-	return custom.isEmpty() ? Platform::DeviceModelPretty() : custom;
+	return custom.isEmpty() ? QSysInfo::machineHostName() : custom;
 }
 
 rpl::producer<QString> Settings::deviceModelChanges() const {
