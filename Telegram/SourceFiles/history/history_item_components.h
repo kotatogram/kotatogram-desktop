@@ -708,6 +708,7 @@ struct HistoryMessageRestrictions
 struct HistoryServiceData
 : RuntimeComponent<HistoryServiceData, HistoryItem> {
 	std::vector<ClickHandlerPtr> textLinks;
+	TextWithEntities cleanText;
 };
 
 struct HistoryServiceDependentData {

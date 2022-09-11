@@ -907,9 +907,11 @@ void GenerateItems(
 	const auto addSimpleServiceMessage = [&](
 			const TextWithEntities &text,
 			MsgId realId = MsgId(),
-			PhotoData *photo = nullptr) {
+			PhotoData *photo = nullptr,
+			bool noTime = false) {
 		auto message = PreparedServiceText{ text };
 		message.links.push_back(fromLink);
+		message.noTime = noTime;
 		addPart(
 			history->makeMessage({
 				.id = history->nextNonHistoryEntryId(),
@@ -958,7 +960,7 @@ void GenerateItems(
 				? tr::lng_admin_log_removed_description_channel
 				: tr::lng_admin_log_changed_description_channel)
 			)(tr::now, lt_from, fromLinkText, tr::marked);
-		addSimpleServiceMessage(text);
+		addSimpleServiceMessage(text, MsgId(), nullptr, true);
 
 		const auto body = makeSimpleTextMessage(
 			PrepareText(newValue, QString()));
@@ -983,7 +985,7 @@ void GenerateItems(
 				? tr::lng_admin_log_removed_link_channel
 				: tr::lng_admin_log_changed_link_channel)
 			)(tr::now, lt_from, fromLinkText, tr::marked);
-		addSimpleServiceMessage(text);
+		addSimpleServiceMessage(text, MsgId(), nullptr, true);
 
 		const auto body = makeSimpleTextMessage(newValue.isEmpty()
 			? TextWithEntities()
@@ -1060,7 +1062,7 @@ void GenerateItems(
 					lt_from,
 					fromLinkText,
 					tr::marked);
-			addSimpleServiceMessage(text, realId);
+			addSimpleServiceMessage(text, realId, nullptr, true);
 
 			addPart(
 				history->createItem(
@@ -1113,7 +1115,7 @@ void GenerateItems(
 				lt_from,
 				fromLinkText,
 				tr::marked);
-		addSimpleServiceMessage(text, realId);
+		addSimpleServiceMessage(text, realId, nullptr, true);
 
 		const auto body = history->createItem(
 			history->nextNonHistoryEntryId(),
@@ -1169,7 +1171,7 @@ void GenerateItems(
 			lt_from,
 			fromLinkText,
 			tr::marked);
-		addSimpleServiceMessage(text, realId);
+		addSimpleServiceMessage(text, realId, nullptr, true);
 
 		addPart(
 			history->createItem(
@@ -1347,7 +1349,7 @@ void GenerateItems(
 			lt_from,
 			fromLinkText,
 			tr::marked);
-		addSimpleServiceMessage(text, realId);
+		addSimpleServiceMessage(text, realId, nullptr, true);
 
 		addPart(
 			history->createItem(
@@ -1731,7 +1733,7 @@ void GenerateItems(
 			lt_from,
 			fromLinkText,
 			tr::marked);
-		addSimpleServiceMessage(text, realId);
+		addSimpleServiceMessage(text, realId, nullptr, true);
 
 		addPart(
 			history->createItem(

@@ -48,6 +48,7 @@ class SessionNavigation;
 struct PreparedServiceText {
 	TextWithEntities text;
 	std::vector<ClickHandlerPtr> links;
+	bool noTime = false;
 };
 
 [[nodiscard]] MessageFlags FlagsFromMTP(

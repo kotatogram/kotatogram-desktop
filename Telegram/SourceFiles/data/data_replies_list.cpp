@@ -38,7 +38,7 @@ constexpr auto kMaxMessagesToDeleteMyTopic = 10;
 		.id = history->nextNonHistoryEntryId(),
 		.flags = MessageFlag::FakeHistoryItem,
 		.date = date,
-	}, PreparedServiceText{ { .text = text } });
+	}, PreparedServiceText{ .text = { .text = text }, .noTime = true });
 }
 
 [[nodiscard]] bool IsCreating(not_null<History*> history, MsgId rootId) {
@@ -345,7 +345,10 @@ void RepliesList::injectRootDivider(
 			text());
 	} else if (_dividerWithComments != withComments) {
 		_dividerWithComments = withComments;
-		_divider->updateServiceText(PreparedServiceText{ { text() } });
+		_divider->updateServiceText(PreparedServiceText{
+			.text = { text() },
+			.noTime = true,
+		});
 	}
 	slice->ids.push_back(_divider->fullId());
 }

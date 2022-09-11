@@ -89,6 +89,16 @@ constexpr auto kNotificationTextLimit = 255;
 constexpr auto kPinnedMessageTextLimit = 16;
 constexpr auto kMinLoginCode = 5;
 
+[[nodiscard]] TextWithEntities GenerateServiceTime(TimeId date) {
+	if (date <= 0) {
+		return {};
+	}
+	return { u" · "_q
+		+ QLocale().toString(
+			base::unixtime::parse(date).time(),
+			QLocale::ShortFormat) };
+}
+
 using ItemPreview = HistoryView::ItemPreview;
 
 template <typename T>
@@ -1473,7 +1483,14 @@ void HistoryItem::setServiceText(PreparedServiceText &&prepared) {
 	_flags &= ~MessageFlag::HasTextLinks;
 	const auto data = Get<HistoryServiceData>();
 	const auto had = !_text.empty();
+	data->cleanText = prepared.text;
 	_text = std::move(prepared.text);
+	// Fake-dated items have no real time to show.
+	if (!_text.empty()
+		&& !prepared.noTime
+		&& !(_flags & MessageFlag::HideDisplayDate)) {
+		_text.append(GenerateServiceTime(date()));
+	}
 	data->textLinks = std::move(prepared.links);
 	if (had) {
 		_history->owner().requestItemTextRefresh(this);
@@ -2568,8 +2585,8 @@ void HistoryItem::applyEdition(const MTPDmessageService &message) {
 		}
 		clearDependencyMessage();
 		UpdateComponents(0);
-		createServiceFromMtp(message);
 		applyServiceDateEdition(message);
+		createServiceFromMtp(message);
 		finishEditionToEmpty();
 		_flags &= ~MessageFlag::DisplayFromChecked;
 	} else if (message.vaction().type() == mtpc_messageActionConferenceCall) {
@@ -2600,8 +2617,8 @@ void HistoryItem::applyEdition(const MTPDmessageService &message) {
 		}
 		clearDependencyMessage();
 		UpdateComponents(0);
-		createServiceFromMtp(message);
 		applyServiceDateEdition(message);
+		createServiceFromMtp(message);
 		finishEdition(-1);
 		_flags &= ~MessageFlag::DisplayFromChecked;
 
@@ -4743,6 +4760,11 @@ TextWithEntities HistoryItem::notificationText(
 		if (_media && !isService()) {
 			return _media->notificationText();
 		} else if (!emptyText()) {
+			if (isService()) {
+				if (const auto data = Get<HistoryServiceData>()) {
+					return data->cleanText;
+				}
+			}
 			return _text;
 		}
 		return TextWithEntities();
