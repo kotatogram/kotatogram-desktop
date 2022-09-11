@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_experimental.h"
 
+#include "kotato/kotato_lang.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/slide_wrap.h"
@@ -31,13 +32,34 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Settings {
 namespace {
 
+// format: { key, { name, description }}
+const std::map<QString, std::pair<QString, QString>> TranslationMap {
+	{ ChatHelpers::kOptionTabbedPanelShowOnClick, {
+		"ktg_experimental_tabbed_panel_by_click",
+		"ktg_experimental_tabbed_panel_by_click_description",
+	}},
+	{ Window::kOptionViewProfileInChatsListContextMenu, {
+		"ktg_experimental_view_profile_context_menu",
+		"ktg_experimental_view_profile_context_menu_description",
+	}},
+	{ Ui::GL::kOptionAllowLinuxNvidiaOpenGL, {
+		"ktg_experimental_linux_nvidia_opengl",
+		"ktg_experimental_linux_nvidia_opengl_description",
+	}},
+};
+
 void AddOption(
 		not_null<Window::Controller*> window,
 		not_null<Ui::VerticalLayout*> container,
 		base::options::option<bool> &option,
 		rpl::producer<> resetClicks) {
 	auto &lifetime = container->lifetime();
-	const auto name = option.name().isEmpty() ? option.id() : option.name();
+	const auto translation = TranslationMap.find(option.id());
+	const auto name = translation != TranslationMap.end()
+			? ktr(translation->second.first)
+			: option.name().isEmpty()
+			? option.id()
+			: option.name();
 	const auto toggles = lifetime.make_state<rpl::event_stream<bool>>();
 	std::move(
 		resetClicks
@@ -80,7 +102,10 @@ void AddOption(
 		}
 	}, container->lifetime());
 
-	const auto &description = option.description();
+	const auto &description = (translation != TranslationMap.end()
+		&& !translation->second.second.isEmpty())
+			? ktr(translation->second.second)
+			: option.description();
 	if (!description.isEmpty()) {
 		AddSkip(container, st::settingsCheckboxesSkip);
 		AddDividerText(container, rpl::single(description));
