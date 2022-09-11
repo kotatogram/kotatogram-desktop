@@ -361,7 +361,7 @@ void SetupSections(
 	const auto preload = [=] {
 		controller->session().data().chatsFilters().requestSuggested();
 	};
-	const auto account = &controller->session().account();
+	// const auto account = &controller->session().account();
 	const auto slided = container->add(
 		object_ptr<Ui::SlideWrap<Ui::SettingsButton>>(
 			container,
@@ -371,10 +371,13 @@ void SetupSections(
 				st::settingsButton,
 				{ &st::menuIconShowInFolder }))
 	)->setDuration(0);
+	/*
 	if (controller->session().data().chatsFilters().has()
 		|| controller->session().settings().dialogsFiltersEnabled()) {
+	*/
 		slided->show(anim::type::instant);
 		preload();
+	/*
 	} else {
 		const auto enabled = [=] {
 			const auto result = account->appConfig().get<bool>(
@@ -397,6 +400,7 @@ void SetupSections(
 				enabled
 			) | rpl::before_next(preloadIfEnabled));
 	}
+	*/
 	slided->entity()->setClickedCallback([=] {
 		showOther(Folders::Id());
 	});
