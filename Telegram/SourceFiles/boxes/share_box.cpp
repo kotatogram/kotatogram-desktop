@@ -264,9 +264,7 @@ void ShareBox::prepareCommentField() {
 		submit({});
 	});
 
-	field->setInstantReplaces(Ui::InstantReplaces::Default());
-	field->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	field->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	field->setMarkdownReplacesEnabled(rpl::single(true));
 	if (_descriptor.initEditLink) {
 		_descriptor.initEditLink(field);

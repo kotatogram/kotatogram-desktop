@@ -971,9 +971,7 @@ void Notification::showReplyField() {
 	_replyArea->setFocus();
 	_replyArea->setMaxLength(MaxMessageSize);
 	_replyArea->setSubmitSettings(Ui::InputField::SubmitSettings::Both);
-	_replyArea->setInstantReplaces(Ui::InstantReplaces::Default());
-	_replyArea->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	_replyArea->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	_replyArea->setMarkdownReplacesEnabled(rpl::single(true));
 
 	// Catch mouse press event to activate the window.
