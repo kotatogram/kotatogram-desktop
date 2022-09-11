@@ -72,7 +72,7 @@ void PinMessageBox::prepare() {
 		_notify.create(
 			this,
 			tr::lng_pinned_notify(tr::now),
-			true,
+			false,
 			st::defaultBoxCheckbox);
 		_checkbox = _notify;
 	}
