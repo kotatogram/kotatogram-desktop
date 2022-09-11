@@ -148,8 +148,6 @@ namespace {
 constexpr auto kSaveDraftTimeout = crl::time(1000);
 constexpr auto kSaveDraftAnywayTimeout = 5 * crl::time(1000);
 constexpr auto kSaveCloudDraftIdleTimeout = 14 * crl::time(1000);
-constexpr auto kDisplayEditTimeWarningMs = 300 * 1000;
-constexpr auto kFullDayInMs = 86400 * 1000;
 constexpr auto kMouseEvents = {
 	QEvent::MouseMove,
 	QEvent::MouseButtonPress,
@@ -871,10 +869,6 @@ void FieldHeader::paintEditTimeLeft(
 		* 1000LL) - timeSinceMessage;
 	if (editTimeLeft < 2) {
 		editTimeLeftText = u"0:00"_q;
-	} else if (editTimeLeft > kDisplayEditTimeWarningMs) {
-		updateIn = static_cast<int>(std::min(
-			editTimeLeft - kDisplayEditTimeWarningMs,
-			qint64(kFullDayInMs)));
 	} else {
 		updateIn = static_cast<int>(editTimeLeft % 1000);
 		if (!updateIn) {
@@ -883,9 +877,9 @@ void FieldHeader::paintEditTimeLeft(
 		++updateIn;
 
 		editTimeLeft = (editTimeLeft - 1) / 1000; // seconds
-		editTimeLeftText = u"%1:%2"_q
-			.arg(editTimeLeft / 60)
-			.arg(editTimeLeft % 60, 2, 10, QChar('0'));
+		editTimeLeftText = (editTimeLeft >= 3600
+			? u"%1:%2:%3"_q.arg(editTimeLeft / 3600).arg(editTimeLeft % 3600 / 60, 2, 10, QChar('0')).arg(editTimeLeft % 60, 2, 10, QChar('0'))
+			: u"%1:%2"_q.arg(editTimeLeft / 60).arg(editTimeLeft % 60, 2, 10, QChar('0')));
 	}
 	if (updateIn > 0) {
 		_updateEditTimeLeftDisplay.callOnce(updateIn);

@@ -227,8 +227,6 @@ constexpr auto kPreloadHeightsCount = 3; // when 3 screens to scroll left make a
 constexpr auto kScrollToVoiceAfterScrolledMs = 1000;
 constexpr auto kSkipRepaintWhileScrollMs = 100;
 constexpr auto kShowMembersDropdownTimeoutMs = 300;
-constexpr auto kDisplayEditTimeWarningMs = 300 * 1000;
-constexpr auto kFullDayInMs = 86400 * 1000;
 constexpr auto kSaveDraftTimeout = crl::time(1000);
 constexpr auto kSaveDraftAnywayTimeout = 5 * crl::time(1000);
 constexpr auto kSaveCloudDraftIdleTimeout = 14 * crl::time(1000);
@@ -11504,10 +11502,6 @@ void HistoryWidget::paintEditHeader(
 		- timeSinceMessage;
 	if (editTimeLeft < 2) {
 		editTimeLeftText = u"0:00"_q;
-	} else if (editTimeLeft > kDisplayEditTimeWarningMs) {
-		updateIn = static_cast<int>(std::min(
-			editTimeLeft - kDisplayEditTimeWarningMs,
-			qint64(kFullDayInMs)));
 	} else {
 		updateIn = static_cast<int>(editTimeLeft % 1000);
 		if (!updateIn) {
@@ -11516,9 +11510,9 @@ void HistoryWidget::paintEditHeader(
 		++updateIn;
 
 		editTimeLeft = (editTimeLeft - 1) / 1000; // seconds
-		editTimeLeftText = u"%1:%2"_q
-			.arg(editTimeLeft / 60)
-			.arg(editTimeLeft % 60, 2, 10, QChar('0'));
+		editTimeLeftText = (editTimeLeft >= 3600
+			? u"%1:%2:%3"_q.arg(editTimeLeft / 3600).arg(editTimeLeft % 3600 / 60, 2, 10, QChar('0')).arg(editTimeLeft % 60, 2, 10, QChar('0'))
+			: u"%1:%2"_q.arg(editTimeLeft / 60).arg(editTimeLeft % 60, 2, 10, QChar('0')));
 	}
 
 	// Restart timer only if we are sure that we've painted the whole timer.
