@@ -271,6 +271,12 @@ bool ResolveUsername(
 	if (domain == qsl("telegrampassport")) {
 		return ShowPassportForm(controller, params);
 	} else if (!valid(domain)) {
+		const auto searchParam = params.value(qsl("query"));
+		if (!searchParam.isEmpty()) {
+			controller->content()->searchMessages(
+				searchParam + ' ',
+				Dialogs::Key());
+		}
 		return false;
 	}
 	auto start = qsl("start");
@@ -321,6 +327,7 @@ bool ResolveUsername(
 			? std::make_optional(params.value(u"voicechat"_q))
 			: std::nullopt),
 		.clickFromMessageId = fromMessageId,
+		.searchQuery = params.value(qsl("query")),
 	});
 	return true;
 }

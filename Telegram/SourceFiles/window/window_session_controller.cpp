@@ -361,6 +361,7 @@ void SessionNavigation::showPeerByLinkResolved(
 		return;
 	}
 	const auto &replies = info.repliesInfo;
+	const auto searchQuery = info.searchQuery;
 	if (const auto threadId = std::get_if<ThreadId>(&replies)) {
 		showRepliesForMessage(
 			session().data().history(peer),
@@ -395,9 +396,23 @@ void SessionNavigation::showPeerByLinkResolved(
 			// Always open bot chats, even from mention links.
 			crl::on_main(this, [=] {
 				showPeerHistory(peer->id, params);
+				if (!searchQuery.isEmpty()) {
+					parentController()->content()->searchMessages(
+						searchQuery + ' ',
+						(peer && !peer->isUser())
+							? peer->owner().history(peer).get()
+							: Dialogs::Key());
+				}
 			});
 		} else {
 			showPeerInfo(peer, params);
+			if (!searchQuery.isEmpty()) {
+				parentController()->content()->searchMessages(
+					searchQuery + ' ',
+					(peer && !peer->isUser())
+						? peer->owner().history(peer).get()
+						: Dialogs::Key());
+			}
 		}
 	} else {
 		const auto user = peer->asUser();
@@ -414,6 +429,13 @@ void SessionNavigation::showPeerByLinkResolved(
 		}
 		crl::on_main(this, [=] {
 			showPeerHistory(peer->id, params, msgId);
+			if (!searchQuery.isEmpty()) {
+				parentController()->content()->searchMessages(
+					searchQuery + ' ',
+					(peer && !peer->isUser())
+						? peer->owner().history(peer).get()
+						: Dialogs::Key());
+			}
 		});
 	}
 }
