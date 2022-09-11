@@ -47,6 +47,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "boxes/peers/edit_participants_box.h"
+#include "ui/boxes/confirm_box.h"
 #include "data/data_session.h"
 #include "data/data_photo.h"
 #include "data/data_photo_media.h"
@@ -1406,8 +1407,10 @@ void InnerWidget::suggestRestrictParticipant(
 			return;
 		}
 	}
-	_menu->addAction(tr::lng_context_restrict_user(tr::now), [=] {
-		const auto user = participant->asUser();
+
+	const auto user = participant->asUser();
+
+	_menu->addAction(user ? tr::lng_context_restrict_user(tr::now) : tr::lng_context_remove_from_group(tr::now), [=] {
 		auto editRestrictions = [=](bool hasAdminRights, ChatRestrictionsInfo currentRights) {
 			auto weak = QPointer<InnerWidget>(this);
 			auto weakBox = std::make_shared<QPointer<Ui::BoxContent>>();
@@ -1468,7 +1471,57 @@ void InnerWidget::suggestRestrictParticipant(
 				editRestrictions(false, ChatRestrictionsInfo());
 			}).send();
 		}
-	}, &st::menuIconPermissions);
+	}, user ? &st::menuIconPermissions : &st::menuIconRemove);
+
+	if (user) {
+		_menu->addAction(tr::lng_context_remove_from_group(tr::now), [=] {
+			auto editRestrictions = [=](bool hasAdminRights, ChatRestrictionsInfo currentRights) {
+				const auto text = (_channel->isBroadcast()
+					? tr::lng_profile_sure_kick_channel
+					: tr::lng_profile_sure_kick)(
+						tr::now,
+						lt_user,
+						participant->name());
+				auto weakBox = std::make_shared<QPointer<Ui::BoxContent>>();
+				const auto sure = crl::guard(this, [=] {
+					restrictParticipant(
+						participant,
+						ChatRestrictionsInfo(),
+						ChannelData::KickedRestrictedRights(participant));
+					if (*weakBox) {
+						(*weakBox)->closeBox();
+					}
+				});
+				*weakBox = _controller->show(Ui::MakeConfirmBox({ text, sure }));
+			};
+			if (base::contains(_admins, user)) {
+				editRestrictions(true, ChatRestrictionsInfo());
+			} else {
+				_api.request(MTPchannels_GetParticipant(
+					_channel->inputChannel,
+					user->input
+				)).done([=](const MTPchannels_ChannelParticipant &result) {
+					Expects(result.type() == mtpc_channels_channelParticipant);
+
+					auto &participant = result.c_channels_channelParticipant();
+					_channel->owner().processUsers(participant.vusers());
+					auto type = participant.vparticipant().type();
+					if (type == mtpc_channelParticipantBanned) {
+						auto &banned = participant.vparticipant().c_channelParticipantBanned();
+						editRestrictions(false, ChatRestrictionsInfo(banned.vbanned_rights()));
+					} else {
+						auto hasAdminRights = (type == mtpc_channelParticipantAdmin)
+							|| (type == mtpc_channelParticipantCreator);
+						auto bannedRights = ChatRestrictionsInfo();
+						editRestrictions(hasAdminRights, bannedRights);
+					}
+				}).fail([=](const MTP::Error &error) {
+					auto bannedRights = ChatRestrictionsInfo();
+					editRestrictions(false, bannedRights);
+				}).send();
+			}
+		}, &st::menuIconRemove);
+	}
 }
 
 void InnerWidget::restrictParticipant(
