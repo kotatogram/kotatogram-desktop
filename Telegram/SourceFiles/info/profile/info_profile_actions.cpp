@@ -960,6 +960,7 @@ Ui::MultiSlideTracker DetailsFiller::fillUserButtons(
 			tracker);
 	};
 
+	/*
 	if (user->isSelf()) {
 		auto separator = _wrap->add(object_ptr<Ui::SlideWrap<>>(
 			_wrap,
@@ -975,8 +976,11 @@ Ui::MultiSlideTracker DetailsFiller::fillUserButtons(
 			std::move(tracker).atLeastOneShownValue()
 		);
 	} else {
+	*/
 		addSendMessageButton();
+	/*
 	}
+	*/
 
 	addReportReaction(tracker);
 
