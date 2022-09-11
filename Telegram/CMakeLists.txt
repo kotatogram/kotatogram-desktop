@@ -987,6 +987,8 @@ PRIVATE
     intro/intro_step.h
     intro/intro_widget.cpp
     intro/intro_widget.h
+    kotato/boxes/kotato_confirm_box.cpp
+    kotato/boxes/kotato_confirm_box.h
     kotato/boxes/kotato_fonts_box.cpp
     kotato/boxes/kotato_fonts_box.h
     kotato/boxes/kotato_radio_box.cpp
