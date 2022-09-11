@@ -15,7 +15,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "data/data_peer_id.h"
 #include "base/parse_helper.h"
 #include "base/timer.h"
-#include "ui/widgets/input_fields.h"
+#include "ui/widgets/fields/input_field.h"
 #include "data/data_chat_filters.h"
 #include "platform/platform_file_utilities.h"
 
