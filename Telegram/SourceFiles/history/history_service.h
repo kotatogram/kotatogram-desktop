@@ -84,7 +84,8 @@ public:
 		TimeId date,
 		const PreparedText &message,
 		PeerId from = 0,
-		PhotoData *photo = nullptr);
+		PhotoData *photo = nullptr,
+		bool showTime = true);
 
 	bool updateDependencyItem() override;
 	MsgId dependencyMsgId() const override {
@@ -119,6 +120,13 @@ public:
 		HistoryView::Element *replacing = nullptr) override;
 
 	void setServiceText(const PreparedText &prepared);
+	void setNeedTime(bool need) {
+		_needTime = need;
+	};
+
+	bool needTime() {
+		return _needTime;
+	};
 
 	void hideSpoilers() override;
 
@@ -172,6 +180,8 @@ private:
 
 	friend class HistoryView::Service;
 
+	Ui::Text::String _cleanText;
+	bool _needTime = true;
 };
 
 [[nodiscard]] not_null<HistoryService*> GenerateJoinedMessage(
