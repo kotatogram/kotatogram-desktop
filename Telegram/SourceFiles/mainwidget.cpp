@@ -500,7 +500,8 @@ bool MainWidget::setForwardDraft(PeerId peerId, Data::ForwardDraft &&draft) {
 	const auto error = GetErrorTextForSending(
 		peer,
 		session().data().idsToItems(draft.ids),
-		true);
+		true,
+		draft.options != Data::ForwardOptions::PreserveInfo);
 	if (!error.isEmpty()) {
 		Ui::show(Box<Ui::InformBox>(error), Ui::LayerOption::KeepOther);
 		return false;

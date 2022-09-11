@@ -38,6 +38,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/ui_integration.h"
 #include "window/notifications_manager.h"
 #include "window/window_session_controller.h"
+#include "window/window_peer_menu.h"
 #include "storage/storage_shared_media.h"
 #include "mtproto/mtproto_config.h"
 #include "data/data_session.h"
@@ -127,14 +128,15 @@ QString GetErrorTextForSending(
 		not_null<PeerData*> peer,
 		const HistoryItemsList &items,
 		const TextWithTags &comment,
-		bool ignoreSlowmodeCountdown) {
+		bool ignoreSlowmodeCountdown,
+		bool unquoted) {
 	if (!peer->canWrite()) {
 		return tr::lng_forward_cant(tr::now);
 	}
 
 	for (const auto &item : items) {
 		if (const auto media = item->media()) {
-			const auto error = media->errorTextForForward(peer);
+			const auto error = media->errorTextForForward(peer, unquoted);
 			if (!error.isEmpty() && error != qstr("skip")) {
 				return error;
 			}
@@ -189,6 +191,10 @@ QString GetErrorTextForSending(
 }
 
 void FastShareMessage(not_null<HistoryItem*> item) {
+	Window::ShowForwardMessagesBox(
+		App::wnd()->sessionController(),
+		item->history()->owner().itemOrItsGroup(item));
+	/*
 	struct ShareData {
 		ShareData(not_null<PeerData*> peer, MessageIdsList &&ids)
 		: peer(peer)
@@ -372,6 +378,7 @@ void FastShareMessage(not_null<HistoryItem*> item) {
 			.hasCaptions = hasCaptions,
 		},
 	}));
+	*/
 }
 
 void RequestDependentMessageData(
@@ -435,8 +442,9 @@ MTPMessageReplyHeader NewMessageReplyHeader(const Api::SendAction &action) {
 QString GetErrorTextForSending(
 		not_null<PeerData*> peer,
 		const HistoryItemsList &items,
-		bool ignoreSlowmodeCountdown) {
-	return GetErrorTextForSending(peer, items, {}, ignoreSlowmodeCountdown);
+		bool ignoreSlowmodeCountdown,
+		bool unquoted) {
+	return GetErrorTextForSending(peer, items, {}, ignoreSlowmodeCountdown, unquoted);
 }
 
 struct HistoryMessage::CreateConfig {
@@ -717,7 +725,8 @@ HistoryMessage::HistoryMessage(
 	const QString &postAuthor,
 	not_null<DocumentData*> document,
 	const TextWithEntities &caption,
-	HistoryMessageMarkupData &&markup)
+	HistoryMessageMarkupData &&markup,
+	uint64 newGroupId)
 : HistoryItem(
 		history,
 		id,
@@ -733,6 +742,11 @@ HistoryMessage::HistoryMessage(
 
 	_media = std::make_unique<Data::MediaFile>(this, document);
 	setText(caption);
+
+	if (newGroupId) {
+		setGroupId(
+			MessageGroupId::FromRaw(history->peer->id, newGroupId));
+	}	
 }
 
 HistoryMessage::HistoryMessage(
@@ -746,7 +760,8 @@ HistoryMessage::HistoryMessage(
 	const QString &postAuthor,
 	not_null<PhotoData*> photo,
 	const TextWithEntities &caption,
-	HistoryMessageMarkupData &&markup)
+	HistoryMessageMarkupData &&markup,
+	uint64 newGroupId)
 : HistoryItem(
 		history,
 		id,
@@ -762,6 +777,11 @@ HistoryMessage::HistoryMessage(
 
 	_media = std::make_unique<Data::MediaPhoto>(this, photo);
 	setText(caption);
+
+	if (newGroupId) {
+		setGroupId(
+			MessageGroupId::FromRaw(history->peer->id, newGroupId));
+	}
 }
 
 HistoryMessage::HistoryMessage(

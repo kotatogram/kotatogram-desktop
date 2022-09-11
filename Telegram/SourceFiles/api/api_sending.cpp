@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "data/data_document.h"
 #include "data/data_photo.h"
+#include "data/data_location.h"
 #include "data/data_channel.h" // ChannelData::addsSignature.
 #include "data/data_user.h" // UserData::name
 #include "data/data_session.h"
@@ -63,7 +64,9 @@ void SendExistingMedia(
 		MessageToSend &&message,
 		not_null<MediaData*> media,
 		Fn<MTPInputMedia()> inputMedia,
-		Data::FileOrigin origin) {
+		Data::FileOrigin origin,
+		Fn<void()> doneCallback = nullptr,
+		bool forwarding = false) {
 	const auto history = message.action.history;
 	const auto peer = history->peer;
 	const auto session = &history->session();
@@ -142,7 +145,6 @@ void SendExistingMedia(
 		auto &histories = history->owner().histories();
 		const auto requestType = Data::Histories::RequestType::Send;
 		histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
-			const auto usedFileReference = media->fileReference();
 			history->sendRequestId = api->request(MTPmessages_SendMedia(
 				MTP_flags(sendFlags),
 				peer->input,
@@ -154,12 +156,16 @@ void SendExistingMedia(
 				sentEntities,
 				MTP_int(message.action.options.scheduled),
 				(sendAs ? sendAs->input : MTP_inputPeerEmpty())
-			)).done([=](const MTPUpdates &result) {
+			)).done([=](const MTPUpdates &result, mtpRequestId requestId) {
 				api->applyUpdates(result, randomId);
+				if (doneCallback) {
+					doneCallback();
+				}
 				finish();
 			}).fail([=](const MTP::Error &error) {
 				if (error.code() == 400
 					&& error.type().startsWith(qstr("FILE_REFERENCE_"))) {
+					const auto usedFileReference = media->fileReference();
 					api->refreshFileReference(origin, [=](const auto &result) {
 						if (media->fileReference() != usedFileReference) {
 							repeatRequest(repeatRequest);
@@ -178,14 +184,38 @@ void SendExistingMedia(
 	};
 	performRequest(performRequest);
 
-	api->finishForwarding(message.action);
+	if (!forwarding) {
+		api->finishForwarding(message.action);
+	}
 }
 
 } // namespace
 
+void SendWebDocument(
+		Api::MessageToSend &&message,
+		not_null<DocumentData*> document,
+		Fn<void()> doneCallback,
+		bool forwarding) {
+	const auto inputMedia = [=] {
+		return MTP_inputMediaDocumentExternal(
+			MTP_flags(0),
+			MTP_string(document->url()),
+			MTPint()); // ttl_seconds
+	};
+	SendExistingMedia(
+		std::move(message),
+		document,
+		inputMedia,
+		document->stickerOrGifOrigin(),
+		(doneCallback ? std::move(doneCallback) : nullptr),
+		forwarding);
+}
+
 void SendExistingDocument(
 		MessageToSend &&message,
-		not_null<DocumentData*> document) {
+		not_null<DocumentData*> document,
+		Fn<void()> doneCallback,
+		bool forwarding) {
 	const auto inputMedia = [=] {
 		return MTP_inputMediaDocument(
 			MTP_flags(0),
@@ -197,7 +227,9 @@ void SendExistingDocument(
 		std::move(message),
 		document,
 		inputMedia,
-		document->stickerOrGifOrigin());
+		document->stickerOrGifOrigin(),
+		(doneCallback ? std::move(doneCallback) : nullptr),
+		forwarding);
 
 	if (document->sticker()) {
 		document->owner().stickers().incrementSticker(document);
@@ -206,7 +238,9 @@ void SendExistingDocument(
 
 void SendExistingPhoto(
 		MessageToSend &&message,
-		not_null<PhotoData*> photo) {
+		not_null<PhotoData*> photo,
+		Fn<void()> doneCallback,
+		bool forwarding) {
 	const auto inputMedia = [=] {
 		return MTP_inputMediaPhoto(
 			MTP_flags(0),
@@ -217,10 +251,15 @@ void SendExistingPhoto(
 		std::move(message),
 		photo,
 		inputMedia,
-		Data::FileOrigin());
+		Data::FileOrigin(),
+		(doneCallback ? std::move(doneCallback) : nullptr),
+		forwarding);
 }
 
-bool SendDice(MessageToSend &message) {
+bool SendDice(
+		MessageToSend &message,
+		Fn<void(const MTPUpdates &, mtpRequestId)> doneCallback,
+		bool forwarding) {
 	const auto full = QStringView(message.textWithTags.text).trimmed();
 	auto length = 0;
 	if (!Ui::Emoji::Find(full.data(), full.data() + full.size(), &length)
@@ -320,8 +359,11 @@ bool SendDice(MessageToSend &message) {
 			MTP_vector<MTPMessageEntity>(),
 			MTP_int(message.action.options.scheduled),
 			(sendAs ? sendAs->input : MTP_inputPeerEmpty())
-		)).done([=](const MTPUpdates &result) {
+		)).done([=](const MTPUpdates &result, mtpRequestId requestId) {
 			api->applyUpdates(result, randomId);
+			if (doneCallback) {
+				doneCallback(result, requestId);
+			}
 			finish();
 		}).fail([=](const MTP::Error &error) {
 			api->sendMessageFail(error, peer, randomId, newId);
@@ -330,7 +372,9 @@ bool SendDice(MessageToSend &message) {
 		).send();
 		return history->sendRequestId;
 	});
-	api->finishForwarding(message.action);
+	if (!forwarding) {
+		api->finishForwarding(message.action);
+	}
 	return true;
 }
 
@@ -482,6 +526,74 @@ void SendConfirmedFile(
 				? Data::HistoryUpdate::Flag::ScheduledSent
 				: Data::HistoryUpdate::Flag::MessageSent));
 	}
+}
+
+void SendLocationPoint(
+		const Data::LocationPoint &data,
+		const SendAction &action,
+		Fn<void()> done,
+		Fn<void(const MTP::Error &error)> fail) {
+	const auto history = action.history;
+	const auto session = &history->session();
+	const auto api = &session->api();
+	const auto peer = history->peer;
+	api->sendAction(action);
+
+	auto sendFlags = MTPmessages_SendMedia::Flags(0);
+	if (action.replyTo) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_reply_to_msg_id;
+	}
+	if (action.clearDraft) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_clear_draft;
+		history->clearLocalDraft();
+		history->clearCloudDraft();
+	}
+	const auto sendAs = action.options.sendAs;
+
+	if (sendAs) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_send_as;
+	}
+	const auto silentPost = action.options.silent
+		|| (peer->isBroadcast() && session->data().notifySilentPosts(peer));
+	if (silentPost) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_silent;
+	}
+	if (action.options.scheduled) {
+		sendFlags |= MTPmessages_SendMedia::Flag::f_schedule_date;
+	}
+	auto &histories = history->owner().histories();
+	const auto requestType = Data::Histories::RequestType::Send;
+	histories.sendRequest(history, requestType, [=](Fn<void()> finish) {
+		const auto replyTo = action.replyTo;
+		history->sendRequestId = api->request(MTPmessages_SendMedia(
+			MTP_flags(sendFlags),
+			peer->input,
+			MTP_int(replyTo),
+			MTP_inputMediaGeoPoint(
+				MTP_inputGeoPoint(
+					MTP_flags(0),
+					MTP_double(data.lat()),
+					MTP_double(data.lon()),
+					MTP_int(0))),
+			MTP_string(),
+			MTP_long(base::RandomValue<uint64>()),
+			MTPReplyMarkup(),
+			MTPVector<MTPMessageEntity>(),
+			MTP_int(action.options.scheduled),
+			(sendAs ? sendAs->input : MTP_inputPeerEmpty())
+		)).done([=](const MTPUpdates &result) mutable {
+			api->applyUpdates(result);
+			done();
+			finish();
+		}).fail([=](const MTP::Error &error) mutable {
+			if (fail) {
+				fail(error);
+			}
+			finish();
+		}).afterRequest(history->sendRequestId
+		).send();
+		return history->sendRequestId;
+	});
 }
 
 } // namespace Api
