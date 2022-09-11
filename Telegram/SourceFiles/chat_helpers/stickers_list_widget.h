@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "chat_helpers/tabbed_selector.h"
 #include "data/stickers/data_stickers.h"
+#include "media/clip/media_clip_reader.h"
 #include "base/variant.h"
 #include "base/timer.h"
 
@@ -38,11 +39,6 @@ namespace Data {
 class DocumentMedia;
 class StickersSet;
 } // namespace Data
-
-namespace Media::Clip {
-class ReaderPointer;
-enum class Notification;
-} // namespace Media::Clip
 
 namespace ChatHelpers {
 
@@ -118,7 +114,15 @@ protected:
 
 private:
 	class Footer;
-	struct Sticker;
+	struct Sticker {
+		not_null<DocumentData*> document;
+		std::shared_ptr<Data::DocumentMedia> documentMedia;
+		Lottie::Animation *lottie = nullptr;
+		Media::Clip::ReaderPointer webm;
+		QPixmap savedFrame;
+
+		void ensureMediaCreated();
+	};
 
 	enum class Section {
 		Featured,

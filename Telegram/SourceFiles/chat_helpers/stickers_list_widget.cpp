@@ -39,7 +39,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h" // GifPauseReason.
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
-#include "media/clip/media_clip_reader.h"
 #include "apiwrap.h"
 #include "api/api_toggling_media.h" // Api::ToggleFavedSticker
 #include "styles/style_chat_helpers.h"
@@ -222,16 +221,6 @@ private:
 
 	rpl::event_stream<> _openSettingsRequests;
 
-};
-
-struct StickersListWidget::Sticker {
-	not_null<DocumentData*> document;
-	std::shared_ptr<Data::DocumentMedia> documentMedia;
-	Lottie::Animation *lottie = nullptr;
-	Media::Clip::ReaderPointer webm;
-	QPixmap savedFrame;
-
-	void ensureMediaCreated();
 };
 
 auto StickersListWidget::PrepareStickers(

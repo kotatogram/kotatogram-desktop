@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/media/history_view_media_common.h"
 
 #include "ui/text/format_values.h"
+#include "data/data_media_types.h"
 #include "data/data_document.h"
 #include "data/data_wall_paper.h"
 #include "history/view/history_view_element.h"
