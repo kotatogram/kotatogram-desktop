@@ -44,6 +44,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "apiwrap.h"
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
+#include "main/main_account.h"
+#include "main/main_domain.h"
 #include "window/notifications_manager.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
@@ -3286,6 +3288,28 @@ void InnerWidget::setupShortcuts() {
 					if (select <= filtersCount) {
 						_controller->setActiveChatsFilter(
 							filters->lookupId(select));
+					}
+					return true;
+				});
+			}
+		}
+
+		const auto accounts = &Core::App().domain().accounts();
+		if (const auto accountsCount = int(accounts->size())) {
+			auto &&accountShortcuts = ranges::views::zip(
+				Shortcuts::kShowAccount,
+				ranges::views::ints(0, ranges::unreachable));
+
+			for (const auto [command, index] : accountShortcuts) {
+				const auto select = (command == Command::ShowAccountLast)
+					? accountsCount - 1
+					: std::clamp(index, 0, accountsCount - 1);
+				request->check(command) && request->handle([=] {
+					if (select <= accountsCount) {
+						const auto account = (*accounts)[select].account.get();
+						if (account != &Core::App().domain().active()) {
+							Core::App().domain().maybeActivate(account);
+						}
 					}
 					return true;
 				});

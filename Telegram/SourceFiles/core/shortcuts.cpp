@@ -108,6 +108,17 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ qsl("pinned_3")          , Command::ChatPinned3 },
 	{ qsl("pinned_4")          , Command::ChatPinned4 },
 	{ qsl("pinned_5")          , Command::ChatPinned5 },
+
+	{ qsl("account1")          , Command::ShowAccount1 },
+	{ qsl("account2")          , Command::ShowAccount2 },
+	{ qsl("account3")          , Command::ShowAccount3 },
+	{ qsl("account4")          , Command::ShowAccount4 },
+	{ qsl("account5")          , Command::ShowAccount5 },
+	{ qsl("account6")          , Command::ShowAccount6 },
+	{ qsl("account7")          , Command::ShowAccount7 },
+	{ qsl("account8")          , Command::ShowAccount8 },
+	{ qsl("account9")          , Command::ShowAccount9 },
+	{ qsl("last_account")      , Command::ShowAccountLast },
 };
 
 const auto CommandNames = base::flat_map<Command, QString>{
@@ -158,6 +169,17 @@ const auto CommandNames = base::flat_map<Command, QString>{
 	{ Command::ChatPinned3    , qsl("pinned_3") },
 	{ Command::ChatPinned4    , qsl("pinned_4") },
 	{ Command::ChatPinned5    , qsl("pinned_5") },
+
+	{ Command::ShowAccount1   , qsl("account1") },
+	{ Command::ShowAccount2   , qsl("account2") },
+	{ Command::ShowAccount3   , qsl("account3") },
+	{ Command::ShowAccount4   , qsl("account4") },
+	{ Command::ShowAccount5   , qsl("account5") },
+	{ Command::ShowAccount6   , qsl("account6") },
+	{ Command::ShowAccount7   , qsl("account7") },
+	{ Command::ShowAccount8   , qsl("account8") },
+	{ Command::ShowAccount9   , qsl("account9") },
+	{ Command::ShowAccountLast, qsl("last_account") },
 };
 
 class Manager {
@@ -400,6 +422,16 @@ void Manager::fillDefaults() {
 	for (const auto [command, index] : folders) {
 		set(qsl("%1+%2").arg(ctrl).arg(index), command);
 	}
+
+	auto &&accounts = ranges::views::zip(
+		kShowAccount,
+		ranges::views::ints(1, ranges::unreachable));
+
+	for (const auto [command, index] : accounts) {
+		set(qsl("alt+%1").arg(index), command);
+	}
+
+	set(qsl("alt+0"), Command::ShowAccountLast);
 
 	set(qsl("%1+shift+down").arg(ctrl), Command::FolderNext);
 	set(qsl("%1+shift+up").arg(ctrl), Command::FolderPrevious);
