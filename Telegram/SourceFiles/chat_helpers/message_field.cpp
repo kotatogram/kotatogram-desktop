@@ -145,9 +145,7 @@ void EditLinkBox(
 			tr::lng_formatting_link_text(),
 			startText),
 		st::markdownLinkFieldPadding);
-	text->setInstantReplaces(Ui::InstantReplaces::Default());
-	text->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	text->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	Ui::Emoji::SuggestionsController::Init(
 		box->getDelegate()->outerContainer(),
 		text,
@@ -349,9 +347,7 @@ void InitMessageFieldHandlers(
 	field->setCustomEmojiFactory(
 		session->data().customEmojiManager().factory(),
 		std::move(customEmojiPaused));
-	field->setInstantReplaces(Ui::InstantReplaces::Default());
-	field->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	field->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	field->setMarkdownReplacesEnabled(rpl::single(true));
 	if (show) {
 		field->setEditLinkCallback(

@@ -543,9 +543,7 @@ object_ptr<Ui::RpWidget> Controller::createTitleEdit() {
 			_peer->name()),
 		st::editPeerTitleMargins);
 	result->entity()->setMaxLength(Ui::EditPeer::kMaxGroupChannelTitle);
-	result->entity()->setInstantReplaces(Ui::InstantReplaces::Default());
-	result->entity()->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	result->entity()->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	Ui::Emoji::SuggestionsController::Init(
 		_wrap->window(),
 		result->entity(),
@@ -577,9 +575,7 @@ object_ptr<Ui::RpWidget> Controller::createDescriptionEdit() {
 			_peer->about()),
 		st::editPeerDescriptionMargins);
 	result->entity()->setMaxLength(Ui::EditPeer::kMaxChannelDescription);
-	result->entity()->setInstantReplaces(Ui::InstantReplaces::Default());
-	result->entity()->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	result->entity()->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	result->entity()->setSubmitSettings(
 		Core::App().settings().sendSubmitWay());
 	Ui::Emoji::SuggestionsController::Init(
