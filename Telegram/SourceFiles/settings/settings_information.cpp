@@ -656,24 +656,17 @@ void SetupAccountsWrap(
 		} else if (which != Qt::RightButton) {
 			return;
 		}
-		if (!state->menu && IsAltShift(raw->clickModifiers()) && !locked) {
-			state->menu = base::make_unique_q<Ui::PopupMenu>(
-				raw,
-				st::popupMenuWithIcons);
-			Window::MenuAddMarkAsReadAllChatsAction(
-				window,
-				Ui::Menu::CreateAddActionCallback(state->menu));
-			state->menu->popup(QCursor::pos());
-			return;
-		}
 		if (session == &window->session() || state->menu) {
 			return;
 		}
+		const auto addAction = Ui::Menu::CreateAddActionCallback(
+			state->menu);
 		state->menu = base::make_unique_q<Ui::PopupMenu>(
 			raw,
 			st::popupMenuExpandedSeparator);
-		const auto addAction = Ui::Menu::CreateAddActionCallback(
-			state->menu);
+		Window::MenuAddMarkAsReadAllChatsAction(
+			window,
+			Ui::Menu::CreateAddActionCallback(state->menu));
 		addAction(tr::lng_context_new_window(tr::now), [=] {
 			Ui::PreventDelayedActivation();
 			callback(Qt::ControlModifier);
@@ -685,12 +678,6 @@ void SetupAccountsWrap(
 				Info::Profile::PhoneValue(session->user()));
 			QGuiApplication::clipboard()->setText(phone.current().text);
 		}, &st::menuIconCopy);
-
-		if (!locked) {
-			addAction(tr::lng_menu_activate(tr::now), [=] {
-				callback({});
-			}, &st::menuIconProfile);
-		}
 
 		auto logoutCallback = [=] {
 			const auto callback = [=](Fn<void()> &&close) {
