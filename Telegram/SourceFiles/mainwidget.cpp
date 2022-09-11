@@ -62,6 +62,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_widget.h"
 #include "history/history_message.h"
+#include "history/admin_log/history_admin_log_section.h"
 #include "history/view/media/history_view_media.h"
 #include "history/view/history_view_service_message.h"
 #include "history/view/history_view_element.h"
@@ -1829,6 +1830,11 @@ bool MainWidget::preventsCloseSection(
 	return params.thirdColumn
 		? false
 		: preventsCloseSection(std::move(callback));
+}
+
+bool MainWidget::areRecentActionsOpened() {
+	return _mainSection
+		&& static_cast<AdminLog::Widget*>(_mainSection.data());
 }
 
 void MainWidget::showBackFromStack(

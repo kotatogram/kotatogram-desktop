@@ -31,6 +31,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/format_values.h" // Ui::FormatPhone
 #include "history/history_location_manager.h" // LocationClickHandler.
 #include "history/view/history_view_context_menu.h" // HistoryView::ShowReportPeerBox
+#include "history/admin_log/history_admin_log_section.h"
 #include "boxes/abstract_box.h"
 #include "ui/boxes/confirm_box.h"
 #include "boxes/peer_list_box.h"
@@ -38,6 +39,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/add_contact_box.h"
 #include "boxes/peers/add_bot_to_chat_box.h"
 #include "boxes/peers/edit_contact_box.h"
+#include "boxes/peers/edit_peer_info_box.h"
+#include "boxes/peers/edit_peer_invite_links.h"
+#include "boxes/peers/edit_participants_box.h"
 #include "boxes/report_messages_box.h"
 #include "lang/lang_keys.h"
 #include "menu/menu_mute.h"
@@ -194,6 +198,31 @@ private:
 	not_null<PeerData*> _peer;
 	object_ptr<Ui::VerticalLayout> _wrap = { nullptr };
 
+};
+
+class ManageFiller {
+public:
+	ManageFiller(
+		not_null<Controller*> controller,
+		not_null<Ui::RpWidget*> parent,
+		not_null<PeerData*> peer);
+
+	object_ptr<Ui::RpWidget> fill();
+
+private:
+	void addPeerPermissions(not_null<PeerData*> peer);
+	void addPeerAdmins(not_null<PeerData*> peer);
+	void addPeerInviteLinks(not_null<PeerData*> peer);
+	void addChannelBlockedUsers(not_null<ChannelData*> channel);
+	void addChannelRecentActions(not_null<ChannelData*> channel);
+
+	void fillChatActions(not_null<ChatData*> chat);
+	void fillChannelActions(not_null<ChannelData*> channel);
+
+	not_null<Controller*> _controller;
+	not_null<Ui::RpWidget*> _parent;
+	not_null<PeerData*> _peer;
+	object_ptr<Ui::VerticalLayout> _wrap = { nullptr };
 };
 
 DetailsFiller::DetailsFiller(
@@ -917,6 +946,153 @@ object_ptr<Ui::RpWidget> ActionsFiller::fill() {
 	return { nullptr };
 }
 
+ManageFiller::ManageFiller(
+	not_null<Controller*> controller,
+	not_null<Ui::RpWidget*> parent,
+	not_null<PeerData*> peer)
+: _controller(controller)
+, _parent(parent)
+, _peer(peer) {
+}
+
+void ManageFiller::addPeerPermissions(
+		not_null<PeerData*> peer) {
+	if (peer->isUser() || (peer->isChannel() && !peer->isMegagroup())) return;
+
+	const auto canEditPermissions = [&] {
+		return peer->isChannel()
+			? peer->asChannel()->canEditPermissions()
+			: peer->asChat()->canEditPermissions();
+	}();
+
+	if (canEditPermissions) {
+		const auto controller = _controller;
+		auto button = AddActionButton(
+			_wrap,
+			tr::lng_manage_peer_permissions(),
+			rpl::single(true),
+			[=] { ShowEditPermissions(controller->parentController(), peer); },
+			&st::infoIconPermissions);
+	}
+}
+
+void ManageFiller::addPeerAdmins(
+		not_null<PeerData*> peer) {
+	if (peer->isUser()) return;
+
+	const auto canViewAdmins = [&] {
+		return peer->isChannel()
+			? peer->asChannel()->canViewAdmins()
+			: peer->asChat()->amIn();
+	}();
+	if (canViewAdmins) {
+		const auto controller = _controller;
+		auto button = AddActionButton(
+			_wrap,
+			tr::lng_manage_peer_administrators(),
+			rpl::single(true),
+			[=] { ParticipantsBoxController::Start(
+					controller->parentController(),
+					peer,
+					ParticipantsBoxController::Role::Admins);},
+			&st::infoRoundedIconAdministrators);
+	}
+}
+
+void ManageFiller::addPeerInviteLinks(
+		not_null<PeerData*> peer) {
+	if (peer->isUser()) return;
+
+	const auto canHaveInviteLink = [&] {
+		return peer->isChannel()
+			? peer->asChannel()->canHaveInviteLink()
+			: peer->asChat()->canHaveInviteLink();
+	}();
+	if (canHaveInviteLink) {
+		auto button = AddActionButton(
+			_wrap,
+			tr::lng_manage_peer_invite_links(),
+			rpl::single(true),
+			[=] {
+				Ui::show(Box(ManageInviteLinksBox, peer, peer->session().user(), 0, 0),
+					Ui::LayerOption::KeepOther);
+			},
+			&st::infoRoundedIconInviteLinks);
+	}
+}
+
+void ManageFiller::addChannelBlockedUsers(
+		not_null<ChannelData*> channel) {
+	if (channel->hasAdminRights() || channel->amCreator()) {
+		const auto controller = _controller;
+		auto button = AddActionButton(
+			_wrap,
+			tr::lng_manage_peer_removed_users(),
+			rpl::single(true),
+			[=] { ParticipantsBoxController::Start(
+					controller->parentController(),
+					channel,
+					ParticipantsBoxController::Role::Kicked);},
+			&st::infoIconBlacklist);
+	}
+}
+
+void ManageFiller::addChannelRecentActions(
+		not_null<ChannelData*> channel) {
+	if (channel->hasAdminRights() || channel->amCreator()) {
+		const auto controller = _controller;
+		auto button = AddActionButton(
+			_wrap,
+			tr::lng_manage_peer_recent_actions(),
+			rpl::single(true),
+			[=] {
+				if (!App::main()->areRecentActionsOpened()) {
+					controller->showSection(
+						std::make_shared<AdminLog::SectionMemento>(channel));
+				}
+			},
+			&st::infoRoundedIconRecentActions);
+	}
+}
+
+void ManageFiller::fillChatActions(
+		not_null<ChatData*> chat) {
+	addPeerPermissions(chat);
+	addPeerAdmins(chat);
+	addPeerInviteLinks(chat);
+}
+
+void ManageFiller::fillChannelActions(
+		not_null<ChannelData*> channel) {
+	addPeerPermissions(channel);
+	addPeerAdmins(channel);
+	addPeerInviteLinks(channel);
+	addChannelBlockedUsers(channel);
+	addChannelRecentActions(channel);
+}
+
+object_ptr<Ui::RpWidget> ManageFiller::fill() {
+	auto wrapResult = [=](auto &&callback) {
+		_wrap = object_ptr<Ui::VerticalLayout>(_parent);
+		_wrap->add(CreateSkipWidget(_wrap));
+		callback();
+		_wrap->add(CreateSkipWidget(_wrap));
+		return std::move(_wrap);
+	};
+	if (auto chat = _peer->asChat()) {
+		return wrapResult([=] {
+			fillChatActions(chat);
+		});
+	} else if (auto channel = _peer->asChannel()) {
+		if (channel->isMegagroup() || channel->hasAdminRights() || channel->amCreator()) {
+			return wrapResult([=] {
+				fillChannelActions(channel);
+			});
+		}
+	}
+	return { nullptr };
+}
+
 } // namespace
 
 object_ptr<Ui::RpWidget> SetupDetails(
@@ -924,6 +1100,14 @@ object_ptr<Ui::RpWidget> SetupDetails(
 		not_null<Ui::RpWidget*> parent,
 		not_null<PeerData*> peer) {
 	DetailsFiller filler(controller, parent, peer);
+	return filler.fill();
+}
+
+object_ptr<Ui::RpWidget> SetupManage(
+		not_null<Controller*> controller,
+		not_null<Ui::RpWidget*> parent,
+		not_null<PeerData*> peer) {
+	ManageFiller filler(controller, parent, peer);
 	return filler.fill();
 }
 
