@@ -109,6 +109,7 @@ const auto CommandByName = base::flat_map<QString, Command>{
 
 	{ qsl("save_draft")        , Command::SaveDraft },
 	{ qsl("jump_to_date")      , Command::JumpToDate },
+	{ qsl("reload_lang")       , Command::ReloadLang },
 };
 
 const auto CommandNames = base::flat_map<Command, QString>{
@@ -158,6 +159,7 @@ const auto CommandNames = base::flat_map<Command, QString>{
 
 	{ Command::SaveDraft      , u"save_draft"_q },
 	{ Command::JumpToDate     , u"jump_to_date"_q },
+	{ Command::ReloadLang     , u"reload_lang"_q },
 };
 
 class Manager {
