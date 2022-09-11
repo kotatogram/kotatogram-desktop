@@ -594,9 +594,6 @@ void TopBarWidget::paintTopBar(Painter &p) {
 		|| (peer
 			&& (peer->sharedMediaInfo() || peer->isVerifyCodes())
 			&& _activeChat.section != Section::SavedSublist)
-		|| (_activeChat.section == Section::Scheduled)
-		|| (_activeChat.section == Section::Pinned)
-		|| (_activeChat.section == Section::WelcomeMessages)
 		|| communityChatsListBar()) {
 		auto text = (_activeChat.section == Section::Scheduled)
 			? ((peer && peer->isSelf())
@@ -631,25 +628,38 @@ void TopBarWidget::paintTopBar(Painter &p) {
 				text);
 			p.setOpacity(1.);
 		}
-	} else if (_activeChat.section == Section::Replies) {
+	} else if (_activeChat.section == Section::Replies
+			|| _activeChat.section == Section::Scheduled
+			|| _activeChat.section == Section::Pinned
+			|| _activeChat.section == Section::WelcomeMessages) {
+		// Other sections show the chat name, the section name is below.
+		const auto titlePeer = namePeer ? namePeer : peer;
+		const auto title = (_activeChat.section == Section::Replies)
+			? tr::lng_manage_discussion_group(tr::now)
+			: topic
+			? topic->title()
+			: titlePeer
+			? TopBarNameText(titlePeer, _activeChat)
+			: QString();
 		p.setPen(st::dialogsNameFg);
 		p.setFont(st::semiboldFont);
 		p.drawTextLeft(
 			nameleft,
 			nametop,
 			width(),
-			tr::lng_manage_discussion_group(tr::now));
+			st::semiboldFont->elided(title, namewidth));
 
 		p.setFont(st::dialogsTextFont);
 		if (!paintConnectingState(p, statusleft, statustop, width())
-			&& !paintSendAction(
-				p,
-				statusleft,
-				statustop,
-				statuswidth,
-				width(),
-				st::historyStatusFgTyping,
-				now)) {
+			&& (_activeChat.section != Section::Replies
+					|| !paintSendAction(
+					p,
+					statusleft,
+					statustop,
+					statuswidth,
+					width(),
+					st::historyStatusFgTyping,
+					now))) {
 			paintStatus(p, statusleft, statustop, statuswidth, width());
 		}
 	} else if (namePeer) {
@@ -795,9 +805,25 @@ void TopBarWidget::paintStatus(
 		int outerWidth) {
 	using Section = Dialogs::EntryState::Section;
 	const auto section = _activeChat.section;
-	if (section == Section::Replies || section == Section::SavedSublist) {
+	if (section == Section::Replies
+		|| section == Section::SavedSublist
+		|| section == Section::Scheduled
+		|| section == Section::Pinned
+		|| section == Section::WelcomeMessages) {
+		const auto history = _activeChat.key.owningHistory();
+		const auto text = (section == Section::Scheduled)
+			? ((history && history->peer->isSelf())
+				? tr::lng_reminder_messages(tr::now)
+				: tr::lng_scheduled_messages(tr::now))
+			: (section == Section::WelcomeMessages)
+			? tr::lng_welcome_messages_title(tr::now)
+			: _customTitleText;
 		p.setPen(st::historyStatusFg);
-		p.drawTextLeft(left, top, outerWidth, _customTitleText);
+		p.drawTextLeft(
+			left,
+			top,
+			outerWidth,
+			st::dialogsTextFont->elided(text, availableWidth));
 	} else {
 		p.setPen(_titlePeerTextOnline
 			? st::historyStatusFgActive

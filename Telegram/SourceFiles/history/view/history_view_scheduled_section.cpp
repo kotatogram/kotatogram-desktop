@@ -198,6 +198,9 @@ ScheduledWidget::ScheduledWidget(
 		.section = Dialogs::EntryState::Section::Scheduled,
 	};
 	_topBar->setActiveChat(state, nullptr);
+	_topBar->setCustomTitle(_history->peer->isSelf()
+		? tr::lng_reminder_messages(tr::now)
+		: tr::lng_scheduled_messages(tr::now));
 	_composeControls->setCurrentDialogsEntryState(state);
 	controller->setDialogsEntryState(state);
 

@@ -150,6 +150,7 @@ WelcomeMessagesWidget::WelcomeMessagesWidget(
 		.section = Dialogs::EntryState::Section::WelcomeMessages,
 	};
 	_topBar->setActiveChat(state, nullptr);
+	_topBar->setCustomTitle(tr::lng_welcome_messages_title(tr::now));
 	_composeControls->setCurrentDialogsEntryState(state);
 	controller->setDialogsEntryState(state);
 
