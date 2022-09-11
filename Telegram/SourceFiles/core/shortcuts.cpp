@@ -97,6 +97,8 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ qsl("message_silently")  , Command::SendSilentMessage },
 	{ qsl("message_scheduled") , Command::ScheduleMessage },
 	//
+
+	{ qsl("save_draft")        , Command::SaveDraft },
 };
 
 const auto CommandNames = base::flat_map<Command, QString>{
@@ -136,6 +138,8 @@ const auto CommandNames = base::flat_map<Command, QString>{
 	{ Command::ShowContacts   , qsl("show_contacts") },
 
 	{ Command::ReadChat       , qsl("read_chat") },
+
+	{ Command::SaveDraft      , qsl("save_draft") },
 };
 
 class Manager {
@@ -388,6 +392,7 @@ void Manager::fillDefaults() {
 	set(qsl("ctrl+j"), Command::ShowContacts);
 
 	set(qsl("ctrl+r"), Command::ReadChat);
+	set(qsl("ctrl+s"), Command::SaveDraft);
 }
 
 void Manager::writeDefaultFile() {
