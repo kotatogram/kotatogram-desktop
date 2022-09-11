@@ -64,6 +64,7 @@ enum class Command {
 
 	SaveDraft,
 	JumpToDate,
+	ReloadLang,
 };
 
 [[maybe_unused]] constexpr auto kShowFolder = {

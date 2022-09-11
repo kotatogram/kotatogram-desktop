@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_codes.h"
 
+#include "kotato/kotato_lang.h"
 #include "platform/platform_specific.h"
 #include "ui/toast/toast.h"
 #include "mainwidget.h"
@@ -273,6 +274,12 @@ auto GenerateCodes() {
 		const auto now = !Data::CloudThemes::TestingColors();
 		Data::CloudThemes::SetTestingColors(now);
 		Ui::Toast::Show(now ? "Testing chat theme colors!" : "Not testing..");
+	});
+	codes.emplace(qsl("reloadlang"), [](SessionController *window) {
+		Kotato::Lang::Load(
+			Lang::GetInstance().baseId(), 
+			Lang::GetInstance().id());
+		Ui::Toast::Show(ktr("ktg_language_reloaded"));
 	});
 
 #ifdef Q_OS_MAC
