@@ -85,6 +85,9 @@ public:
 		ByEnter,
 		ByTab,
 		ByClick,
+		ByRightClick,
+		ByCtrlEnter,
+		ByCtrlClick,
 	};
 	struct MentionChosen {
 		not_null<UserData*> user;
