@@ -78,6 +78,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/gl/gl_detection.h"
 #include "ui/image/image.h"
 #include "ui/text/text_options.h"
+#include "ui/toast/toast.h"
 #include "ui/emoji_config.h"
 #include "ui/effects/animations.h"
 #include "ui/effects/spoiler_mess.h"
@@ -1771,6 +1772,13 @@ void Application::startShortcuts() {
 		});
 		request->check(Command::Close) && request->handle([=] {
 			return closeActiveWindow();
+		});
+		request->check(Command::ReloadLang) && request->handle([=] {
+			Kotato::Lang::Load(
+				Lang::GetInstance().baseId(), 
+				Lang::GetInstance().id());
+			Ui::Toast::Show(ktr("ktg_language_reloaded"));
+			return true;
 		});
 	}, _lifetime);
 }
