@@ -2006,6 +2006,10 @@ void HistoryWidget::setupShortcuts() {
 				toggleMuteUnmute();
 				return true;
 			});
+			request->check(Command::JumpToDate, 1) && request->handle([=] {
+				controller()->showCalendar(Dialogs::Key(_history), QDateTime());
+				return true;
+			});
 		}
 		request->check(Command::SaveDraft, 1) && request->handle([=] {
 			saveCloudDraft();
