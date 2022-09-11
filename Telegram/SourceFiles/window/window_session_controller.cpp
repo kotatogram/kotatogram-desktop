@@ -372,6 +372,16 @@ void SessionNavigation::showPeerByLinkResolved(
 	const auto user = peer->asUser();
 	const auto bot = (user && user->isBot()) ? user : nullptr;
 	const auto &replies = info.repliesInfo;
+	const auto searchQuery = info.searchQuery;
+
+	const auto applySearchQuery = [=] {
+		parentController()->content()->searchMessages(
+			searchQuery + ' ',
+			(peer && !peer->isUser())
+				? peer->owner().history(peer).get()
+				: Dialogs::Key());
+	};
+
 	if (const auto threadId = std::get_if<ThreadId>(&replies)) {
 		showRepliesForMessage(
 			session().data().history(peer),
@@ -407,6 +417,14 @@ void SessionNavigation::showPeerByLinkResolved(
 		if (bot || peer->isChannel()) {
 			crl::on_main(this, [=] {
 				showPeerHistory(peer->id, params);
+				if (!searchQuery.isEmpty()) {
+					applySearchQuery();
+				}
+			});
+		} else if (!searchQuery.isEmpty()) {
+			crl::on_main(this, [=] {
+				showPeerHistory(peer->id, params);
+				applySearchQuery();
 			});
 		} else {
 			showPeerInfo(peer, params);
@@ -428,10 +446,14 @@ void SessionNavigation::showPeerByLinkResolved(
 		if (!attachBotUsername.isEmpty()) {
 			crl::on_main(this, [=] {
 				showPeerHistory(peer->id, params, msgId);
-				peer->session().attachWebView().request(
-					peer,
-					attachBotUsername,
-					info.attachBotToggleCommand.value_or(QString()));
+				if (searchQuery.isEmpty()) {
+					peer->session().attachWebView().request(
+						peer,
+						attachBotUsername,
+						info.attachBotToggleCommand.value_or(QString()));
+				} else {
+					applySearchQuery();
+				}
 			});
 		} else if (bot && info.attachBotToggleCommand) {
 			const auto itemId = info.clickFromMessageId;
@@ -451,6 +473,9 @@ void SessionNavigation::showPeerByLinkResolved(
 		} else {
 			crl::on_main(this, [=] {
 				showPeerHistory(peer->id, params, msgId);
+				if (!searchQuery.isEmpty()) {
+					applySearchQuery();
+				}
 			});
 		}
 	}
