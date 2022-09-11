@@ -44,12 +44,22 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/format_values.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
+#include "ui/text/text_entity.h"
+#include "base/unixtime.h"
 
 namespace {
 
+constexpr auto kNotificationTextLimit = 255;
 constexpr auto kPinnedMessageTextLimit = 16;
 
 using ItemPreview = HistoryView::ItemPreview;
+
+QString GenerateServiceTime(TimeId date) {
+	if (date > 0) {
+		return qs(" · ") + base::unixtime::parse(date).toString(cTimeFormat());
+	}
+	return QString();
+}
 
 [[nodiscard]] bool PeerCallKnown(not_null<PeerData*> peer) {
 	if (peer->groupCall() != nullptr) {
@@ -108,6 +118,7 @@ using ItemPreview = HistoryView::ItemPreview;
 } // namespace
 
 void HistoryService::setMessageByAction(const MTPmessageAction &action) {
+	setNeedTime(true);
 	auto prepareChatAddUserText = [this](const MTPDmessageActionChatAddUser &action) {
 		auto result = PreparedText{};
 		auto &users = action.vusers().v;
@@ -1221,8 +1232,10 @@ HistoryService::HistoryService(
 	TimeId date,
 	const PreparedText &message,
 	PeerId from,
-	PhotoData *photo)
+	PhotoData *photo,
+	bool showTime)
 : HistoryItem(history, id, flags, date, from) {
+	setNeedTime(showTime);
 	setServiceText(message);
 	if (photo) {
 		_media = std::make_unique<Data::MediaPhoto>(
@@ -1255,7 +1268,7 @@ ItemPreview HistoryService::toPreview(ToPreviewOptions options) const {
 }
 
 TextWithEntities HistoryService::inReplyText() const {
-	auto result = HistoryService::notificationText();
+	auto result = TextWithEntities{ notificationText() };
 	const auto &name = author()->name();
 	TextUtilities::Trim(result);
 	if (result.text.startsWith(name)) {
@@ -1284,11 +1297,18 @@ void HistoryService::setServiceText(const PreparedText &prepared) {
 		.session = &history()->session(),
 		.customEmojiRepaint = [=] { customEmojiRepaint(); },
 	};
+	auto preparedText = prepared.text;
 	_text.setMarkedText(
 		st::serviceTextStyle,
-		prepared.text,
+		(needTime() && !prepared.text.empty()
+			? preparedText.append(GenerateServiceTime(date()))
+			: preparedText),
 		Ui::ItemTextServiceOptions(),
 		context);
+	_cleanText.setText(
+		st::serviceTextStyle,
+		prepared.text.text,
+		Ui::ItemTextServiceOptions());
 	HistoryView::FillTextWithAnimatedSpoilers(_text);
 	auto linkIndex = 0;
 	for (const auto &link : prepared.links) {

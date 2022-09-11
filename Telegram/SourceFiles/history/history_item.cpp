@@ -1250,7 +1250,7 @@ bool HistoryItem::isEmpty() const {
 
 TextWithEntities HistoryItem::notificationText() const {
 	const auto result = [&] {
-		if (_media && !isService()) {
+		if (_media/* && !isService()*/) {
 			return _media->notificationText();
 		} else if (!emptyText()) {
 			return _text.toTextWithEntities();
