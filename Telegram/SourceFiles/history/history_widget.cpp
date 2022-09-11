@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/edit_caption_box.h"
 #include "boxes/peers/edit_peer_permissions_box.h" // ShowAboutGigagroup.
 #include "boxes/peers/edit_peer_requests_box.h"
+#include "kotato/boxes/kotato_confirm_box.h"
 #include "core/file_utilities.h"
 #include "ui/toast/toast.h"
 #include "ui/toasts/common_toasts.h"

@@ -183,7 +183,7 @@ private:
 	void sendMultiOptions();
 	void showResults();
 	void checkQuizAnswered();
-	void showSolution() const;
+	void showSolution(bool inBox = false) const;
 	void solutionToggled(
 		bool solutionShown,
 		anim::type animated = anim::type::normal) const;

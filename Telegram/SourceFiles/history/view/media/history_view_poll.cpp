@@ -23,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/ripple_animation.h"
 #include "ui/effects/fireworks_animation.h"
 #include "ui/toast/toast.h"
+#include "kotato/boxes/kotato_confirm_box.h"
 #include "data/data_media_types.h"
 #include "data/data_poll.h"
 #include "data/data_user.h"
@@ -437,8 +438,12 @@ void Poll::checkQuizAnswered() {
 	}
 }
 
-void Poll::showSolution() const {
+void Poll::showSolution(bool inBox) const {
 	if (!_poll->solution.text.isEmpty()) {
+		if (inBox) {
+			Ui::show(Box<Kotato::InformBox>(_poll->solution));
+			return;
+		}
 		solutionToggled(true);
 		_parent->delegate()->elementShowTooltip(
 			_poll->solution,
@@ -1014,7 +1019,7 @@ void Poll::paintShowSolution(
 	}
 	if (!_showSolutionLink) {
 		_showSolutionLink = std::make_shared<LambdaClickHandler>(
-			crl::guard(this, [=] { showSolution(); }));
+			crl::guard(this, [=] { showSolution(true); }));
 	}
 	const auto stm = context.messageStyle();
 	const auto &icon = stm->historyQuizExplain;
@@ -1169,7 +1174,11 @@ void Poll::paintRadio(
 			auto pen = regular->p;
 			pen.setWidth(radio.thickness);
 			p.setPen(pen);
-			p.drawEllipse(rect);
+			if (_flags & PollData::Flag::MultiChoice) {
+				p.drawRoundedRect(rect,	st::buttonRadius, st::buttonRadius);
+			} else {
+				p.drawEllipse(rect);
+			}
 		}
 		if (checkmark > 0.) {
 			const auto removeFull = (radio.diameter / 2 - radio.thickness);
@@ -1179,7 +1188,13 @@ void Poll::paintRadio(
 			pen.setWidth(radio.thickness);
 			p.setPen(pen);
 			p.setBrush(color);
-			p.drawEllipse(rect.marginsRemoved({ removeNow, removeNow, removeNow, removeNow }));
+			if (_flags & PollData::Flag::MultiChoice) {
+				p.drawRoundedRect(
+					rect.marginsRemoved({ removeNow, removeNow, removeNow, removeNow }),
+					st::buttonRadius, st::buttonRadius);
+			} else {
+				p.drawEllipse(rect.marginsRemoved({ removeNow, removeNow, removeNow, removeNow }));
+			}
 			const auto &icon = stm->historyPollChosen;
 			icon.paint(p, left + (radio.diameter - icon.width()) / 2, top + (radio.diameter - icon.height()) / 2, width());
 		}
@@ -1265,8 +1280,13 @@ void Poll::paintFilling(
 			: stm->historyPollChoiceRight;
 		const auto cleft = aleft - st::historyPollPercentSkip - icon.width();
 		const auto ctop = ftop - (icon.height() - thickness) / 2;
-		p.drawEllipse(cleft, ctop, icon.width(), icon.height());
-
+		if (_flags & PollData::Flag::MultiChoice) {
+			p.drawRoundedRect(
+				QRect{ cleft, ctop, icon.width(), icon.height() },
+				st::buttonRadius, st::buttonRadius);
+		} else {
+			p.drawEllipse(cleft, ctop, icon.width(), icon.height());
+		}
 		const auto paintContent = [&](Painter &p) {
 			icon.paint(p, cleft, ctop, width);
 		};
