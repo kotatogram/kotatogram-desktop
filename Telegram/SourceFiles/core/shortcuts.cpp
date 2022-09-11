@@ -106,6 +106,8 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ u"message_scheduled"_q             , Command::ScheduleMessage },
 	{ u"media_viewer_video_fullscreen"_q , Command::MediaViewerFullscreen },
 	//
+
+	{ qsl("save_draft")        , Command::SaveDraft },
 };
 
 const auto CommandNames = base::flat_map<Command, QString>{
@@ -152,6 +154,8 @@ const auto CommandNames = base::flat_map<Command, QString>{
 	{ Command::ShowContacts   , u"show_contacts"_q },
 
 	{ Command::ReadChat       , u"read_chat"_q },
+
+	{ Command::SaveDraft      , u"save_draft"_q },
 };
 
 class Manager {
@@ -423,6 +427,7 @@ void Manager::fillDefaults() {
 	set(u"ctrl+j"_q, Command::ShowContacts);
 
 	set(u"ctrl+r"_q, Command::ReadChat);
+	set(u"ctrl+s"_q, Command::SaveDraft);
 }
 
 void Manager::writeDefaultFile() {

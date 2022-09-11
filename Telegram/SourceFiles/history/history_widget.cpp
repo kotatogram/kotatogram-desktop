@@ -2007,6 +2007,10 @@ void HistoryWidget::setupShortcuts() {
 				return true;
 			});
 		}
+		request->check(Command::SaveDraft, 1) && request->handle([=] {
+			saveCloudDraft();
+			return true;
+		});
 	}, lifetime());
 }
 
