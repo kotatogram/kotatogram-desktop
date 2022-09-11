@@ -66,6 +66,7 @@ enum class Command {
 	SupportHistoryForward,
 
 	SaveDraft,
+	JumpToDate,
 };
 
 [[maybe_unused]] constexpr auto kShowFolder = {

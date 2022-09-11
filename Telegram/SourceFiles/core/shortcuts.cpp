@@ -100,6 +100,7 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	//
 
 	{ qsl("save_draft")        , Command::SaveDraft },
+	{ qsl("jump_to_date")      , Command::JumpToDate },
 };
 
 const auto CommandNames = base::flat_map<Command, QString>{
@@ -141,6 +142,7 @@ const auto CommandNames = base::flat_map<Command, QString>{
 	{ Command::ReadChat       , u"read_chat"_q },
 
 	{ Command::SaveDraft      , u"save_draft"_q },
+	{ Command::JumpToDate     , u"jump_to_date"_q },
 };
 
 class Manager {
@@ -405,6 +407,7 @@ void Manager::fillDefaults() {
 
 	set(u"ctrl+r"_q, Command::ReadChat);
 	set(u"ctrl+s"_q, Command::SaveDraft);
+	set(u"ctrl+h"_q, Command::JumpToDate);
 }
 
 void Manager::writeDefaultFile() {
