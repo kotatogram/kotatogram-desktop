@@ -2408,11 +2408,8 @@ bool StickersListWidget::setHasTitle(const Set &set) const {
 }
 
 bool StickersListWidget::stickerHasDeleteButton(const Set &set, int index) const {
-	if (set.id == Data::Stickers::RecentSetId) {
-		Assert(index >= 0 && index < _custom.size());
-		return _custom[index];
-	}
-	return (set.id == Data::Stickers::FavedSetId);
+	return (set.id == Data::Stickers::RecentSetId
+			|| set.id == Data::Stickers::FavedSetId);
 }
 
 void StickersListWidget::setSelected(OverState newSelected) {
