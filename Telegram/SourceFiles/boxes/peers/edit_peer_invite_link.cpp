@@ -1154,7 +1154,8 @@ object_ptr<Ui::BoxContent> ShareInviteLinkBox(
 			std::vector<not_null<Data::Thread*>> &&result,
 			TextWithTags &&comment,
 			Api::SendOptions options,
-			Data::ForwardOptions) {
+			Data::ForwardOptions,
+			Data::GroupingOptions) {
 		if (*sending || result.empty()) {
 			return;
 		}

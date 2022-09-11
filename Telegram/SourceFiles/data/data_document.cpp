@@ -1452,6 +1452,10 @@ void DocumentData::refreshFileReference(const QByteArray &value) {
 	_videoThumbnail.location.refreshFileReference(value);
 }
 
+QString DocumentData::url() const {
+	return _url;
+}
+
 QString DocumentData::filename() const {
 	return _filename;
 }

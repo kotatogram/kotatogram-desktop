@@ -145,6 +145,7 @@ public:
 	virtual const Invoice *invoice() const;
 	virtual CloudImage *location() const;
 	virtual PollData *poll() const;
+	virtual const LocationPoint *geoPoint() const;
 	virtual const WallPaper *paper() const;
 	virtual bool paperForBoth() const;
 	virtual FullStoryId storyId() const;
@@ -344,6 +345,7 @@ public:
 	std::unique_ptr<Media> clone(not_null<HistoryItem*> parent) override;
 
 	CloudImage *location() const override;
+	const LocationPoint *geoPoint() const override;
 	ItemPreview toPreview(ToPreviewOptions options) const override;
 	TextWithEntities notificationText() const override;
 	QString pinnedTextSubstring() const override;

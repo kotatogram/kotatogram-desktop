@@ -126,7 +126,7 @@ public:
 		const TextWithEntities &textWithEntities,
 		const MTPMessageMedia &media,
 		HistoryMessageMarkupData &&markup,
-		uint64 groupedId);
+		uint64 groupedId = 0);
 	HistoryItem( // Local service message.
 		not_null<History*> history,
 		MsgId id,
@@ -155,7 +155,8 @@ public:
 		const QString &postAuthor,
 		not_null<PhotoData*> photo,
 		const TextWithEntities &caption,
-		HistoryMessageMarkupData &&markup);
+		HistoryMessageMarkupData &&markup,
+		uint64 groupedId = 0);
 	HistoryItem( // Local document.
 		not_null<History*> history,
 		MsgId id,
@@ -167,7 +168,8 @@ public:
 		const QString &postAuthor,
 		not_null<DocumentData*> document,
 		const TextWithEntities &caption,
-		HistoryMessageMarkupData &&markup);
+		HistoryMessageMarkupData &&markup,
+		uint64 groupedId = 0);
 	HistoryItem( // Local game.
 		not_null<History*> history,
 		MsgId id,
@@ -428,7 +430,8 @@ public:
 	[[nodiscard]] ChatRestriction requiredSendRight() const;
 	[[nodiscard]] bool requiresSendInlineRight() const;
 	[[nodiscard]] std::optional<QString> errorTextForForward(
-		not_null<Data::Thread*> to) const;
+		not_null<Data::Thread*> to,
+		bool isUnquotedForward) const;
 	[[nodiscard]] const HistoryMessageTranslation *translation() const;
 	[[nodiscard]] bool translationShowRequiresCheck(LanguageId to) const;
 	bool translationShowRequiresRequest(LanguageId to);

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_media_types.h"
 
+#include "kotato/kotato_lang.h"
 #include "history/history.h"
 #include "history/history_item.h" // CreateMedia.
 #include "history/history_location_manager.h"
@@ -460,6 +461,11 @@ CloudImage *Media::location() const {
 }
 
 PollData *Media::poll() const {
+	return nullptr;
+}
+
+
+const LocationPoint *Media::geoPoint() const {
 	return nullptr;
 }
 
@@ -1363,6 +1369,10 @@ std::unique_ptr<Media> MediaLocation::clone(not_null<HistoryItem*> parent) {
 
 CloudImage *MediaLocation::location() const {
 	return _location;
+}
+
+const LocationPoint *MediaLocation::geoPoint() const {
+	return &_point;
 }
 
 ItemPreview MediaLocation::toPreview(ToPreviewOptions options) const {

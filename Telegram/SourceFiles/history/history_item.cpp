@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item.h"
 
+#include "kotato/kotato_lang.h"
 #include "lang/lang_keys.h"
 #include "mainwidget.h"
 #include "calls/calls_instance.h" // Core::App().calls().joinGroupCall.
@@ -615,7 +616,8 @@ HistoryItem::HistoryItem(
 	const QString &postAuthor,
 	not_null<DocumentData*> document,
 	const TextWithEntities &caption,
-	HistoryMessageMarkupData &&markup)
+	HistoryMessageMarkupData &&markup,
+	uint64 groupedId)
 : HistoryItem(
 		history,
 		id,
@@ -638,6 +640,12 @@ HistoryItem::HistoryItem(
 		spoiler,
 		/*ttlSeconds = */0);
 	setText(caption);
+	if (groupedId) {
+		setGroupId(MessageGroupId::FromRaw(
+			history->peer->id,
+			groupedId,
+			flags & MessageFlag::IsOrWasScheduled));
+	}
 }
 
 HistoryItem::HistoryItem(
@@ -651,7 +659,8 @@ HistoryItem::HistoryItem(
 	const QString &postAuthor,
 	not_null<PhotoData*> photo,
 	const TextWithEntities &caption,
-	HistoryMessageMarkupData &&markup)
+	HistoryMessageMarkupData &&markup,
+	uint64 groupedId)
 : HistoryItem(
 		history,
 		id,
@@ -668,6 +677,12 @@ HistoryItem::HistoryItem(
 	const auto spoiler = false;
 	_media = std::make_unique<Data::MediaPhoto>(this, photo, spoiler);
 	setText(caption);
+	if (groupedId) {
+		setGroupId(MessageGroupId::FromRaw(
+			history->peer->id,
+			groupedId,
+			flags & MessageFlag::IsOrWasScheduled));
+	}
 }
 
 HistoryItem::HistoryItem(
@@ -2327,7 +2342,8 @@ bool HistoryItem::requiresSendInlineRight() const {
 }
 
 std::optional<QString> HistoryItem::errorTextForForward(
-		not_null<Data::Thread*> to) const {
+		not_null<Data::Thread*> to,
+		bool isUnquotedForward) const {
 	const auto requiredRight = requiredSendRight();
 	const auto requiresInline = requiresSendInlineRight();
 	const auto peer = to->peer();
@@ -2342,6 +2358,13 @@ std::optional<QString> HistoryItem::errorTextForForward(
 		&& _media->poll()->publicVotes()
 		&& peer->isBroadcast()) {
 		return tr::lng_restricted_send_public_polls(tr::now);
+	} else if (isUnquotedForward
+		&& _media
+		&& _media->poll()
+		&& _media->poll()->quiz()
+		&& !_media->poll()->voted()
+		&& !_media->poll()->closed()) {
+		return ktr("ktg_forward_quiz_unquoted");
 	} else if (!Data::CanSend(to, requiredRight, false)) {
 		return tr::lng_forward_cant(tr::now);
 	}
