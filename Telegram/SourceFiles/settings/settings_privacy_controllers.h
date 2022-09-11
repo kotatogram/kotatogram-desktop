@@ -209,7 +209,7 @@ public:
 	Key key() override;
 
 	rpl::producer<QString> title() override;
-	bool hasOption(Option option) override;
+	//bool hasOption(Option option) override;
 	rpl::producer<QString> optionsTitleKey() override;
 	rpl::producer<QString> exceptionButtonTextKey(
 		Exception exception) override;
