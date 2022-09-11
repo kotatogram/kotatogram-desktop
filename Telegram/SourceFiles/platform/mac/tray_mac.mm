@@ -16,6 +16,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "styles/style_window.h"
 
+#include <QtCore/QDir>
 #include <QtWidgets/QMenu>
 
 #import <AppKit/NSMenu.h>
@@ -314,9 +315,11 @@ NativeIcon::NativeIcon()
 		[buttonCallback release];
 	});
 
+	static const auto workdir = QDir::toNativeSeparators(QDir::cleanPath(cWorkingDir()));
+
 	_status.button.target = buttonCallback;
 	_status.button.action = @selector(invoke);
-	_status.button.toolTip = Q2NSString(AppName.utf16());
+	_status.button.toolTip = Q2NSString(AppName.utf16()+"\n"+workdir);
 }
 
 NativeIcon::~NativeIcon() {

@@ -29,6 +29,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <private/qhighdpiscaling_p.h>
 #include <QSvgRenderer>
 #include <QBuffer>
+#include <QtCore/QDir>
 
 namespace Platform {
 
@@ -194,7 +195,8 @@ void Tray::createIcon() {
 		}
 		_icon->init();
 		updateIcon();
-		_icon->updateToolTip(AppName.utf16());
+		static const auto tooltip = AppName.utf16()+"\n"+QDir::toNativeSeparators(QDir::cleanPath(cWorkingDir()));
+		_icon->updateToolTip(tooltip);
 
 		using Reason = QPlatformSystemTrayIcon::ActivationReason;
 		base::qt_signal_producer(
