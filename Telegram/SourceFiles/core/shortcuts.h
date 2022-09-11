@@ -69,6 +69,17 @@ enum class Command {
 	JumpToDate,
 	ReloadLang,
 	Restart,
+
+	ShowAccount1,
+	ShowAccount2,
+	ShowAccount3,
+	ShowAccount4,
+	ShowAccount5,
+	ShowAccount6,
+	ShowAccount7,
+	ShowAccount8,
+	ShowAccount9,
+	ShowAccountLast,
 };
 
 [[maybe_unused]] constexpr auto kShowFolder = {
@@ -80,6 +91,19 @@ enum class Command {
 	Command::ShowFolder5,
 	Command::ShowFolder6,
 	Command::ShowFolderLast,
+};
+
+[[maybe_unused]] constexpr auto kShowAccount = {
+	Command::ShowAccount1,
+	Command::ShowAccount2,
+	Command::ShowAccount3,
+	Command::ShowAccount4,
+	Command::ShowAccount5,
+	Command::ShowAccount6,
+	Command::ShowAccount7,
+	Command::ShowAccount8,
+	Command::ShowAccount9,
+	Command::ShowAccountLast,
 };
 
 [[nodiscard]] FnMut<bool()> RequestHandler(Command command);
