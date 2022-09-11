@@ -41,6 +41,8 @@ enum class FieldAutocompleteChooseMethod {
 	ByEnter,
 	ByTab,
 	ByClick,
+	ByRightClick,
+	ByCtrlEnter,
 };
 
 class FieldAutocomplete final : public Ui::RpWidget {

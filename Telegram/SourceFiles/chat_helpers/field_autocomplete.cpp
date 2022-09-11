@@ -1053,6 +1053,13 @@ bool FieldAutocomplete::eventFilter(QObject *obj, QEvent *e) {
 		| Qt::ShiftModifier
 		| Qt::MetaModifier;
 	if (event->modifiers() & modifiers) {
+		if (!hidden
+			&& !_mrows.empty()
+			&& (event->modifiers() & Qt::ControlModifier)
+			&& (event->key() == Qt::Key_Enter
+				|| event->key() == Qt::Key_Return)) {
+			return _inner->chooseSelected(ChooseMethod::ByCtrlEnter);
+		}
 		return QWidget::eventFilter(obj, e);
 	}
 	const auto key = event->key();
@@ -1570,7 +1577,9 @@ bool FieldAutocomplete::Inner::chooseAtIndex(
 		FieldAutocomplete::ChooseMethod method,
 		int index,
 		Api::SendOptions options) const {
-	if (index < 0 || (method == ChooseMethod::ByEnter && _mouseSelection)) {
+	const auto byKeyboard = (method == ChooseMethod::ByEnter)
+		|| (method == ChooseMethod::ByCtrlEnter);
+	if (index < 0 || (byKeyboard && _mouseSelection)) {
 		return false;
 	}
 	if (!_srows->empty()) {
@@ -1672,6 +1681,10 @@ void FieldAutocomplete::Inner::mousePressEvent(QMouseEvent *e) {
 			_down = _sel;
 			_previewTimer.callOnce(QApplication::startDragTime());
 		}
+	} else if (e->button() == Qt::RightButton
+		&& _srows->empty()
+		&& !_mrows->empty()) {
+		chooseSelected(FieldAutocomplete::ChooseMethod::ByRightClick);
 	}
 }
 
@@ -2007,7 +2020,10 @@ void InitFieldAutocomplete(
 		const auto user = data.user;
 		const auto ctrlClick = base::IsCtrlPressed()
 			&& data.method == FieldAutocomplete::ChooseMethod::ByClick;
-		if (data.mention.isEmpty() || ctrlClick) {
+		const auto byName = ctrlClick
+			|| data.method == FieldAutocomplete::ChooseMethod::ByRightClick
+			|| data.method == FieldAutocomplete::ChooseMethod::ByCtrlEnter;
+		if (data.mention.isEmpty() || byName) {
 			field->insertTag(
 				user->firstName.isEmpty() ? user->name() : user->firstName,
 				PrepareMentionTag(user));
