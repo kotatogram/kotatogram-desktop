@@ -2955,7 +2955,7 @@ void ApiWrap::readFeaturedSets() {
 
 void ApiWrap::resolveJumpToDate(
 		Dialogs::Key chat,
-		const QDate &date,
+		const QDateTime &date,
 		Fn<void(not_null<PeerData*>, MsgId)> callback) {
 	if (const auto peer = chat.peer()) {
 		const auto topic = chat.topic();
@@ -2968,13 +2968,13 @@ template <typename Callback>
 void ApiWrap::requestMessageAfterDate(
 		not_null<PeerData*> peer,
 		MsgId topicRootId,
-		const QDate &date,
+		const QDateTime &date,
 		Callback &&callback) {
 	// API returns a message with date <= offset_date.
 	// So we request a message with offset_date = desired_date - 1 and add_offset = -1.
 	// This should give us the first message with date >= desired_date.
 	const auto offsetId = 0;
-	const auto offsetDate = static_cast<int>(date.startOfDay().toSecsSinceEpoch()) - 1;
+	const auto offsetDate = static_cast<int>(date.toSecsSinceEpoch()) - 1;
 	const auto addOffset = -1;
 	const auto limit = 1;
 	const auto maxId = 0;
@@ -3051,7 +3051,7 @@ void ApiWrap::requestMessageAfterDate(
 void ApiWrap::resolveJumpToHistoryDate(
 		not_null<PeerData*> peer,
 		MsgId topicRootId,
-		const QDate &date,
+		const QDateTime &date,
 		Fn<void(not_null<PeerData*>, MsgId)> callback) {
 	if (const auto channel = peer->migrateTo()) {
 		return resolveJumpToHistoryDate(

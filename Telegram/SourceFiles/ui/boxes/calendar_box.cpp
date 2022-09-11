@@ -48,6 +48,7 @@ public:
 
 	void skipMonth(int skip);
 	void showMonth(QDate month);
+	void skipDays(int skip);
 	[[nodiscard]] bool showsMonthOf(QDate date) const;
 
 	[[nodiscard]] int highlightedIndex() const {
@@ -67,6 +68,9 @@ public:
 	}
 	[[nodiscard]] bool isEnabled(int index) const {
 		return (index >= _minDayIndex) && (index <= _maxDayIndex);
+	}
+	QDate highlighted() const {
+		return _highlighted;
 	}
 
 	[[nodiscard]] QDate month() const {
@@ -99,6 +103,7 @@ private:
 
 	static int DaysShiftForMonth(QDate month, QDate min);
 	static int RowsCountForMonth(QDate month, QDate min, QDate max);
+	void setHighlightedDate(QDate highlighted);
 
 	bool _allowsSelection = false;
 
@@ -197,6 +202,36 @@ void CalendarBox::Context::skipMonth(int skip) {
 	showMonth(QDate(year, month, 1));
 }
 
+void CalendarBox::Context::skipDays(int skip) {
+	auto date = _highlighted;
+
+	if (_month.current().month() == _highlighted.month()
+		&& _month.current().year() == _highlighted.year()) {
+		date = date.addDays(skip);
+	} else if (skip < 0) {
+		date = QDate(
+			_month.current().year(),
+			_month.current().month(),
+			_month.current().daysInMonth());
+	} else {
+		date = QDate(
+			_month.current().year(),
+			_month.current().month(),
+			1);
+	}
+
+	if (date.isValid() && date >= _min && date <= _max) {
+		auto needMonthChange = (date.month() != _highlighted.month()
+			|| date.year() != _highlighted.year());
+
+		setHighlightedDate(date);
+
+		if (needMonthChange) {
+			showMonth(date);
+		}
+	}
+}
+
 int CalendarBox::Context::DaysShiftForMonth(QDate month, QDate min) {
 	Expects(!month.isNull());
 
@@ -243,6 +278,12 @@ int CalendarBox::Context::RowsCountForMonth(
 	max = max.addDays(1 - max.dayOfWeek());
 	const auto cellsFull = daysShift + (month.day() - 1) + month.daysTo(max);
 	return cellsFull / kDaysInWeek;
+}
+
+void CalendarBox::Context::setHighlightedDate(QDate highlighted) {
+	_highlighted = highlighted;
+	_highlightedIndex = _month.current().daysTo(_highlighted);
+	applyMonth(_month.current(), true);
 }
 
 QDate CalendarBox::Context::dateFromIndex(int index) const {
@@ -350,6 +391,9 @@ public:
 
 	[[nodiscard]] int countMaxHeight() const;
 	void setDateChosenCallback(Fn<void(QDate)> callback);
+	void selectBeginning();
+	void selectEnd();
+	void selectHighlighted();
 
 	~Inner();
 
@@ -726,6 +770,18 @@ int CalendarBox::Inner::countMaxHeight() const {
 
 void CalendarBox::Inner::setDateChosenCallback(Fn<void(QDate)> callback) {
 	_dateChosenCallback = std::move(callback);
+}
+
+void CalendarBox::Inner::selectBeginning() {
+	_dateChosenCallback(_context->dateFromIndex(_context->minDayIndex()));
+}
+
+void CalendarBox::Inner::selectEnd() {
+	_dateChosenCallback(_context->dateFromIndex(_context->maxDayIndex()));
+}
+
+void CalendarBox::Inner::selectHighlighted() {
+	_dateChosenCallback(_context->highlighted());
 }
 
 CalendarBox::Inner::~Inner() = default;
@@ -1135,14 +1191,20 @@ void CalendarBox::keyPressEvent(QKeyEvent *e) {
 		jump(_previous.data());
 	} else if (e->key() == Qt::Key_End) {
 		jump(_next.data());
-	} else if (e->key() == Qt::Key_Left
-		|| e->key() == Qt::Key_Up
-		|| e->key() == Qt::Key_PageUp) {
+	} else if (e->key() == Qt::Key_PageUp) {
 		goPreviousMonth();
-	} else if (e->key() == Qt::Key_Right
-		|| e->key() == Qt::Key_Down
-		|| e->key() == Qt::Key_PageDown) {
+	} else if (e->key() == Qt::Key_PageDown) {
 		goNextMonth();
+	} else if (e->key() == Qt::Key_Left) {
+		_context->skipDays(-1);
+	} else if (e->key() == Qt::Key_Right) {
+		_context->skipDays(1);
+	} else if (e->key() == Qt::Key_Up) {
+		_context->skipDays(-7);
+	} else if (e->key() == Qt::Key_Down) {
+		_context->skipDays(7);
+	} else if (e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter) {
+		_inner->selectHighlighted();
 	}
 }
 
