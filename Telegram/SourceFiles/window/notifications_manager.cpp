@@ -979,6 +979,12 @@ TextWithEntities Manager::addTargetAccountName(
 		TextWithEntities title,
 		not_null<Main::Session*> session) {
 	const auto add = [&] {
+		if (const auto activeSession = Core::App().domain().active().maybeSession()) {
+			if (session == activeSession) {
+				return false;
+			}
+		}
+
 		for (const auto &[index, account] : Core::App().domain().accounts()) {
 			if (const auto other = account->maybeSession()) {
 				if (other != session) {
