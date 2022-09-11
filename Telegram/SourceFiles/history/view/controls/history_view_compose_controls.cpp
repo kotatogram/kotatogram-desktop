@@ -3493,6 +3493,11 @@ void ComposeControls::saveDraft(bool delayed) {
 	writeDrafts();
 }
 
+void ComposeControls::saveDraftToCloud() {
+	saveDraft();
+	saveCloudDraft();
+}
+
 void ComposeControls::saveCloudDraft() {
 	if (bypassNormalDraftHandling()) {
 		_saveCloudDraftTimer.cancel();

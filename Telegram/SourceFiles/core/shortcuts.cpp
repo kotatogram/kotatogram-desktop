@@ -144,6 +144,8 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ u"record_round"_q                  , Command::RecordRound },
 	{ u"show_admin_log"_q                , Command::ShowAdminLog },
 	//
+
+	{ qsl("save_draft")        , Command::SaveDraft },
 };
 
 const base::flat_map<Command, QString> &CommandNames() {
@@ -541,6 +543,8 @@ void Manager::fillDefaults() {
 	set(u"ctrl+]"_q                  , Command::ShowChatPreview);
 
 	set(u"ctrl+r"_q                  , Command::RecordVoice);
+
+	set(u"ctrl+s"_q, Command::SaveDraft);
 
 	_defaults = keysCurrents();
 }

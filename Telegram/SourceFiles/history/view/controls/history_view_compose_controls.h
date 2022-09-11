@@ -326,6 +326,7 @@ public:
 		FieldHistoryAction fieldHistoryAction = FieldHistoryAction::Clear);
 
 	void saveFieldToHistoryLocalDraft(bool save = true);
+	void saveDraftToCloud();
 
 	Fn<void()> restoreTextCallback(const QString &insertTextOnCancel) const;
 

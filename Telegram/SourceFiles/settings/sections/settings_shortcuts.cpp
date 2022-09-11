@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_shortcuts.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/event_filter.h"
 #include "core/application.h"
 #include "core/shortcuts.h"
@@ -129,6 +130,8 @@ struct Labeled {
 		{ C::MediaStop, tr::lng_shortcuts_media_stop() },
 		{ C::MediaPrevious, tr::lng_shortcuts_media_previous() },
 		{ C::MediaNext, tr::lng_shortcuts_media_next() },
+		separator,
+		{ C::SaveDraft, rktr("ktg_shortcuts_save_draft") },
 	};
 }
 

@@ -209,6 +209,7 @@
 	"ktg_settings_view_profile_on_top_about": "This option also enables \"Add \"View Profile\"\" from TDesktop's experimental settings.",
 	"ktg_settings_emoji_sidebar": "Enable emoji sidebar",
 	"ktg_settings_emoji_sidebar_right_click": "Emoji sidebar on right click",
+	"ktg_shortcuts_save_draft": "Save draft",
 	"ktg_premium_double_limits_about_accounts": {
 		"zero": "Connect {count} accounts with different mobile numbers in official apps",
 		"one": "Connect {count} account with different mobile numbers in official apps",

@@ -2806,6 +2806,11 @@ void HistoryWidget::setupShortcuts() {
 				return true;
 			});
 		}
+		request->check(Command::SaveDraft, 1) && request->handle([=] {
+			saveDraft();
+			saveCloudDraft();
+			return true;
+		});
 	}, lifetime());
 }
 

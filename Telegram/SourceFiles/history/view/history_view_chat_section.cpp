@@ -6096,6 +6096,10 @@ void ChatWidget::setupShortcuts() {
 					return true;
 				});
 		}
+		request->check(Command::SaveDraft, 1) && request->handle([=] {
+			_composeControls->saveDraftToCloud();
+			return true;
+		});
 	}, lifetime());
 }
 
