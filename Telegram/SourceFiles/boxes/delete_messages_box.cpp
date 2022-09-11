@@ -145,7 +145,7 @@ void DeleteMessagesBox::prepare() {
 			_revoke.create(
 				this,
 				revoke->checkbox,
-				false,
+				true,
 				st::defaultBoxCheckbox);
 			appendDetails(std::move(revoke->description));
 			if (!peer->isUser() && !_wipeHistoryJustClear) {
@@ -197,7 +197,7 @@ void DeleteMessagesBox::prepare() {
 				_revoke.create(
 					this,
 					revoke->checkbox,
-					false,
+					true,
 					st::defaultBoxCheckbox);
 				appendDetails(std::move(revoke->description));
 			} else if (peer->isChannel()) {
