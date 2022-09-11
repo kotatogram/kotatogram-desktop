@@ -18,6 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_account.h"
 #include "main/main_domain.h"
 #include "ui/boxes/confirm_box.h"
+#include "boxes/premium_limits_box.h"
 #include "lang/lang_cloud_manager.h"
 #include "lang/lang_instance.h"
 #include "core/application.h"
@@ -267,6 +268,14 @@ auto GenerateCodes() {
 		const auto now = !Data::CloudThemes::TestingColors();
 		Data::CloudThemes::SetTestingColors(now);
 		Ui::Toast::Show(now ? "Testing chat theme colors!" : "Not testing..");
+	});
+	codes.emplace(qsl("usernames"), [](SessionController *window) {
+		if (window) {
+			// The box calls retry after a link is revoked.
+			window->show(
+				Box(PublicLinksLimitBox, window, [] {}),
+				Ui::LayerOption::KeepOther);
+		}
 	});
 	codes.emplace(qsl("reloadlang"), [](SessionController *window) {
 		Kotato::Lang::Reload();
