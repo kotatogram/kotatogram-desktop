@@ -37,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_window.h"
 
 #include <QtCore/QMimeData>
+#include <QtCore/QDir>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QWindow>
 #include <QtGui/QScreen>
@@ -806,7 +807,8 @@ void MainWindow::setPositionInited() {
 }
 
 void MainWindow::attachToTrayIcon(not_null<QSystemTrayIcon*> icon) {
-	icon->setToolTip(AppName.utf16());
+	const auto workdir = QDir::toNativeSeparators(QDir::cleanPath(cWorkingDir()));
+	icon->setToolTip(AppName.utf16()+"\n"+workdir);
 	connect(icon, &QSystemTrayIcon::activated, this, [=](
 			QSystemTrayIcon::ActivationReason reason) {
 		Core::Sandbox::Instance().customEnterFromEventLoop([&] {
