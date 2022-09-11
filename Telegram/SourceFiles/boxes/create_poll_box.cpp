@@ -162,9 +162,7 @@ void InitField(
 		not_null<QWidget*> container,
 		not_null<Ui::InputField*> field,
 		not_null<Main::Session*> session) {
-	field->setInstantReplaces(Ui::InstantReplaces::Default());
-	field->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	field->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	auto options = Ui::Emoji::SuggestionsController::Options();
 	options.suggestExactFirstWord = false;
 	Ui::Emoji::SuggestionsController::Init(
@@ -845,9 +843,7 @@ not_null<Ui::InputField*> CreatePollBox::setupSolution(
 		st::createPollFieldPadding);
 	InitField(getDelegate()->outerContainer(), solution, session);
 	solution->setMaxLength(kSolutionLimit + kErrorLimit);
-	solution->setInstantReplaces(Ui::InstantReplaces::Default());
-	solution->setInstantReplacesEnabled(
-		Core::App().settings().replaceEmojiValue());
+	solution->setInstantReplaces(Core::App().settings().instantReplacesValue());
 	solution->setMarkdownReplacesEnabled(rpl::single(true));
 	solution->setEditLinkCallback(
 		DefaultEditLinkCallback(
