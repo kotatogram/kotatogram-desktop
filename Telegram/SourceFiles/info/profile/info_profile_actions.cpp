@@ -745,6 +745,21 @@ object_ptr<Ui::RpWidget> DetailsFiller::setupInfo() {
 		if (!_topic) {
 			addTranslateToMenu(about.text, AboutWithIdValue(_peer));
 		}
+
+		if (const auto channel = _peer->asChannel()) {
+			const auto controller = _controller->parentController();
+			auto viewLinkedGroup = [=] {
+				controller->showPeerHistory(
+					channel->linkedChat(),
+					Window::SectionShow::Way::Forward);
+			};
+			AddMainButton(
+				result,
+				(channel->isBroadcast() ? tr::lng_channel_discuss() : tr::lng_manage_linked_channel()),
+				HasLinkedChatValue(channel),
+				std::move(viewLinkedGroup),
+				tracker);
+		}
 	}
 	if (!_peer->isSelf() && !::Kotato::JsonSettings::GetBool("profile_top_mute")) {
 		// No notifications toggle for Self => no separator.
