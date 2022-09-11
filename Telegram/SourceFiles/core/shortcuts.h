@@ -44,6 +44,10 @@ enum class Command {
 	ShowAccount4,
 	ShowAccount5,
 	ShowAccount6,
+	ShowAccount7,
+	ShowAccount8,
+	ShowAccount9,
+	ShowAccountLast,
 
 	ShowAllChats,
 	ShowFolder1,
@@ -98,6 +102,10 @@ enum class Command {
 	Command::ShowAccount4,
 	Command::ShowAccount5,
 	Command::ShowAccount6,
+	Command::ShowAccount7,
+	Command::ShowAccount8,
+	Command::ShowAccount9,
+	Command::ShowAccountLast,
 };
 
 [[nodiscard]] FnMut<bool()> RequestHandler(Command command);
