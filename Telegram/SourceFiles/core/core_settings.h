@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/platform/base_platform_info.h"
 #include "core/core_settings_proxy.h"
 #include "media/media_common.h"
 #include "window/themes/window_themes_embedded.h"
@@ -927,7 +928,7 @@ private:
 	rpl::variable<float64> _dialogsWidthRatio; // per-window
 	rpl::variable<int> _thirdColumnWidth = kDefaultThirdColumnWidth; // p-w
 	bool _notifyFromAll = true;
-	rpl::variable<bool> _nativeWindowFrame = false;
+	rpl::variable<bool> _nativeWindowFrame = Platform::IsLinux();
 	rpl::variable<std::optional<bool>> _systemDarkMode = std::nullopt;
 	rpl::variable<bool> _systemDarkModeEnabled = false;
 	rpl::variable<WindowTitleContent> _windowTitleContent;
