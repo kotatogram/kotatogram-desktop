@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "inline_bots/inline_bot_layout_internal.h"
 
+#include "data/data_media_types.h"
 #include "data/data_photo.h"
 #include "data/data_document.h"
 #include "data/data_session.h"

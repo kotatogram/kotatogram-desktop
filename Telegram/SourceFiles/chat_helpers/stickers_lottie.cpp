@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "lottie/lottie_single_player.h"
 #include "lottie/lottie_multi_player.h"
+#include "data/data_media_types.h"
 #include "data/stickers/data_stickers_set.h"
 #include "data/data_document.h"
 #include "data/data_document_media.h"
