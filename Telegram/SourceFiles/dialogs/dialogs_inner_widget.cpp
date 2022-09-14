@@ -103,6 +103,28 @@ int PinnedDialogsCount(
 	return result;
 }
 
+// Duplicated code from window/window_main_menu.cpp
+[[nodiscard]] std::vector<not_null<Main::Account*>> OrderedAccounts() {
+	const auto order = Core::App().settings().accountsOrder();
+	auto accounts = ranges::views::all(
+		Core::App().domain().accounts()
+	) | ranges::views::transform([](const Main::Domain::AccountWithIndex &a) {
+		return not_null{ a.account.get() };
+	}) | ranges::to_vector;
+	ranges::stable_sort(accounts, [&](
+			not_null<Main::Account*> a,
+			not_null<Main::Account*> b) {
+		const auto aIt = a->sessionExists()
+			? ranges::find(order, a->session().uniqueId())
+			: end(order);
+		const auto bIt = b->sessionExists()
+			? ranges::find(order, b->session().uniqueId())
+			: end(order);
+		return aIt < bIt;
+	});
+	return accounts;
+}
+
 } // namespace
 
 struct InnerWidget::CollapsedRow {
@@ -3174,8 +3196,8 @@ void InnerWidget::setupShortcuts() {
 			}
 		}
 
-		const auto accounts = &Core::App().domain().accounts();
-		if (const auto accountsCount = int(accounts->size())) {
+		const auto accounts = OrderedAccounts();
+		if (const auto accountsCount = int(accounts.size())) {
 			auto &&accountShortcuts = ranges::views::zip(
 				Shortcuts::kShowAccount,
 				ranges::views::ints(0, ranges::unreachable));
@@ -3186,7 +3208,7 @@ void InnerWidget::setupShortcuts() {
 					: std::clamp(index, 0, accountsCount - 1);
 				request->check(command) && request->handle([=] {
 					if (select <= accountsCount) {
-						const auto account = (*accounts)[select].account.get();
+						const auto account = accounts[select];
 						if (account != &Core::App().domain().active()) {
 							Core::App().domain().maybeActivate(account);
 						}
