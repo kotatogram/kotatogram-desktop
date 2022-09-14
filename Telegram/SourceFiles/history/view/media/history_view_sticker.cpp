@@ -95,17 +95,13 @@ bool Sticker::isEmojiSticker() const {
 }
 
 void Sticker::initSize() {
-	const auto currentStickerHeight = ::Kotato::JsonSettings::GetInt("sticker_height");
-	const auto currentScaleBoth = ::Kotato::JsonSettings::GetBool("sticker_scale_both");
-	const auto maxHeight = int(st::maxStickerSize / 256.0 * currentStickerHeight);
-	const auto maxWidth = currentScaleBoth ? maxHeight : st::maxStickerSize;
 	if (isEmojiSticker() || _diceIndex >= 0) {
 		_size = Sticker::EmojiSize();
 		if (_diceIndex > 0) {
 			[[maybe_unused]] bool result = readyToDrawLottie();
 		}
 	} else {
-		_size = DownscaledSize(_data->dimensions, { maxWidth, maxHeight });
+		_size = DownscaledSize(_data->dimensions, Sticker::Size());
 	}
 }
 
@@ -135,8 +131,11 @@ bool Sticker::readyToDrawLottie() {
 }
 
 QSize Sticker::Size() {
-	const auto side = std::min(st::maxStickerSize, kMaxSizeFixed);
-	return { side, side };
+	const auto currentStickerHeight = ::Kotato::JsonSettings::GetInt("sticker_height");
+	const auto currentScaleBoth = ::Kotato::JsonSettings::GetBool("sticker_scale_both");
+	const auto maxHeight = int(st::maxStickerSize / 256.0 * currentStickerHeight);
+	const auto maxWidth = currentScaleBoth ? maxHeight : st::maxStickerSize;
+	return { maxWidth, maxHeight };
 }
 
 QSize Sticker::EmojiSize() {
