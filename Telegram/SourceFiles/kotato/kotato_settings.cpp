@@ -461,7 +461,7 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.defaultValue = false, }},
 	{ "remember_compress_images", {
 		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
+		.defaultValue = true, }},
 	{ "view_profile_on_top", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
