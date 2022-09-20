@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/edit_participants_box.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
 #include "api/api_chat_participants.h"
 #include "boxes/peer_list_controllers.h"
@@ -1495,7 +1496,7 @@ void ParticipantsBoxController::rowClicked(not_null<PeerListRow*> row) {
 		showRestricted(user);
 	} else {
 		Assert(_navigation != nullptr);
-		if (_role != Role::Profile) {
+		if (_role != Role::Profile && !::Kotato::JsonSettings::GetBool("disable_short_info_box")) {
 			_navigation->parentController()->show(PrepareShortInfoBox(
 				participant,
 				_navigation));
