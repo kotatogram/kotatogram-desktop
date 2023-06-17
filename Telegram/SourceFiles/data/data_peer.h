@@ -463,6 +463,7 @@ private:
 	QString _themeEmoticon;
 	std::unique_ptr<Data::WallPaper> _wallPaper;
 
+	float64 _radiusMultiplier = -1.0;
 };
 
 namespace Data {

@@ -165,7 +165,8 @@ bool HiddenSenderInfo::paintCustomUserpic(
 		image.isNull() ? nullptr : &image,
 		image.isNull() ? &emptyUserpic : nullptr,
 		size * style::DevicePixelRatio(),
-		false);
+		false,
+		-1.0);
 	p.drawImage(QRect(x, y, size, size), view.cached);
 	return valid;
 }

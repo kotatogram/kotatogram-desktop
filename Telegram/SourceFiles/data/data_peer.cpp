@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_peer.h"
 
+#include "kotato/kotato_settings.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
 #include "data/data_chat_participant_status.h"
@@ -54,6 +55,17 @@ constexpr auto kUpdateFullPeerTimeout = crl::time(5000); // Not more than once i
 constexpr auto kUserpicSize = 160;
 
 using UpdateFlag = Data::PeerUpdate::Flag;
+
+float64 KotatoImageRoundRadiusMultiplier() {
+	const auto radius = ::Kotato::JsonSettings::GetInt("userpic_corner_radius");
+	if (radius < 0) {
+		return -1.0;
+	} else if (radius) {
+		return radius / 10;
+	}
+	return 0.0;
+}
+
 
 } // namespace
 
@@ -158,6 +170,7 @@ void PeerClickHandler::onClick(ClickContext context) const {
 PeerData::PeerData(not_null<Data::Session*> owner, PeerId id)
 : id(id)
 , _owner(owner) {
+	_radiusMultiplier = KotatoImageRoundRadiusMultiplier();
 }
 
 Data::Session &PeerData::owner() const {
@@ -304,7 +317,8 @@ void PeerData::paintUserpic(
 		cloud,
 		cloud ? nullptr : ensureEmptyUserpic().get(),
 		size * ratio,
-		isForum());
+		isForum(),
+		_radiusMultiplier);
 	p.drawImage(QRect(x, y, size, size), view.cached);
 }
 
@@ -317,7 +331,10 @@ bool PeerData::hasUserpic() const {
 }
 
 Ui::PeerUserpicView PeerData::activeUserpicView() {
-	return { .cloud = _userpic.empty() ? nullptr : _userpic.activeView() };
+	return {
+		.cloud = _userpic.empty() ? nullptr : _userpic.activeView(),
+		.radiusMultiplier = _radiusMultiplier
+	};
 }
 
 Ui::PeerUserpicView PeerData::createUserpicView() {
@@ -326,7 +343,7 @@ Ui::PeerUserpicView PeerData::createUserpicView() {
 	}
 	auto result = _userpic.createView();
 	_userpic.load(&session(), userpicPhotoOrigin());
-	return { .cloud = result };
+	return { .cloud = result, .radiusMultiplier = _radiusMultiplier };
 }
 
 bool PeerData::useEmptyUserpic(Ui::PeerUserpicView &view) const {
@@ -357,8 +374,10 @@ QImage PeerData::generateUserpicImage(
 			return image;
 		} else if (radius) {
 			return round(*radius);
-		} else if (isForum()) {
-			return round(size * Ui::ForumUserpicRadiusMultiplier());
+		} else if (_radiusMultiplier > 0.0) {
+			return round(size * _radiusMultiplier);
+		} else if (_radiusMultiplier == 0.0) {
+			return image;
 		} else {
 			return Images::Circle(std::move(image));
 		}
@@ -373,14 +392,16 @@ QImage PeerData::generateUserpicImage(
 		ensureEmptyUserpic()->paintSquare(p, 0, 0, size, size);
 	} else if (radius) {
 		ensureEmptyUserpic()->paintRounded(p, 0, 0, size, size, *radius);
-	} else if (isForum()) {
+	} else if (_radiusMultiplier > 0.0) {
 		ensureEmptyUserpic()->paintRounded(
 			p,
 			0,
 			0,
 			size,
 			size,
-			size * Ui::ForumUserpicRadiusMultiplier());
+			size * _radiusMultiplier);
+	} else if (_radiusMultiplier == 0.0) {
+		ensureEmptyUserpic()->paintSquare(p, 0, 0, size, size);
 	} else {
 		ensureEmptyUserpic()->paintCircle(p, 0, 0, size, size);
 	}

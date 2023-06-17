@@ -25,7 +25,8 @@ void ValidateUserpicCache(
 		const QImage *cloud,
 		const EmptyUserpic *empty,
 		int size,
-		bool forum) {
+		bool forum,
+		float64 radiusMultiplier) {
 	Expects(cloud != nullptr || empty != nullptr);
 
 	const auto full = QSize(size, size);
@@ -41,6 +42,7 @@ void ValidateUserpicCache(
 	}
 	view.empty = empty;
 	view.forum = forumValue;
+	view.radiusMultiplier = radiusMultiplier;
 	view.paletteVersion = version;
 
 	if (cloud) {
@@ -48,14 +50,14 @@ void ValidateUserpicCache(
 			full,
 			Qt::IgnoreAspectRatio,
 			Qt::SmoothTransformation);
-		if (forum) {
+		if (view.radiusMultiplier < 0.0) {
+			view.cached = Images::Circle(std::move(view.cached));
+		} else if (view.radiusMultiplier > 0.0) {
 			view.cached = Images::Round(
 				std::move(view.cached),
 				Images::CornersMask(size
-					* Ui::ForumUserpicRadiusMultiplier()
+					* view.radiusMultiplier
 					/ style::DevicePixelRatio()));
-		} else {
-			view.cached = Images::Circle(std::move(view.cached));
 		}
 	} else {
 		if (view.cached.size() != full) {
@@ -64,16 +66,18 @@ void ValidateUserpicCache(
 		view.cached.fill(Qt::transparent);
 
 		auto p = QPainter(&view.cached);
-		if (forum) {
+		if (view.radiusMultiplier < 0.0) {
+			empty->paintCircle(p, 0, 0, size, size);
+		} else if (view.radiusMultiplier > 0.0) {
 			empty->paintRounded(
 				p,
 				0,
 				0,
 				size,
 				size,
-				size * Ui::ForumUserpicRadiusMultiplier());
+				size * view.radiusMultiplier);
 		} else {
-			empty->paintCircle(p, 0, 0, size, size);
+			empty->paintSquare(p, 0, 0, size, size);
 		}
 	}
 }

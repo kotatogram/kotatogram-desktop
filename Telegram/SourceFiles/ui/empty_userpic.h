@@ -53,7 +53,8 @@ public:
 		int x,
 		int y,
 		int outerWidth,
-		int size);
+		int size,
+		int radius = -1);
 	static void PaintSavedMessages(
 		QPainter &p,
 		int x,
@@ -61,15 +62,17 @@ public:
 		int outerWidth,
 		int size,
 		QBrush bg,
-		const style::color &fg);
-	[[nodiscard]] static QImage GenerateSavedMessages(int size);
+		const style::color &fg,
+		int radius = -1);
+	[[nodiscard]] static QImage GenerateSavedMessages(int size, int radius = -1);
 
 	static void PaintRepliesMessages(
 		QPainter &p,
 		int x,
 		int y,
 		int outerWidth,
-		int size);
+		int size,
+		int radius = -1);
 	static void PaintRepliesMessages(
 		QPainter &p,
 		int x,
@@ -77,8 +80,9 @@ public:
 		int outerWidth,
 		int size,
 		QBrush bg,
-		const style::color &fg);
-	[[nodiscard]] static QImage GenerateRepliesMessages(int size);
+		const style::color &fg,
+		int radius = -1);
+	[[nodiscard]] static QImage GenerateRepliesMessages(int size, int radius = -1);
 
 	~EmptyUserpic();
 

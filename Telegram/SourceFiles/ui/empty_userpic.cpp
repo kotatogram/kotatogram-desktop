@@ -324,14 +324,15 @@ void EmptyUserpic::PaintSavedMessages(
 		int x,
 		int y,
 		int outerWidth,
-		int size) {
+		int size,
+		int radius) {
 	auto bg = QLinearGradient(x, y, x, y + size);
 	bg.setStops({
 		{ 0., st::historyPeerSavedMessagesBg->c },
 		{ 1., st::historyPeerSavedMessagesBg2->c }
 	});
 	const auto &fg = st::historyPeerUserpicFg;
-	PaintSavedMessages(p, x, y, outerWidth, size, QBrush(bg), fg);
+	PaintSavedMessages(p, x, y, outerWidth, size, QBrush(bg), fg, radius);
 }
 
 void EmptyUserpic::PaintSavedMessages(
@@ -341,20 +342,32 @@ void EmptyUserpic::PaintSavedMessages(
 		int outerWidth,
 		int size,
 		QBrush bg,
-		const style::color &fg) {
+		const style::color &fg,
+		int radius) {
 	x = style::RightToLeft() ? (outerWidth - x - size) : x;
 
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(std::move(bg));
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	switch (radius) {
+		case -1:
+			p.drawEllipse(x, y, size, size);
+			break;
+
+		case 0:
+			p.fillRect(x, y, size, size, p.brush());
+			break;
+
+		default:
+			p.drawRoundedRect(x, y, size, size, radius, radius);
+	}
 
 	PaintSavedMessagesInner(p, x, y, size, fg);
 }
 
-QImage EmptyUserpic::GenerateSavedMessages(int size) {
+QImage EmptyUserpic::GenerateSavedMessages(int size, int radius) {
 	return Generate(size, [&](QPainter &p) {
-		PaintSavedMessages(p, 0, 0, size, size);
+		PaintSavedMessages(p, 0, 0, size, size, radius);
 	});
 }
 
@@ -363,14 +376,15 @@ void EmptyUserpic::PaintRepliesMessages(
 		int x,
 		int y,
 		int outerWidth,
-		int size) {
+		int size,
+		int radius) {
 	auto bg = QLinearGradient(x, y, x, y + size);
 	bg.setStops({
 		{ 0., st::historyPeerSavedMessagesBg->c },
 		{ 1., st::historyPeerSavedMessagesBg2->c }
 	});
 	const auto &fg = st::historyPeerUserpicFg;
-	PaintRepliesMessages(p, x, y, outerWidth, size, QBrush(bg), fg);
+	PaintRepliesMessages(p, x, y, outerWidth, size, QBrush(bg), fg, radius);
 }
 
 void EmptyUserpic::PaintRepliesMessages(
@@ -380,20 +394,32 @@ void EmptyUserpic::PaintRepliesMessages(
 		int outerWidth,
 		int size,
 		QBrush bg,
-		const style::color &fg) {
+		const style::color &fg,
+		int radius) {
 	x = style::RightToLeft() ? (outerWidth - x - size) : x;
 
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	switch (radius) {
+		case -1:
+			p.drawEllipse(x, y, size, size);
+			break;
+
+		case 0:
+			p.fillRect(x, y, size, size, p.brush());
+			break;
+
+		default:
+			p.drawRoundedRect(x, y, size, size, radius, radius);
+	}
 
 	PaintRepliesMessagesInner(p, x, y, size, fg);
 }
 
-QImage EmptyUserpic::GenerateRepliesMessages(int size) {
+QImage EmptyUserpic::GenerateRepliesMessages(int size, int radius) {
 	return Generate(size, [&](QPainter &p) {
-		PaintRepliesMessages(p, 0, 0, size, size);
+		PaintRepliesMessages(p, 0, 0, size, size, radius);
 	});
 }
 
