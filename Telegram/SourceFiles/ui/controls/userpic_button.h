@@ -131,6 +131,8 @@ public:
 	void overrideHasPersonalPhoto(bool has);
 	[[nodiscard]] rpl::producer<> resetPersonalRequests() const;
 
+	[[nodiscard]] bool useForumShape() const;
+
 protected:
 	void paintEvent(QPaintEvent *e) override;
 	void mouseMoveEvent(QMouseEvent *e) override;
@@ -168,7 +170,6 @@ private:
 	void streamingReady(Media::Streaming::Information &&info);
 	void paintUserpicFrame(Painter &p, QPoint photoPosition);
 
-	[[nodiscard]] bool useForumShape() const;
 	void grabOldUserpic();
 	void setClickHandlerByRole();
 	void requestSuggestAvailability();

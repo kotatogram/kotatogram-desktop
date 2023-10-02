@@ -30,6 +30,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item_helpers.h" // GetErrorForSending.
 #include "history/view/history_view_group_call_bar.h" // GenerateUserpics...
 #include "info/channel_statistics/earn/earn_icons.h"
+#include "kotato/kotato_radius.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "qr/qr_generate.h"
@@ -715,7 +716,13 @@ void Controller::setupAboveJoinedWidget() {
 			userpic.fill(Qt::transparent);
 
 			auto p = QPainter(&userpic);
-			emptyUserpic.paintCircle(p, 0, 0, st.photoSize, st.photoSize);
+			Kotato::PaintEmptyUserpic(
+				emptyUserpic,
+				p,
+				0,
+				0,
+				st.photoSize,
+				st.photoSize);
 
 			auto svg = QSvgRenderer(u":/gui/links_subscription.svg"_q);
 			const auto size = st.photoSize / 4. * 3.;

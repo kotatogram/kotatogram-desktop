@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "info/channel_statistics/earn/earn_icons.h"
 #include "ui/chat/chat_style.h"
+#include "kotato/kotato_radius.h"
 #include "ui/effects/animation_value.h"
 #include "ui/emoji_config.h"
 #include "ui/painter.h"
@@ -405,7 +406,7 @@ void EmptyUserpic::PaintSavedMessages(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(std::move(bg));
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	Kotato::DrawUserpicShape(p, x, y, size, size, size);
 
 	PaintSavedMessagesInner(p, x, y, size, fg);
 }
@@ -444,7 +445,7 @@ void EmptyUserpic::PaintRepliesMessages(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	Kotato::DrawUserpicShape(p, x, y, size, size, size);
 
 	PaintRepliesMessagesInner(p, x, y, size, fg);
 }
@@ -483,7 +484,7 @@ void EmptyUserpic::PaintHiddenAuthor(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	Kotato::DrawUserpicShape(p, x, y, size, size, size);
 
 	PaintHiddenAuthorInner(p, x, y, size, fg);
 }
@@ -522,7 +523,7 @@ void EmptyUserpic::PaintMyNotes(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	Kotato::DrawUserpicShape(p, x, y, size, size, size);
 
 	PaintMyNotesInner(p, x, y, size, fg);
 }
@@ -561,7 +562,7 @@ void EmptyUserpic::PaintCurrency(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	Kotato::DrawUserpicShape(p, x, y, size, size, size);
 
 	PaintCurrencyInner(p, x, y, size, fg);
 }

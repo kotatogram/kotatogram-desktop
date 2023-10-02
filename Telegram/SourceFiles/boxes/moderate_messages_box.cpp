@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/moderate_messages_box.h"
 
+#include "kotato/kotato_radius.h"
 #include "api/api_blocked_peers.h"
 #include "api/api_chat_participants.h"
 #include "api/api_messages_search.h"
@@ -300,9 +301,9 @@ void FillMenuModerateCommonGroups(
 			st::moderateCommonGroupsCheckbox,
 			[=] { state->checkboxWidget->update(); },
 			PaintUserpicCallback(group, true),
-			[=](int size) { return (group->isForum() || group->isMonoforum())
-				? int(size * Ui::ForumUserpicRadiusMultiplier())
-				: std::optional<int>(); });
+			[=](int size) { return std::optional<int>(int(size
+				* Kotato::UserpicRadius(
+					group->isForum() || group->isMonoforum()))); });
 		state->checkbox->setChecked(
 			/*ranges::contains(
 				session->settings().moderateCommonGroups(),

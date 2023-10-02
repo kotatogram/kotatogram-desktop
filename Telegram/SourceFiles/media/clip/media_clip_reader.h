@@ -37,7 +37,7 @@ struct FrameRequest {
 	QSize frame;
 	QSize outer;
 	int factor = 0;
-	ImageRoundRadius radius = ImageRoundRadius::None;
+	float64 radius = 0.0;
 	RectParts corners = RectPart::AllCorners;
 	QColor colored = QColor(0, 0, 0, 0);
 	bool keepAlpha = false;

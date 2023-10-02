@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_folder.h"
 
+#include "kotato/kotato_radius.h"
 #include "data/data_session.h"
 #include "data/data_channel.h"
 #include "data/data_histories.h"
@@ -269,7 +270,7 @@ void Folder::paintUserpic(
 	p.setBrush(overrideBg ? *overrideBg : st::historyPeerArchiveUserpicBg);
 	{
 		PainterHighQualityEnabler hq(p);
-		p.drawEllipse(x, y, size, size);
+		Kotato::DrawUserpicShape(p, x, y, size, size, size);
 	}
 	if (size == st::defaultDialogRow.photoSize) {
 		const auto rect = QRect{ x, y, size, size };

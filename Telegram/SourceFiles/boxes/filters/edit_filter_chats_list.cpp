@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/filters/edit_filter_chats_list.h"
 
+#include "kotato/kotato_radius.h"
 #include "core/ui_integration.h"
 #include "data/data_chat_filters.h"
 #include "data/data_premium_limits.h"
@@ -371,7 +372,7 @@ void PaintFilterChatsTypeIcon(
 	bg.setStops({ { 0., color1->c }, { 1., color2->c } });
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(rect);
+	Kotato::DrawUserpicShape(p, rect, size);
 	icon.paintInCenter(p, rect);
 }
 

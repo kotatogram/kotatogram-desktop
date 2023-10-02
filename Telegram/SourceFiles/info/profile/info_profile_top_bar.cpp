@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_top_bar.h"
 
+#include "kotato/kotato_radius.h"
 #include "api/api_peer_colors.h"
 #include "api/api_peer_photo.h"
 #include "api/api_user_privacy.h"
@@ -2830,7 +2831,7 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		} else {
 			const auto radius = (_source == Source::Community)
 				? std::optional<int>(
-					int(scaled * Ui::ForumUserpicRadiusMultiplier()))
+					int(scaled * Kotato::UserpicRadius(true)))
 				: std::nullopt;
 			image = PeerData::GenerateUserpicImage(
 				_peer,
@@ -2855,12 +2856,17 @@ void TopBar::paintUserpic(QPainter &p, const QRect &geometry) {
 		p.drawImage(geometry, _cachedUserpic);
 	}
 	if (_uploadOverlay && _uploadOverlay->shown()) {
+		const auto radiusOption = Kotato::UserpicRadius(
+			(_source == Source::Community) || _peer->isForum());
 		_uploadOverlay->paint(p, geometry, {
 			.lineWidth = st::defaultUserpicButton.uploadProgressLine,
 			.margin = st::defaultUserpicButton.uploadProgressMargin,
 			.progressFg = st::historyFileThumbRadialFg,
 			.overlayFg = st::songCoverOverlayFg,
 			.cancelIcon = &st::userpicUploadCancel,
+			.roundRadius = ((radiusOption < 0.5)
+				? std::make_optional(geometry.width() * radiusOption)
+				: std::nullopt),
 		});
 	}
 }
@@ -3892,7 +3898,16 @@ void TopBar::paintStoryOutline(QPainter &p, const QRect &geometry) {
 		padding + outlineWidth / 2,
 		padding + outlineWidth / 2);
 
-	Ui::PaintOutlineSegments(p, outlineRect, _storySegments);
+	const auto isForum = _peer->forum() || _peer->monoforum();
+	if (const auto r = Kotato::UserpicRadius(isForum); r < 0.5) {
+		Ui::PaintOutlineSegments(
+			p,
+			outlineRect,
+			outlineRect.width() * r,
+			_storySegments);
+	} else {
+		Ui::PaintOutlineSegments(p, outlineRect, _storySegments);
+	}
 
 	if (_hasLiveStories) {
 		const auto outline = _edgeColor.current().value_or(

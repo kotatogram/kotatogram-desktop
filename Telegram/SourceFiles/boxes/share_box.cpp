@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/share_box.h"
 
+#include "kotato/kotato_radius.h"
 #include "api/api_premium.h"
 #include "base/call_delayed.h"
 #include "base/random.h"
@@ -1239,11 +1240,10 @@ ShareBox::Inner::Chat::Chat(
 	PaintUserpicCallback(peer, true),
 	[=](int size) {
 		const auto channel = peer->asChannel();
-		return (peer->isForum()
-			|| peer->isMonoforum()
-			|| (channel && channel->isCommunity()))
-			? int(size * Ui::ForumUserpicRadiusMultiplier())
-			: std::optional<int>();
+		return std::optional<int>(int(size
+			* Kotato::UserpicRadius(peer->isForum()
+				|| peer->isMonoforum()
+				|| (channel && channel->isCommunity()))));
 	})
 , name(st.checkbox.imageRadius * 2) {
 }

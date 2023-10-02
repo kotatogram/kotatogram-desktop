@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/dynamic_thumbnails.h"
 
+#include "kotato/kotato_radius.h"
 #include "data/data_changes.h"
 #include "data/data_cloud_file.h"
 #include "data/data_document.h"
@@ -57,6 +58,7 @@ private:
 		Fn<void()> callback;
 		InMemoryKey key;
 		int paletteVersion = 0;
+		float64 userpicRadius = 0.;
 		rpl::lifetime photoLifetime;
 		rpl::lifetime downloadLifetime;
 	};
@@ -318,12 +320,19 @@ QImage PeerUserpic::image(int size) {
 	const auto good = (_frame.width() == size * _frame.devicePixelRatio());
 	const auto key = _peer->userpicUniqueKey(_subscribed->view);
 	const auto paletteVersion = style::PaletteVersion();
+	const auto shape = _forceRound
+		? Ui::PeerUserpicShape::Circle
+		: _peer->userpicShape();
+	const auto userpicRadius = Kotato::UserpicRadius(
+		shape == Ui::PeerUserpicShape::Forum);
 	if (!good
+		|| (_subscribed->userpicRadius != userpicRadius)
 		|| (_subscribed->paletteVersion != paletteVersion
 			&& _peer->useEmptyUserpic(_subscribed->view))
 		|| (_subscribed->key != key && !waitingUserpicLoad())) {
 		_subscribed->key = key;
 		_subscribed->paletteVersion = paletteVersion;
+		_subscribed->userpicRadius = userpicRadius;
 
 		const auto ratio = style::DevicePixelRatio();
 		if (!good) {

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_userpic.h"
 
+#include "kotato/kotato_radius.h"
 #include "data/data_peer.h"
 #include "main/main_session.h"
 #include "data/data_changes.h"
@@ -16,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_photo_media.h"
 #include "data/data_file_origin.h"
 #include "ui/empty_userpic.h"
+#include "ui/image/image_prepare.h"
 #include "ui/painter.h"
 #include "apiwrap.h" // requestFullPeer.
 #include "styles/style_calls.h"
@@ -105,7 +107,15 @@ void Userpic::paint() {
 			_mutePosition.y() - _muteSize / 2,
 			_muteSize,
 			_muteSize);
-		p.drawEllipse(rect);
+		const auto muteRadius = ::Kotato::UserpicRadius();
+		if (muteRadius >= 0.5) {
+			p.drawEllipse(rect);
+		} else {
+			p.drawRoundedRect(
+				rect,
+				rect.width() * muteRadius,
+				rect.width() * muteRadius);
+		}
 		st::callMutedPeerIcon.paintInCenter(p, rect);
 	}
 }
@@ -186,12 +196,20 @@ void Userpic::createCache(Image *image) {
 			height = std::max((height * real) / width, 1);
 			width = real;
 		}
+		const auto r = ::Kotato::UserpicRadius();
 		_userPhoto = image->pixNoCache(
 			{ width, height },
 			{
-				.options = Images::Option::RoundCircle,
+				.options = (r >= 0.5)
+					? Images::Option::RoundCircle
+					: Images::Option::None,
 				.outer = { size, size },
 			});
+		if (const auto corner = int(size * r); corner > 0 && r < 0.5) {
+			_userPhoto = Images::PixmapFast(Images::Round(
+				_userPhoto.toImage(),
+				Images::CornersMask(corner)));
+		}
 		_userPhoto.setDevicePixelRatio(style::DevicePixelRatio());
 	} else {
 		auto filled = QImage(
@@ -201,10 +219,17 @@ void Userpic::createCache(Image *image) {
 		filled.fill(Qt::transparent);
 		{
 			auto p = QPainter(&filled);
-			Ui::EmptyUserpic(
+			const auto r = ::Kotato::UserpicRadius();
+			auto empty = Ui::EmptyUserpic(
 				Ui::EmptyUserpic::UserpicColor(_peer->colorIndex()),
-				_peer->name()
-			).paintCircle(p, 0, 0, size, size);
+				_peer->name());
+			if (r >= 0.5) {
+				empty.paintCircle(p, 0, 0, size, size);
+			} else if (r > 0.) {
+				empty.paintRounded(p, 0, 0, size, size, size * r);
+			} else {
+				empty.paintSquare(p, 0, 0, size, size);
+			}
 		}
 		//_userPhoto = Images::PixmapFast(Images::Round(
 		//	std::move(filled),

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_inner_widget.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_settings.h"
 #include "api/api_polls.h"
 #include "chat_helpers/stickers_emoji_pack.h"
@@ -430,6 +431,13 @@ HistoryInner::HistoryInner(
 		if (!elementAnimationsPaused()) {
 			update();
 		}
+	}, lifetime());
+	rpl::merge(
+		::Kotato::JsonSettings::Events("userpic_corner_radius"),
+		::Kotato::JsonSettings::Events("userpic_corner_radius_forum"),
+		::Kotato::JsonSettings::Events("userpic_corner_radius_forum_use_default")
+	) | rpl::on_next([=] {
+		update();
 	}, lifetime());
 
 	using PlayRequest = ChatHelpers::EmojiInteractionPlayRequest;
@@ -1739,7 +1747,8 @@ void HistoryInner::paintEvent(QPaintEvent *e) {
 					context.paused);
 			} else if (const auto info = item->displayHiddenSenderInfo()) {
 				if (info->customUserpic.empty()) {
-					info->emptyUserpic.paintCircle(
+					Kotato::PaintEmptyUserpic(
+						info->emptyUserpic,
 						p,
 						st::historyPhotoLeft,
 						userpicTop,

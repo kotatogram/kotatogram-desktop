@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/widgets/multi_select.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/scroll_area.h"
@@ -177,7 +178,10 @@ void Item::paintOnce(Painter &p, int x, int y, int outerWidth) {
 		return;
 	}
 
-	auto radius = _st.height / 2;
+	const auto userpicRadius = Kotato::UserpicRadius();
+	auto radius = (userpicRadius >= 0.5)
+		? (_st.height / 2)
+		: int(_st.height * userpicRadius);
 	auto inner = style::rtlrect(
 		x + radius,
 		y,
@@ -236,8 +240,10 @@ void Item::paintDeleteButton(
 	p.setBrush(_color);
 	{
 		PainterHighQualityEnabler hq(p);
-		p.drawEllipse(
-			style::rtlrect(x, y, _st.height, _st.height, outerWidth));
+		Kotato::DrawUserpicShape(
+			p,
+			style::rtlrect(x, y, _st.height, _st.height, outerWidth),
+			_st.height);
 	}
 
 	CrossAnimation::paint(

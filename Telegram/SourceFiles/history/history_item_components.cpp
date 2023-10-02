@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item_components.h"
 
+#include "kotato/kotato_radius.h"
 #include "api/api_text_entities.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "base/algorithm.h"
@@ -269,7 +270,7 @@ bool HiddenSenderInfo::paintCustomUserpic(
 	}
 	const auto image = *view.cloud;
 	if (image.isNull()) {
-		emptyUserpic.paintCircle(p, x, y, outerWidth, size);
+		Kotato::PaintEmptyUserpic(emptyUserpic, p, x, y, outerWidth, size);
 		return valid;
 	}
 	Ui::ValidateUserpicCache(

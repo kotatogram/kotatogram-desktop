@@ -121,6 +121,85 @@ void SetupKotatoChats(
 		updateRecentStickersLimitHeight);
 	updateRecentStickersLimitLabel(::Kotato::JsonSettings::GetInt("recent_stickers_limit"));
 
+	const auto userpicRoundingLabel = container->add(
+		object_ptr<Ui::LabelSimple>(
+			container,
+			st::ktgSettingsSliderLabel),
+		st::groupCallDelayLabelMargin);
+	const auto userpicRoundingSlider = container->add(
+		object_ptr<Ui::MediaSlider>(
+			container,
+			st::defaultContinuousSlider),
+		st::localStorageLimitMargin);
+	const auto updateUserpicRoundingLabel = [=](int value) {
+		userpicRoundingLabel->setText(
+			ktr("ktg_settings_userpic_rounding", { "radius", QString::number(value) }));
+	};
+	const auto updateUserpicRounding = [=](int value) {
+		updateUserpicRoundingLabel(value);
+		::Kotato::JsonSettings::Set("userpic_corner_radius", value);
+		::Kotato::JsonSettings::Write();
+	};
+	userpicRoundingSlider->resize(st::defaultContinuousSlider.seekSize);
+	userpicRoundingSlider->setPseudoDiscrete(
+		51,
+		[](int val) { return val; },
+		::Kotato::JsonSettings::GetInt("userpic_corner_radius"),
+		updateUserpicRounding);
+	updateUserpicRoundingLabel(::Kotato::JsonSettings::GetInt("userpic_corner_radius"));
+
+	const auto userpicForumDefault = container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_settings_userpic_rounding_forum_use_default"),
+		st::settingsButtonNoIcon));
+
+	const auto userpicForumWrap = container->add(
+		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+			container,
+			object_ptr<Ui::VerticalLayout>(container)));
+	const auto userpicForumInner = userpicForumWrap->entity();
+	const auto userpicForumLabel = userpicForumInner->add(
+		object_ptr<Ui::LabelSimple>(
+			userpicForumInner,
+			st::ktgSettingsSliderLabel),
+		st::groupCallDelayLabelMargin);
+	const auto userpicForumSlider = userpicForumInner->add(
+		object_ptr<Ui::MediaSlider>(
+			userpicForumInner,
+			st::defaultContinuousSlider),
+		st::localStorageLimitMargin);
+	const auto updateUserpicForumLabel = [=](int value) {
+		userpicForumLabel->setText(
+			ktr("ktg_settings_userpic_rounding_forum", { "radius", QString::number(value) }));
+	};
+	const auto updateUserpicForum = [=](int value) {
+		updateUserpicForumLabel(value);
+		::Kotato::JsonSettings::Set("userpic_corner_radius_forum", value);
+		::Kotato::JsonSettings::Write();
+	};
+	userpicForumSlider->resize(st::defaultContinuousSlider.seekSize);
+	userpicForumSlider->setPseudoDiscrete(
+		51,
+		[](int val) { return val; },
+		::Kotato::JsonSettings::GetInt("userpic_corner_radius_forum"),
+		updateUserpicForum);
+	updateUserpicForumLabel(::Kotato::JsonSettings::GetInt("userpic_corner_radius_forum"));
+
+	userpicForumWrap->toggle(
+		!::Kotato::JsonSettings::GetBool("userpic_corner_radius_forum_use_default"),
+		anim::type::instant);
+
+	userpicForumDefault->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("userpic_corner_radius_forum_use_default"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("userpic_corner_radius_forum_use_default"));
+	}) | rpl::on_next([=](bool enabled) {
+		userpicForumWrap->toggle(!enabled, anim::type::normal);
+		::Kotato::JsonSettings::Set("userpic_corner_radius_forum_use_default", enabled);
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
 	SettingsMenuJsonSwitch(ktg_settings_disable_up_edit, disable_up_edit);
 	SettingsMenuJsonSwitch(ktg_settings_always_show_scheduled, always_show_scheduled);
 

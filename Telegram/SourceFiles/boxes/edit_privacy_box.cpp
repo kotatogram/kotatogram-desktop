@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/edit_privacy_box.h"
 
+#include "kotato/kotato_radius.h"
 #include "api/api_global_privacy.h"
 #include "apiwrap.h"
 #include "boxes/filters/edit_filter_chats_list.h"
@@ -74,8 +75,7 @@ enum class SpecialRowType {
 		if (forceRound) {
 			p.drawEllipse(x, y, size, size);
 		} else {
-			const auto radius = size * Ui::ForumUserpicRadiusMultiplier();
-			p.drawRoundedRect(x, y, size, size, radius, radius);
+			Kotato::DrawUserpicShape(p, x, y, size, size, size, true);
 		}
 		st::settingsPrivacyPremium.paintInCenter(p, QRect(x, y, size, size));
 	};
@@ -96,8 +96,7 @@ enum class SpecialRowType {
 		if (forceRound) {
 			p.drawEllipse(x, y, size, size);
 		} else {
-			const auto radius = size * Ui::ForumUserpicRadiusMultiplier();
-			p.drawRoundedRect(x, y, size, size, radius, radius);
+			Kotato::DrawUserpicShape(p, x, y, size, size, size, true);
 		}
 		st::windowFilterTypeBots.paintInCenter(p, QRect(x, y, size, size));
 	};

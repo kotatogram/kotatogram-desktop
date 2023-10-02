@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/channel_statistics/boosts/giveaway/giveaway_type_row.h"
 
+#include "kotato/kotato_radius.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/credits_graphics.h"
 #include "ui/effects/premium_graphics.h"
@@ -108,7 +109,8 @@ void GiveawayTypeRow::paintEvent(QPaintEvent *e) {
 	}
 	Ui::RippleButton::paintRipple(p, 0, 0);
 	if (hasUserpic) {
-		_userpic.paintCircle(
+		Kotato::PaintEmptyUserpic(
+			_userpic,
 			p,
 			_st.photoPosition.x(),
 			_st.photoPosition.y(),

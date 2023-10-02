@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_inner_widget.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_settings.h"
 #include "dialogs/dialogs_three_state_icon.h"
 #include "dialogs/ui/chat_search_empty.h"
@@ -421,6 +422,11 @@ InnerWidget::InnerWidget(
 		_narrowWidth = Ui::ChatListNarrowWidth();
 		_shownList->updateHeights(_narrowRatio);
 		refreshWithCollapsedRows();
+	}, lifetime());
+
+	Kotato::RadiusChanges(
+	) | rpl::on_next([=] {
+		update();
 	}, lifetime());
 
 	session().data().chatsFilters().tagsEnabledValue(
@@ -6105,7 +6111,7 @@ void InnerWidget::repaintDialogRowCornerStatus(not_null<History*> history) {
 		: st::dialogsCallBadgeSize;
 	const auto stroke = st::dialogsOnlineBadgeStroke;
 	const auto skip = user
-		? st::dialogsOnlineBadgeSkip
+		? Kotato::UserpicOnlineBadgeSkip()
 		: st::dialogsCallBadgeSkip;
 	const auto updateRect = QRect(
 		_st->photoSize - skip.x() - size,

@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/media/history_view_photo.h"
 
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_radius.h"
 #include "boxes/send_credits_box.h"
 #include "history/history_item_components.h"
 #include "history/history_item.h"
@@ -556,12 +557,12 @@ void Photo::drawSpoilerTag(
 }
 
 void Photo::validateUserpicImageCache(QSize size, bool forum) const {
-	const auto forumValue = forum ? 1 : 0;
+	const auto radius = ::Kotato::UserpicRadius(forum);
 	const auto large = _dataMedia->image(PhotoSize::Large);
 	const auto ratio = style::DevicePixelRatio();
 	const auto blurredValue = large ? 0 : 1;
 	if (_imageCache.size() == (size * ratio)
-		&& _imageCacheForum == forumValue
+		&& _imageCacheRadius == radius
 		&& _imageCacheBlurred == blurredValue) {
 		return;
 	}
@@ -585,16 +586,16 @@ void Photo::validateUserpicImageCache(QSize size, bool forum) const {
 		args = args.blurred();
 	}
 	original = Images::Prepare(std::move(original), size * ratio, args);
-	if (forumValue) {
+	if (radius >= 0.5) {
+		original = Images::Circle(std::move(original));
+	} else if (const auto corner = int(
+			std::min(size.width(), size.height()) * radius)) {
 		original = Images::Round(
 			std::move(original),
-			Images::CornersMask(std::min(size.width(), size.height())
-				* Ui::ForumUserpicRadiusMultiplier()));
-	} else {
-		original = Images::Circle(std::move(original));
+			Images::CornersMask(corner));
 	}
 	_imageCache = std::move(original);
-	_imageCacheForum = forumValue;
+	_imageCacheRadius = radius;
 	_imageCacheBlurred = blurredValue;
 }
 
@@ -685,9 +686,10 @@ void Photo::paintUserpicFrame(
 		const auto ratio = style::DevicePixelRatio();
 		auto request = ::Media::Streaming::FrameRequest();
 		request.outer = request.resize = size * ratio;
-		if (forum) {
+		const auto radiusOption = ::Kotato::UserpicRadius(forum);
+		if (radiusOption < 0.5) {
 			const auto radius = int(std::min(size.width(), size.height())
-				* Ui::ForumUserpicRadiusMultiplier());
+				* radiusOption);
 			if (_streamed->roundingCorners[0].width() != radius * ratio) {
 				_streamed->roundingCorners = Images::CornersMask(radius);
 			}

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_list_widget.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_settings.h"
 #include "history/view/history_view_about_view.h"
 #include "base/unixtime.h"
@@ -607,6 +608,13 @@ ListWidget::ListWidget(
 	::Kotato::JsonSettings::Events(
 		"monospace_large_bubbles"
 	) | rpl::on_next(reinitBubbles, lifetime());
+	rpl::merge(
+		::Kotato::JsonSettings::Events("userpic_corner_radius"),
+		::Kotato::JsonSettings::Events("userpic_corner_radius_forum"),
+		::Kotato::JsonSettings::Events("userpic_corner_radius_forum_use_default")
+	) | rpl::on_next([=] {
+		update();
+	}, lifetime());
 
 	_scrollDateHideTimer.setCallback([this] { scrollDateHideByTimer(); });
 
@@ -3289,7 +3297,8 @@ void ListWidget::paintUserpics(
 					context.paused);
 			} else if (const auto info = item->displayHiddenSenderInfo()) {
 				if (info->customUserpic.empty()) {
-					info->emptyUserpic.paintCircle(
+					Kotato::PaintEmptyUserpic(
+						info->emptyUserpic,
 						p,
 						st::historyPhotoLeft,
 						userpicTop,

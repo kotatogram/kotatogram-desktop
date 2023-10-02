@@ -7,8 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/userpic/info_userpic_emoji_builder_common.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/image/image_prepare.h"
-#include "ui/userpic_view.h" // ForumUserpicRadiusMultiplier.
 
 namespace UserpicBuilder {
 
@@ -23,14 +23,13 @@ namespace UserpicBuilder {
 		return gradient;
 	}
 	const auto processModifier = [&](QImage &&i) {
-		if (circle) {
+		const auto multiplier = Kotato::UserpicRadius(roundForumRect);
+		if (multiplier >= 0.5) {
 			return Images::Circle(std::move(i));
-		} else if (roundForumRect) {
-			const auto radius = std::min(i.height(), i.width())
-				* Ui::ForumUserpicRadiusMultiplier();
-			return Images::Round(
-				std::move(i),
-				Images::CornersMask(radius / style::DevicePixelRatio()));
+		} else if (const auto corner = int(std::min(i.height(), i.width())
+				* multiplier
+				/ style::DevicePixelRatio())) {
+			return Images::Round(std::move(i), Images::CornersMask(corner));
 		} else {
 			return std::move(i);
 		}

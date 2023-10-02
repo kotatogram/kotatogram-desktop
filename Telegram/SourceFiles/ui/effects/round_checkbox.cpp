@@ -464,7 +464,14 @@ void RoundImageCheckbox::paintFrame(
 				p.drawRoundedRect(outline, *radius, *radius);
 			}
 		} else {
-			PaintOutlineSegments(p, outline, _segments);
+			const auto radius = _roundingRadius
+				? _roundingRadius(_st.imageRadius * 2)
+				: std::optional<int>();
+			if (!radius || *radius >= _st.imageRadius) {
+				PaintOutlineSegments(p, outline, _segments);
+			} else {
+				PaintOutlineSegments(p, outline, *radius, _segments);
+			}
 		}
 
 		if (_liveBadge) {

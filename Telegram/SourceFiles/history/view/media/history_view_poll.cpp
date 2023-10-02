@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_poll.h"
 
+#include "kotato/kotato_radius.h"
 #include "core/click_handler_types.h"
 #include "core/ui_integration.h" // TextContext
 #include "data/data_cloud_file.h"
@@ -3519,7 +3520,12 @@ void Poll::Header::paintRecentVoters(
 			p.setPen(pen);
 			p.setBrush(Qt::NoBrush);
 			PainterHighQualityEnabler hq(p);
-			p.drawEllipse(x, y, size, size);
+			const auto r = ::Kotato::UserpicRadius();
+			if (r >= 0.5) {
+				p.drawEllipse(x, y, size, size);
+			} else {
+				p.drawRoundedRect(x, y, size, size, size * r, size * r);
+			}
 		};
 		if (_owner->usesBubblePattern(context)) {
 			const auto add = st::lineWidth * 2;

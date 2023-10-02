@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/chat/group_call_userpics.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/paint/blobs.h"
 #include "ui/painter.h"
 #include "ui/power_saving.h"
@@ -273,7 +274,7 @@ void GroupCallUserpics::validateCache(Userpic &userpic) {
 			p.setCompositionMode(QPainter::CompositionMode_Source);
 			p.setBrush(Qt::transparent);
 			p.setPen(pen);
-			p.drawEllipse(skip - size + shift, skip, size, size);
+			Kotato::DrawUserpicShape(p, skip - size + shift, skip, size, size, size);
 		}
 	}
 }

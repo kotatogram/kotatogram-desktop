@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/userpic_view.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/empty_userpic.h"
 #include "ui/painter.h"
 #include "ui/image/image_prepare.h"
@@ -49,16 +50,19 @@ void PaintCommunityUserpicEffect(
 	const auto version = style::PaletteVersion();
 	const auto rgba = color.rgba();
 	const auto peek = size * kPeek;
+	const auto rounding = Kotato::UserpicRadius(true);
 	const auto regenerate = cache.image.isNull()
 		|| (cache.size != size)
 		|| (cache.color != rgba)
 		|| (cache.paletteVersion != version)
-		|| (cache.dpr != dpr);
+		|| (cache.dpr != dpr)
+		|| (cache.rounding != rounding);
 	if (regenerate) {
 		cache.size = size;
 		cache.color = rgba;
 		cache.paletteVersion = version;
 		cache.dpr = dpr;
+		cache.rounding = rounding;
 
 		const auto imageW = int(std::ceil((peek + size * kCover) * dpr));
 		const auto imageH = int(std::ceil(size * dpr));
@@ -73,7 +77,6 @@ void PaintCommunityUserpicEffect(
 		auto q = QPainter(&cache.image);
 		auto hq = PainterHighQualityEnabler(q);
 		const auto gap = size * kGap;
-		const auto rounding = Ui::ForumUserpicRadiusMultiplier();
 
 		// The userpic and every card share a pivot on the userpic's left edge
 		// where its bottom-left rounding starts; each card is pinned there and
@@ -139,10 +142,12 @@ void ValidateUserpicCache(
 		PeerUserpicShape shape) {
 	Expects(cloud != nullptr || empty != nullptr);
 
+	const auto radius = Kotato::UserpicRadius(shape == PeerUserpicShape::Forum);
 	const auto full = QSize(size, size);
 	const auto version = style::PaletteVersion();
 	const auto shapeValue = static_cast<uint32>(shape) & 3;
 	const auto regenerate = (view.cached.size() != QSize(size, size))
+		|| (view.radius != radius)
 		|| (view.shape != shapeValue)
 		|| (cloud && !view.empty.null())
 		|| (empty && empty != view.empty.get())
@@ -152,6 +157,7 @@ void ValidateUserpicCache(
 	}
 	view.empty = empty;
 	view.shape = shapeValue;
+	view.radius = radius;
 	view.paletteVersion = version;
 
 	if (cloud) {
@@ -161,14 +167,14 @@ void ValidateUserpicCache(
 			Qt::SmoothTransformation);
 		if (shape == PeerUserpicShape::Monoforum) {
 			view.cached = Ui::ApplyMonoforumShape(std::move(view.cached));
-		} else if (shape == PeerUserpicShape::Forum) {
+		} else if (radius >= 0.5) {
+			view.cached = Images::Circle(std::move(view.cached));
+		} else if (const auto corner = int(size
+				* radius
+				/ style::DevicePixelRatio())) {
 			view.cached = Images::Round(
 				std::move(view.cached),
-				Images::CornersMask(size
-					* Ui::ForumUserpicRadiusMultiplier()
-					/ style::DevicePixelRatio()));
-		} else {
-			view.cached = Images::Circle(std::move(view.cached));
+				Images::CornersMask(corner));
 		}
 	} else {
 		if (view.cached.size() != full) {
@@ -179,16 +185,23 @@ void ValidateUserpicCache(
 		auto p = QPainter(&view.cached);
 		if (shape == PeerUserpicShape::Monoforum) {
 			empty->paintMonoforum(p, 0, 0, size, size);
-		} else if (shape == PeerUserpicShape::Forum) {
+		} else if (radius >= 0.5) {
+			empty->paintCircle(p, 0, 0, size, size);
+		} else if (radius) {
 			empty->paintRounded(
 				p,
 				0,
 				0,
 				size,
 				size,
-				size * Ui::ForumUserpicRadiusMultiplier());
+				size * radius);
 		} else {
-			empty->paintCircle(p, 0, 0, size, size);
+			empty->paintSquare(
+				p,
+				0,
+				0,
+				size,
+				size);
 		}
 	}
 }

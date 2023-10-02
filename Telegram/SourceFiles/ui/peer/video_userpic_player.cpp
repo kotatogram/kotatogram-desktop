@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/peer/video_userpic_player.h"
 
+#include "kotato/kotato_radius.h"
 #include "data/data_peer.h"
 #include "data/data_photo.h"
 #include "data/data_session.h"
@@ -66,9 +67,9 @@ QImage VideoUserpicPlayer::frame(
 		if (_monoforumMask.isNull()) {
 			_monoforumMask = Ui::MonoforumShapeMask(request.resize);
 		}
-	} else if (peer->isForum()) {
-		const auto radius = int(
-			size.width() * Ui::ForumUserpicRadiusMultiplier());
+	} else if (const auto radiusOption = Kotato::UserpicRadius(peer->isForum())
+		; radiusOption < 0.5) {
+		const auto radius = int(size.width() * radiusOption);
 		if (_roundingCorners[0].width() != radius * ratio) {
 			_roundingCorners = Images::CornersMask(radius);
 		}

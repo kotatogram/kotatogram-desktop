@@ -45,7 +45,7 @@ QImage PrepareFrame(
 	const auto needResize = (original.size() != request.frame);
 	const auto needOuterFill = request.outer.isValid()
 		&& (request.outer != request.frame);
-	const auto needRounding = (request.radius != ImageRoundRadius::None);
+	const auto needRounding = (request.radius > 0.0);
 	const auto colorizing = (request.colored.alpha() != 0);
 	if (!needResize
 		&& !needOuterFill
@@ -112,10 +112,13 @@ QImage PrepareFrame(
 			p.drawImage(position, original);
 		}
 	}
-	if (needRounding) {
+	const auto corner = needRounding
+		? int(cache.width() * request.radius / style::DevicePixelRatio())
+		: 0;
+	if (corner) {
 		cache = Images::Round(
 			std::move(cache),
-			request.radius,
+			Images::CornersMask(corner),
 			request.corners);
 	}
 	if (colorizing) {
@@ -375,14 +378,15 @@ Reader::FrameInfo Reader::frameInfo(FrameRequest request, crl::time now) {
 	const auto size = request.outer.isValid()
 		? request.outer
 		: request.frame;
-	Assert(frame->request.radius == request.radius
-		&& frame->request.corners == request.corners
+	Assert(frame->request.corners == request.corners
 		&& frame->request.keepAlpha == request.keepAlpha);
 	if (frame->prepared.size() != size
-		|| frame->preparedColored != request.colored) {
+		|| frame->preparedColored != request.colored
+		|| frame->request.radius != request.radius) {
 		frame->request.frame = request.frame;
 		frame->request.outer = request.outer;
 		frame->request.colored = request.colored;
+		frame->request.radius = request.radius;
 
 		QImage cacheForResize;
 		frame->original.setDevicePixelRatio(factor);

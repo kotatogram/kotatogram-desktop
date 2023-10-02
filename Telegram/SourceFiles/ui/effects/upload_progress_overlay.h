@@ -20,7 +20,7 @@ public:
 		style::color progressFg;
 		style::color overlayFg;
 		const style::icon *cancelIcon = nullptr;
-		float64 roundRadius = 0.;
+		std::optional<float64> roundRadius;
 	};
 
 	UploadProgressOverlay(

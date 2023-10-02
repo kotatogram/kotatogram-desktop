@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/controls/history_view_draft_options.h"
 
+#include "kotato/kotato_radius.h"
 #include "base/random.h"
 #include "base/timer_rpl.h"
 #include "base/unixtime.h"
@@ -482,7 +483,8 @@ void PreviewWrap::paintEvent(QPaintEvent *e) {
 				st::msgPhotoSize);
 		} else if (const auto info = item->displayHiddenSenderInfo()) {
 			if (info->customUserpic.empty()) {
-				info->emptyUserpic.paintCircle(
+				Kotato::PaintEmptyUserpic(
+					info->emptyUserpic,
 					p,
 					st::historyPhotoLeft,
 					userpicTop,

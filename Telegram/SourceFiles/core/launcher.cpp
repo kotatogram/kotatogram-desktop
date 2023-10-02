@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "core/launcher.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_settings.h"
 #include "kotato/kotato_version.h"
 #include "platform/platform_launcher.h"
@@ -409,6 +410,7 @@ int Launcher::exec() {
 	Logs::start();
 	base::options::init(cWorkingDir() + "tdata/experimental_options.json");
 	Kotato::JsonSettings::Load();
+	Kotato::InitRadius();
 
 	// Must be called after options are inited.
 	initHighDpi();

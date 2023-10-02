@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/top_peers_strip.h"
 
+#include "kotato/kotato_radius.h"
 #include "base/event_filter.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
@@ -69,6 +70,14 @@ TopPeersStrip::TopPeersStrip(
 		_expanded.value()
 	) | rpl::on_next([=] {
 		resizeToWidth(width());
+	}, _strip.lifetime());
+
+	Kotato::RadiusChanges(
+	) | rpl::on_next([=] {
+		for (auto &entry : _entries) {
+			entry.userpicFrameDirty = 1;
+		}
+		_strip.update();
 	}, _strip.lifetime());
 
 	resize(0, _header.height() + _strip.height());
@@ -830,7 +839,7 @@ void TopPeersStrip::paintUserpic(
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		const auto onlineSize = st::dialogsOnlineBadgeSize;
 		const auto stroke = st::dialogsOnlineBadgeStroke;
-		const auto skip = st::dialogsOnlineBadgeSkip;
+		const auto skip = Kotato::UserpicOnlineBadgeSkip();
 		const auto shrink = (onlineSize / 2) * (1. - online);
 
 		auto pen = QPen(Qt::transparent);

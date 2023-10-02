@@ -29,7 +29,7 @@ QImage RoundPreview::image(int size) {
 	return _reader->current({
 		.frame = QSize(_size, _size),
 		.factor = style::DevicePixelRatio(),
-		.radius = ImageRoundRadius::Ellipse,
+		.radius = 0.5,
 	}, crl::now());
 }
 
@@ -46,7 +46,7 @@ void RoundPreview::clipCallback(Clip::Notification notification) {
 			_reader->start({
 				.frame = QSize(_size, _size),
 				.factor = style::DevicePixelRatio(),
-				.radius = ImageRoundRadius::Ellipse,
+				.radius = 0.5,
 			});
 		}
 	} break;

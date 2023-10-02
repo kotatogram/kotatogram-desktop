@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peers/replace_boost_box.h"
 
+#include "kotato/kotato_radius.h"
 #include "api/api_peer_colors.h"
 #include "apiwrap.h"
 #include "base/event_filter.h"
@@ -43,6 +44,17 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace {
 
 constexpr auto kWaitingOpacity = 0.5;
+
+void PaintUserpicRing(QPainter &p, not_null<Ui::UserpicButton*> button) {
+	const auto geometry = button->geometry();
+	const auto r = Kotato::UserpicRadius(button->useForumShape());
+	if (r < 0.5) {
+		const auto radius = geometry.width() * r;
+		p.drawRoundedRect(geometry, radius, radius);
+	} else {
+		p.drawEllipse(geometry);
+	}
+}
 
 class Row final : public PeerListRow {
 public:
@@ -169,7 +181,7 @@ PaintRoundImageCallback Row::generatePaintUserpicCallback(
 	}
 	const auto empty = _empty;
 	return [=](Painter &p, int x, int y, int outerWidth, int size) {
-		empty->paintCircle(p, x, y, outerWidth, size);
+		Kotato::PaintEmptyUserpic(*empty, p, x, y, outerWidth, size);
 	};
 }
 
@@ -687,7 +699,7 @@ object_ptr<Ui::RpWidget> CreateUserpicsTransfer(
 		for (const auto &button : state->buttons) {
 			q.setPen(pen);
 			q.setBrush(Qt::NoBrush);
-			q.drawEllipse(button->geometry());
+			PaintUserpicRing(q, button.get());
 			const auto position = button->pos();
 			button->render(&q, position, QRegion(), QWidget::DrawChildren);
 		}
@@ -714,7 +726,18 @@ object_ptr<Ui::RpWidget> CreateUserpicsTransfer(
 			q.setPen(pen);
 			if (drawCornerPeer) {
 				q.setBrush(Qt::NoBrush);
-				q.drawEllipse(x - half, y - half, w + stroke, h + stroke);
+				if (const auto r = Kotato::UserpicRadius(); r < 0.5) {
+					const auto radius = (w + stroke) * r;
+					q.drawRoundedRect(
+						x - half,
+						y - half,
+						w + stroke,
+						h + stroke,
+						radius,
+						radius);
+				} else {
+					q.drawEllipse(x - half, y - half, w + stroke, h + stroke);
+				}
 				drawCornerPeer(
 					q,
 					x - half,
@@ -846,7 +869,7 @@ object_ptr<Ui::RpWidget> CreateUserpicsWithMoreBadge(
 		const auto paintOne = [&](not_null<Ui::UserpicButton*> button) {
 			q.setPen(pen);
 			q.setBrush(Qt::NoBrush);
-			q.drawEllipse(button->geometry());
+			PaintUserpicRing(q, button);
 			const auto position = button->pos();
 			button->render(&q, position, QRegion(), QWidget::DrawChildren);
 		};

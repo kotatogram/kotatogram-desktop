@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_peer.h"
 
+#include "kotato/kotato_radius.h"
 #include "api/api_sensitive_content.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
@@ -514,24 +515,28 @@ QImage PeerData::GenerateUserpicImage(
 		Ui::PeerUserpicView &view,
 		int size,
 		std::optional<int> radius) {
+	const auto radiusOption = Kotato::UserpicRadius(peer->isForum());
 	if (const auto userpic = peer->userpicCloudImage(view)) {
 		auto image = userpic->scaled(
 			{ size, size },
 			Qt::IgnoreAspectRatio,
 			Qt::SmoothTransformation);
 		const auto round = [&](int radius) {
-			return Images::Round(
-				std::move(image),
-				Images::CornersMask(radius / style::DevicePixelRatio()));
+			const auto corner = radius / style::DevicePixelRatio();
+			return corner
+				? Images::Round(std::move(image), Images::CornersMask(corner))
+				: std::move(image);
 		};
 		if (radius == 0) {
 			return image;
 		} else if (radius) {
 			return round(*radius);
-		} else if (peer->isForum()) {
-			return round(size * Ui::ForumUserpicRadiusMultiplier());
-		} else {
+		} else if (radiusOption >= 0.5) {
 			return Images::Circle(std::move(image));
+		} else if (radiusOption == 0.0) {
+			return image;
+		} else {
+			return round(size * radiusOption);
 		}
 	}
 	auto result = QImage(
@@ -543,18 +548,19 @@ QImage PeerData::GenerateUserpicImage(
 	if (radius == 0) {
 		peer->ensureEmptyUserpic()->paintSquare(p, 0, 0, size, size);
 	} else if (radius) {
-		const auto r = *radius;
-		peer->ensureEmptyUserpic()->paintRounded(p, 0, 0, size, size, r);
-	} else if (peer->isForum()) {
+		peer->ensureEmptyUserpic()->paintRounded(p, 0, 0, size, size, *radius);
+	} else if (radiusOption >= 0.5) {
+		peer->ensureEmptyUserpic()->paintCircle(p, 0, 0, size, size);
+	} else if (radiusOption == 0.0) {
+		peer->ensureEmptyUserpic()->paintSquare(p, 0, 0, size, size);
+	} else {
 		peer->ensureEmptyUserpic()->paintRounded(
 			p,
 			0,
 			0,
 			size,
 			size,
-			size * Ui::ForumUserpicRadiusMultiplier());
-	} else {
-		peer->ensureEmptyUserpic()->paintCircle(p, 0, 0, size, size);
+			size * radiusOption);
 	}
 	p.end();
 

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/themes/window_theme_preview.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_settings.h"
 #include "dialogs/dialogs_three_state_icon.h"
 #include "lang/lang_keys.h"
@@ -1059,7 +1060,7 @@ void Generator::paintUserpic(int x, int y, Row::Type type, int index, QString le
 	image.fill(Qt::transparent);
 	{
 		Painter p(&image);
-		userpic.paintCircle(p, 0, 0, size, size);
+		Kotato::PaintEmptyUserpic(userpic, p, 0, 0, size, size);
 	}
 	_p->drawImage(rtl() ? (_rect.width() - x - size) : x, y, image);
 }

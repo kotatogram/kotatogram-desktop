@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/media/history_view_community_added.h"
 
+#include "kotato/kotato_radius.h"
 #include "core/click_handler_types.h" // ClickHandlerContext
 #include "data/data_changes.h"
 #include "data/data_channel.h"
@@ -58,6 +59,7 @@ private:
 		Fn<void()> callback;
 		InMemoryKey key;
 		int paletteVersion = 0;
+		float64 radius = 0.;
 		bool hadUserpic = false;
 		rpl::lifetime photoLifetime;
 		rpl::lifetime downloadLifetime;
@@ -88,14 +90,17 @@ QImage CommunityServiceUserpic::image(int size) {
 	const auto good = (_frame.width() == size * _frame.devicePixelRatio());
 	const auto key = _community->userpicUniqueKey(_subscribed->view);
 	const auto paletteVersion = style::PaletteVersion();
+	const auto radius = Kotato::UserpicRadius(true);
 	if (!good
 		|| _subscribed->hadUserpic != hasUserpic
 		|| (_subscribed->paletteVersion != paletteVersion
 			&& (!hasUserpic
 				|| _community->useEmptyUserpic(_subscribed->view)))
-		|| (_subscribed->key != key && !waitingUserpicLoad())) {
+		|| (_subscribed->key != key && !waitingUserpicLoad())
+		|| _subscribed->radius != radius) {
 		_subscribed->key = key;
 		_subscribed->paletteVersion = paletteVersion;
+		_subscribed->radius = radius;
 		_subscribed->hadUserpic = hasUserpic;
 
 		const auto ratio = style::DevicePixelRatio();
@@ -117,10 +122,9 @@ QImage CommunityServiceUserpic::image(int size) {
 		} else {
 			auto p = Painter(&_frame);
 			auto hq = PainterHighQualityEnabler(p);
-			const auto radius = size * Ui::ForumUserpicRadiusMultiplier();
 			p.setPen(Qt::NoPen);
 			p.setBrush(st::msgServiceBg);
-			p.drawRoundedRect(QRect(0, 0, size, size), radius, radius);
+			Kotato::DrawUserpicShape(p, QRect(0, 0, size, size), size, true);
 			CommunityServiceEmptyIcon().paintInCenter(
 				p,
 				QRect(0, 0, size, size),

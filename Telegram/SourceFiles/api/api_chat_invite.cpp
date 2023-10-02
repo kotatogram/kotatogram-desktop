@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_chat_invite.h"
 
+#include "kotato/kotato_radius.h"
+#include "ui/image/image_prepare.h"
 #include "apiwrap.h"
 #include "api/api_credits.h"
 #include "boxes/premium_limits_box.h"
@@ -233,7 +235,10 @@ void ConfirmSubscriptionBox(
 		Size(photoSize * style::DevicePixelRatio()),
 		QImage::Format_ARGB32_Premultiplied);
 	state->frame.setDevicePixelRatio(style::DevicePixelRatio());
-	const auto options = Images::Option::RoundCircle;
+	const auto userpicRadius = ::Kotato::UserpicRadius();
+	const auto options = (userpicRadius >= 0.5)
+		? Images::Option::RoundCircle
+		: Images::Option::None;
 	userpic->paintRequest(
 	) | rpl::on_next([=, small = Data::PhotoSize::Small] {
 		state->frame.fill(Qt::transparent);
@@ -241,18 +246,41 @@ void ConfirmSubscriptionBox(
 			auto p = QPainter(&state->frame);
 			if (state->photoMedia) {
 				if (const auto image = state->photoMedia->image(small)) {
-					p.drawPixmap(
-						0,
-						0,
-						image->pix(Size(photoSize), { .options = options }));
+					auto pixmap = image->pix(
+						Size(photoSize),
+						{ .options = options });
+					const auto corner = int(photoSize * userpicRadius);
+					if (corner > 0 && userpicRadius < 0.5) {
+						pixmap = Images::PixmapFast(Images::Round(
+							pixmap.toImage(),
+							Images::CornersMask(corner)));
+					}
+					p.drawPixmap(0, 0, pixmap);
 				}
 			} else if (state->photoEmpty) {
-				state->photoEmpty->paintCircle(
-					p,
-					0,
-					0,
-					userpic->width(),
-					photoSize);
+				if (userpicRadius >= 0.5) {
+					state->photoEmpty->paintCircle(
+						p,
+						0,
+						0,
+						userpic->width(),
+						photoSize);
+				} else if (userpicRadius) {
+					state->photoEmpty->paintRounded(
+						p,
+						0,
+						0,
+						userpic->width(),
+						photoSize,
+						photoSize * userpicRadius);
+				} else {
+					state->photoEmpty->paintSquare(
+						p,
+						0,
+						0,
+						userpic->width(),
+						photoSize);
+				}
 			}
 			if (creditsIconCallback) {
 				p.translate(
@@ -483,22 +511,46 @@ void ConfirmInviteBox(
 	userpic->paintRequest(
 	) | rpl::on_next([=, small = Data::PhotoSize::Small] {
 		auto p = QPainter(userpic);
+		const auto userpicRadius = ::Kotato::UserpicRadius();
 		if (state->photoMedia) {
 			if (const auto image = state->photoMedia->image(small)) {
-				p.drawPixmap(
-					0,
-					0,
-					image->pix(
-						Size(photoSize),
-						{ .options = Images::Option::RoundCircle }));
+				auto pixmap = image->pix(
+					Size(photoSize),
+					{ .options = (userpicRadius >= 0.5)
+						? Images::Option::RoundCircle
+						: Images::Option::None });
+				const auto corner = int(photoSize * userpicRadius);
+				if (corner > 0 && userpicRadius < 0.5) {
+					pixmap = Images::PixmapFast(Images::Round(
+						pixmap.toImage(),
+						Images::CornersMask(corner)));
+				}
+				p.drawPixmap(0, 0, pixmap);
 			}
 		} else if (state->photoEmpty) {
-			state->photoEmpty->paintCircle(
-				p,
-				0,
-				0,
-				userpic->width(),
-				photoSize);
+			if (userpicRadius >= 0.5) {
+				state->photoEmpty->paintCircle(
+					p,
+					0,
+					0,
+					userpic->width(),
+					photoSize);
+			} else if (userpicRadius) {
+				state->photoEmpty->paintRounded(
+					p,
+					0,
+					0,
+					userpic->width(),
+					photoSize,
+					photoSize * userpicRadius);
+			} else {
+				state->photoEmpty->paintSquare(
+					p,
+					0,
+					0,
+					userpic->width(),
+					photoSize);
+			}
 		}
 	}, userpic->lifetime());
 	userpic->setAttribute(Qt::WA_TransparentForMouseEvents);

@@ -157,8 +157,8 @@ void UploadProgressOverlay::paint(
 	auto hq = PainterHighQualityEnabler(p);
 	p.setPen(Qt::NoPen);
 	p.setBrush(args.overlayFg);
-	if (args.roundRadius > 0.) {
-		p.drawRoundedRect(rect, args.roundRadius, args.roundRadius);
+	if (const auto radius = args.roundRadius) {
+		p.drawRoundedRect(rect, *radius, *radius);
 	} else {
 		p.drawEllipse(rect);
 	}

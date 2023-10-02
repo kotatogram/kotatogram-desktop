@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_layout.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_settings.h"
 #include "base/options.h"
 #include "base/unixtime.h"
@@ -596,7 +597,8 @@ void PaintRow(
 			context.width,
 			context.st->photoSize);
 	} else if (!from && hiddenSenderInfo) {
-		hiddenSenderInfo->emptyUserpic.paintCircle(
+		Kotato::PaintEmptyUserpic(
+			hiddenSenderInfo->emptyUserpic,
 			p,
 			context.st->padding.left(),
 			context.st->padding.top(),

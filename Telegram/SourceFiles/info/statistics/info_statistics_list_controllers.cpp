@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/stickers/data_custom_emoji.h"
 #include "history/history_item.h"
 #include "info/channel_statistics/boosts/giveaway/boost_badge.h"
+#include "kotato/kotato_radius.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "main/session/session_show.h"
@@ -527,7 +528,7 @@ void BoostRow::init() {
 				int y,
 				int outerWidth,
 				int size) mutable {
-			_userpic.paintCircle(p, x, y, outerWidth, size);
+			Kotato::PaintEmptyUserpic(_userpic, p, x, y, outerWidth, size);
 			if (creditsIcon->isNull()) {
 				*creditsIcon = Ui::CreditsWhiteDoubledIcon(size, 1.);
 			}
@@ -540,7 +541,7 @@ void BoostRow::init() {
 				int y,
 				int outerWidth,
 				int size) mutable {
-			_userpic.paintCircle(p, x, y, outerWidth, size);
+			Kotato::PaintEmptyUserpic(_userpic, p, x, y, outerWidth, size);
 			(_boost.isUnclaimed
 				? st::boostsListUnclaimedIcon
 				: st::boostsListUnknownIcon).paintInCenter(

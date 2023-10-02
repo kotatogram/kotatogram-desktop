@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/media/history_view_sticker_player.h"
 #include "info/bot/starref/info_bot_starref_common.h"
 #include "info/userpic/info_userpic_emoji_builder_preview.h"
+#include "kotato/kotato_radius.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "ui/effects/premium_graphics.h"
@@ -222,7 +223,7 @@ PaintRoundImageCallback GenerateCreditsPaintUserpicCallback(
 				gradient.setStops(Ui::Premium::ButtonGradientStops());
 				p.setBrush(gradient);
 			}
-			p.drawEllipse(x, y, size, size);
+			Kotato::DrawUserpicShape(p, x, y, size, size, size);
 			svg->render(&p, QRectF(x, y, size, size) - Margins(size / 5.));
 		};
 	}
@@ -261,7 +262,7 @@ PaintRoundImageCallback GenerateCreditsPaintUserpicCallback(
 		const auto svg = std::make_shared<QSvgRenderer>(Ui::Premium::Svg());
 		const auto image = std::make_shared<QImage>();
 		return [=](Painter &p, int x, int y, int outer, int size) mutable {
-			userpic->paintCircle(p, x, y, outer, size);
+			Kotato::PaintEmptyUserpic(*userpic, p, x, y, outer, size);
 			if (image->isNull()) {
 				*image = QImage(
 					Size(size) * style::DevicePixelRatio(),
@@ -314,7 +315,7 @@ PaintRoundImageCallback GenerateCreditsPaintUserpicCallback(
 		};
 	}
 	return [=](Painter &p, int x, int y, int outerWidth, int size) mutable {
-		userpic->paintCircle(p, x, y, outerWidth, size);
+		Kotato::PaintEmptyUserpic(*userpic, p, x, y, outerWidth, size);
 		const auto rect = QRect(x, y, size, size);
 		(entry.postsSearch
 			? st::creditsHistorySearchPostsIcon

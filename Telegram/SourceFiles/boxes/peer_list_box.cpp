@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peer_list_box.h"
 
+#include "kotato/kotato_radius.h"
 #include "boxes/peer_list_section_headers.h"
 #include "boxes/peer_list_section_index.h"
 #include "history/history.h" // chatListNameSortKey.
@@ -70,20 +71,8 @@ PaintRoundImageCallback PaintUserpicCallback(
 
 PaintRoundImageCallback ForceRoundUserpicCallback(not_null<PeerData*> peer) {
 	auto userpic = Ui::PeerUserpicView();
-	auto cache = std::make_shared<QImage>();
 	return [=](Painter &p, int x, int y, int outerWidth, int size) mutable {
-		const auto ratio = style::DevicePixelRatio();
-		const auto cacheSize = QSize(size, size) * ratio;
-		if (cache->size() != cacheSize) {
-			*cache = QImage(cacheSize, QImage::Format_ARGB32_Premultiplied);
-			cache->setDevicePixelRatio(ratio);
-		}
-		auto q = Painter(cache.get());
-		peer->paintUserpicLeft(q, userpic, 0, 0, outerWidth, size);
-		q.end();
-
-		*cache = Images::Circle(std::move(*cache));
-		p.drawImage(x, y, *cache);
+		peer->paintUserpicLeft(p, userpic, x, y, outerWidth, size, true);
 	};
 }
 
@@ -1108,12 +1097,13 @@ void PeerListRow::paintDisabledCheckUserpic(
 
 		p.setPen(userpicBorderPen);
 		p.setBrush(Qt::NoBrush);
-		if (peer()->forum()) {
-			const auto radius = userpicDiameter
-				* Ui::ForumUserpicRadiusMultiplier();
-			p.drawRoundedRect(userpicEllipse, radius, radius);
-		} else {
+		const auto userpicRadius = Kotato::UserpicRadius(
+			peer()->forum() != nullptr);
+		if (userpicRadius >= 0.5) {
 			p.drawEllipse(userpicEllipse);
+		} else {
+			const auto radius = userpicDiameter * userpicRadius;
+			p.drawRoundedRect(userpicEllipse, radius, radius);
 		}
 
 		p.setPen(iconBorderPen);
@@ -1154,9 +1144,7 @@ void PeerListRow::createCheckbox(
 		const style::RoundImageCheckbox &st,
 		Fn<void()> updateCallback) {
 	const auto generateRadius = [=](int size) {
-		return useForumLikeUserpic()
-			? int(size * Ui::ForumUserpicRadiusMultiplier())
-			: std::optional<int>();
+		return int(size * Kotato::UserpicRadius(useForumLikeUserpic()));
 	};
 	_checkbox = std::make_unique<Ui::RoundImageCheckbox>(
 		st,

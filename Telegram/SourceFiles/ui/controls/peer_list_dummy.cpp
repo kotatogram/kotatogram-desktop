@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/controls/peer_list_dummy.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "styles/style_widgets.h"
@@ -35,9 +36,11 @@ void PeerListDummy::paintEvent(QPaintEvent *e) {
 	p.setPen(Qt::NoPen);
 	for (auto i = from; i != till; ++i) {
 		p.setBrush(st::windowBgOver);
-		p.drawEllipse(
+		Kotato::DrawUserpicShape(
+			p,
 			_st.item.photoPosition.x(),
 			_st.item.photoPosition.y(),
+			_st.item.photoSize,
 			_st.item.photoSize,
 			_st.item.photoSize);
 

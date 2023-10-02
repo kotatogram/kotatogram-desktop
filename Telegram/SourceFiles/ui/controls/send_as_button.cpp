@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/controls/send_as_button.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/effects/cross_animation.h"
 #include "ui/painter.h"
 #include "styles/style_chat_helpers.h"
@@ -53,7 +54,7 @@ void SendAsButton::paintEvent(QPaintEvent *e) {
 		p.setBrush(_st.activeBg);
 		{
 			PainterHighQualityEnabler hq(p);
-			p.drawEllipse(left, top, _st.size, _st.size);
+			Kotato::DrawUserpicShape(p, left, top, _st.size, _st.size, _st.size);
 		}
 
 		CrossAnimation::paint(

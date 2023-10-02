@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_peer_values.h"
 
+#include "kotato/kotato_radius.h"
 #include "lang/lang_keys.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
@@ -605,6 +606,13 @@ rpl::producer<QImage> PeerUserpicImageValue(
 			peer,
 			PeerUpdate::Flag::Photo
 		) | rpl::on_next(state->push, result);
+		if (!radius) {
+			Kotato::RadiusChanges(
+			) | rpl::on_next([=] {
+				state->empty = true;
+				state->push();
+			}, result);
+		}
 		return result;
 	};
 }

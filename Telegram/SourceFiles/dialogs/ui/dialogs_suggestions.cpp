@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_suggestions.h"
 
+#include "kotato/kotato_radius.h"
 #include "api/api_chat_participants.h"
 #include "apiwrap.h"
 #include "base/unixtime.h"
@@ -2727,6 +2728,11 @@ auto Suggestions::setupObjectList(
 	) | rpl::on_next([=](Ui::ScrollToRequest request) {
 		const auto add = addToScroll ? addToScroll() : 0;
 		scroll->scrollToY(request.ymin + add, request.ymax + add);
+	}, list->lifetime());
+
+	Kotato::RadiusChanges(
+	) | rpl::on_next([=] {
+		list->update();
 	}, list->lifetime());
 
 	delegate->setContent(list);

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_row.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/chat/chat_theme.h" // CountAverageColor.
 #include "ui/color_contrast.h"
 #include "ui/effects/credits_graphics.h"
@@ -579,10 +580,9 @@ void Row::PaintCornerBadgeFrame(
 				segments.push_back({ storiesUnreadBrush, storiesUnread });
 			}
 		}
-		if (peer && (peer->forum() || peer->monoforum())) {
-			const auto radius = context.st->photoSize
-				* Ui::ForumUserpicRadiusMultiplier();
-			Ui::PaintOutlineSegments(q, outline, radius, segments);
+		const auto forum = peer && (peer->forum() || peer->monoforum());
+		if (const auto r = Kotato::UserpicRadius(forum); r < 0.5) {
+			Ui::PaintOutlineSegments(q, outline, photoSize * r, segments);
 		} else {
 			Ui::PaintOutlineSegments(q, outline, segments);
 		}
@@ -688,7 +688,7 @@ void Row::PaintCornerBadgeFrame(
 		: st::dialogsCallBadgeSize;
 	const auto stroke = st::dialogsOnlineBadgeStroke;
 	const auto skip = online
-		? st::dialogsOnlineBadgeSkip
+		? Kotato::UserpicOnlineBadgeSkip()
 		: st::dialogsCallBadgeSkip;
 	const auto shrink = (size / 2) * (1. - topLayerProgress);
 
@@ -808,6 +808,8 @@ void Row::paintUserpic(
 	const auto frameIndex = videoUserpic ? videoUserpic->frameIndex() : -1;
 	const auto paletteVersionReal = style::PaletteVersion();
 	const auto paletteVersion = (paletteVersionReal & ((1 << 17) - 1));
+	const auto userpicRadius = ::Kotato::UserpicRadius(peer
+		&& peer->userpicShape() == Ui::PeerUserpicShape::Forum);
 	const auto active = context.active ? 1 : 0;
 	const auto keyChanged = (_cornerBadgeUserpic->key != key)
 		|| (_cornerBadgeUserpic->paletteVersion != paletteVersion);
@@ -830,6 +832,7 @@ void Row::paintUserpic(
 		|| !(subscribed || communityMember);
 	if (keyChanged
 		|| frameSizeChanged
+		|| _cornerBadgeUserpic->userpicRadius != userpicRadius
 		|| !_cornerBadgeUserpic->layersManager.isFinished()
 		|| (activeMatters && _cornerBadgeUserpic->active != active)
 		|| _cornerBadgeUserpic->hidden != (hidden ? 1 : 0)
@@ -840,6 +843,7 @@ void Row::paintUserpic(
 		|| videoUserpic) {
 		_cornerBadgeUserpic->key = key;
 		_cornerBadgeUserpic->paletteVersion = paletteVersion;
+		_cornerBadgeUserpic->userpicRadius = userpicRadius;
 		_cornerBadgeUserpic->active = active;
 		_cornerBadgeUserpic->hidden = hidden ? 1 : 0;
 		_cornerBadgeUserpic->storiesCount = storiesCount;
