@@ -45,7 +45,7 @@ QImage PrepareFrame(
 	const auto needResize = (original.size() != request.frame);
 	const auto needOuterFill = request.outer.isValid()
 		&& (request.outer != request.frame);
-	const auto needRounding = (request.radius != ImageRoundRadius::None);
+	const auto needRounding = (request.radius > 0.0);
 	const auto colorizing = (request.colored.alpha() != 0);
 	if (!needResize
 		&& !needOuterFill
@@ -98,8 +98,7 @@ QImage PrepareFrame(
 	if (needRounding) {
 		cache = Images::Round(
 			std::move(cache),
-			request.radius,
-			request.corners);
+			Images::CornersMask((cache.width() * request.radius) / style::DevicePixelRatio()));
 	}
 	if (colorizing) {
 		cache = Images::Colored(std::move(cache), request.colored);

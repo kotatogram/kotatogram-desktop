@@ -27,6 +27,7 @@ struct PeerUserpicView {
 	base::weak_ptr<const EmptyUserpic> empty;
 	uint32 paletteVersion : 31 = 0;
 	uint32 forum : 1 = 0;
+	float64 radius = -1.0;
 };
 
 [[nodiscard]] bool PeerUserpicLoading(const PeerUserpicView &view);

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_group_call_bar.h"
 
+#include "kotato/kotato_radius.h"
 #include "data/data_channel.h"
 #include "data/data_user.h"
 #include "data/data_changes.h"
@@ -59,7 +60,7 @@ void GenerateUserpicsInRow(
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		q.setBrush(Qt::NoBrush);
 		q.setPen(pen);
-		q.drawEllipse(x, 0, single, single);
+		Kotato::DrawUserpicShape(q, x, 0, single, single, single);
 		x -= single - shift;
 	}
 }

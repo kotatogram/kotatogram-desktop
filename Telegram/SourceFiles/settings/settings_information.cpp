@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/settings_information.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_lang.h"
 #include "ui/wrap/vertical_layout.h"
 #include "ui/wrap/vertical_layout_reorder.h"
@@ -638,7 +639,7 @@ void SetupAccountsWrap(
 			pen.setWidthF(line);
 			p.setPen(pen);
 			p.setBrush(Qt::NoBrush);
-			p.drawEllipse(rect);
+			Kotato::DrawUserpicShape(p, rect, size);
 		}
 	}, state->userpic.lifetime());
 

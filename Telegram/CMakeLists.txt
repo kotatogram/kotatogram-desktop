@@ -997,6 +997,8 @@ PRIVATE
     kotato/boxes/kotato_unpin_box.h
     kotato/kotato_lang.cpp
     kotato/kotato_lang.h
+    kotato/kotato_radius.cpp
+    kotato/kotato_radius.h
     kotato/kotato_settings.cpp
     kotato/kotato_settings.h
     kotato/kotato_settings_menu.cpp

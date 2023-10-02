@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_video_userpic.h"
 
+#include "kotato/kotato_radius.h"
 #include "core/file_location.h"
 #include "data/data_peer.h"
 #include "data/data_photo.h"
@@ -100,7 +101,7 @@ Media::Clip::FrameRequest VideoUserpic::request(int size) const {
 		.frame = { size, size },
 		.outer = { size, size },
 		.factor = cIntRetinaFactor(),
-		.radius = ImageRoundRadius::Ellipse,
+		.radius = Kotato::UserpicRadius(),
 	};
 }
 

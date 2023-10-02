@@ -333,6 +333,17 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 20,
 		.limitHandler = IntLimit(0, 200, 20), }},
+	{ "userpic_corner_radius", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 50,
+		.limitHandler = IntLimit(0, 50), }},
+	{ "userpic_corner_radius_forum", {
+		.type = SettingType::IntSetting,
+		.defaultValue = 30,
+		.limitHandler = IntLimit(0, 50), }},
+	{ "userpic_corner_radius_forum_use_default", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = false, }},
 	{ "always_show_top_userpic", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
