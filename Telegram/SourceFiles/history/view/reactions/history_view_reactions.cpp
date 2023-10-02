@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/reactions/history_view_reactions.h"
 
+#include "kotato/kotato_radius.h"
 #include "history/history_item.h"
 #include "history/history.h"
 #include "history/view/history_view_message.h"
@@ -623,7 +624,7 @@ void InlineList::paintSingleBg(
 		float64 opacity) const {
 	p.setOpacity(opacity);
 	if (!areTags()) {
-		const auto radius = fill.height() / 2.;
+		const auto radius = fill.height() * Kotato::UserpicRadius();
 		p.setBrush(color);
 		p.drawRoundedRect(fill, radius, radius);
 		return;

@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/controls/userpic_button.h"
 
+#include "kotato/kotato_radius.h"
 #include "base/call_delayed.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/empty_userpic.h"
@@ -135,7 +136,7 @@ void SetupSubButtonBackground(
 		auto hq = PainterHighQualityEnabler(p);
 		p.setBrush(st::boxBg);
 		p.setPen(Qt::NoPen);
-		p.drawEllipse(background->rect());
+		Kotato::DrawUserpicShape(p, background->rect(), background->rect().width());
 	}, background->lifetime());
 
 	upload->positionValue(
@@ -579,9 +580,9 @@ void UserpicButton::paintUserpicFrame(Painter &p, QPoint photoPosition) {
 		auto size = QSize{ _st.photoSize, _st.photoSize };
 		const auto ratio = style::DevicePixelRatio();
 		request.outer = request.resize = size * ratio;
-		if (useForumShape()) {
-			const auto radius = int(_st.photoSize
-				* Ui::ForumUserpicRadiusMultiplier());
+		const auto radiusOption = Kotato::UserpicRadius(useForumShape());
+		if (radiusOption < 0.5) {
+			const auto radius = int(_st.photoSize * radiusOption);
 			if (_roundingCorners[0].width() != radius * ratio) {
 				_roundingCorners = Images::CornersMask(radius);
 			}
@@ -988,8 +989,9 @@ void UserpicButton::fillShape(QPainter &p, const style::color &color) const {
 	p.setPen(Qt::NoPen);
 	p.setBrush(color);
 	const auto size = _st.photoSize;
-	if (useForumShape()) {
-		const auto radius = size * Ui::ForumUserpicRadiusMultiplier();
+	const auto radiusOption = Kotato::UserpicRadius(useForumShape());
+	if (radiusOption < 0.5) {
+		const auto radius = size * radiusOption;
 		p.drawRoundedRect(0, 0, size, size, radius, radius);
 	} else {
 		p.drawEllipse(0, 0, size, size);

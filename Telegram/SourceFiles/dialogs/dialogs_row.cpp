@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_row.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/chat/chat_theme.h" // CountAverageColor.
 #include "ui/color_contrast.h"
 #include "ui/effects/outline_segments.h"
@@ -416,7 +417,7 @@ void Row::PaintCornerBadgeFrame(
 		: st::dialogsCallBadgeSize;
 	const auto stroke = st::dialogsOnlineBadgeStroke;
 	const auto skip = online
-		? st::dialogsOnlineBadgeSkip
+		? Kotato::UserpicOnlineBadgeSkip()
 		: st::dialogsCallBadgeSkip;
 	const auto shrink = (size / 2) * (1. - topLayerProgress);
 

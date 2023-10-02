@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_peer.h"
 
+#include "kotato/kotato_radius.h"
 #include "data/data_user.h"
 #include "data/data_chat.h"
 #include "data/data_chat_participant_status.h"
@@ -382,6 +383,7 @@ QImage PeerData::generateUserpicImage(
 		Ui::PeerUserpicView &view,
 		int size,
 		std::optional<int> radius) const {
+	const auto radiusOption = Kotato::UserpicRadius(isForum());
 	if (const auto userpic = userpicCloudImage(view)) {
 		auto image = userpic->scaled(
 			{ size, size },
@@ -393,7 +395,13 @@ QImage PeerData::generateUserpicImage(
 				Images::CornersMask(radius / style::DevicePixelRatio()));
 		};
 		if (radius == 0) {
-			return image;
+			if (radiusOption == 0.0) {
+				return image;
+			} else if (radiusOption) {
+				return round(size * radiusOption);
+			} else {
+				return Images::Circle(std::move(image));
+			}
 		} else if (radius) {
 			return round(*radius);
 		} else if (isForum()) {
@@ -409,7 +417,19 @@ QImage PeerData::generateUserpicImage(
 
 	Painter p(&result);
 	if (radius == 0) {
-		ensureEmptyUserpic()->paintSquare(p, 0, 0, size, size);
+		if (radiusOption == 0.0) {
+			ensureEmptyUserpic()->paintSquare(p, 0, 0, size, size);
+		} else if (radiusOption) {
+			ensureEmptyUserpic()->paintRounded(
+				p,
+				0,
+				0,
+				size,
+				size,
+				size * radiusOption);
+		} else {
+			ensureEmptyUserpic()->paintCircle(p, 0, 0, size, size);
+		}
 	} else if (radius) {
 		ensureEmptyUserpic()->paintRounded(p, 0, 0, size, size, *radius);
 	} else if (isForum()) {

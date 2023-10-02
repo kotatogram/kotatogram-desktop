@@ -94,7 +94,7 @@ crl::time LastSettingsQueryMs/* = 0*/;
 <toast launch="action=open&amp;)" + wid + LR"(">
 	<visual>
 		<binding template="ToastGeneric">
-			<image placement="appLogoOverride" hint-crop="circle" src=""/>
+			<image placement="appLogoOverride" src=""/>
 			<text hint-maxLines="1"></text>
 			<text></text>
 			<text></text>

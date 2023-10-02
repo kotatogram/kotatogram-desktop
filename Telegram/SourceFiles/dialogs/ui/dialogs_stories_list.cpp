@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_stories_list.h"
 
+#include "kotato/kotato_radius.h"
 #include "base/event_filter.h"
 #include "base/qt_signal_producer.h"
 #include "lang/lang_keys.h"
@@ -528,7 +529,7 @@ void List::paint(
 			if (!fullUnreadCount) {
 				p.setPen(QPen(gradient, line));
 				p.setBrush(Qt::NoBrush);
-				p.drawEllipse(outer);
+				Kotato::DrawUserpicShape(p, outer, outerAdd);
 			} else {
 				validateSegments(itemFull, gradient, line, true);
 				Ui::PaintOutlineSegments(
@@ -569,7 +570,7 @@ void List::paint(
 			p.setCompositionMode(QPainter::CompositionMode_Source);
 			p.setPen(Qt::NoPen);
 			p.setBrush(st::transparent);
-			p.drawEllipse(rect);
+			Kotato::DrawUserpicShape(p, rect, add);
 			p.setCompositionMode(QPainter::CompositionMode_SourceOver);
 		}
 		if (hasReadLine) {

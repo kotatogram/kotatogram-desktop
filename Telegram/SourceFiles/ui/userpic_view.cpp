@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/userpic_view.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/empty_userpic.h"
 #include "ui/image/image_prepare.h"
 
@@ -28,10 +29,12 @@ void ValidateUserpicCache(
 		bool forum) {
 	Expects(cloud != nullptr || empty != nullptr);
 
+	const auto radius = Kotato::UserpicRadius(forum);
 	const auto full = QSize(size, size);
 	const auto version = style::PaletteVersion();
 	const auto forumValue = forum ? 1 : 0;
 	const auto regenerate = (view.cached.size() != QSize(size, size))
+		|| (view.radius != radius)
 		|| (view.forum != forumValue)
 		|| (cloud && !view.empty.null())
 		|| (empty && empty != view.empty.get())
@@ -48,14 +51,14 @@ void ValidateUserpicCache(
 			full,
 			Qt::IgnoreAspectRatio,
 			Qt::SmoothTransformation);
-		if (forum) {
+		if (radius >= 0.5) {
+			view.cached = Images::Circle(std::move(view.cached));
+		} else if (radius) { 
 			view.cached = Images::Round(
 				std::move(view.cached),
 				Images::CornersMask(size
-					* Ui::ForumUserpicRadiusMultiplier()
+					* radius
 					/ style::DevicePixelRatio()));
-		} else {
-			view.cached = Images::Circle(std::move(view.cached));
 		}
 	} else {
 		if (view.cached.size() != full) {
@@ -64,16 +67,23 @@ void ValidateUserpicCache(
 		view.cached.fill(Qt::transparent);
 
 		auto p = QPainter(&view.cached);
-		if (forum) {
+		if (radius >= 0.5) {
+			empty->paintCircle(p, 0, 0, size, size);
+		} else if (radius) { 
 			empty->paintRounded(
 				p,
 				0,
 				0,
 				size,
 				size,
-				size * Ui::ForumUserpicRadiusMultiplier());
+				size * radius);
 		} else {
-			empty->paintCircle(p, 0, 0, size, size);
+			empty->paintSquare(
+				p,
+				0,
+				0,
+				size,
+				size);
 		}
 	}
 }

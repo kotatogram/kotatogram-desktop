@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/peer_list_box.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_lang.h"
 #include "history/history.h" // chatListNameSortKey.
 #include "main/session/session_show.h"
@@ -904,9 +905,7 @@ void PeerListRow::createCheckbox(
 		const style::RoundImageCheckbox &st,
 		Fn<void()> updateCallback) {
 	const auto generateRadius = [=](int size) {
-		return (!special() && peer()->isForum())
-			? int(size * Ui::ForumUserpicRadiusMultiplier())
-			: std::optional<int>();
+		return int(size * Kotato::UserpicRadius(!special() && peer()->isForum()));
 	};
 	_checkbox = std::make_unique<Ui::RoundImageCheckbox>(
 		st,

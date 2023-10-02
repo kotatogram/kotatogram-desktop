@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/chat/message_bubble.h"
 
+#include "kotato/kotato_radius.h"
 #include "ui/cached_round_corners.h"
 #include "ui/image/image_prepare.h"
 #include "ui/chat/chat_style.h"
@@ -240,7 +241,11 @@ void PaintSolidBubble(QPainter &p, const SimpleBubble &args) {
 			: st.msgBgCornersSmall;
 		p.drawPixmap(x, y, corners.p[index]);
 	}, [&](const QPoint &bottomPosition) {
-		tail.paint(p, bottomPosition - tailShift, args.outerWidth);
+		p.drawPixmap(
+			bottomPosition - tailShift,
+			(args.rounding.bottomRight == Corner::Tail)
+			? Kotato::MessageTailRight(bg)
+			: Kotato::MessageTailLeft(bg));
 		return tail.width();
 	});
 }
