@@ -212,6 +212,7 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	Ui::AddSkip(container);
 	Ui::AddSubsectionTitle(container, rktr("ktg_settings_network"));
 
+	SettingsMenuJsonSwitch(ktg_settings_video_download_boost, video_download_boost);
 
 	Ui::AddSkip(container);
 }
