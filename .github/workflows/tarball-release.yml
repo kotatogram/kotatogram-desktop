@@ -18,7 +18,7 @@ jobs:
           echo "REPO_NAME=${GITHUB_REPOSITORY##*/}-$version-full" >> $GITHUB_ENV
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           path: ${{ env.REPO_NAME }}

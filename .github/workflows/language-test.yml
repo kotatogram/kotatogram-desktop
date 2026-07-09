@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Trim comments
         shell: bash
         run: sed -i -e 's/^\s*\/\/.*$//' Telegram/Resources/langs/rewrites/*.json
