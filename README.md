@@ -34,7 +34,7 @@ Latest stable version can be found here: https://github.com/kotatogram/kotatogra
 * Adaptive chat bubbles
 * and other smaller features.
 
-Full list of features will rewritten later. Control branches were used to list features, but they are now deprecated and archived in [separate repo][archive].
+Full list of features will be rewritten later. Control branches were used to list features, but they are now deprecated and archived in [separate repo][archive].
 
 ## Contributing
 Read [CONTRIBUTING.md][contributing].
