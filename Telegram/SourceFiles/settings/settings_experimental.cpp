@@ -67,13 +67,140 @@ const std::map<QString, std::pair<QString, QString>> TranslationMap {
 		"ktg_experimental_tabbed_panel_by_click",
 		"ktg_experimental_tabbed_panel_by_click_description",
 	}},
+	{ Dialogs::kOptionForumHideChatsList, {
+		"ktg_experimental_forum_hide_chats_list",
+		"ktg_experimental_forum_hide_chats_list_description",
+	}},
+	{ Dialogs::Ui::kOptionDialogsMuteIcon, {
+		"ktg_experimental_dialogs_mute_icon",
+		"ktg_experimental_dialogs_mute_icon_description",
+	}},
+	{ Core::kOptionFractionalScalingEnabled, {
+		"ktg_experimental_fractional_scaling_enabled",
+		"ktg_experimental_fractional_scaling_enabled_description",
+	}},
+	{ Core::kOptionHighDpiDownscale, {
+		"ktg_experimental_high_dpi_downscale",
+		"ktg_experimental_high_dpi_downscale_description",
+	}},
+	{ Ui::GL::kOptionUseQtRhi, {
+		"ktg_experimental_use_qt_rhi",
+		"",
+	}},
 	{ Window::kOptionViewProfileInChatsListContextMenu, {
 		"ktg_experimental_view_profile_context_menu",
 		"ktg_experimental_view_profile_context_menu_description",
 	}},
+	{ Info::Profile::kOptionShowPeerIdBelowAbout, {
+		"ktg_experimental_show_peer_id_below_about",
+		"ktg_experimental_show_peer_id_below_about_description",
+	}},
+	{ Info::Profile::kOptionShowChannelJoinedBelowAbout, {
+		"ktg_experimental_show_channel_joined_below_about",
+		"ktg_experimental_show_channel_joined_below_about_description",
+	}},
+	{ Ui::kOptionUseSmallMsgBubbleRadius, {
+		"ktg_experimental_use_small_msg_bubble_radius",
+		"ktg_experimental_use_small_msg_bubble_radius_description",
+	}},
+	{ Media::Player::kOptionDisableAutoplayNext, {
+		"ktg_experimental_disable_autoplay_next",
+		"ktg_experimental_disable_autoplay_next_description",
+	}},
+	{ Webview::kOptionWebviewDebugEnabled, {
+		"ktg_experimental_webview_debug_enabled",
+		"ktg_experimental_webview_debug_enabled_description",
+	}},
+	{ Webview::kOptionWebviewLegacyEdge, {
+		"ktg_experimental_webview_legacy_edge",
+		"ktg_experimental_webview_legacy_edge_description",
+	}},
+	{ kOptionAutoScrollInactiveChat, {
+		"ktg_experimental_auto_scroll_inactive_chat",
+		"ktg_experimental_auto_scroll_inactive_chat_description",
+	}},
+	{ Window::Notifications::kOptionHideReplyButton, {
+		"ktg_experimental_hide_reply_button",
+		"ktg_experimental_hide_reply_button_description",
+	}},
+	{ Window::Notifications::kOptionCustomNotification, {
+		"ktg_experimental_custom_notification",
+		"ktg_experimental_custom_notification_description",
+	}},
+	{ Window::Notifications::kOptionGNotification, {
+		"ktg_experimental_g_notification",
+		"ktg_experimental_g_notification_description",
+	}},
+	{ Core::kOptionFreeType, {
+		"ktg_experimental_freetype",
+		"ktg_experimental_freetype_description",
+	}},
+	{ Core::kOptionSkipUrlSchemeRegister, {
+		"ktg_experimental_skip_url_scheme_register",
+		"ktg_experimental_skip_url_scheme_register_description",
+	}},
+	{ Core::kOptionDeadlockDetector, {
+		"ktg_experimental_deadlock_detector",
+		"ktg_experimental_deadlock_detector_description",
+	}},
+	{ Window::kOptionExternalMediaViewer, {
+		"ktg_experimental_external_media_viewer",
+		"ktg_experimental_external_media_viewer_description",
+	}},
+	{ Window::kOptionNewWindowsSizeAsFirst, {
+		"ktg_experimental_new_windows_size_as_first",
+		"ktg_experimental_new_windows_size_as_first_description",
+	}},
+	{ MTP::details::kOptionPreferIPv6, {
+		"ktg_experimental_prefer_ipv6",
+		"ktg_experimental_prefer_ipv6_description",
+	}},
+	{ kOptionFastButtonsMode, {
+		"ktg_experimental_fast_buttons_mode",
+		"ktg_experimental_fast_buttons_mode_description",
+	}},
+	{ Window::kOptionDisableTouchbar, {
+		"ktg_experimental_disable_touchbar",
+		"",
+	}},
+	{ Info::kAlternativeScrollProcessing, {
+		"ktg_experimental_alternative_scroll_processing",
+		"",
+	}},
+	{ kModerateCommonGroups, {
+		"ktg_experimental_moderate_common_groups",
+		"",
+	}},
+	{ kForceComposeSearchOneColumn, {
+		"ktg_experimental_force_compose_search_one_column",
+		"ktg_experimental_force_compose_search_one_column_description",
+	}},
+	{ ChatHelpers::kOptionUnlimitedRecentStickers, {
+		"ktg_experimental_unlimited_recent_stickers",
+		"ktg_experimental_unlimited_recent_stickers_description",
+	}},
+	{ Ui::kOptionHideAiButton, {
+		"ktg_experimental_hide_ai_button",
+		"ktg_experimental_hide_ai_button_description",
+	}},
+	{ HistoryView::kOptionUnlimitedMessageWidth, {
+		"ktg_experimental_unlimited_message_width",
+		"ktg_experimental_unlimited_message_width_description",
+	}},
+	{ HistoryView::Controls::kOptionMacCmdReplyImmediately, {
+		"ktg_experimental_mac_cmd_reply_immediately",
+		"ktg_experimental_mac_cmd_reply_immediately_description",
+	}},
 };
 
 const auto kOptionsClipboardPrefix = u"tdesktop-flags:"_q;
+
+[[nodiscard]] QString TranslatedExperimental(
+		const QString &key,
+		const QString &fallback) {
+	const auto translated = ktr(key);
+	return translated.isEmpty() ? fallback : translated;
+}
 
 struct DecodeOptionsResult {
 	bool ok = false;
@@ -125,14 +252,16 @@ void AddOption(
 		rpl::producer<QString> query,
 		Fn<void(const QString&, not_null<QWidget*>)> registerHighlight) {
 	const auto translation = TranslationMap.find(option.id());
-	const auto name = translation != TranslationMap.end()
-			? ktr(translation->second.first)
-			: option.name().isEmpty()
-			? option.id()
-			: option.name();
+	const auto name = (translation != TranslationMap.end())
+		? TranslatedExperimental(
+			translation->second.first,
+			option.name().isEmpty() ? option.id() : option.name())
+		: (option.name().isEmpty() ? option.id() : option.name());
 	const auto &description = (translation != TranslationMap.end()
 		&& !translation->second.second.isEmpty())
-			? ktr(translation->second.second)
+			? TranslatedExperimental(
+				translation->second.second,
+				option.description())
 			: option.description();
 
 	const auto wrap = container->add(
