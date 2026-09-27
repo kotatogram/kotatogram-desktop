@@ -36,6 +36,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "core/application.h"
 #include "core/file_utilities.h"
 #include "storage/localstorage.h"
+#include "data/components/sponsored_messages.h"
 #include "data/data_session.h"
 #include "data/data_cloud_themes.h"
 #include "main/main_session.h"
@@ -332,6 +333,21 @@ void SetupKotatoChats(
 	}) | rpl::on_next([controller](bool enabled) {
 		::Kotato::JsonSettings::Set("disable_chat_themes", enabled);
 		controller->session().data().cloudThemes().refreshChatThemes();
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
+	container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_settings_hide_sponsored_messages"),
+		st::settingsButtonNoIcon
+	))->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("hide_sponsored_messages"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("hide_sponsored_messages"));
+	}) | rpl::on_next([controller](bool enabled) {
+		::Kotato::JsonSettings::Set("hide_sponsored_messages", enabled);
+		controller->session().sponsoredMessages().clear();
 		::Kotato::JsonSettings::Write();
 	}, container->lifetime());
 

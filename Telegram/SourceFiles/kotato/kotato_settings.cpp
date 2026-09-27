@@ -373,6 +373,9 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "disable_chat_themes", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
+	{ "hide_sponsored_messages", {
+		.type = SettingType::BoolSetting,
+		.defaultValue = true, }},
 	{ "remember_compress_images", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
