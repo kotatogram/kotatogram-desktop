@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "history/history.h"
 #include "history/view/history_view_element.h"
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "ui/chat/sponsored_message_bar.h"
@@ -239,6 +240,9 @@ void SponsoredMessages::inject(
 }
 
 bool SponsoredMessages::canHaveFor(not_null<History*> history) const {
+	if (::Kotato::JsonSettings::GetBool("hide_sponsored_messages")) {
+		return false;
+	}
 	if (history->peer->isChannel()) {
 		return true;
 	} else if (const auto user = history->peer->asUser()) {
@@ -248,11 +252,17 @@ bool SponsoredMessages::canHaveFor(not_null<History*> history) const {
 }
 
 bool SponsoredMessages::canHaveFor(not_null<HistoryItem*> item) const {
+	if (::Kotato::JsonSettings::GetBool("hide_sponsored_messages")) {
+		return false;
+	}
 	return item->history()->peer->isBroadcast()
 		&& item->isRegular();
 }
 
 bool SponsoredMessages::isTopBarFor(not_null<History*> history) const {
+	if (::Kotato::JsonSettings::GetBool("hide_sponsored_messages")) {
+		return false;
+	}
 	if (peerIsUser(history->peer->id)) {
 		if (const auto user = history->peer->asUser()) {
 			return user->isBot();
