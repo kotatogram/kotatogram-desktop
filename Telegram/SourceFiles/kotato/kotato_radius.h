@@ -7,9 +7,14 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 */
 #pragma once
 
+namespace Ui {
+class EmptyUserpic;
+} // namespace Ui
+
 namespace Kotato {
 
-void RefreshRadius();
+void InitRadius();
+[[nodiscard]] rpl::producer<> RadiusChanges();
 float64 UserpicRadius(bool isForum = false);
 void DrawUserpicShape(
 	QPainter &p,
@@ -28,6 +33,14 @@ void DrawUserpicShape(
 	int w,
 	int h,
 	float64 size,
+	bool isForum = false);
+void PaintEmptyUserpic(
+	const Ui::EmptyUserpic &empty,
+	QPainter &p,
+	int x,
+	int y,
+	int outerWidth,
+	int size,
 	bool isForum = false);
 
 style::point UserpicOnlineBadgeSkip();

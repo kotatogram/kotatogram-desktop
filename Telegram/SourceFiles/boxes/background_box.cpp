@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "boxes/background_box.h"
 
+#include "kotato/kotato_settings.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/round_checkbox.h"
 #include "ui/image/image.h"
@@ -452,7 +453,9 @@ auto BackgroundBox::Inner::resolveResetCustomPaper() const
 	}
 	const auto nonCustom = Window::Theme::Background()->paper();
 	const auto themeToken = _forPeer->themeToken();
-	if (forChannel() || themeToken.isEmpty()) {
+	if (forChannel()
+		|| themeToken.isEmpty()
+		|| ::Kotato::JsonSettings::GetBool("disable_chat_themes")) {
 		return nonCustom;
 	}
 	const auto &themes = _forPeer->owner().cloudThemes();
@@ -738,7 +741,7 @@ void BackgroundBox::Inner::mouseMoveEvent(QMouseEvent *e) {
 		} else if (result >= _papers.size()) {
 			return Selection();
 		}
-		auto &data = _papers[result].data;
+		const auto &data = _papers[result].data;
 		const auto deleteLeft = (column + 1) * (width + skip)
 			- st::stickerPanDeleteIconBg.width();
 		const auto deleteBottom = row * (height + skip) + skip

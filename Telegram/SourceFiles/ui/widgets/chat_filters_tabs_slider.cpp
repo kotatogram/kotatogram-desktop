@@ -27,7 +27,8 @@ ChatsFiltersTabs::ChatsFiltersTabs(
 	return st;
 }())
 , _unreadMaxString(u"99+"_q)
-, _unreadSkip(st::lineWidth * 5) {
+, _unreadSkip(st::lineWidth * 5)
+, _iconSkip(st::dialogsFiltersTabsIconSkip) {
 	Expects(_st.barSnapToLabel && _st.strictSkip);
 	if (_st.barRadius > 0) {
 		_bar.emplace(_st.barRadius, _st.barFg);
@@ -70,9 +71,75 @@ bool ChatsFiltersTabs::setSectionsAndCheckChanged(
 	}();
 	if (changed) {
 		Ui::DiscreteSlider::setSections(std::move(sections), context);
+		updateSectionsContentWidths();
 	}
 	_emojiPaused = std::move(paused);
 	return changed;
+}
+
+void ChatsFiltersTabs::setTabsMode(ChatsFiltersTabsMode mode) {
+	if (_tabsMode == mode) {
+		return;
+	}
+	_tabsMode = mode;
+	updateSectionsContentWidths();
+	fitWidthToSections();
+	update();
+}
+
+void ChatsFiltersTabs::setSectionIcons(
+		std::vector<const style::internal::Icon*> icons) {
+	if (_sectionIcons == icons) {
+		return;
+	}
+	_sectionIcons = std::move(icons);
+	if (_tabsMode != ChatsFiltersTabsMode::TextOnly) {
+		updateSectionsContentWidths();
+		fitWidthToSections();
+		update();
+	}
+}
+
+auto ChatsFiltersTabs::sectionIcon(int index) const
+-> const style::internal::Icon* {
+	return (_tabsMode == ChatsFiltersTabsMode::TextOnly
+		|| index < 0
+		|| index >= int(_sectionIcons.size()))
+		? nullptr
+		: _sectionIcons[index];
+}
+
+int ChatsFiltersTabs::iconExtraWidth(
+		const style::internal::Icon *icon) const {
+	return !icon
+		? 0
+		: (_tabsMode == ChatsFiltersTabsMode::TextAndIcons)
+		? (icon->width() + _iconSkip)
+		: icon->width();
+}
+
+int ChatsFiltersTabs::badgeExtraWidth(int index) const {
+	const auto it = _unreadCounts.find(index);
+	if (it == _unreadCounts.end()) {
+		return 0;
+	}
+	const auto count = int(it->second.count);
+	const auto widthIndex = (count < 10) ? 0 : (count < 100) ? 1 : 2;
+	return _cachedBadgeWidths[widthIndex] + _unreadSkip;
+}
+
+void ChatsFiltersTabs::updateSectionsContentWidths() {
+	auto index = 0;
+	enumerateSections([&](Section &section) {
+		const auto labelWidth = (_tabsMode == ChatsFiltersTabsMode::IconsOnly)
+			? 0
+			: section.label.maxWidth();
+		section.contentWidth = iconExtraWidth(sectionIcon(index))
+			+ labelWidth
+			+ badgeExtraWidth(index);
+		++index;
+		return true;
+	});
 }
 
 void ChatsFiltersTabs::fitWidthToSections() {
@@ -112,18 +179,7 @@ void ChatsFiltersTabs::setUnreadCount(int index, int unreadCount, bool mute) {
 		it->second.cache = cacheUnreadCount(unreadCount, mute);
 		update();
 	}
-	if (unreadCount) {
-		const auto widthIndex = (unreadCount < 10)
-			? 0
-			: (unreadCount < 100)
-			? 1
-			: 2;
-		setAdditionalContentWidthToSection(
-			index,
-			_cachedBadgeWidths[widthIndex] + _unreadSkip);
-	} else {
-		setAdditionalContentWidthToSection(index, 0);
-	}
+	updateSectionsContentWidths();
 }
 
 int ChatsFiltersTabs::calculateLockedFromX() const {
@@ -144,8 +200,32 @@ int ChatsFiltersTabs::calculateLockedFromX() const {
 	return left ? left : std::numeric_limits<int>::max();
 }
 
-void ChatsFiltersTabs::setLockedFrom(int index) {
+int ChatsFiltersTabs::sectionIndexAt(int x) const {
+	auto left = 0;
+	auto index = 0;
+	enumerateSections([&](const Section &section) {
+		const auto currentRight = section.left + section.width;
+		if (x > left && x < currentRight) {
+			return false;
+		}
+		left = currentRight;
+		index++;
+		return true;
+	});
+	return index;
+}
+
+bool ChatsFiltersTabs::isLocked(int index) const {
+	return _lockedFrom
+		&& (index >= _lockedFrom)
+		&& !_unlocked.contains(index);
+}
+
+void ChatsFiltersTabs::setLockedFrom(
+		int index,
+		base::flat_set<int> unlocked) {
 	_lockedFrom = index;
+	_unlocked = std::move(unlocked);
 	_lockedFromX = calculateLockedFromX();
 	if (!index) {
 		_paletteLifetime.destroy();
@@ -232,26 +312,44 @@ void ChatsFiltersTabs::paintEvent(QPaintEvent *e) {
 			section.contentWidth,
 			_st.labelStyle.font->height);
 		if (rect.intersects(clip)) {
-			const auto locked = (_lockedFrom && (index >= _lockedFrom));
+			const auto locked = isLocked(index);
 			if (locked) {
 				constexpr auto kPremiumLockedOpacity = 0.6;
 				p.setOpacity(kPremiumLockedOpacity);
 			}
+			const auto icon = sectionIcon(index);
+			const auto iconExtra = iconExtraWidth(icon);
+			const auto labelWidth = (_tabsMode
+				== ChatsFiltersTabsMode::IconsOnly)
+				? 0
+				: section.label.maxWidth();
 			p.setPen(anim::pen(_st.labelFg, _st.labelFgActive, active));
-			section.label.draw(p, {
-				.position = QPoint(labelLeft, _st.labelTop),
-				.outerWidth = width(),
-				.availableWidth = section.label.maxWidth(),
-				.now = now,
-				.pausedEmoji = _emojiPaused && _emojiPaused(),
-			});
+			if (icon) {
+				icon->paint(
+					p,
+					labelLeft,
+					_st.labelTop
+						+ (_st.labelStyle.font->height - icon->height()) / 2,
+					width(),
+					anim::color(_st.labelFg, _st.labelFgActive, active));
+			}
+			if (labelWidth > 0) {
+				section.label.draw(p, {
+					.position = QPoint(labelLeft + iconExtra, _st.labelTop),
+					.outerWidth = width(),
+					.availableWidth = section.label.maxWidth(),
+					.now = now,
+					.pausedEmoji = _emojiPaused && _emojiPaused(),
+				});
+			}
 			{
 				const auto it = _unreadCounts.find(index);
 				if (it != _unreadCounts.end()) {
 					p.drawImage(
 						labelLeft
-							+ _unreadSkip
-							+ section.label.maxWidth(),
+							+ iconExtra
+							+ labelWidth
+							+ _unreadSkip,
 						_st.labelTop,
 						it->second.cache);
 				}
@@ -263,7 +361,7 @@ void ChatsFiltersTabs::paintEvent(QPaintEvent *e) {
 				const auto size = _lockCache->size()
 					/ style::DevicePixelRatio();
 				p.drawImage(
-					labelLeft + (section.label.maxWidth() - size.width()) / 2,
+					labelLeft + (iconExtra + labelWidth - size.width()) / 2,
 					height() - size.height() - st::lineWidth,
 					*_lockCache);
 				p.setOpacity(1.0);
@@ -304,7 +402,8 @@ void ChatsFiltersTabs::paintEvent(QPaintEvent *e) {
 void ChatsFiltersTabs::mousePressEvent(QMouseEvent *e) {
 	const auto mouseButton = e->button();
 	if (mouseButton == Qt::MouseButton::LeftButton) {
-		_lockedPressed = (e->pos().x() >= _lockedFromX);
+		_lockedPressed = (e->pos().x() >= _lockedFromX)
+			&& isLocked(sectionIndexAt(e->pos().x()));
 		if (_lockedPressed) {
 			Ui::RpWidget::mousePressEvent(e);
 		} else {
@@ -346,21 +445,10 @@ void ChatsFiltersTabs::mouseReleaseEvent(QMouseEvent *e) {
 }
 
 void ChatsFiltersTabs::contextMenuEvent(QContextMenuEvent *e) {
-	const auto pos = e->pos();
-	if (pos.x() >= _lockedFromX) {
+	const auto index = sectionIndexAt(e->pos().x());
+	if (isLocked(index)) {
 		return;
 	}
-	auto left = 0;
-	auto index = 0;
-	enumerateSections([&](const Section &section) {
-		const auto currentRight = section.left + section.width;
-		if (pos.x() > left && pos.x() < currentRight) {
-			return false;
-		}
-		left = currentRight;
-		index++;
-		return true;
-	});
 	_contextMenuRequested.fire_copy(index);
 }
 
@@ -410,6 +498,9 @@ void ChatsFiltersTabs::reorderSections(int oldIndex, int newIndex) {
 				std::move(unread));
 		}
 		_unreadCounts = std::move(unreadCounts);
+	}
+	if (oldIndex < _sectionIcons.size() && newIndex < _sectionIcons.size()) {
+		base::reorder(_sectionIcons, oldIndex, newIndex);
 	}
 
 	base::reorder(sectionsRef(), oldIndex, newIndex);

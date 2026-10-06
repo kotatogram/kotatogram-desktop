@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "history/history_item_reply_markup.h"
 #include "iv/markdown/iv_markdown_document.h"
 #include "iv/markdown/iv_markdown_math_renderer.h"
 
@@ -24,6 +25,7 @@ struct Markdown;
 
 namespace Iv {
 struct RichPage;
+struct RichMessageLimits;
 } // namespace Iv
 
 namespace Iv::Markdown {
@@ -34,6 +36,7 @@ enum class PreparedBlockKind {
 	Heading,
 	CodeBlock,
 	Rule,
+	ButtonRow,
 	List,
 	ListItem,
 	Quote,
@@ -42,7 +45,7 @@ enum class PreparedBlockKind {
 	Details,
 	Photo,
 	Video,
-	Audio,
+	Document,
 	Map,
 	Channel,
 	GroupedMedia,
@@ -60,6 +63,8 @@ enum class PreparedLinkKind {
 	LocalFile,
 	RejectedRelative,
 	ToggleDetails,
+	ToggleBlockquote,
+	RichPageButton,
 };
 
 struct PreparedLink {
@@ -76,6 +81,7 @@ struct PreparedLink {
 enum class InlineTextObjectKind {
 	Formula,
 	IvImage,
+	Button,
 };
 
 struct InlineTextObjectFormulaData {
@@ -90,17 +96,38 @@ struct InlineTextObjectIvImageData {
 	QString replacementText;
 };
 
+struct InlineTextObjectButtonData {
+	TextWithEntities label;
+	QByteArray data;
+	int64 buttonId = 0;
+	HistoryMessageMarkupButton::Type type
+		= HistoryMessageMarkupButton::Type::Disabled;
+	HistoryMessageMarkupButton::Color color
+		= HistoryMessageMarkupButton::Color::Normal;
+	InlineBots::PeerTypes peerTypes = 0;
+	bool link = false;
+};
+
 struct InlineTextObjectEntity {
 	InlineTextObjectKind kind = InlineTextObjectKind::Formula;
 	std::variant<
 		InlineTextObjectFormulaData,
-		InlineTextObjectIvImageData> data = InlineTextObjectFormulaData();
+		InlineTextObjectIvImageData,
+		InlineTextObjectButtonData> data = InlineTextObjectFormulaData();
 };
 
 enum class PreparedTableCellVerticalAlignment {
 	Top,
 	Middle,
 	Bottom,
+};
+
+enum class PreparedOrderedListType {
+	Decimal,
+	LowerAlpha,
+	UpperAlpha,
+	LowerRoman,
+	UpperRoman,
 };
 
 enum class PreparedEditBlockContainerKind {
@@ -478,6 +505,65 @@ struct PreparedEditHit {
 	}
 };
 
+struct PreparedEditTextDropTarget {
+	PreparedEditLeafSource leaf;
+	int offset = 0;
+
+	friend inline bool operator==(
+			const PreparedEditTextDropTarget &a,
+			const PreparedEditTextDropTarget &b) {
+		return (a.leaf == b.leaf)
+			&& (a.offset == b.offset);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditTextDropTarget &a,
+			const PreparedEditTextDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+struct PreparedEditBlockDropTarget {
+	PreparedEditBlockContainerPath container;
+	int insertIndex = -1;
+
+	friend inline bool operator==(
+			const PreparedEditBlockDropTarget &a,
+			const PreparedEditBlockDropTarget &b) {
+		return (a.container == b.container)
+			&& (a.insertIndex == b.insertIndex);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditBlockDropTarget &a,
+			const PreparedEditBlockDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+struct PreparedEditListItemDropTarget {
+	PreparedEditBlockPath block;
+	int insertIndex = -1;
+
+	friend inline bool operator==(
+			const PreparedEditListItemDropTarget &a,
+			const PreparedEditListItemDropTarget &b) {
+		return (a.block == b.block)
+			&& (a.insertIndex == b.insertIndex);
+	}
+
+	friend inline bool operator!=(
+			const PreparedEditListItemDropTarget &a,
+			const PreparedEditListItemDropTarget &b) {
+		return !(a == b);
+	}
+};
+
+using PreparedEditDropTarget = std::variant<
+	PreparedEditTextDropTarget,
+	PreparedEditBlockDropTarget,
+	PreparedEditListItemDropTarget>;
+
 struct PreparedTableCell {
 	TextWithEntities text;
 	std::vector<PreparedLink> links;
@@ -508,6 +594,7 @@ struct PreparedPhotoBlockData {
 	TextWithEntities caption;
 	bool spoiler = false;
 	bool viewerOpen = false;
+	bool editMode = false;
 };
 
 enum class PreparedMediaItemKind {
@@ -527,9 +614,10 @@ struct PreparedVideoBlockData {
 	PreparedMediaBlockId id;
 	PreparedMediaItemData media;
 	TextWithEntities caption;
+	bool editMode = false;
 };
 
-struct PreparedAudioBlockData {
+struct PreparedDocumentBlockData {
 	PreparedMediaBlockId id;
 	uint64 documentId = 0;
 	QString title;
@@ -571,13 +659,33 @@ struct PreparedGroupedMediaBlockData {
 	PreparedGroupedMediaIntent intent = PreparedGroupedMediaIntent::Collage;
 	std::vector<PreparedGroupedMediaItemData> items;
 	TextWithEntities caption;
+	bool editMode = false;
+};
+
+enum class PlaceholderIntent : uchar {
+	EmbedView,
+	UnsupportedBlock,
 };
 
 struct PreparedPlaceholderBlockData {
 	PreparedPlaceholderBlockId id;
+	PlaceholderIntent intent = PlaceholderIntent::EmbedView;
 	QString label;
 	QString copyText;
 	std::optional<EmbedRequest> embed;
+};
+
+struct PreparedButtonRowButton {
+	TextWithEntities text;
+	HistoryMessageMarkupButton button = HistoryMessageMarkupButton(
+		HistoryMessageMarkupButton::Type::Disabled,
+		QString(),
+		{});
+};
+
+struct PreparedButtonRowBlockData {
+	PreparedMediaBlockId id;
+	std::vector<PreparedButtonRowButton> buttons;
 };
 
 struct PreparedRelatedArticleBlockData {
@@ -607,20 +715,23 @@ struct PreparedBlock {
 	QString codeLanguage;
 	QString formulaTex;
 	QString anchorId;
+	QString collapseToggleId;
 	std::vector<QString> anchorIds;
 	PreparedPhotoBlockData photo;
 	PreparedVideoBlockData video;
-	PreparedAudioBlockData audio;
+	PreparedDocumentBlockData document;
 	PreparedMapBlockData map;
 	PreparedChannelBlockData channel;
 	PreparedGroupedMediaBlockData groupedMedia;
 	PreparedEmbedPostBlockData embedPost;
 	PreparedPlaceholderBlockData placeholder;
+	PreparedButtonRowBlockData buttonRow;
 	PreparedRelatedArticleBlockData relatedArticle;
 	ListKind listKind = ListKind::Bullet;
 	ListDelimiter listDelimiter = ListDelimiter::None;
 	MathKind mathKind = MathKind::Display;
 	TaskState taskState = TaskState::None;
+	PreparedOrderedListType orderedType = PreparedOrderedListType::Decimal;
 	int headingLevel = 0;
 	int formulaIndex = -1;
 	int orderedNumber = 0;
@@ -630,16 +741,22 @@ struct PreparedBlock {
 	int tableColumnCount = 0;
 	bool tableBordered = true;
 	bool tableStriped = false;
+	bool tableCompact = false;
 	bool collapsed = false;
 	bool detailsOpen = false;
 	bool depthClamped = false;
 	bool tight = false;
 	bool supplementary = false;
 	bool pullquote = false;
+	bool quoteAuthor = false;
+	bool footer = false;
 	bool forceTextSegment = false;
+	bool orderedReversed = false;
 	std::optional<PreparedEditBlockSource> editBlock;
 	std::optional<PreparedEditListItemSource> editListItem;
 	std::optional<PreparedEditLeafSource> editLeaf;
+	QString articleOrderedMarkerText;
+	QString orderedMarkerText;
 	QString editPlaceholderText;
 };
 
@@ -673,6 +790,7 @@ struct MarkdownPrepareTableRenderLimits {
 
 struct MarkdownPrepareLimits {
 	MarkdownPrepareTableRenderLimits tableRender;
+	MarkdownPrepareTableRenderLimits markdownTableRender;
 	int visualListDepth = 0;
 	int visualQuoteDepth = 0;
 	int maxPreparedBlocks = 0;
@@ -726,7 +844,9 @@ struct NativeInstantViewPrepareRequest {
 	std::shared_ptr<const Iv::RichPage> richPage;
 	std::shared_ptr<MediaRuntime> mediaRuntime;
 	std::optional<MarkdownPrepareDimensions> dimensionsOverride;
+	std::optional<MarkdownPrepareTableRenderLimits> tableRenderLimits;
 	bool editMode = false;
+	bool unsupportedBlockNotices = false;
 };
 
 struct MarkdownArticleContent {
@@ -734,6 +854,7 @@ struct MarkdownArticleContent {
 	std::vector<PreparedFootnote> footnotes;
 	std::vector<PreparedFormulaSlot> formulas;
 	std::shared_ptr<MediaRuntime> mediaRuntime;
+	std::shared_ptr<const Iv::RichPage> richPage;
 	bool editMode = false;
 	PrepareFailureStatus failure;
 	PrepareDebugStats debug;
@@ -771,10 +892,18 @@ struct NativeInstantViewPrepareResult {
 };
 
 [[nodiscard]] const MarkdownPrepareTableRenderLimits &PrepareTableRenderLimitsForIv();
+[[nodiscard]] MarkdownPrepareTableRenderLimits PrepareTableRenderLimitsForRichMessage(
+	const RichMessageLimits &limits);
+[[nodiscard]] auto PrepareMarkdownTableRenderLimitsForIv()
+-> const MarkdownPrepareTableRenderLimits &;
 [[nodiscard]] const MarkdownPrepareLimits &PrepareLimitsForIv();
 [[nodiscard]] MarkdownPrepareDimensions CaptureMarkdownPrepareDimensions();
 [[nodiscard]] MarkdownPrepareDimensions CaptureMarkdownPrepareDimensions(
 	const style::Markdown &st);
+[[nodiscard]] QString HeadingLevelLabel(int level);
+[[nodiscard]] QString FormatPreparedOrderedRawMarkerText(
+	const QString &raw,
+	ListDelimiter delimiter);
 [[nodiscard]] QString SerializeInlineTextObjectEntity(
 	const InlineTextObjectEntity &object);
 [[nodiscard]] QString InlineFormulaCopySource(const QString &source);
@@ -784,6 +913,8 @@ struct NativeInstantViewPrepareResult {
 [[nodiscard]] NativeInstantViewLeafUpdateResult UpdatePreparedNativeInstantViewLeaf(
 	MarkdownArticleContent *content,
 	const RichPage &page,
-	const PreparedEditLeafSource &source);
+	const PreparedEditLeafSource &source,
+	std::optional<MarkdownPrepareTableRenderLimits> tableRenderLimits
+		= std::nullopt);
 
 } // namespace Iv::Markdown

@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "history/history.h"
 #include "ui/text/text.h"
+#include "base/unique_qptr.h"
 #include "base/weak_ptr.h"
 
 class Painter;
@@ -16,6 +17,7 @@ class HistoryItem;
 
 namespace Ui {
 class SpoilerAnimation;
+class PopupMenu;
 } // namespace Ui
 
 namespace Data {
@@ -40,6 +42,7 @@ namespace HistoryView::Controls {
 class ForwardPanel final : public base::has_weak_ptr {
 public:
 	explicit ForwardPanel(Fn<void()> repaint);
+	~ForwardPanel();
 
 	void update(Data::Thread *to, Data::ResolvedForwardDraft draft);
 	void paint(
@@ -52,7 +55,11 @@ public:
 	[[nodiscard]] rpl::producer<> itemsUpdated() const;
 
 	void applyOptions(Data::ForwardOptions options);
+	void applyGroupOptions(Data::GroupingOptions options);
 	void editToNextOption();
+	void showOptionsMenu(
+		not_null<QWidget*> parent,
+		std::shared_ptr<ChatHelpers::Show> show);
 
 	[[nodiscard]] const Data::ResolvedForwardDraft &draft() const;
 	[[nodiscard]] const HistoryItemsList &items() const;
@@ -75,6 +82,8 @@ private:
 	mutable std::unique_ptr<Ui::SpoilerAnimation> _spoiler;
 	int _nameVersion = 0;
 
+	base::unique_qptr<Ui::PopupMenu> _menu;
+
 };
 
 void ClearDraftReplyTo(
@@ -94,6 +103,9 @@ void EditWebPageOptions(
 [[nodiscard]] bool HasDropForwardedInfoSetting(const HistoryItemsList &list);
 [[nodiscard]] bool HasRichPage(const HistoryItemsList &list);
 [[nodiscard]] bool CanHideForwardAuthor(
+	not_null<Main::Session*> session,
+	const HistoryItemsList &list);
+[[nodiscard]] bool HideForwardAuthorPremiumRequired(
 	not_null<Main::Session*> session,
 	const HistoryItemsList &list);
 [[nodiscard]] Data::ForwardOptions NormalizeForwardOptions(

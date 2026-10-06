@@ -86,7 +86,7 @@ constexpr auto kLocalIcons = std::array{
 FilterIconPanel::FilterIconPanel(QWidget *parent, bool isLocal)
 : RpWidget(parent)
 , _inner(Ui::CreateChild<Ui::RpWidget>(this))
-, _innerBg(ImageRoundRadius::Small, st::dialogsBg)
+, _innerBg(st::emojiPanRadius, st::dialogsBg)
 , _shadow(st::emojiPanAnimation.shadow)
 , _isLocal(isLocal) {
 	setup();
@@ -96,7 +96,7 @@ FilterIconPanel::~FilterIconPanel() {
 	hideFast();
 }
 
-rpl::producer<FilterIcon> FilterIconPanel::chosen() const {
+rpl::producer<FilterIconChosen> FilterIconPanel::chosen() const {
 	return _chosen.events();
 }
 
@@ -284,9 +284,12 @@ void FilterIconPanel::mouseRelease(Qt::MouseButton button) {
 		Assert(pressed < kIcons.size() + (_isLocal
 				? kLocalIcons.size()
 				: 0));
-		_chosen.fire_copy(pressed < kIcons.size()
-			? kIcons[pressed]
-			: kLocalIcons[pressed-kIcons.size()]);
+		_chosen.fire({
+			.icon = (pressed < kIcons.size()
+				? kIcons[pressed]
+				: kLocalIcons[pressed-kIcons.size()]),
+			.geometry = countRect(pressed).translated(_inner->pos()),
+		});
 	}
 }
 
@@ -417,7 +420,7 @@ void FilterIconPanel::startShowAnimation() {
 	if (!_a_show.animating()) {
 		auto image = grabForAnimation();
 
-		_showAnimation = std::make_unique<Ui::PanelAnimation>(st::emojiPanAnimation, Ui::PanelAnimation::Origin::TopRight);
+		_showAnimation = std::make_unique<Ui::PanelAnimation>(st::emojiPanAnimation, Ui::PanelAnimation::Origin::TopLeft);
 		auto inner = rect().marginsRemoved(st::emojiPanMargins);
 		_showAnimation->setFinalImage(
 			std::move(image),
@@ -425,7 +428,7 @@ void FilterIconPanel::startShowAnimation() {
 				inner.topLeft() * style::DevicePixelRatio(),
 				inner.size() * style::DevicePixelRatio()),
 			st::emojiPanRadius);
-		_showAnimation->setCornerMasks(Images::CornersMask(ImageRoundRadius::Small));
+		_showAnimation->setCornerMasks(Images::CornersMask(st::emojiPanRadius));
 		_showAnimation->start();
 	}
 	hideChildren();

@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/mtproto_config.h"
 #include "history/history.h"
 #include "history/history_item_components.h"
+#include "history/history_item_helpers.h"
 #include "history/view/history_view_chat_section.h"
 #include "lang/lang_keys.h"
 #include "data/notify/data_notify_settings.h"
@@ -33,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "core/application.h"
+#include "core/version.h"
 #include "mainwindow.h"
 #include "api/api_reactions_notify_settings.h"
 #include "api/api_updates.h"
@@ -68,6 +70,47 @@ constexpr auto kSystemAlertDuration = crl::time(1000);
 #else // !Q_OS_MAC
 constexpr auto kSystemAlertDuration = crl::time(0);
 #endif // Q_OS_MAC
+
+base::options::toggle OptionCustomNotification({
+	.id = kOptionCustomNotification,
+	.name = "Force non-native notifications availability",
+	.description = "Allow to disable native notifications"
+		" even if custom notifications are broken on this platform",
+	.scope = [] {
+		return Platform::Notifications::Enforced();
+	},
+});
+
+base::options::toggle OptionGNotification({
+	.id = kOptionGNotification,
+	.name = "GNotification",
+	.description = "Force enable GLib's GNotification."
+		" When disabled, autodetect is used.",
+	.scope = [] {
+#if __has_include(<gio/gio.hpp>)
+		using namespace gi::repository;
+		return bool(Gio::Application::get_default());
+#else // __has_include(<gio/gio.hpp>)
+		return false;
+#endif // __has_include(<gio/gio.hpp>)
+	},
+});
+
+base::options::toggle OptionMacModernNotifications({
+	.id = kOptionMacModernNotifications,
+	.name = "Modern macOS notifications",
+	.description = "Use UserNotifications framework"
+		" for native notifications (macOS 10.14+)."
+		" System asks for notifications permission on first launch.",
+	.scope = base::options::macos,
+	.restartRequired = true,
+});
+
+base::options::toggle HideReplyButtonOption({
+	.id = kOptionHideReplyButton,
+	.name = "Hide reply button",
+	.description = "Hide reply button in notifications.",
+});
 
 [[nodiscard]] QString PlaceholderReactionText() {
 	static const auto result = QString::fromUtf8("\xf0\x9f\x92\xad");
@@ -133,48 +176,16 @@ constexpr auto kSystemAlertDuration = crl::time(0);
 }
 
 [[nodiscard]] bool AllowNotificationActions(not_null<PeerData*> peer) {
-	return Platform::IsMac() && peer->isNotificationsUser();
+	return (Platform::IsMac() || Platform::IsLinux())
+		&& peer->isNotificationsUser();
 }
 
 } // namespace
 
 const char kOptionCustomNotification[] = "custom-notification";
-
-base::options::toggle OptionCustomNotification({
-	.id = kOptionCustomNotification,
-	.name = "Force non-native notifications availability",
-	.description = "Allow to disable native notifications"
-		" even if custom notifications are broken on this platform",
-	.scope = [] {
-		return Platform::Notifications::Enforced();
-	},
-	.restartRequired = true,
-});
-
 const char kOptionGNotification[] = "gnotification";
+const char kOptionMacModernNotifications[] = "mac-modern-notifications";
 const char kOptionHideReplyButton[] = "hide-reply-button";
-
-base::options::toggle OptionGNotification({
-	.id = kOptionGNotification,
-	.name = "GNotification",
-	.description = "Force enable GLib's GNotification."
-		" When disabled, autodetect is used.",
-	.scope = [] {
-#if __has_include(<gio/gio.hpp>)
-		using namespace gi::repository;
-		return bool(Gio::Application::get_default());
-#else // __has_include(<gio/gio.hpp>)
-		return false;
-#endif // __has_include(<gio/gio.hpp>)
-	},
-	.restartRequired = true,
-});
-
-base::options::toggle HideReplyButtonOption({
-	.id = kOptionHideReplyButton,
-	.name = "Hide reply button",
-	.description = "Hide reply button in notifications.",
-});
 
 struct System::Waiter {
 	NotificationInHistoryKey key;
@@ -209,6 +220,13 @@ System::System()
 			|| type == ChangeType::CountMessages) {
 			Core::App().domain().notifyUnreadBadgeChanged();
 		}
+	}, lifetime());
+
+	rpl::merge(
+		OptionCustomNotification.changes(),
+		OptionGNotification.changes()
+	 ) | rpl::on_next([=] {
+		createManager();
 	}, lifetime());
 }
 
@@ -880,7 +898,9 @@ void System::showNext() {
 					? nextNotify->item.get()
 					: nullptr;
 				if (nextItem
-					&& qAbs(int64(nextItem->date()) - int64(groupedItem->date())) < 2) {
+					&& std::abs(int64(nextItem->date())
+						- int64(groupedItem->date()))
+						< 2) {
 					if (isForwarded
 						&& groupedItem->author() == nextItem->author()) {
 						++forwardedCount;
@@ -1167,16 +1187,9 @@ TextWithEntities Manager::ComposeReactionNotification(
 		}
 		return simple(tr::lng_reaction_document);
 	} else if (const auto contact = media->sharedContact()) {
-		const auto name = contact->firstName.isEmpty()
-			? contact->lastName
-			: contact->lastName.isEmpty()
-			? contact->firstName
-			: tr::lng_full_name(
-				tr::now,
-				lt_first_name,
-				contact->firstName,
-				lt_last_name,
-				contact->lastName);
+		const auto name = langFullName(
+			contact->firstName,
+			contact->lastName);
 		return tr::lng_reaction_contact(
 			tr::now,
 			lt_reaction,
@@ -1212,8 +1225,7 @@ TextWithEntities Manager::ComposePollVoteNotification(
 	if (hideContent) {
 		return tr::lng_poll_vote_notext(tr::now, tr::marked);
 	}
-	const auto media = item->media();
-	const auto poll = media ? media->poll() : nullptr;
+	const auto poll = LookupNotificationPoll(item);
 	if (!poll) {
 		return tr::lng_poll_vote_notext(tr::now, tr::marked);
 	}
@@ -1387,13 +1399,10 @@ Window::SessionController *Manager::openNotificationMessage(
 	}
 	const auto window = separate
 		? separate->sessionController()
-		: openSeparated
-		? [&] {
-			const auto window = Core::App().ensureSeparateWindowFor(
-				separateId,
-				itemId);
-			return window ? window->sessionController() : nullptr;
-		}()
+		: (openSeparated && CanShowSeparateWindow(separateId))
+		? Core::App().ensureSeparateWindowFor(
+			separateId,
+			itemId)->sessionController()
 		: history->session().tryResolveWindow();
 	if (window) {
 		window->widget()->showFromTray();
@@ -1681,11 +1690,15 @@ QRect NotificationDisplayRect(Window::Controller *controller) {
 		}
 	}
 
-	return screen
-		? screen->availableGeometry()
-		: controller
-		? controller->widget()->desktopRect()
-		: QGuiApplication::primaryScreen()->availableGeometry();
+	if (screen) {
+		return screen->availableGeometry();
+	} else if (controller) {
+		return controller->widget()->desktopRect();
+	}
+	// When the last monitor is removed QGuiApplication has no screens at
+	// all, so primaryScreen() is nullptr.
+	const auto primary = QGuiApplication::primaryScreen();
+	return primary ? primary->availableGeometry() : QRect();
 }
 
 } // namespace Notifications

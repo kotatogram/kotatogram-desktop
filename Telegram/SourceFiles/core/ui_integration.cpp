@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/basic_click_handlers.h"
 #include "ui/emoji_config.h"
+#include "ui/toast/toast.h"
 #include "lang/lang_keys.h"
 #include "platform/platform_specific.h"
 #include "boxes/url_auth_box.h"
@@ -34,6 +35,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "mainwindow.h"
 #include "base/unixtime.h"
+#include "styles/style_chat_helpers.h"
 
 #include <QtCore/QDateTime>
 #include <QtCore/QLocale>
@@ -284,6 +286,10 @@ QString UiIntegration::emojiCacheFolder() {
 	return cWorkingDir() + "tdata/emoji";
 }
 
+QString UiIntegration::fontsCacheFolder() {
+	return cWorkingDir() + "tdata/fonts";
+}
+
 QString UiIntegration::openglCheckFilePath() {
 	return OpenGLCheckFilePath();
 }
@@ -320,6 +326,9 @@ std::shared_ptr<ClickHandler> UiIntegration::createLinkHandler(
 	const auto my = std::any_cast<Core::TextContextDetails>(&context.other);
 	switch (data.type) {
 	case EntityType::Url:
+		if (data.data.startsWith(u"internal:"_q, Qt::CaseInsensitive)) {
+			return nullptr;
+		}
 		return (!data.data.isEmpty()
 			&& UrlClickHandler::IsSuspicious(data.data))
 			? std::make_shared<HiddenUrlClickHandler>(data.data)
@@ -445,9 +454,17 @@ bool UiIntegration::handleUrlClick(
 bool UiIntegration::copyPreOnClick(const QVariant &context) {
 	const auto my = context.value<ClickHandlerContext>();
 	if (const auto window = my.sessionWindow.get()) {
-		window->showToast(tr::lng_code_copied(tr::now));
+		window->showToast({
+			.text = { tr::lng_code_copied(tr::now) },
+			.iconLottie = u"toast/copy"_q,
+			.iconLottieSize = st::toastLottieIconSize,
+		});
 	} else if (my.show) {
-		my.show->showToast(tr::lng_code_copied(tr::now));
+		my.show->showToast({
+			.text = { tr::lng_code_copied(tr::now) },
+			.iconLottie = u"toast/copy"_q,
+			.iconLottieSize = st::toastLottieIconSize,
+		});
 	}
 	return true;
 }

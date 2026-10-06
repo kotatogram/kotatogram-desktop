@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/edit_peer_info_box.h"
 
 #include "apiwrap.h"
+#include "api/api_communities.h"
 #include "api/api_credits.h"
 #include "api/api_peer_photo.h"
 #include "api/api_statistics.h"
@@ -22,6 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/edit_peer_history_visibility_box.h"
 #include "boxes/peers/edit_peer_permissions_box.h"
 #include "boxes/peers/edit_peer_invite_links.h"
+#include "boxes/peers/add_to_community_box.h"
 #include "boxes/peers/edit_discussion_link_box.h"
 #include "boxes/peers/edit_peer_requests_box.h"
 #include "boxes/peers/edit_peer_reactions.h"
@@ -38,8 +40,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "data/components/credits.h"
+#include "data/components/welcome_messages.h"
 #include "data/data_channel.h"
 #include "data/data_chat.h"
+#include "data/data_community.h"
 #include "data/data_peer.h"
 #include "data/data_session.h"
 #include "data/data_changes.h"
@@ -48,6 +52,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_premium_limits.h"
 #include "data/data_user.h"
 #include "history/admin_log/history_admin_log_section.h"
+#include "history/view/history_view_welcome_messages_section.h"
+#include "history/history_item.h"
 #include "info/bot/earn/info_bot_earn_widget.h"
 #include "info/bot/starref/info_bot_starref_join_widget.h"
 #include "info/bot/starref/info_bot_starref_setup_widget.h"
@@ -57,6 +63,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/channel_statistics/earn/info_channel_earn_widget.h"
 #include "info/profile/info_profile_values.h"
 #include "info/info_memento.h"
+#include "lang/lang_hardcoded.h"
 #include "lang/lang_keys.h"
 #include "mtproto/sender.h"
 #include "main/main_app_config.h"
@@ -89,16 +96,33 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_boxes.h"
 #include "styles/style_info.h"
 
+#include <QtCore/QTextBoundaryFinder>
 #include <QtSvg/QSvgRenderer>
 
 namespace {
 
 constexpr auto kBotManagerUsername = "BotFather"_cs;
+constexpr auto kWelcomePreviewLength = 8;
 
 [[nodiscard]] auto ToPositiveNumberString() {
 	return rpl::map([](int count) {
 		return count ? QString::number(count) : QString();
 	});
+}
+
+[[nodiscard]] QString ElidedPreview(const QString &text, int max) {
+	auto finder = QTextBoundaryFinder(QTextBoundaryFinder::Grapheme, text);
+	auto clusters = 0;
+	while (finder.toNextBoundary() > 0) {
+		if (++clusters < max) {
+			continue;
+		}
+		const auto cut = finder.position();
+		return (cut < text.size())
+			? (text.left(cut).trimmed() + Ui::kQEllipsis)
+			: text;
+	}
+	return text;
 }
 
 [[nodiscard]] int EnableForumMinMembers(not_null<PeerData*> peer) {
@@ -121,13 +145,14 @@ void AddButtonWithCount(
 		rpl::producer<QString> &&text,
 		rpl::producer<QString> &&count,
 		Fn<void()> callback,
-		Settings::IconDescriptor &&descriptor) {
+		Settings::IconDescriptor &&descriptor,
+		const style::SettingsCountButton &st = st::manageGroupButton) {
 	parent->add(EditPeerInfoBox::CreateButton(
 		parent,
 		std::move(text),
 		std::move(count),
 		std::move(callback),
-		st::manageGroupButton,
+		st,
 		std::move(descriptor)));
 }
 
@@ -171,6 +196,65 @@ void AddButtonDelete(
 		std::move(callback),
 		st::manageDeleteGroupButton,
 		{}));
+}
+
+void AddCommunityRow(
+		not_null<Ui::VerticalLayout*> parent,
+		not_null<ChannelData*> community,
+		Fn<void()> open) {
+	class Controller final : public PeerListController {
+	public:
+		Controller(not_null<ChannelData*> community, Fn<void()> open)
+		: _community(community)
+		, _open(std::move(open)) {
+			setStyleOverrides(&st::peerListSingleRow);
+		}
+
+		Main::Session &session() const override {
+			return _community->session();
+		}
+		void prepare() override {
+			auto row = std::make_unique<PeerListRow>(_community);
+			row->setCustomStatus(tr::lng_community_title(tr::now));
+			delegate()->peerListAppendRow(std::move(row));
+			delegate()->peerListRefreshRows();
+		}
+		void rowClicked(not_null<PeerListRow*> row) override {
+			_open();
+		}
+
+	private:
+		const not_null<ChannelData*> _community;
+		Fn<void()> _open;
+
+	};
+
+	const auto delegate = parent->lifetime().make_state<
+		PeerListContentDelegateSimple
+	>();
+	const auto controller = parent->lifetime().make_state<Controller>(
+		community,
+		std::move(open));
+	const auto content = parent->add(object_ptr<PeerListContent>(
+		parent,
+		controller));
+	delegate->setContent(content);
+	controller->setDelegate(delegate);
+
+	const auto arrow = Ui::CreateChild<Ui::RpWidget>(content);
+	arrow->setAttribute(Qt::WA_TransparentForMouseEvents);
+	arrow->resize(st::settingsPremiumArrow.size());
+	arrow->paintRequest() | rpl::on_next([=] {
+		auto p = QPainter(arrow);
+		st::settingsPremiumArrow.paint(p, 0, 0, arrow->width());
+	}, arrow->lifetime());
+	content->sizeValue() | rpl::on_next([=](QSize size) {
+		arrow->moveToRight(
+			st::contactsPadding.right(),
+			(size.height() - arrow->height()) / 2,
+			size.width());
+		arrow->show();
+	}, arrow->lifetime());
 }
 
 void SaveDefaultRestrictions(
@@ -307,8 +391,6 @@ void SaveBoostsUnrestrict(
 	api->registerModifyRequest(key, requestId);
 }
 
-} // namespace
-
 void ShowEditPermissions(
 		not_null<Window::SessionNavigation*> navigation,
 		not_null<PeerData*> peer) {
@@ -439,6 +521,7 @@ private:
 	void fillSignaturesButton();
 	void fillHistoryVisibilityButton();
 	void fillManageSection();
+	void fillCommunitySection();
 	void fillPendingRequestsButton();
 
 	void fillBotUsernamesButton();
@@ -642,6 +725,7 @@ object_ptr<Ui::RpWidget> Controller::createPhotoEdit() {
 			st::defaultUserpicButton),
 		st::editPeerPhotoMargins);
 	_controls.photo = photoWrap->entity();
+	_controls.photo->setVideoAllowed(true);
 	_controls.photo->showCustomOnChosen();
 
 	return photoWrap;
@@ -664,6 +748,9 @@ object_ptr<Ui::RpWidget> Controller::createTitleEdit() {
 		st::editPeerTitleMargins);
 	result->entity()->setMaxLength(Ui::EditPeer::kMaxGroupChannelTitle);
 	result->entity()->setInstantReplaces(Core::App().settings().instantReplacesValue());
+	result->entity()->setInstantReplacesEnabled(
+		rpl::single(true),
+		Core::App().settings().systemTextReplaceValue());
 	Ui::Emoji::SuggestionsController::Init(
 		_wrap->window(),
 		result->entity(),
@@ -770,6 +857,9 @@ object_ptr<Ui::RpWidget> Controller::createDescriptionEdit() {
 		st::editPeerDescriptionMargins);
 	result->entity()->setMaxLength(Ui::EditPeer::kMaxChannelDescription);
 	result->entity()->setInstantReplaces(Core::App().settings().instantReplacesValue());
+	result->entity()->setInstantReplacesEnabled(
+		rpl::single(true),
+		Core::App().settings().systemTextReplaceValue());
 	result->entity()->setSubmitSettings(
 		Core::App().settings().sendSubmitWay());
 	Ui::Emoji::SuggestionsController::Init(
@@ -870,7 +960,7 @@ void Controller::refreshHistoryVisibility() {
 		(!withUsername
 			&& !_channelHasLocationOriginalValue
 			&& (!_discussionLinkSavedValue || !*_discussionLinkSavedValue)
-			&& (!_forumSavedValue || !*_forumSavedValue)),
+			&& !_forumSavedValue.value_or(_peer->isForum())),
 		anim::type::instant);
 }
 
@@ -1436,6 +1526,9 @@ void Controller::fillManageSection() {
 				st::boxDividerLabel),
 			st::defaultBoxDividerLabelPadding));
 		fillBotVerifyAccounts();
+		if (_peer->asUser()->botInfo->canEditInformation) {
+			fillCommunitySection();
+		}
 		return;
 	}
 
@@ -1489,6 +1582,15 @@ void Controller::fillManageSection() {
 			|| (channel->isBroadcast() && channel->canEditInformation()));
 	const auto canEditDirectMessages = isChannel
 		&& (channel->isBroadcast() && channel->canEditInformation());
+	const auto canEditWelcomeMessages = isChannel
+		? ((channel->isMegagroup()
+			|| (channel->isBroadcast() && channel->amIn()))
+			&& _peer->canManageWelcomeMessages())
+		: _peer->canManageWelcomeMessages();
+	const auto communityEligible = isChannel
+		&& (channel->isMegagroup() || channel->isBroadcast())
+		&& !channel->isMonoforum()
+		&& channel->amCreator();
 
 	::AddSkip(_controls.buttonsLayout, 0);
 
@@ -1555,6 +1657,34 @@ void Controller::fillManageSection() {
 			std::move(label),
 			[=] { editReactions(); },
 			{ &st::menuIconGroupReactions });
+	}
+	if (canEditWelcomeMessages) {
+		const auto history = _peer->owner().history(_peer);
+		const auto store = &_peer->session().welcomeMessages();
+		auto label = rpl::single(rpl::empty) | rpl::then(
+			store->updates(history)
+		) | rpl::map([=] {
+			const auto item = store->first(history);
+			const auto preview = item
+				? ElidedPreview(
+					item->notificationText().text.simplified(),
+					kWelcomePreviewLength)
+				: QString();
+			return preview.isEmpty()
+				? tr::lng_manage_monoforum_off(tr::now)
+				: preview;
+		});
+		auto callback = [=] {
+			_navigation->showSection(
+				std::make_shared<HistoryView::WelcomeMessagesMemento>(
+					history));
+		};
+		AddButtonWithCount(
+			_controls.buttonsLayout,
+			tr::lng_manage_peer_welcome_messages(),
+			std::move(label),
+			std::move(callback),
+			{ &st::menuIconWelcomeMessage });
 	}
 	if (canEditPermissions) {
 		AddButtonWithCount(
@@ -1663,7 +1793,7 @@ void Controller::fillManageSection() {
 					_peer,
 					ParticipantsBoxController::Role::Kicked);
 			},
-			{ &st::menuIconRemove });
+			{ &st::menuIconRemovedUsers });
 	}
 	if (hasRecentActions) {
 		auto callback = [=] {
@@ -1689,7 +1819,11 @@ void Controller::fillManageSection() {
 			{ .icon = &st::menuIconStarRefShare });
 	}
 
-	if (canEditStickers || canDeleteChannel) {
+	if (communityEligible) {
+		fillCommunitySection();
+	}
+
+	if ((canEditStickers || canDeleteChannel) && !communityEligible) {
 		::AddSkip(_controls.buttonsLayout);
 	}
 
@@ -1709,6 +1843,81 @@ void Controller::fillManageSection() {
 
 	if (canEditStickers || canDeleteChannel) {
 		::AddSkip(_controls.buttonsLayout);
+	}
+}
+
+void Controller::fillCommunitySection() {
+	const auto container = _controls.buttonsLayout;
+	const auto peer = _peer;
+	const auto isBot = peer->isUser();
+	if (const auto communityId = Data::PeerLinkedCommunityId(peer)) {
+		const auto community = peer->owner().channel(communityId);
+		::AddSkip(container);
+		AddCommunityRow(
+			container,
+			community,
+			[=] {
+				_navigation->parentController()->showPeerInfo(community);
+			});
+		AddButtonWithCount(
+			container,
+			(isBot
+				? tr::lng_community_remove_button_bot()
+				: _isGroup
+				? tr::lng_community_remove_button()
+				: tr::lng_community_remove_button_channel()),
+			rpl::single(QString()),
+			[=] {
+				const auto show = _navigation->uiShow();
+				const auto done = [=] {
+					show->showToast(
+						tr::lng_community_remove_done(tr::now));
+				};
+				const auto fail = [=](const QString &error) {
+					show->showToast(error.isEmpty()
+						? Lang::Hard::ServerError()
+						: error);
+				};
+				const auto remove = [=](Fn<void()> close) {
+					community->session().api().communities().removePeerLink(
+						community,
+						peer,
+						done,
+						fail);
+					close();
+				};
+				show->show(Ui::MakeConfirmBox({
+					.text = tr::lng_community_remove_sure(
+						tr::now,
+						lt_group,
+						tr::bold(peer->name()),
+						tr::marked),
+					.confirmed = remove,
+					.confirmText = tr::lng_box_remove(),
+					.confirmStyle = &st::attentionBoxButton,
+				}));
+			},
+			{ &st::menuIconCommunityRemoveAttention },
+			st::manageGroupAttentionButton);
+		::AddSkip(container);
+	} else {
+		::AddSkip(container);
+		AddButtonWithCount(
+			container,
+			(isBot
+				? tr::lng_community_add_button_bot()
+				: _isGroup
+				? tr::lng_community_add_button()
+				: tr::lng_community_add_button_channel()),
+			rpl::single(QString()),
+			[=] { ShowAddToCommunityBox(_navigation, peer); },
+			{ &st::menuIconCommunity });
+		Ui::AddSkip(container);
+		Ui::AddDividerText(container, isBot
+			? tr::lng_community_add_about_bot()
+			: _isGroup
+			? tr::lng_community_add_about()
+			: tr::lng_community_add_about_channel());
 	}
 }
 
@@ -2842,10 +3051,14 @@ void Controller::savePhoto() {
 	auto image = _controls.photo
 		? _controls.photo->takeResultImage()
 		: QImage();
+	auto video = _controls.photo
+		? _controls.photo->takeResultVideo()
+		: nullptr;
 	if (!image.isNull()) {
-		_peer->session().api().peerPhoto().upload(
-			_peer,
-			{ std::move(image) });
+		_peer->session().api().peerPhoto().upload(_peer, {
+			.image = std::move(image),
+			.video = std::move(video),
+		});
 	}
 	_box->closeBox();
 }
@@ -2892,6 +3105,9 @@ void Controller::deleteChannel() {
 	//	}
 	}).send();
 }
+
+} // namespace
+
 
 EditPeerInfoBox::EditPeerInfoBox(
 	QWidget*,

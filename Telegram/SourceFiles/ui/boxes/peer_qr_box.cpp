@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/layers/generic_box.h"
 #include "ui/painter.h"
 #include "ui/rect.h"
+#include "ui/toast/toast.h"
 #include "ui/ui_utility.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/box_content_divider.h"
@@ -35,13 +36,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_giveaway.h"
 #include "styles/style_credits.h"
 #include "styles/style_intro.h"
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
 #include "styles/style_widgets.h"
-#include "styles/style_window.h"
 
 #include <QtCore/QMimeData>
 #include <QtGui/QGuiApplication>
@@ -915,6 +916,7 @@ void FillPeerQrBox(
 		const auto top = photoSize
 			? userpicMedia->image(photoSize)
 			: QImage();
+		const auto bgs = state->bgs.current();
 		const auto weak = base::make_weak(box);
 
 		crl::async([=] {
@@ -957,7 +959,7 @@ void FillPeerQrBox(
 					p,
 					font,
 					username,
-					state->bgs.current(),
+					bgs,
 					backgroundMargins,
 					qrImage,
 					qrRect,
@@ -977,7 +979,11 @@ void FillPeerQrBox(
 				auto mime = std::make_unique<QMimeData>();
 				mime->setImageData(std::move(image));
 				QGuiApplication::clipboard()->setMimeData(mime.release());
-				show->showToast(tr::lng_group_invite_qr_copied(tr::now));
+				show->showToast({
+					.text = { tr::lng_group_invite_qr_copied(tr::now) },
+					.iconLottie = u"toast/copy"_q,
+					.iconLottieSize = st::toastLottieIconSize,
+				});
 			});
 		});
 	});

@@ -21,8 +21,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/time_input.h"
 #include "ui/ui_utility.h"
 #include "lang/lang_keys.h"
+#include "styles/style_choose_date_time.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
+#include "styles/style_passcode_box.h"
 
 #include <QtWidgets/QTextEdit>
 
@@ -32,7 +34,19 @@ namespace {
 constexpr auto kMinimalSchedule = TimeId(10);
 
 QString DayString(const QDate &date) {
-	return langDayOfMonthFull(date);
+	const auto month = Lang::MonthDay(date.month())(tr::now);
+	const auto day = QString::number(date.day());
+	if (date.year() != QDate::currentDate().year()) {
+		return tr::lng_month_day_year(
+			tr::now,
+			lt_month,
+			month,
+			lt_day,
+			day,
+			lt_year,
+			QString::number(date.year()));
+	}
+	return tr::lng_month_day(tr::now, lt_month, month, lt_day, day);
 }
 
 QString TimeString(QTime time) {
@@ -223,6 +237,7 @@ ChooseDateTimeBoxDescriptor ChooseDateTimeBox(
 	const auto calendar
 		= content->lifetime().make_state<base::weak_qptr<CalendarBox>>();
 	const auto calendarStyle = args.style.calendarStyle;
+	const auto dynamicImageForDate = std::move(args.dynamicImageForDate);
 	state->day->focusedChanges(
 	) | rpl::on_next([=](bool focused) {
 		if (*calendar || !focused) {
@@ -241,6 +256,7 @@ ChooseDateTimeBoxDescriptor ChooseDateTimeBox(
 				.minDate = minDate(),
 				.maxDate = maxDate(),
 				.stColors = *calendarStyle,
+				.dynamicImageForDate = dynamicImageForDate,
 			}));
 		(*calendar)->boxClosing(
 		) | rpl::on_next(crl::guard(state->time, [=] {

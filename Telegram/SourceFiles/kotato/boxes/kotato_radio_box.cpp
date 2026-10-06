@@ -17,6 +17,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
+#include "styles/style_passcode_box.h"
 #include "core/application.h"
 
 namespace Kotato {
@@ -165,7 +166,12 @@ void RadioBox::save() {
 			Ui::MakeConfirmBox({
 				.text = tr::lng_settings_need_restart(),
 				.confirmed = [] { Core::Restart(); },
-				.cancelled = crl::guard(this, [=] { closeBox(); (*box)->closeBox(); }),
+				.cancelled = crl::guard(this, [=] {
+					closeBox();
+					if (const auto strong = box->get()) {
+						strong->closeBox();
+					}
+				}),
 				.confirmText = tr::lng_settings_restart_now(),
 				.cancelText = tr::lng_settings_restart_later(),
 			}));

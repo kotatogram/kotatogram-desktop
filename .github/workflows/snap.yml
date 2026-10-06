@@ -2,6 +2,10 @@ name: Snap.
 
 on:
   push:
+    # Pushes to the canary branches run only canary.yml, see there.
+    branches-ignore:
+      - public-canary
+      - private-canary
     paths-ignore:
       - 'docs/**'
       - '**.md'
@@ -47,7 +51,7 @@ jobs:
 
     steps:
       - name: Clone.
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
@@ -85,3 +89,4 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: artifact
+          retention-days: 1

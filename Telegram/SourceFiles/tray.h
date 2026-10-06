@@ -25,9 +25,10 @@ public:
 
 	[[nodiscard]] bool has() const;
 
+	void toggleSound();
+
 private:
 	void rebuildMenu();
-	void toggleSound();
 	void toggleSoundNotifications();
 
 	Platform::Tray _tray;

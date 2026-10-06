@@ -14,33 +14,21 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "ui/power_saving.h"
+#include "ui/text/text_utilities.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/labels.h"
+#include "ui/widgets/selecting_scroll.h"
 #include "ui/wrap/fade_wrap.h"
 #include "ui/wrap/slide_wrap.h"
+#include "ui/wrap/vertical_layout.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
 
 namespace Ui {
-namespace {
 
-class ShowButton final : public RpWidget {
-public:
-	ShowButton(not_null<Ui::RpWidget*> parent);
-
-	[[nodiscard]] rpl::producer<Qt::MouseButton> clicks() const;
-
-protected:
-	void paintEvent(QPaintEvent *e) override;
-
-private:
-	LinkButton _button;
-
-};
-
-ShowButton::ShowButton(not_null<Ui::RpWidget*> parent)
+TranslateShowButton::TranslateShowButton(not_null<RpWidget*> parent)
 : RpWidget(parent)
 , _button(this, tr::lng_usernames_activate_confirm(tr::now)) {
 	_button.sizeValue(
@@ -53,7 +41,7 @@ ShowButton::ShowButton(not_null<Ui::RpWidget*> parent)
 	_button.show();
 }
 
-void ShowButton::paintEvent(QPaintEvent *e) {
+void TranslateShowButton::paintEvent(QPaintEvent *e) {
 	auto p = QPainter(this);
 	const auto clip = e->rect();
 
@@ -69,11 +57,41 @@ void ShowButton::paintEvent(QPaintEvent *e) {
 	}
 }
 
-rpl::producer<Qt::MouseButton> ShowButton::clicks() const {
+rpl::producer<Qt::MouseButton> TranslateShowButton::clicks() const {
 	return _button.clicks();
 }
 
-} // namespace
+Fn<void(TextWithEntities)> AddTranslateCopyButton(
+		not_null<VerticalLayout*> container,
+		not_null<RpWidget*> subtitle,
+		bool hasCopyRestriction) {
+	if (hasCopyRestriction) {
+		return [](TextWithEntities) {};
+	}
+	const auto copy = Ui::CreateChild<FadeWrap<IconButton>>(
+		container.get(),
+		object_ptr<IconButton>(container, st::translateBoxCopy));
+	copy->hide(anim::type::instant);
+	rpl::combine(
+		container->widthValue(),
+		subtitle->geometryValue()
+	) | rpl::on_next([=](int width, const QRect &rect) {
+		copy->moveToLeft(
+			width - copy->width() - st::boxRowPadding.right(),
+			rect.y() + (rect.height() - copy->height()) / 2);
+	}, copy->lifetime());
+	return [=](TextWithEntities text) {
+		if (text.empty()) {
+			copy->hide(anim::type::normal);
+			return;
+		}
+		copy->entity()->setClickedCallback([=] {
+			TextUtilities::SetClipboardText(
+				TextForMimeData::WithExpandedLinks(text));
+		});
+		copy->show(anim::type::normal);
+	};
+}
 
 void TranslateBoxContent(
 		not_null<GenericBox*> box,
@@ -124,9 +142,9 @@ void TranslateBoxContent(
 		original->setMinimalHeight(lineHeight);
 		original->hide(anim::type::instant);
 
-		const auto show = Ui::CreateChild<FadeWrap<ShowButton>>(
+		const auto show = Ui::CreateChild<FadeWrap<TranslateShowButton>>(
 			container.get(),
-			object_ptr<ShowButton>(container));
+			object_ptr<TranslateShowButton>(container));
 		show->hide(anim::type::instant);
 		rpl::combine(
 			container->widthValue(),
@@ -153,22 +171,28 @@ void TranslateBoxContent(
 	Ui::AddDivider(container);
 	Ui::AddSkip(container);
 
-	{
+	const auto setCopyText = [&] {
 		const auto padding = st::defaultSubsectionTitlePadding;
-		const auto subtitle = Ui::AddSubsectionTitle(container, std::move(toTitle));
+		const auto subtitle = Ui::AddSubsectionTitle(container, toTitle);
 
 		rpl::duplicate(to) | rpl::on_next([=] {
 			subtitle->resizeToWidth(container->width()
 				- padding.left()
 				- padding.right());
 		}, subtitle->lifetime());
-	}
+		return AddTranslateCopyButton(container, subtitle, hasCopyRestriction);
+	}();
 
 	const auto translated = box->addRow(object_ptr<SlideWrap<FlatLabel>>(
 		box,
 		object_ptr<FlatLabel>(box, stLabel)));
 	translated->entity()->setSelectable(!hasCopyRestriction);
 	translated->entity()->setAnimationsPausedCallback(animationsPaused);
+	if (!hasCopyRestriction) {
+		SetupSelectingScroll(translated->entity(), [=](int pixels) {
+			box->scrollToY(box->scrollTop() + pixels);
+		});
+	}
 
 	constexpr auto kMaxLines = 3;
 	container->resizeToWidth(box->width());
@@ -194,11 +218,13 @@ void TranslateBoxContent(
 		translated->entity()->setMarkedText(value, textContext);
 		translated->show(anim::type::instant);
 		loading->hide(anim::type::instant);
+		setCopyText(result.text.value_or(TextWithEntities()));
 	};
 	const auto send = [=](LanguageId id) {
 		const auto requestId = ++state->requestId;
 		loading->show(anim::type::instant);
 		translated->hide(anim::type::instant);
+		setCopyText({});
 		(*request)(id, [=](TranslateBoxContentResult result) {
 			if (state->requestId != requestId) {
 				return;

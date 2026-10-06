@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/info_wrap_widget.h"
 
-#include "kotato/kotato_settings.h"
 #include "info/profile/info_profile_widget.h"
 #include "info/profile/info_profile_values.h"
 #include "info/media/info_media_widget.h"
@@ -42,7 +41,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/boxes/confirm_box.h"
 #include "ui/boxes/peer_qr_box.h"
 #include "main/main_session.h"
-#include "menu/menu_mute.h"
 #include "mtproto/mtproto_config.h"
 #include "data/data_download_manager.h"
 #include "data/data_session.h"
@@ -55,8 +53,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "menu/menu_send.h"
 #include "styles/style_chat.h" // popupMenuExpandedSeparator
 #include "styles/style_info.h"
-#include "styles/style_profile.h"
-#include "styles/style_menu_icons.h"
 #include "styles/style_layers.h"
 
 namespace Info {
@@ -72,6 +68,7 @@ const style::InfoTopBar &TopBarStyle(Wrap wrap) {
 	const auto section = controller->section();
 	return (section.type() == Section::Type::BotStarRef)
 		|| (section.type() == Section::Type::Profile)
+		|| (section.type() == Section::Type::Community)
 		|| ((section.type() == Section::Type::Settings)
 			&& section.settingsType()->hasCustomTopBar())
 		|| (section.type() == Section::Type::Stories
@@ -167,8 +164,15 @@ WrapWidget::WrapWidget(
 }
 
 void WrapWidget::setupShortcuts() {
+	if (_shortcutsSetup) {
+		return;
+	}
+	_shortcutsSetup = true;
 	const auto isSettings = [=] {
 		return _controller->section().type() == Section::Type::Settings;
+	};
+	const auto isContentSearch = [=] {
+		return _content && _content->searchAvailable();
 	};
 	const auto isSearchSettings = [=] {
 		return isSettings()
@@ -180,7 +184,7 @@ void WrapWidget::setupShortcuts() {
 	) | rpl::filter([=] {
 		return (Core::App().activeWindow()
 				== &_controller->parentController()->window())
-			&& (requireTopBarSearch() || isSettings());
+			&& (requireTopBarSearch() || isSettings() || isContentSearch());
 	}) | rpl::on_next([=](not_null<Shortcuts::Request*> request) {
 		using Command = Shortcuts::Command;
 		request->check(Command::Search) && request->handle([=] {
@@ -190,6 +194,8 @@ void WrapWidget::setupShortcuts() {
 				_content->setInnerFocus();
 			} else if (isSettings()) {
 				_controller->showSettings(::Settings::Search::Id());
+			} else if (isContentSearch()) {
+				_content->showSearch();
 			}
 			return true;
 		});
@@ -246,37 +252,29 @@ void WrapWidget::injectActivePeerProfile(not_null<PeerData*> peer) {
 		? _historyStack.front().section->section().type()
 		: _controller->section().type();
 	const auto firstSectionMediaType = [&] {
-		if (firstSectionType == Section::Type::Profile
-			|| firstSectionType == Section::Type::SavedSublists
-			|| firstSectionType == Section::Type::Downloads) {
+		if (firstSectionType != Section::Type::Media
+			&& firstSectionType != Section::Type::GlobalMedia) {
 			return Section::MediaType::kCount;
 		}
 		return hasStackHistory()
 			? _historyStack.front().section->section().mediaType()
 			: _controller->section().mediaType();
 	}();
-	const auto savedSublistsInfo = peer->savedSublistsInfo();
-	const auto sharedMediaInfo = peer->sharedMediaInfo();
-	const auto expectedType = savedSublistsInfo
-		? Section::Type::SavedSublists
-		: sharedMediaInfo
-		? Section::Type::Media
-		: Section::Type::Profile;
-	const auto expectedMediaType = savedSublistsInfo
-		? Section::MediaType::kCount
-		: sharedMediaInfo
-		? Section::MediaType::Photo
+	const auto firstSavedMessages = hasStackHistory()
+		? _historyStack.front().section->savedMessages()
+		: _controller->key().savedMessages();
+	auto expected = Memento::Default(peer);
+	const auto expectedContent = expected->content();
+	const auto expectedSection = expectedContent->section();
+	const auto expectedMediaType = (expectedSection.type()
+		== Section::Type::Media)
+		? expectedSection.mediaType()
 		: Section::MediaType::kCount;
-	if (firstSectionType != expectedType
+	if (firstSectionType != expectedSection.type()
 		|| firstSectionMediaType != expectedMediaType
+		|| firstSavedMessages != expectedContent->savedMessages()
 		|| firstPeer != peer) {
-		auto section = savedSublistsInfo
-			? Section(Section::Type::SavedSublists)
-			: sharedMediaInfo
-			? Section(Section::MediaType::Photo)
-			: Section(Section::Type::Profile);
-		injectActiveProfileMemento(std::move(
-			Memento(peer, section).takeStack().front()));
+		injectActiveProfileMemento(expected->takeStack().front());
 	}
 }
 
@@ -351,6 +349,7 @@ void WrapWidget::setupTop() {
 		|| wrap() == Wrap::Search
 		|| wrap() == Wrap::StoryAlbumEdit) {
 		_topBar.destroy();
+		setupShortcuts();
 		return;
 	}
 	createTopBar();
@@ -497,11 +496,13 @@ void WrapWidget::setupTopBarMenuToggle() {
 		}, _topBar->lifetime());
 	} else if (key.giftsPeer()) {
 		addTopBarMenuButton();
-	}
-
-	if (section.type() == Section::Type::Profile
-		&& ::Kotato::JsonSettings::GetBool("profile_top_mute")) {
-		addProfileNotificationsButton();
+	} else if (section.type() == Section::Type::Statistics) {
+		_content->topBarMenuFilledChanges(
+		) | rpl::on_next([=] {
+			if (!_topBarMenuToggle) {
+				addTopBarMenuButton();
+			}
+		}, _topBar->lifetime());
 	}
 }
 
@@ -598,45 +599,6 @@ void WrapWidget::addProfileCallsButton() {
 	if (user && user->callsStatus() == UserData::CallsStatus::Unknown) {
 		user->updateFull();
 	}
-}
-
-void WrapWidget::addProfileNotificationsButton() {
-	Expects(_topBar != nullptr);
-
-	const auto peer = key().peer();
-	if (!peer || peer->isSelf()) {
-		return;
-	}
-	const auto topic = key().topic();
-	const auto topicRootId = topic ? topic->rootId() : MsgId();
-	const auto makeThread = [=] {
-		return topicRootId
-			? static_cast<Data::Thread*>(peer->forumTopicFor(topicRootId))
-			: reinterpret_cast<Data::Thread*>(peer->owner().history(peer).get());
-	};
-	auto notifications = _topBar->addButton(
-		base::make_unique_q<Ui::IconButton>(
-			_topBar,
-			(wrap() == Wrap::Layer
-				? st::infoLayerTopBarNotifications
-				: st::infoTopBarNotifications)));
-	MuteMenu::SetupMuteMenu(
-		notifications,
-		notifications->clicks() | rpl::to_empty,
-		makeThread,
-		_controller->uiShow());
-	Profile::NotificationsEnabledValue(
-		peer
-	) | rpl::on_next([notifications](bool enabled) {
-		const auto iconOverride = enabled
-			? &st::infoNotificationsActive
-			: nullptr;
-		const auto rippleOverride = enabled
-			? &st::lightButtonBgOver
-			: nullptr;
-		notifications->setIconOverride(iconOverride, iconOverride);
-		notifications->setRippleColorOverride(rippleOverride);
-	}, notifications->lifetime());
 }
 
 void WrapWidget::showTopBarMenu(bool check) {
@@ -817,6 +779,10 @@ void WrapWidget::setWrap(Wrap wrap) {
 	_wrap = wrap;
 }
 
+rpl::producer<bool> WrapWidget::contentTillBottomValue() const {
+	return _contentTillBottom.value();
+}
+
 rpl::producer<> WrapWidget::contentChanged() const {
 	return _contentChanges.events();
 }
@@ -902,7 +868,7 @@ bool WrapWidget::showInternal(
 		not_null<Window::SectionMemento*> memento,
 		const Window::SectionShow &params) {
 	if (auto infoMemento = dynamic_cast<Memento*>(memento.get())) {
-		if (!_controller || infoMemento->stackSize() > 1) {
+		if (_mementoTaken || infoMemento->stackSize() > 1) {
 			return false;
 		}
 		auto content = infoMemento->content();
@@ -941,8 +907,13 @@ std::shared_ptr<Window::SectionMemento> WrapWidget::createMemento() {
 	}
 	stack.push_back(_content->createMemento());
 
-	// We're not in valid state anymore and supposed to be destroyed.
-	_controller = nullptr;
+	// We're not in valid state anymore and supposed to be destroyed. The
+	// controller used to be destroyed right here, but the content widgets
+	// hold it by a raw pointer and outlive this call - MainWidget::showHistory
+	// takes the memento, shows the history and only then destroys the section.
+	// It is destroyed with us instead, after _content, which is declared
+	// after it.
+	_mementoTaken = true;
 
 	return std::make_shared<Memento>(std::move(stack));
 }
@@ -973,11 +944,11 @@ bool WrapWidget::returnToFirstStackFrame(
 	if (!hasStackHistory()) {
 		return false;
 	}
-	auto firstPeer = _historyStack.front().section->peer();
-	auto firstSection = _historyStack.front().section->section();
-	if (firstPeer == memento->peer()
-		&& firstSection.type() == memento->section().type()
-		&& firstSection.type() == Section::Type::Profile) {
+	const auto first = _historyStack.front().section.get();
+	if (first->peer() == memento->peer()
+		&& first->savedMessages() == memento->savedMessages()
+		&& first->section().type() == memento->section().type()
+		&& first->section().type() == Section::Type::Profile) {
 		_historyStack.resize(1);
 		_controller->showBackFromStack();
 		return true;
@@ -996,7 +967,7 @@ void WrapWidget::showNewContent(
 	auto newController = createController(
 		_controller->parentController(),
 		memento);
-	if (_controller && newController) {
+	if (newController) {
 		newController->takeStepData(_controller.get());
 	}
 	auto newContent = object_ptr<ContentWidget>(nullptr);
@@ -1082,6 +1053,10 @@ void WrapWidget::resizeEvent(QResizeEvent *e) {
 }
 
 void WrapWidget::keyPressEvent(QKeyEvent *e) {
+	if (_content
+		&& (_content->processZoomKey(e) || _content->processScrollKey(e))) {
+		return;
+	}
 	if (e->key() == Qt::Key_Escape || e->key() == Qt::Key_Back) {
 		if (!closeByBackButton()) {
 			checkBeforeCloseByEscape(
@@ -1149,6 +1124,7 @@ object_ptr<Ui::RpWidget> WrapWidget::createTopBarSurrogate(
 void WrapWidget::updateGeometry(
 		QRect newGeometry,
 		bool expanding,
+		bool contentTillBottom,
 		int additionalScroll,
 		int maxVisibleHeight) {
 	auto scrollChanged = (_additionalScroll != additionalScroll);
@@ -1157,6 +1133,7 @@ void WrapWidget::updateGeometry(
 	_additionalScroll = additionalScroll;
 	_maxVisibleHeight = maxVisibleHeight;
 	_expanding = expanding;
+	_contentTillBottom = contentTillBottom;
 
 	_content->applyMaxVisibleHeight(maxVisibleHeight);
 

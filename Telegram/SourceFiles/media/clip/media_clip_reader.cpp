@@ -77,12 +77,29 @@ QImage PrepareFrame(
 				p.fillRect((outerw - framew) / (2 * factor) + (framew / factor), 0, (cache.width() / factor) - ((outerw - framew) / (2 * factor) + (framew / factor)), cache.height() / factor, st::imageBg);
 			}
 			if (frameh < outerh) {
-				p.fillRect(qMax(0, (outerw - framew) / (2 * factor)), 0, qMin(cache.width(), framew) / factor, (outerh - frameh) / (2 * factor), st::imageBg);
-				p.fillRect(qMax(0, (outerw - framew) / (2 * factor)), (outerh - frameh) / (2 * factor) + (frameh / factor), qMin(cache.width(), framew) / factor, (cache.height() / factor) - ((outerh - frameh) / (2 * factor) + (frameh / factor)), st::imageBg);
+				p.fillRect(
+					std::max(0, (outerw - framew) / (2 * factor)),
+					0,
+					std::min(cache.width(), framew) / factor,
+					(outerh - frameh) / (2 * factor),
+					st::imageBg);
+				p.fillRect(
+					std::max(0, (outerw - framew) / (2 * factor)),
+					(outerh - frameh) / (2 * factor) + (frameh / factor),
+					std::min(cache.width(), framew) / factor,
+					(cache.height() / factor)
+						- ((outerh - frameh) / (2 * factor)
+							+ (frameh / factor)),
+					st::imageBg);
 			}
 		}
 		if (hasAlpha && !request.keepAlpha) {
-			p.fillRect(qMax(0, (outerw - framew) / (2 * factor)), qMax(0, (outerh - frameh) / (2 * factor)), qMin(cache.width(), framew) / factor, qMin(cache.height(), frameh) / factor, st::imageBgTransparent);
+			p.fillRect(
+				std::max(0, (outerw - framew) / (2 * factor)),
+				std::max(0, (outerh - frameh) / (2 * factor)),
+				std::min(cache.width(), framew) / factor,
+				std::min(cache.height(), frameh) / factor,
+				st::imageBgTransparent);
 		}
 		const auto position = QPoint((outerw - framew) / (2 * factor), (outerh - frameh) / (2 * factor));
 		if (needResize) {
@@ -95,10 +112,14 @@ QImage PrepareFrame(
 			p.drawImage(position, original);
 		}
 	}
-	if (needRounding) {
+	const auto corner = needRounding
+		? int(cache.width() * request.radius / style::DevicePixelRatio())
+		: 0;
+	if (corner) {
 		cache = Images::Round(
 			std::move(cache),
-			Images::CornersMask((cache.width() * request.radius) / style::DevicePixelRatio()));
+			Images::CornersMask(corner),
+			request.corners);
 	}
 	if (colorizing) {
 		cache = Images::Colored(std::move(cache), request.colored);
@@ -137,6 +158,7 @@ private:
 	void finish();
 	void callback(Reader *reader, Notification notification);
 	void clear();
+	void deletePrivate(ReaderPrivate *reader);
 
 	QAtomicInt _loadLevel;
 	using ReaderPointers = QMap<Reader*, QAtomicInt>;
@@ -356,14 +378,15 @@ Reader::FrameInfo Reader::frameInfo(FrameRequest request, crl::time now) {
 	const auto size = request.outer.isValid()
 		? request.outer
 		: request.frame;
-	Assert(frame->request.radius == request.radius
-		&& frame->request.corners == request.corners
+	Assert(frame->request.corners == request.corners
 		&& frame->request.keepAlpha == request.keepAlpha);
 	if (frame->prepared.size() != size
-		|| frame->preparedColored != request.colored) {
+		|| frame->preparedColored != request.colored
+		|| frame->request.radius != request.radius) {
 		frame->request.frame = request.frame;
 		frame->request.outer = request.outer;
 		frame->request.colored = request.colored;
+		frame->request.radius = request.radius;
 
 		QImage cacheForResize;
 		frame->original.setDevicePixelRatio(factor);
@@ -441,11 +464,10 @@ State Reader::state() const {
 void Reader::stop() {
 	if (Workers.size() <= _threadIndex) {
 		error();
+		return;
 	}
-	if (_state != State::Error) {
-		Workers[_threadIndex]->manager.stop(this);
-		_width = _height = 0;
-	}
+	Workers[_threadIndex]->manager.stop(this);
+	_width = _height = 0;
 }
 
 void Reader::error() {
@@ -684,6 +706,7 @@ private:
 
 	bool _autoPausedGif = false;
 	bool _started = false;
+	bool _promoted = false;
 	crl::time _videoPausedAtMs = 0;
 
 	friend class Manager;
@@ -722,10 +745,20 @@ void Manager::update(Reader *reader) {
 }
 
 void Manager::stop(Reader *reader) {
-	if (!carries(reader)) return;
-
 	QMutexLocker lock(&_readerPointersMutex);
-	_readerPointers.remove(reader);
+	if (!_readerPointers.remove(reader)) {
+		return;
+	}
+
+	// A private is inserted into _readers only by process()'s prologue,
+	// which sets _promoted in the same critical section this holds. So
+	// under this mutex, and with the _readerPointers entry already gone,
+	// !_promoted means no worker route can still reach the object: the
+	// prologue walks the map it was just removed from, and the worker's
+	// loops walk only _readers, which it never entered.
+	if (reader->_private && !reader->_private->_promoted) {
+		deletePrivate(base::take(reader->_private));
+	}
 	InvokeQueued(this, [=] { process(); });
 }
 
@@ -767,7 +800,6 @@ bool Manager::handleProcessResult(ReaderPrivate *reader, ProcessResult result, c
 		if (it != _readerPointers.cend()) {
 			it.key()->error();
 			callback(it.key(), Notification::Reinit);
-			_readerPointers.erase(it);
 		}
 		return false;
 	} else if (result == ProcessResult::Finished) {
@@ -777,12 +809,21 @@ bool Manager::handleProcessResult(ReaderPrivate *reader, ProcessResult result, c
 		}
 		return false;
 	}
+	if (result == ProcessResult::Started) {
+		// Manager::deletePrivate() releases the real frame area for any
+		// private whose _width is set, and ReaderPrivate::start() sets it
+		// in the statement before it returns Started. So this upgrade of
+		// the Manager::append() placeholder has to happen even when the
+		// owning Reader is already gone - below the guard it would leave
+		// the worker's load level permanently short of what it released.
+		_loadLevel.fetchAndAddRelaxed(
+			reader->_width * reader->_height - kAverageGifSize);
+	}
 	if (it == _readerPointers.cend()) {
 		return false;
 	}
 
 	if (result == ProcessResult::Started) {
-		_loadLevel.fetchAndAddRelaxed(reader->_width * reader->_height - kAverageGifSize);
 		it.key()->_durationMs = reader->_durationMs;
 	}
 	// See if we need to pause GIF because it is not displayed right now.
@@ -825,8 +866,7 @@ bool Manager::handleProcessResult(ReaderPrivate *reader, ProcessResult result, c
 
 Manager::ResultHandleState Manager::handleResult(ReaderPrivate *reader, ProcessResult result, crl::time ms) {
 	if (!handleProcessResult(reader, result, ms)) {
-		_loadLevel.fetchAndAddRelaxed(-1 * (reader->_width > 0 ? reader->_width * reader->_height : kAverageGifSize));
-		delete reader;
+		deletePrivate(reader);
 		return ResultHandleRemove;
 	}
 
@@ -869,10 +909,16 @@ void Manager::process() {
 	auto ms = crl::now(), minms = ms + 86400 * crl::time(1000);
 	{
 		QMutexLocker lock(&_readerPointersMutex);
+		auto livePrivates = 0;
 		for (auto it = _readerPointers.begin(), e = _readerPointers.end(); it != e; ++it) {
-			if (it->loadAcquire() && it.key()->_private != nullptr) {
+			if (it.key()->_private == nullptr) {
+				continue;
+			}
+			++livePrivates;
+			if (it->loadAcquire()) {
 				auto i = _readers.find(it.key()->_private);
 				if (i == _readers.cend()) {
+					it.key()->_private->_promoted = true;
 					_readers.insert(it.key()->_private, 0);
 				} else {
 					i.value() = ms;
@@ -890,7 +936,7 @@ void Manager::process() {
 				it->storeRelease(0);
 			}
 		}
-		checkAllReaders = (_readers.size() > _readerPointers.size());
+		checkAllReaders = (_readers.size() > livePrivates);
 	}
 
 	for (auto i = _readers.begin(), e = _readers.end(); i != e;) {
@@ -916,8 +962,7 @@ void Manager::process() {
 			QMutexLocker lock(&_readerPointersMutex);
 			auto it = constUnsafeFindReaderPointer(reader);
 			if (it == _readerPointers.cend()) {
-				_loadLevel.fetchAndAddRelaxed(-1 * (reader->_width > 0 ? reader->_width * reader->_height : kAverageGifSize));
-				delete reader;
+				deletePrivate(reader);
 				i = _readers.erase(i);
 				continue;
 			}
@@ -948,15 +993,26 @@ void Manager::clear() {
 	{
 		QMutexLocker lock(&_readerPointersMutex);
 		for (auto it = _readerPointers.begin(), e = _readerPointers.end(); it != e; ++it) {
-			it.key()->_private = nullptr;
+			if (const auto data = base::take(it.key()->_private)) {
+				if (!data->_promoted) {
+					deletePrivate(data);
+				}
+			}
 		}
 		_readerPointers.clear();
 	}
 
-	for (Readers::iterator i = _readers.begin(), e = _readers.end(); i != e; ++i) {
-		delete i.key();
+	for (auto i = _readers.begin(), e = _readers.end(); i != e; ++i) {
+		deletePrivate(i.key());
 	}
 	_readers.clear();
+}
+
+void Manager::deletePrivate(ReaderPrivate *reader) {
+	_loadLevel.fetchAndAddRelaxed(-1 * (reader->_width > 0
+		? reader->_width * reader->_height
+		: kAverageGifSize));
+	delete reader;
 }
 
 Manager::~Manager() {
@@ -977,6 +1033,7 @@ Ui::PreparedFileInformation PrepareForSending(
 		if (durationMs > 0) {
 			result.isGifv = reader->isGifv();
 			result.isWebmSticker = reader->isWebmSticker();
+			result.hasAudio = reader->hasAudio();
 			// Use first video frame as a thumbnail.
 			// All other apps and server do that way.
 			//if (!result.isGifv) {

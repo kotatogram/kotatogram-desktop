@@ -17,6 +17,8 @@ enum class Command {
 	Lock,
 	Minimize,
 	Quit,
+	ReopenClosedWindow,
+	CloseOtherWindows,
 
 	MediaPlay,
 	MediaPause,
@@ -73,6 +75,7 @@ enum class Command {
 	SendSilentMessage,
 	ScheduleMessage,
 	ComposeAiApplyInPlace,
+	ShowRichEditor,
 	ToggleWebPagePreview,
 
 	RecordVoice,
@@ -121,7 +124,6 @@ enum class Command {
 	Command::ShowAccount7,
 	Command::ShowAccount8,
 	Command::ShowAccount9,
-	Command::ShowAccountLast,
 };
 
 [[nodiscard]] FnMut<bool()> RequestHandler(Command command);

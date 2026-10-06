@@ -7,26 +7,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
-#include "ui/layers/box_content.h"
-#include "base/timer.h"
 #include "data/stickers/data_stickers.h"
+#include "ui/layers/box_content.h"
 #include "ui/rect_part.h"
-
-namespace Window {
-class SessionController;
-} // namespace Window
-
-namespace Ui {
-class PlainShadow;
-class DropdownMenu;
-} // namespace Ui
 
 namespace Data {
 class StickersSet;
 } // namespace Data
 
 namespace ChatHelpers {
-struct FileChosen;
 class Show;
 } // namespace ChatHelpers
 
@@ -89,7 +78,6 @@ private:
 
 	void updateTitleAndButtons();
 	void updateButtons();
-	bool showMenu(not_null<Ui::IconButton*> button);
 	void addStickers();
 	void copyStickersLink();
 	void copyTitle();
@@ -99,7 +87,6 @@ private:
 	const not_null<Main::Session*> _session;
 	const StickerSetIdentifier _set;
 	const Data::StickersType _type;
-	base::unique_qptr<Ui::DropdownMenu> _menu;
 
 	class Inner;
 	QPointer<Inner> _inner;

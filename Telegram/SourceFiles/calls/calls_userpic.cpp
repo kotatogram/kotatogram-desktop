@@ -190,10 +190,10 @@ void Userpic::createCache(Image *image) {
 		auto width = image->width();
 		auto height = image->height();
 		if (width > height) {
-			width = qMax((width * real) / height, 1);
+			width = std::max((width * real) / height, 1);
 			height = real;
 		} else {
-			height = qMax((height * real) / width, 1);
+			height = std::max((height * real) / width, 1);
 			width = real;
 		}
 		const auto r = ::Kotato::UserpicRadius();
@@ -205,10 +205,10 @@ void Userpic::createCache(Image *image) {
 					: Images::Option::None,
 				.outer = { size, size },
 			});
-		if (r > 0. && r < 0.5) {
+		if (const auto corner = int(size * r); corner > 0 && r < 0.5) {
 			_userPhoto = Images::PixmapFast(Images::Round(
 				_userPhoto.toImage(),
-				Images::CornersMask(size * r)));
+				Images::CornersMask(corner)));
 		}
 		_userPhoto.setDevicePixelRatio(style::DevicePixelRatio());
 	} else {

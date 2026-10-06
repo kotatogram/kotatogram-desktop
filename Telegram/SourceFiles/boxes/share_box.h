@@ -40,10 +40,6 @@ class Session;
 class SessionShow;
 } // namespace Main
 
-namespace ChatHelpers {
-class Show;
-} // namespace ChatHelpers
-
 namespace Dialogs {
 class Row;
 class IndexedList;
@@ -81,7 +77,7 @@ void FastShareMessageToSelf(
 	std::shared_ptr<Main::SessionShow> show,
 	not_null<HistoryItem*> item);
 void FastShareMessage(
-	std::shared_ptr<ChatHelpers::Show> show,
+	std::shared_ptr<Main::SessionShow> show,
 	not_null<HistoryItem*> item,
 	ShareBoxStyleOverrides st = {});
 void FastShareMessage(
@@ -145,6 +141,9 @@ public:
 			bool show = false;
 			bool hasMedia = false;
 			bool isShare = true;
+			Data::ForwardOptions options = Data::ForwardOptions::PreserveInfo;
+			Data::GroupingOptions groupOptions
+				= Data::GroupingOptions::GroupAsIs;
 		} forwardOptions;
 
 		using MoneyRestrictionError = RecipientMoneyRestrictionError;

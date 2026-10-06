@@ -87,6 +87,7 @@ public:
 		not_null<PeerListDelegate*> delegate);
 
 	void sort();
+	void setSortingEnabled(bool enabled);
 	rpl::producer<int> onlineCountValue() const;
 
 private:
@@ -97,6 +98,7 @@ private:
 	const not_null<PeerListDelegate*> _delegate;
 	base::Timer _sortByOnlineTimer;
 	rpl::variable<int> _onlineCount = 0;
+	bool _sortingEnabled = true;
 	rpl::lifetime _lifetime;
 
 };
@@ -228,6 +230,10 @@ public:
 	[[nodiscard]] rpl::producer<int> onlineCountValue() const;
 	[[nodiscard]] rpl::producer<int> fullCountValue() const;
 
+	void setGroupByRole(bool grouped);
+	[[nodiscard]] rpl::producer<bool> groupByRoleValue() const;
+	[[nodiscard]] rpl::producer<bool> groupByRoleAvailableValue() const;
+
 	void setStoriesShown(bool shown);
 
 protected:
@@ -258,6 +264,9 @@ private:
 		int offset = 0;
 		bool allLoaded = false;
 		bool wasLoading = false;
+		bool groupByRole = false;
+		bool adminsPreloaded = false;
+		bool wasPreloadingAdmins = false;
 		ParticipantsAdditionalData additional;
 		rpl::lifetime lifetime;
 	};
@@ -314,6 +323,11 @@ private:
 	void subscribeToCreatorChange(not_null<ChannelData*> channel);
 	void fullListRefresh();
 	void refreshRows();
+	void resort();
+	void preloadAdmins();
+	void sortByRoleAndName();
+	void applyRoleSectionHeaders();
+	[[nodiscard]] int memberRoleTier(not_null<PeerData*> peer) const;
 
 	// It may be nullptr in subclasses of this controller.
 	Window::SessionNavigation *_navigation = nullptr;
@@ -323,9 +337,12 @@ private:
 	Role _role = Role::Admins;
 	int _offset = 0;
 	mtpRequestId _loadRequestId = 0;
+	mtpRequestId _adminsRequestId = 0;
 	bool _allLoaded = false;
+	bool _adminsPreloaded = false;
 	ParticipantsAdditionalData _additional;
 	std::unique_ptr<ParticipantsOnlineSorter> _onlineSorter;
+	rpl::variable<bool> _groupByRole = false;
 	rpl::variable<int> _onlineCountValue;
 	rpl::variable<int> _fullCountValue;
 	Ui::BoxPointer _editBox;

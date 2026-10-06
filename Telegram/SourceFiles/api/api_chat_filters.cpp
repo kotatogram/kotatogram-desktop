@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_chat_filters.h"
 
-#include "kotato/kotato_settings.h"
 #include "api/api_text_entities.h"
 #include "apiwrap.h"
 #include "base/event_filter.h"
@@ -40,7 +39,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
 #include "window/window_separate_id.h"
-#include "styles/style_filter_icons.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -387,7 +385,8 @@ void ToggleChatsController::prepare() {
 		return peer->isChat()
 			? peer->asChat()->isForbidden()
 			: peer->isChannel()
-			? peer->asChannel()->isForbidden()
+			? (peer->asChannel()->isForbidden()
+				|| peer->asChannel()->isCommunity())
 			: false;
 	};
 	const auto add = [&](not_null<PeerData*> peer, bool additional = false) {
@@ -876,7 +875,6 @@ void SaveNewFilterPinned(
 	const auto &filter = filters.applyUpdatedPinned(filterId, order);
 	if (filter.isLocal()) {
 		filters.saveLocal();
-		Kotato::JsonSettings::Write();
 	} else {
 		session->api().request(MTPmessages_UpdateDialogFilter(
 			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),

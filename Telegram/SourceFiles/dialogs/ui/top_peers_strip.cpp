@@ -7,7 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/top_peers_strip.h"
 
-#include "kotato/kotato_settings.h"
+#include "kotato/kotato_radius.h"
 #include "base/event_filter.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
@@ -72,10 +72,7 @@ TopPeersStrip::TopPeersStrip(
 		resizeToWidth(width());
 	}, _strip.lifetime());
 
-	rpl::merge(
-		::Kotato::JsonSettings::Events("userpic_corner_radius"),
-		::Kotato::JsonSettings::Events("userpic_corner_radius_forum"),
-		::Kotato::JsonSettings::Events("userpic_corner_radius_forum_use_default")
+	Kotato::RadiusChanges(
 	) | rpl::on_next([=] {
 		for (auto &entry : _entries) {
 			entry.userpicFrameDirty = 1;
@@ -232,7 +229,7 @@ void TopPeersStrip::stripWheelEvent(QWheelEvent *e) {
 			return;
 		}
 	}
-	const auto vertical = qAbs(fullDelta.x()) < qAbs(fullDelta.y());
+	const auto vertical = std::abs(fullDelta.x()) < std::abs(fullDelta.y());
 	if (_scrollingLock == Qt::Orientation() && phase != Qt::NoScrollPhase) {
 		_scrollingLock = vertical ? Qt::Vertical : Qt::Horizontal;
 	}
@@ -409,7 +406,7 @@ int TopPeersStrip::clearPressed() {
 	const auto pressed = std::exchange(_pressed, -1);
 	if (pressed >= 0) {
 		Assert(pressed < _entries.size());
-		auto &entry = _entries[pressed];
+		const auto &entry = _entries[pressed];
 		if (entry.ripple) {
 			entry.ripple->lastStop();
 		}
@@ -842,7 +839,7 @@ void TopPeersStrip::paintUserpic(
 		q.setCompositionMode(QPainter::CompositionMode_Source);
 		const auto onlineSize = st::dialogsOnlineBadgeSize;
 		const auto stroke = st::dialogsOnlineBadgeStroke;
-		const auto skip = st::dialogsOnlineBadgeSkip;
+		const auto skip = Kotato::UserpicOnlineBadgeSkip();
 		const auto shrink = (onlineSize / 2) * (1. - online);
 
 		auto pen = QPen(Qt::transparent);

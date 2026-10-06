@@ -8,24 +8,21 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "kotato/kotato_settings.h"
 
 #include "kotato/kotato_version.h"
-#include "mainwindow.h"
-#include "mainwidget.h"
-#include "window/window_controller.h"
-#include "core/application.h"
-#include "data/data_peer_id.h"
 #include "base/parse_helper.h"
 #include "base/timer.h"
 #include "ui/widgets/fields/input_field.h"
-#include "data/data_chat_filters.h"
-#include "platform/platform_file_utilities.h"
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
-#include <QtCore/QTimer>
 
 namespace Kotato {
 namespace JsonSettings {
+
+QString CustomFilePath() {
+	return cWorkingDir() + qsl("tdata/kotato-settings-custom.json");
+}
+
 namespace {
 
 constexpr auto kWriteJsonTimeout = crl::time(5000);
@@ -206,11 +203,11 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	// KTGDESKTOP_API_ID and KTGDESKTOP_API_HASH environment variables.
 	// You must set both variables for it to work.
 	//
-	// As an alternative, you can use -api-id <id> and -api_hash <hash>
+	// As an alternative, you can use -api-id <id> and -api-hash <hash>
 	// start parameters. Note that environment variables have priority
 	// over start parameters, so you should use -no-env-api if you don't
 	// want them. And as with environment variables, both -api-id and
-	// -api_hash must be set for it to work.
+	// -api-hash must be set for it to work.
 	//
 	// If 'api_id' and 'api_hash' are empty, and they're not set by any
 	// of these parameters, you won't be able to connect to Telegram at all.
@@ -289,13 +286,6 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "replaces", {
 		.type = SettingType::QJsonArraySetting,
 		.limitHandler = ReplacesLimit(), }},
-	{ "ffmpeg_multithread", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = true, }},
-	{ "ffmpeg_thread_count", {
-		.type = SettingType::IntSetting,
-		.defaultValue = 0,
-		.limitHandler = IntLimitMin(0) }},
 	{ "recent_stickers_limit", {
 		.type = SettingType::IntSetting,
 		.defaultValue = 20,
@@ -329,9 +319,6 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 		.type = SettingType::IntSetting,
 		.defaultValue = 0,
 		.limitHandler = IntLimitMin(0), }},
-	{ "folders/count_unmuted_only", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
 	{ "folders/hide_edit_button", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
@@ -373,9 +360,6 @@ const std::map<QString, Definition, std::greater<QString>> DefinitionMap {
 	{ "disable_chat_themes", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
-	{ "remember_compress_images", {
-		.type = SettingType::BoolSetting,
-		.defaultValue = false, }},
 	{ "view_profile_on_top", {
 		.type = SettingType::BoolSetting,
 		.defaultValue = false, }},
@@ -396,10 +380,6 @@ const std::map<OldOptionKey, NewOptionKey, std::greater<OldOptionKey>> ReplacedO
 
 QString DefaultFilePath() {
 	return cWorkingDir() + qsl("tdata/kotato-settings-default.json");
-}
-
-QString CustomFilePath() {
-	return cWorkingDir() + qsl("tdata/kotato-settings-custom.json");
 }
 
 bool DefaultFileIsValid() {
@@ -529,7 +509,7 @@ QByteArray GenerateSettingsJson(bool areDefault = false) {
 	}
 
 	if (areDefault) {
-		settings.insert(qsl("version"), QString::number(AppKotatoVersion));
+		settings.insert(qsl("version"), AppKotatoVersion);
 	}
 
 	auto document = QJsonDocument();

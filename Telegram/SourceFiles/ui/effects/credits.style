@@ -99,6 +99,10 @@ tonIconEmojiLarge: IconEmoji {
 tonIconEmojiInSmall: IconEmoji(tonIconEmoji) {
 	padding: margins(0px, 2px, 0px, 0px);
 }
+tonIconEmojiOnSale: IconEmoji(tonIconEmojiInSmall) {
+	icon: icon{{ "chat/mini_ton_bold-14x14", currencyFg }};
+	padding: margins(1px, 3px, 1px, 0px);
+}
 buttonTonIconEmoji: IconEmoji(tonIconEmoji) {
 	padding: margins(1px, 3px, 1px, 0px);
 }
@@ -157,12 +161,6 @@ giftBoxTabStyle: semiboldTextStyle;
 giftBoxTabFg: windowSubTextFg;
 giftBoxTabFgActive: windowBoldFg;
 giftBoxTabBgActive: windowBgRipple;
-giftBoxPillTabs: PillTabs(defaultPillTabs) {
-	borderWidth: 6px;
-	fg: windowSubTextFg;
-	fgActive: windowBoldFg;
-	bgActive: windowBgRipple;
-}
 giftBoxResaleTabsMargin: margins(11px, 10px, 11px, 8px);
 giftBoxResaleTabSkip: 8px;
 giftBoxResaleTabsDropdown: IconEmoji {
@@ -318,6 +316,8 @@ uniqueGiftSubtitleTop: 170px;
 uniqueGiftUserpicTop: 48px;
 uniqueGiftUserpicSize: 80px;
 uniqueGiftBottom: 20px;
+uniqueGiftMessagePadding: margins(uniqueGiftBottom, 10px, uniqueGiftBottom, 10px);
+uniqueGiftMessagePlaceholderOpacity: 0.7;
 uniqueCloseButton: IconButton(boxTitleClose) {
 	icon: icon {{ "box_button_close", videoPlayIconFg }};
 	iconOver: icon {{ "box_button_close", videoPlayIconFg }};
@@ -571,6 +571,7 @@ auctionBidUserpic: UserpicButton(defaultUserpicButton) {
 }
 auctionBidName: FlatLabel(defaultFlatLabel) {
 	style: semiboldTextStyle;
+	maxHeight: 20px;
 }
 auctionBidStars: FlatLabel(defaultFlatLabel) {
 	textFg: windowSubTextFg;

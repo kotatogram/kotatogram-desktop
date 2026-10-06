@@ -10,11 +10,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "iv/markdown/iv_markdown_article.h"
 #include "iv/markdown/iv_markdown_view.h"
 
+#include "base/timer.h"
 #include "base/unique_qptr.h"
 #include "rpl/lifetime.h"
 #include "ui/click_handler.h"
 #include "ui/rp_widget.h"
 #include "ui/style/style_core_types.h"
+#include "ui/ui_utility.h"
+#include "ui/widgets/tooltip.h"
 
 #include <functional>
 #include <memory>
@@ -39,7 +42,8 @@ namespace Iv::Markdown {
 class MarkdownDocumentWidget final
 	: public Ui::RpWidget
 	, public ClickHandlerHost
-	, public MediaBlockHost {
+	, public MediaBlockHost
+	, public Ui::AbstractTooltipShower {
 public:
 	explicit MarkdownDocumentWidget(QWidget *parent);
 	~MarkdownDocumentWidget() override;
@@ -48,18 +52,29 @@ public:
 		std::function<void(const PreparedLink &, Qt::MouseButton)> callback);
 	void setMediaActivationCallback(
 		std::function<bool(const MediaActivation &, Qt::MouseButton)> callback);
+	void setZoomStepCallback(std::function<void(int)> callback);
 	void setClickHandlerContext(
 		QVariant context,
 		std::shared_ptr<QVariant> contextRef = nullptr);
 	void setArticle(std::shared_ptr<MarkdownArticle> article);
 	void articleContentChanged();
+	void setSearchMatches(
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current);
 	void setZoom(int value);
 	void refreshPalette();
 	void invalidateRasterCache();
 	[[nodiscard]] int maxWidth() const;
 	[[nodiscard]] int anchorTop(const QString &anchorId) const;
+	[[nodiscard]] auto scrollAnchorForTop(int top) const
+	-> std::optional<MarkdownArticleScrollAnchor>;
+	[[nodiscard]] int scrollTopForAnchor(
+		const MarkdownArticleScrollAnchor &anchor) const;
 	[[nodiscard]] bool expandDetailsToAnchor(const QString &anchorId);
-	[[nodiscard]] bool toggleDetails(const QString &anchorId);
+	[[nodiscard]] bool expandDetailsBlock(const QString &anchorId);
+	[[nodiscard]] QRect segmentRect(int segmentIndex) const;
+	bool toggleDetails(const QString &anchorId);
+	bool toggleBlockquote(const QString &toggleId);
 	[[nodiscard]] int lastRelayoutMs() const;
 	int resizeGetHeight(int newWidth) override;
 	void requestRepaint(QRect articleRect) override;
@@ -69,6 +84,10 @@ public:
 	void clearAllPlaceholderLoading();
 	void addPlaceholderRipple(PreparedPlaceholderBlockId id, QPoint point);
 	void stopPlaceholderRipple(PreparedPlaceholderBlockId id);
+
+	QString tooltipText() const override;
+	QPoint tooltipPos() const override;
+	bool tooltipWindowActive() const override;
 
 protected:
 	void paintEvent(QPaintEvent *e) override;
@@ -115,9 +134,16 @@ private:
 	void copySelectedText();
 	void copyCodeBlock(const MarkdownArticleHitTestResult &state);
 
+	[[nodiscard]] Ui::VisibleRange articleVisibleBand() const;
 	void syncArticleVisibleTopBottom();
-	void relayoutCurrentWidth(bool clearSelection);
+	int relayoutCurrentWidth(bool clearSelection);
 	void forceRelayoutCurrentWidth();
+	void scheduleFormattedDateRefresh();
+	void refreshFormattedDates();
+	[[nodiscard]] bool formattedDateRefreshVisible() const;
+	void watchFormattedDateVisibility();
+	void applyFormattedDateVisibility();
+	void retryMissingMediaBlocks();
 	void updateHover(const MarkdownArticleHitTestResult &state);
 	void updateHoverAtCursor();
 	void resetSelection();
@@ -129,6 +155,8 @@ private:
 	[[nodiscard]] MarkdownArticlePaintContext textPaintContext(QRect clip);
 	void touchEvent(QTouchEvent *e);
 	void stopPressedPlaceholderRipple();
+	void stopPressedButtonRowRipple();
+	void stopPressedInlineButtonRipple();
 	void dragActionStart(QPoint point, Qt::MouseButton button);
 	MarkdownArticleHitTestResult dragActionUpdate(QPoint point);
 	MarkdownArticleHitTestResult dragActionFinish(
@@ -136,6 +164,7 @@ private:
 		Qt::MouseButton button);
 	void applyCursor(style::cursor cursor);
 	[[nodiscard]] double zoomScale() const;
+	[[nodiscard]] int articleLayoutWidth(int widgetWidth) const;
 
 	std::shared_ptr<MarkdownArticle> _article;
 	std::shared_ptr<MarkdownArticle> _retainedArticle;
@@ -147,6 +176,7 @@ private:
 	rpl::lifetime _highlightReadyLifetime;
 	std::function<void(const PreparedLink &, Qt::MouseButton)> _activateLink;
 	std::function<bool(const MediaActivation &, Qt::MouseButton)> _activateMedia;
+	std::function<void(int)> _zoomStepCallback;
 	QVariant _clickHandlerContext;
 	std::shared_ptr<QVariant> _clickHandlerContextRef;
 	MarkdownArticleSelection _selection;
@@ -160,16 +190,26 @@ private:
 	int _dragSegment = -1;
 	int _dragSymbol = 0;
 	TextSelection _dragExpandedSelection;
+	QPoint _tripleClickPoint;
+	base::Timer _tripleClickTimer;
+	base::Timer _formattedDateTimer;
+	rpl::lifetime _formattedDateVisibilityLifetime;
+	bool _formattedDateVisible = false;
 	std::optional<PreparedLink> _selectionClickPreparedLink;
 	PreparedPlaceholderBlockId _pressedPlaceholderId;
+	MarkdownArticleButtonRowHit _pressedButtonRow;
+	QString _hoverTooltip;
+	bool _pressedInlineButton = false;
 	bool _dragStartHadSelection = false;
 	int _lastRelayoutMs = 0;
 	int _zoom = 100;
+	int _wheelZoomAccumulated = 0;
 	Ui::VisibleRange _visibleRange;
-	std::optional<Qt::Orientation> _horizontalScrollLock;
+	Ui::ScrollDirectionLock _scrollDirectionLock;
 	base::unique_qptr<Ui::PopupMenu> _contextMenu;
 	bool _activeHorizontalScrollDrag = false;
 	bool _articlePainted = false;
+	bool _mediaCreationRetried = false;
 	bool _activeTouchHorizontalScroll = false;
 	std::optional<QPoint> _pendingTouchHorizontalScrollPoint;
 

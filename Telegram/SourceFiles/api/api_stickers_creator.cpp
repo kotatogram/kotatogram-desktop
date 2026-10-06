@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_widgets.h"
 #include "ui/dynamic_thumbnails.h"
+#include "ui/rect.h"
 #include "ui/widgets/menu/menu_add_action_callback.h"
 #include "ui/widgets/menu/menu_common.h"
 #include "ui/widgets/popup_menu.h"
@@ -32,6 +33,12 @@ namespace Api {
 namespace {
 
 constexpr auto kStickerSide = 512;
+
+[[nodiscard]] int SideForType(Data::StickersType type) {
+	return (type == Data::StickersType::Emoji)
+		? kEmojiStickerSideMax
+		: kStickerSide;
+}
 
 [[nodiscard]] MTPInputStickerSetItem InputItem(
 		const MTPInputDocument &document,
@@ -44,24 +51,52 @@ constexpr auto kStickerSide = 512;
 		MTPstring());
 }
 
-[[nodiscard]] std::shared_ptr<FilePrepareResult> PrepareStickerWebp(
+[[nodiscard]] QSize DimensionsForType(
+		QSize dimensions,
+		Data::StickersType type) {
+	if (!dimensions.isEmpty()) {
+		return dimensions;
+	}
+	return Size(SideForType(type));
+}
+
+[[nodiscard]] std::shared_ptr<FilePrepareResult> PrepareStickerFile(
 		MTP::DcId dcId,
 		DocumentId id,
-		const QByteArray &bytes) {
-	const auto filename = u"sticker.webp"_q;
+		const QByteArray &bytes,
+		QSize dimensions,
+		Data::StickersType type,
+		crl::time videoDuration) {
+	const auto size = DimensionsForType(dimensions, type);
+	const auto video = (videoDuration > 0);
+	const auto filename = (type == Data::StickersType::Emoji)
+		? (video ? u"emoji.webm"_q : u"emoji.webp"_q)
+		: (video ? u"sticker.webm"_q : u"sticker.webp"_q);
+	const auto mime = video ? u"video/webm"_q : u"image/webp"_q;
 	auto attributes = QVector<MTPDocumentAttribute>(
 		1,
 		MTP_documentAttributeFilename(MTP_string(filename)));
-	attributes.push_back(MTP_documentAttributeImageSize(
-		MTP_int(kStickerSide),
-		MTP_int(kStickerSide)));
+	if (video) {
+		attributes.push_back(MTP_documentAttributeVideo(
+			MTP_flags(MTPDdocumentAttributeVideo::Flag::f_nosound),
+			MTP_double(videoDuration / 1000.),
+			MTP_int(size.width()),
+			MTP_int(size.height()),
+			MTPint(), // preload_prefix_size
+			MTPdouble(), // video_start_ts
+			MTPstring())); // video_codec
+	} else {
+		attributes.push_back(MTP_documentAttributeImageSize(
+			MTP_int(size.width()),
+			MTP_int(size.height())));
+	}
 
 	auto result = MakePreparedFile({
 		.id = id,
 		.type = SendMediaType::File,
 	});
 	result->filename = filename;
-	result->filemime = u"image/webp"_q;
+	result->filemime = mime;
 	result->content = bytes;
 	result->filesize = bytes.size();
 	result->setFileData(bytes);
@@ -71,7 +106,7 @@ constexpr auto kStickerSide = 512;
 		MTP_long(0),
 		MTP_bytes(),
 		MTP_int(base::unixtime::now()),
-		MTP_string("image/webp"),
+		MTP_string(mime),
 		MTP_long(bytes.size()),
 		MTP_vector<MTPPhotoSize>(),
 		MTPVector<MTPVideoSize>(),
@@ -348,12 +383,18 @@ void DeleteStickerSet(
 StickerUpload::StickerUpload(
 	not_null<Main::Session*> session,
 	StickerSetIdentifier set,
-	QByteArray webpBytes,
-	QString emoji)
+	QByteArray bytes,
+	QSize dimensions,
+	QString emoji,
+	Data::StickersType type,
+	crl::time videoDuration)
 : _session(session)
 , _set(std::move(set))
-, _bytes(std::move(webpBytes))
+, _bytes(std::move(bytes))
+, _dimensions(dimensions)
 , _emoji(std::move(emoji))
+, _type(type)
+, _videoDuration(videoDuration)
 , _api(&session->mtp()) {
 }
 
@@ -372,10 +413,13 @@ void StickerUpload::start(
 	_progress = std::move(progress);
 
 	_documentId = base::RandomValue<DocumentId>();
-	auto ready = PrepareStickerWebp(
+	auto ready = PrepareStickerFile(
 		_session->mtp().mainDcId(),
 		_documentId,
-		_bytes);
+		_bytes,
+		_dimensions,
+		_type,
+		_videoDuration);
 	_uploadId = FullMsgId(
 		_session->userPeerId(),
 		_session->data().nextLocalMessageId());
@@ -457,21 +501,34 @@ void StickerUpload::uploadReady(const MTPInputFile &file) {
 	_uploadLifetime.destroy();
 	_uploadId = FullMsgId();
 
+	const auto size = DimensionsForType(_dimensions, _type);
+	const auto video = (_videoDuration > 0);
 	auto attributes = QVector<MTPDocumentAttribute>();
 	attributes.push_back(MTP_documentAttributeSticker(
 		MTP_flags(0),
 		MTP_string(_emoji),
 		MTP_inputStickerSetEmpty(),
 		MTPMaskCoords()));
-	attributes.push_back(MTP_documentAttributeImageSize(
-		MTP_int(kStickerSide),
-		MTP_int(kStickerSide)));
+	if (video) {
+		attributes.push_back(MTP_documentAttributeVideo(
+			MTP_flags(MTPDdocumentAttributeVideo::Flag::f_nosound),
+			MTP_double(_videoDuration / 1000.),
+			MTP_int(size.width()),
+			MTP_int(size.height()),
+			MTPint(), // preload_prefix_size
+			MTPdouble(), // video_start_ts
+			MTPstring())); // video_codec
+	} else {
+		attributes.push_back(MTP_documentAttributeImageSize(
+			MTP_int(size.width()),
+			MTP_int(size.height())));
+	}
 
 	const auto media = MTP_inputMediaUploadedDocument(
 		MTP_flags(0),
 		file,
 		MTPInputFile(),
-		MTP_string("image/webp"),
+		MTP_string(video ? "video/webm" : "image/webp"),
 		MTP_vector<MTPDocumentAttribute>(std::move(attributes)),
 		MTP_vector<MTPInputDocument>(),
 		MTPInputPhoto(),

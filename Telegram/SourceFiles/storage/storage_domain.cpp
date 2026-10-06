@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "storage/storage_domain.h"
 
+#include "core/version.h"
 #include "storage/details/storage_file_utilities.h"
 #include "storage/serialize_common.h"
 #include "mtproto/mtproto_config.h"
@@ -48,6 +49,12 @@ StartResult Domain::start(const QByteArray &passcode) {
 	} else if (modern == StartModernResult::IncorrectPasscode) {
 		return StartResult::IncorrectPasscode;
 	} else if (modern == StartModernResult::Failed) {
+		// startModern() may have already read the local key before failing.
+		_localKey = nullptr;
+		_passcodeKey = nullptr;
+		_passcodeKeySalt = QByteArray();
+		_passcodeKeyEncrypted = QByteArray();
+		_hasLocalPasscode = false;
 		startFromScratch();
 		return StartResult::Success;
 	}
@@ -160,7 +167,7 @@ Domain::StartModernResult Domain::startModern(
 	LOG(("App Info: reading encrypted info..."));
 	auto count = qint32();
 	info.stream >> count;
-	if (count <= 0 || count > Main::Domain::kPremiumMaxAccounts) {
+	if (count <= 0 || count > Main::Domain::kMaxAccounts) {
 		LOG(("App Error: bad accounts count: %1").arg(count));
 		return StartModernResult::Failed;
 	}
@@ -174,7 +181,7 @@ Domain::StartModernResult Domain::startModern(
 		auto index = qint32();
 		info.stream >> index;
 		if (index >= 0
-			&& index < Main::Domain::kPremiumMaxAccounts
+			&& index < Main::Domain::kMaxAccounts
 			&& tried.emplace(index).second) {
 			auto account = std::make_unique<Main::Account>(
 				_owner,

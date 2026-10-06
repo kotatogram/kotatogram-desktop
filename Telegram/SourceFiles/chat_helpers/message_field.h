@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/qt/qt_compare.h"
 #include "base/timer.h"
 #include "chat_helpers/compose/compose_features.h"
+#include "ui/text/text.h"
 #include "ui/widgets/fields/input_field.h"
 
 #ifndef TDESKTOP_DISABLE_SPELLCHECK
@@ -54,6 +55,9 @@ class Show;
 } // namespace Ui
 
 [[nodiscard]] QString PrepareMentionTag(not_null<UserData*> user);
+void InsertMentionTag(
+	not_null<Ui::InputField*> field,
+	not_null<PeerData*> peer);
 [[nodiscard]] TextWithTags PrepareEditText(not_null<HistoryItem*> item);
 [[nodiscard]] bool EditTextChanged(
 	not_null<HistoryItem*> item,
@@ -67,7 +71,9 @@ Fn<bool(
 		std::shared_ptr<Main::SessionShow> show,
 		not_null<Ui::InputField*> field,
 		const style::InputField *fieldStyle = nullptr,
-		Fn<QString(QString)> linkValidator = nullptr);
+		Fn<QString(QString)> linkValidator = nullptr,
+		Fn<void(bool)> interactionActive = nullptr,
+		Fn<void()> restoreFocus = nullptr);
 Fn<void(QString now, Fn<void(QString)> save)> DefaultEditLanguageCallback(
 	std::shared_ptr<Ui::Show> show);
 
@@ -77,9 +83,13 @@ struct MessageFieldHandlersArgs {
 	not_null<Ui::InputField*> field;
 	Fn<bool()> customEmojiPaused;
 	Fn<bool(not_null<DocumentData*>)> allowPremiumEmoji;
+	Fn<bool(QStringView)> keepCustomEmojiData;
+	Ui::Text::CustomEmojiFactory customEmojiFactory;
 	const style::InputField *fieldStyle = nullptr;
 	Fn<QString(QString)> linkValidator;
 	base::flat_set<QString> allowMarkdownTags;
+	bool allowTypedMarkdown = true;
+	bool instantMarkdown = false;
 };
 auto InitMessageFieldHandlers(MessageFieldHandlersArgs &&args)
 -> std::shared_ptr<Ui::ChatStyle>;
@@ -175,7 +185,8 @@ private:
 
 [[nodiscard]] base::unique_qptr<Ui::RpWidget> CreateDisabledFieldView(
 	QWidget *parent,
-	not_null<PeerData*> peer);
+	not_null<PeerData*> peer,
+	QWidget *toastParent = nullptr);
 [[nodiscard]] std::unique_ptr<Ui::RpWidget> TextErrorSendRestriction(
 	QWidget *parent,
 	const QString &text);
@@ -229,3 +240,5 @@ void FrozenInfoBox(
 [[nodiscard]] Ui::InputField::MimeDataHook WrappedMessageFieldMimeHook(
 	Ui::InputField::MimeDataHook original,
 	not_null<Ui::InputField*> field);
+
+[[nodiscard]] bool PasteAsPlainTextRequested();

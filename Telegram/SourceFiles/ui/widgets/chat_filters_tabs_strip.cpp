@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/widgets/chat_filters_tabs_strip.h"
 
+#include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "api/api_chat_filters_remove_manager.h"
 #include "boxes/choose_filter_box.h"
 #include "boxes/filters/edit_filter_box.h"
@@ -21,9 +23,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_unread_value.h"
 #include "data/data_user.h"
 #include "lang/lang_keys.h"
+#include "menu/menu_mark_as_read.h"
+#include "main/main_account.h"
 #include "main/main_session.h"
 #include "settings/sections/settings_folders.h"
 #include "ui/widgets/menu/menu_action.h"
+#include "ui/filter_icons.h"
 #include "ui/power_saving.h"
 #include "ui/ui_utility.h"
 #include "ui/widgets/chat_filters_tabs_slider_reorder.h"
@@ -55,6 +60,7 @@ struct State final {
 
 	std::unique_ptr<Ui::ChatsFiltersTabsReorder> reorder;
 	bool ignoreRefresh = false;
+	bool allChatsHidden = false;
 };
 
 void ShowMenu(
@@ -72,6 +78,11 @@ void ShowMenu(
 		}
 		id = list[index].id();
 	}
+	const auto account = &session->account();
+	const auto defaultFilterId = account->defaultFilterId();
+	const auto setDefaultFilter = [=](FilterId id) {
+		account->setDefaultFilterId(id);
+	};
 	state->menu = base::make_unique_q<Ui::PopupMenu>(
 		parent,
 		st::popupMenuWithIcons);
@@ -84,10 +95,22 @@ void ShowMenu(
 			[=] { EditExistingFilter(controller, id); },
 			&st::menuIconEdit);
 
-		Window::MenuAddMarkAsReadChatListAction(
+		MarkAsReadMenu::AddChatListAction(
 			controller,
+			MarkAsReadMenu::ChatListKind::Folder,
 			[=] { return session->data().chatsFilters().chatsList(id); },
 			addAction);
+		if (defaultFilterId != id) {
+			addAction(
+				ktr("ktg_filters_context_make_default"),
+				[=] { setDefaultFilter(id); },
+				&st::menuIconFave);
+		} else {
+			addAction(
+				ktr("ktg_filters_context_reset_default"),
+				[=] { setDefaultFilter(0); },
+				&st::menuIconUnfave);
+		}
 
 		auto showRemoveBox = [=] {
 			state->removeApi.request(base::make_weak(parent), controller, id);
@@ -99,16 +122,17 @@ void ShowMenu(
 			.isAttention = true,
 		});
 	} else {
-		auto customUnreadState = [=] {
-			return Data::MainListMapUnreadState(
-				session,
-				session->data().chatsList()->unreadState());
-		};
-		Window::MenuAddMarkAsReadChatListAction(
+		MarkAsReadMenu::AddChatListAction(
 			controller,
+			MarkAsReadMenu::ChatListKind::AllChats,
 			[=] { return session->data().chatsList(); },
-			addAction,
-			std::move(customUnreadState));
+			addAction);
+		if (defaultFilterId != id) {
+			addAction(
+				ktr("ktg_filters_context_make_default"),
+				[=] { setDefaultFilter(0); },
+				&st::menuIconFave);
+		}
 
 		auto openFiltersSettings = [=] {
 			const auto filters = &session->data().chatsFilters();
@@ -175,7 +199,7 @@ void ShowFiltersListMenu(
 			action,
 			icon,
 			icon);
-		action->setEnabled(i < premiumFrom);
+		action->setEnabled(!Data::ChatFilterLocked(list, i, premiumFrom));
 		if (!title.text.empty()) {
 			const auto context = Core::TextContext({
 				.session = session,
@@ -230,11 +254,30 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				? st::dialogsSearchTabs
 				: st::chatsFiltersTabs));
 	const auto state = wrap->lifetime().make_state<State>();
+	// "All chats" hidden by the option has no tab.
+	const auto hiddenAll = [=] {
+		const auto &list = session->data().chatsFilters().list();
+		const auto i = ranges::find(list, FilterId(), &Data::ChatFilter::id);
+		return state->allChatsHidden ? int(i - begin(list)) : -1;
+	};
+	const auto listIndex = [=](int section) {
+		const auto hidden = hiddenAll();
+		return section + ((hidden >= 0 && section >= hidden) ? 1 : 0);
+	};
+	const auto sectionIndex = [=](int index) {
+		const auto hidden = hiddenAll();
+		return index - ((hidden >= 0 && index > hidden) ? 1 : 0);
+	};
 	const auto reassignUnreadValue = [=] {
 		state->reorderLifetime.destroy();
 		const auto &list = session->data().chatsFilters().list();
 		auto includeMuted = Data::IncludeMutedCounterFoldersValue();
+		const auto hidden = hiddenAll();
 		for (auto i = 0; i < list.size(); i++) {
+			if (i == hidden) {
+				continue;
+			}
+			const auto section = sectionIndex(i);
 			rpl::combine(
 				Data::UnreadStateValue(session, list[i].id()),
 				rpl::duplicate(includeMuted)
@@ -247,7 +290,7 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 				const auto count = (chats + state.marks)
 					- (includeMuted ? 0 : muted);
 				const auto isMuted = includeMuted && (count == muted);
-				slider->setUnreadCount(i, count, isMuted);
+				slider->setUnreadCount(section, count, isMuted);
 				slider->fitWidthToSections();
 			}, state->reorderLifetime);
 		}
@@ -269,6 +312,8 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					filters->moveAllToFront();
 				}
 			}
+			oldPosition = listIndex(oldPosition);
+			newPosition = listIndex(newPosition);
 			Assert(oldPosition >= 0 && oldPosition < list.size());
 			Assert(newPosition >= 0 && newPosition < list.size());
 
@@ -314,8 +359,9 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					if (x >= left && x < right) {
 						const auto &list
 							= session->data().chatsFilters().list();
-						return (i < list.size())
-							? list[i].id()
+						const auto index = listIndex(i);
+						return (index < list.size())
+							? list[index].id()
 							: FilterId();
 					}
 				}
@@ -324,9 +370,10 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 			[=] { return state->lastFilterId.value_or(FilterId()); },
 			[=](FilterId id) {
 				const auto &list = session->data().chatsFilters().list();
+				const auto hidden = hiddenAll();
 				for (auto i = 0; i < list.size(); i++) {
-					if (list[i].id() == id) {
-						slider->selectSection(i);
+					if (list[i].id() == id && i != hidden) {
+						slider->selectSection(sectionIndex(i));
 						return;
 					}
 				}
@@ -372,6 +419,7 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 
 	const auto filterByIndex = [=](int index) -> const Data::ChatFilter& {
 		const auto &list = session->data().chatsFilters().list();
+		index = listIndex(index);
 		Assert(index >= 0 && index < list.size());
 		return list[index];
 	};
@@ -381,6 +429,12 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 		if ((list.size() <= 1 && !slider->width()) || state->ignoreRefresh) {
 			return;
 		}
+		state->allChatsHidden = trackActiveFilterAndUnreadAndReorder
+			&& (controller->hiddenAllChatsIndex() >= 0);
+		const auto hidden = hiddenAll();
+		const auto shown = [=](const Data::ChatFilter &filter) {
+			return filter.id() || (hidden < 0);
+		};
 		const auto context = Core::TextContext({ .session = session });
 		const auto paused = [=] {
 			return On(PowerSaving::kEmojiChat)
@@ -389,6 +443,8 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 		const auto sectionsChanged = slider->setSectionsAndCheckChanged(
 			ranges::views::all(
 				list
+			) | ranges::views::filter(
+				shown
 			) | ranges::views::transform([](const Data::ChatFilter &filter) {
 				auto title = filter.title();
 				return title.text.empty()
@@ -397,6 +453,15 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					? Data::ForceCustomEmojiStatic(title.text)
 					: title.text;
 			}) | ranges::to_vector, context, paused);
+		slider->setSectionIcons(ranges::views::all(
+			list
+		) | ranges::views::filter(
+			shown
+		) | ranges::views::transform([](const Data::ChatFilter &filter) {
+			return LookupFilterIcon(filter.id()
+				? ComputeFilterIcon(filter)
+				: FilterIcon::All).tabs.get();
+		}) | ranges::to_vector);
 		if (!sectionsChanged) {
 			return;
 		}
@@ -407,21 +472,34 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 			const auto maxLimit = (reorderAll ? 1 : 0)
 				+ Data::PremiumLimits(session).dialogFiltersCurrent();
 			const auto premiumFrom = (reorderAll ? 0 : 1) + maxLimit;
-			slider->setLockedFrom((premiumFrom >= list.size())
-				? 0
-				: premiumFrom);
+			auto lockedFrom = 0;
+			auto locked = std::vector<int>();
+			auto unlocked = base::flat_set<int>();
+			for (auto i = 0; i != int(list.size()); ++i) {
+				if (i == hidden) {
+					continue;
+				} else if (Data::ChatFilterLocked(list, i, premiumFrom)) {
+					if (!lockedFrom) {
+						lockedFrom = sectionIndex(i);
+					}
+					locked.push_back(sectionIndex(i));
+				} else if (lockedFrom) {
+					unlocked.emplace(sectionIndex(i));
+				}
+			}
+			slider->setLockedFrom(lockedFrom, std::move(unlocked));
 			slider->lockedClicked() | rpl::on_next([=] {
 				controller->show(Box(FiltersLimitBox, session, std::nullopt));
 			}, state->rebuildLifetime);
 			if (state->reorder) {
 				state->reorder->cancel();
 				state->reorder->clearPinnedIntervals();
-				if (!reorderAll) {
+				if (!reorderAll && hidden != 0) {
 					state->reorder->addPinnedInterval(0, 1);
 				}
-				state->reorder->addPinnedInterval(
-					premiumFrom,
-					std::max(1, int(list.size()) - maxLimit));
+				for (const auto section : locked) {
+					state->reorder->addPinnedInterval(section, 1);
+				}
 			}
 		}
 		if (trackActiveFilterAndUnreadAndReorder) {
@@ -434,12 +512,13 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					: list[0].id());
 			for (auto i = 0; i < list.size(); i++) {
 				const auto &filter = list[i];
-				if (filter.id() == lookingId) {
+				if (filter.id() == lookingId && i != hidden) {
 					const auto wasLast = !!state->lastFilterId;
+					const auto section = sectionIndex(i);
 					state->lastFilterId = filter.id();
-					slider->setActiveSectionFast(i);
+					slider->setActiveSectionFast(section);
 					scrollToIndex(
-						i,
+						section,
 						wasLast ? anim::type::normal : anim::type::instant);
 					if (wasLast || !trackActiveFilterAndUnreadAndReorder) {
 						applyFilter(filter);
@@ -460,10 +539,11 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 			controller->activeChatsFilter(
 			) | rpl::on_next([=](FilterId id) {
 				const auto &list = session->data().chatsFilters().list();
+				const auto hidden = hiddenAll();
 				for (auto i = 0; i < list.size(); ++i) {
-					if (list[i].id() == id) {
-						slider->setActiveSection(i);
-						scrollToIndex(i, anim::type::normal);
+					if (list[i].id() == id && i != hidden) {
+						slider->setActiveSection(sectionIndex(i));
+						scrollToIndex(sectionIndex(i), anim::type::normal);
 						break;
 					}
 				}
@@ -486,7 +566,7 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 		}, state->rebuildLifetime);
 		slider->contextMenuRequested() | rpl::on_next([=](int index) {
 			if (trackActiveFilterAndUnreadAndReorder) {
-				ShowMenu(wrap, controller, state, index);
+				ShowMenu(wrap, controller, state, listIndex(index));
 			} else {
 				ShowFiltersListMenu(
 					wrap,
@@ -506,6 +586,16 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 		session->data().chatsFilters().changed(),
 		Data::AmPremiumValue(session) | rpl::to_empty
 	) | rpl::on_next(rebuild, wrap->lifetime());
+	if (trackActiveFilterAndUnreadAndReorder) {
+		::Kotato::JsonSettings::Events(
+			"folders/hide_all_chats"
+		) | rpl::to_empty | rpl::on_next(rebuild, wrap->lifetime());
+	}
+	Core::App().settings().chatFiltersTabsModeValue(
+	) | rpl::on_next([=](ChatsFiltersTabsMode mode) {
+		slider->setTabsMode(HorizontalChatsFiltersTabsMode(mode));
+		scrollToIndex(slider->activeSection(), anim::type::instant);
+	}, wrap->lifetime());
 	rebuild();
 
 	session->data().chatsFilters().isChatlistChanged(
@@ -538,15 +628,21 @@ not_null<Ui::RpWidget*> AddChatFiltersTabsStrip(
 					|| (request.action == Qt::Key_Backtab));
 		}) | rpl::on_next([=](const Shortcuts::ChatSwitchRequest &request) {
 			const auto count = slider->sectionsCount();
-			const auto locked = slider->lockedFrom();
-			const auto limit = locked ? locked : count;
-			if (limit <= 1) {
+			if (count <= 1) {
 				return;
 			}
 			const auto back = (request.action == Qt::Key_Backtab);
-			const auto current = std::min(slider->activeSection(), limit - 1);
-			const auto next = (current + (back ? -1 : 1) + limit) % limit;
-			slider->setActiveSection(next);
+			const auto current = slider->activeSection();
+			auto next = current;
+			for (auto i = 0; i != count; ++i) {
+				next = (next + (back ? -1 : 1) + count) % count;
+				if (!slider->isLocked(next)) {
+					break;
+				}
+			}
+			if (next != current) {
+				slider->setActiveSection(next);
+			}
 		}, wrap->lifetime());
 	}
 

@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace style {
 struct DialogRow;
+struct DialogRightButton;
 struct VerifiedBadge;
 } // namespace style
 
@@ -23,6 +24,7 @@ namespace Data {
 class Forum;
 class Folder;
 class Thread;
+class CommunityInfo;
 } // namespace Data
 
 namespace Dialogs {
@@ -61,6 +63,7 @@ struct PaintContext {
 	TopicJumpCache *topicJumpCache = nullptr;
 	Data::Folder *folder = nullptr;
 	Data::Forum *forum = nullptr;
+	Data::CommunityInfo *community = nullptr;
 	required<QBrush> currentBg;
 	FilterId filter = 0;
 	float64 topicsExpanded = 0.;
@@ -74,9 +77,16 @@ struct PaintContext {
 	bool search = false;
 	bool narrow = false;
 	bool displayUnreadInfo = false;
+	bool insideCommunity = false;
 };
 
 extern const char kOptionDialogsMuteIcon[];
+
+[[nodiscard]] bool CompactChatList();
+[[nodiscard]] const style::DialogRow &ChatListRowStyle();
+[[nodiscard]] const style::DialogRow &ForumTopicRowStyle();
+[[nodiscard]] int ChatListNarrowWidth();
+[[nodiscard]] int RightButtonTop(const style::DialogRightButton &st);
 
 [[nodiscard]] const style::icon *ChatTypeIcon(
 	not_null<PeerData*> peer,

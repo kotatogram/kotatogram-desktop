@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/themes/window_theme_preview.h"
 
+#include "kotato/kotato_radius.h"
 #include "kotato/kotato_settings.h"
 #include "dialogs/dialogs_three_state_icon.h"
 #include "lang/lang_keys.h"
@@ -21,8 +22,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/chat/chat_theme.h"
 #include "ui/chat/chat_style.h"
 #include "ui/chat/message_bubble.h"
+#include "styles/style_chat_style.h"
 #include "styles/style_widgets.h"
-#include "styles/style_window.h"
 #include "styles/style_media_view.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
@@ -95,8 +96,7 @@ public:
 	Generator(
 		const Instance &theme,
 		CurrentData &&current,
-		PreviewType type,
-		QMap<QString, QString> lang);
+		PreviewType type);
 
 	[[nodiscard]] QImage generate();
 
@@ -207,8 +207,6 @@ private:
 
 	style::TextPalette _textPalette;
 
-	QMap<QString, QString> _lang;
-
 };
 
 bool Generator::extended() const {
@@ -311,7 +309,9 @@ void Generator::addTextBubble(QString text, QString date, Status status) {
 		accumulate_min(width, st::msgMaxWidth);
 	}
 
-	auto textWidth = qMax(width - st::msgPadding.left() - st::msgPadding.right(), 1);
+	auto textWidth = std::max(
+		width - st::msgPadding.left() - st::msgPadding.right(),
+		1);
 	auto textHeight = bubble.text.countHeight(textWidth);
 
 	auto height = st::msgPadding.top() + textHeight + st::msgPadding.bottom();
@@ -342,7 +342,9 @@ void Generator::addPhotoBubble(QString image, QString caption, QString date, Sta
 		accumulate_min(width, st::msgMaxWidth);
 	}
 
-	auto textWidth = qMax(width - st::msgPadding.left() - st::msgPadding.right(), 1);
+	auto textWidth = std::max(
+		width - st::msgPadding.left() - st::msgPadding.right(),
+		1);
 	auto textHeight = bubble.text.countHeight(textWidth);
 
 	auto height = st::mediaCaptionSkip + textHeight + st::msgPadding.bottom();
@@ -386,7 +388,7 @@ void Generator::generateData() {
 	addRow("Davy Jones", 5, "4:00", Ui::Text::Colorized("Keynote.pdf"));
 
 	_topBarName.setText(st::msgNameStyle, "Eva Summer", Ui::NameTextOptions());
-	_topBarStatus = _lang.value(qsl("lng_status_online"));
+	_topBarStatus = tr::lng_status_online(tr::now);
 	_topBarStatusActive = true;
 
 	addPhotoBubble(":/gui/art/themeimage.jpg", "To reach a port, we must sail. " + QString::fromUtf8("\xf0\x9f\xa5\xb8"), "7:00", Status::None);
@@ -413,14 +415,12 @@ void Generator::generateData() {
 Generator::Generator(
 	const Instance &theme,
 	CurrentData &&current,
-	PreviewType type,
-	QMap<QString, QString> lang)
+	PreviewType type)
 : _theme(theme)
 , _palette(_theme.palette)
 , _current(std::move(current))
 , _type(type)
-, _st(&_palette)
-, _lang(lang) {
+, _st(&_palette) {
 }
 
 QImage Generator::generate() {
@@ -460,7 +460,7 @@ void Generator::paintHistoryList() {
 	_historyBottom -= st::historyPaddingBottom;
 	_p->setClipping(true);
 	for (auto i = _bubbles.size(); i != 0;) {
-		auto &bubble = _bubbles[--i];
+		const auto &bubble = _bubbles[--i];
 		if (bubble.width > 0) {
 			paintBubble(bubble);
 		} else {
@@ -502,12 +502,12 @@ void Generator::paintHistoryBackground() {
 	if (tiled) {
 		auto width = background.width();
 		auto height = background.height();
-		auto repeatTimesX = qCeil(_history.width()
+		auto repeatTimesX = int(std::ceil(_history.width()
 			* style::DevicePixelRatio()
-			/ float64(width));
-		auto repeatTimesY = qCeil((_history.height() - fromy)
+			/ float64(width)));
+		auto repeatTimesY = int(std::ceil((_history.height() - fromy)
 			* style::DevicePixelRatio()
-			/ float64(height));
+			/ float64(height)));
 		auto imageForTiled = QImage(
 			width * repeatTimesX,
 			height * repeatTimesY,
@@ -632,7 +632,7 @@ void Generator::paintComposeArea() {
 		field.y() + st::historyComposeField.textMargins.top() + st::historyComposeField.placeholderMargins.top(),
 		field.width() - st::historyComposeField.textMargins.left() - st::historyComposeField.textMargins.right(),
 		field.height() - st::historyComposeField.textMargins.top() - st::historyComposeField.textMargins.bottom());
-	_p->drawText(placeholderRect, _lang.value(qsl("lng_message_ph")), QTextOption(st::historyComposeField.placeholderAlign));
+	_p->drawText(placeholderRect, tr::lng_message_ph(tr::now), QTextOption(st::historyComposeField.placeholderAlign));
 
 	_p->restore();
 	_p->setClipping(false);
@@ -680,7 +680,7 @@ void Generator::paintDialogs() {
 	auto phRect = QRect(filter.x() + st::dialogsFilter.textMargins.left() + st::dialogsFilter.placeholderMargins.left(), filter.y() + st::dialogsFilter.textMargins.top() + st::dialogsFilter.placeholderMargins.top(), filter.width() - st::dialogsFilter.textMargins.left() - st::dialogsFilter.textMargins.right(), filter.height() - st::dialogsFilter.textMargins.top() - st::dialogsFilter.textMargins.bottom());
 	_p->setFont(st::dialogsFilter.style.font);
 	_p->setPen(st::dialogsFilter.placeholderFg[_palette]);
-	_p->drawText(phRect, _lang.value(qsl("lng_dlg_filter")), QTextOption(st::dialogsFilter.placeholderAlign));
+	_p->drawText(phRect, tr::lng_dlg_filter(tr::now), QTextOption(st::dialogsFilter.placeholderAlign));
 	_p->restore();
 	_p->setClipping(false);
 
@@ -952,9 +952,11 @@ void Generator::paintBubble(const Bubble &bubble) {
 		// rescale waveform by going in waveform.size * bar_count 1D grid
 		auto active = bubble.outbg ? st::msgWaveformOutActive[_palette] : st::msgWaveformInActive[_palette];
 		auto inactive = bubble.outbg ? st::msgWaveformOutInactive[_palette] : st::msgWaveformInInactive[_palette];
-		auto wf_size = bubble.waveform.size();
+		auto wf_size = int(bubble.waveform.size());
 		auto availw = namewidth + st::msgWaveformSkip;
-		auto bar_count = qMin(availw / (st::msgWaveformBar + st::msgWaveformSkip), wf_size);
+		auto bar_count = std::min(
+			availw / (st::msgWaveformBar + st::msgWaveformSkip),
+			wf_size);
 		auto max_value = 0;
 		auto max_delta = st::msgWaveformMax - st::msgWaveformMin;
 		auto wave_bottom = y + st::msgFileLayout.padding.top() + st::msgWaveformMax;
@@ -1058,7 +1060,7 @@ void Generator::paintUserpic(int x, int y, Row::Type type, int index, QString le
 	image.fill(Qt::transparent);
 	{
 		Painter p(&image);
-		userpic.paintCircle(p, 0, 0, size, size);
+		Kotato::PaintEmptyUserpic(userpic, p, 0, 0, size, size);
 	}
 	_p->drawImage(rtl() ? (_rect.width() - x - size) : x, y, image);
 }
@@ -1125,8 +1127,7 @@ std::unique_ptr<Preview> GeneratePreview(
 		const QString &filepath,
 		const Data::CloudTheme &cloud,
 		CurrentData &&data,
-		PreviewType type,
-		QMap<QString, QString> lang) {
+		PreviewType type) {
 	auto result = PreviewFromFile(bytes, filepath, cloud);
 	if (!result) {
 		return nullptr;
@@ -1134,32 +1135,21 @@ std::unique_ptr<Preview> GeneratePreview(
 	result->preview = Generator(
 		result->instance,
 		std::move(data),
-		type,
-		lang
+		type
 	).generate();
 	return result;
 }
 
 QImage GeneratePreview(
 		const QByteArray &bytes,
-		const QString &filepath,
-		QMap<QString, QString> lang) {
+		const QString &filepath) {
 	const auto preview = GeneratePreview(
 		bytes,
 		filepath,
 		Data::CloudTheme(),
 		CurrentData{ Data::ThemeWallPaper().id() },
-		PreviewType::Normal,
-		lang);
+		PreviewType::Normal);
 	return preview ? preview->preview : QImage();
-}
-
-QMap<QString, QString> CollectStrings() {
-	return {
-		{ "lng_message_ph", tr::lng_message_ph(tr::now) },
-		{ "lng_dlg_filter", tr::lng_dlg_filter(tr::now) },
-		{ "lng_status_online", tr::lng_status_online(tr::now) },
-	};
 }
 
 int DefaultPreviewTitleHeight() {

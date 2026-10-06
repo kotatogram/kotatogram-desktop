@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "kotato/kotato_version.h"
 #include "ui/boxes/confirm_box.h"
 #include "core/click_handler_types.h" // UrlClickHandler
+#include "core/version.h"
 #include "base/qthelp_url.h" // qthelp::url_encode
 #include "base/platform/base_platform_info.h"
 #include "window/window_controller.h"

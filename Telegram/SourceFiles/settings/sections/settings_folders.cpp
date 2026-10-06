@@ -7,8 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_folders.h"
 
-#include "kotato/kotato_lang.h"
 #include "kotato/kotato_settings.h"
+#include "kotato/kotato_lang.h"
 #include "api/api_chat_filters.h"
 #include "apiwrap.h"
 #include "boxes/filters/edit_filter_box.h"
@@ -34,7 +34,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/empty_userpic.h"
 #include "ui/filter_icons.h"
 #include "main/main_account.h"
-#include "ui/toast/toast.h"
 #include "ui/layers/generic_box.h"
 #include "ui/painter.h"
 #include "ui/rect.h"
@@ -54,7 +53,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
-#include "styles/style_window.h"
+#include "styles/style_stickers_box.h"
 
 namespace Settings {
 namespace {
@@ -177,7 +176,7 @@ struct FilterRow {
 			+ (' ' + Ui::kQBullet + ' ')
 			+ tr::lng_filters_shareable_status(tr::now))
 		: (result
-			+ QString::fromUtf8(" \xE2\x80\xA2 ")
+			+ (' ' + Ui::kQBullet + ' ')
 			+ (filter.isLocal()
 				? ktr("ktg_filters_local")
 				: ktr("ktg_filters_cloud")));
@@ -385,31 +384,26 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		return Data::PremiumLimits(session).dialogFiltersCurrent();
 	};
 	const auto account = &session->account();
-	const auto currentDefaultId = account->defaultFilterId();
-	auto localNewFilterId = limit();
-	const auto generateNewId = [=, &localNewFilterId] {
+	const auto lastNewFilterId = std::make_shared<FilterId>(limit());
+	const auto generateNewId = [=] {
 		const auto filters = &controller->session().data().chatsFilters();
 
 		do {
-			localNewFilterId++;
-		} while (ranges::contains(filters->list(), localNewFilterId, &Data::ChatFilter::id));
+			++*lastNewFilterId;
+		} while (ranges::contains(filters->list(), *lastNewFilterId, &Data::ChatFilter::id)
+			|| ranges::contains(state->rows, *lastNewFilterId, [](const FilterRow &row) {
+				return row.filter.id();
+			}));
 
-		return localNewFilterId;
+		return *lastNewFilterId;
 	};
 
 	currentDefaultRemoved = false;
-
-	Ui::AddSkip(container, st::defaultVerticalListSkip);
-	Ui::AddSubsectionTitle(container, tr::lng_filters_subtitle());
 
 	const auto find = [=](not_null<FilterRowButton*> button) {
 		const auto i = ranges::find(state->rows, button, &FilterRow::button);
 		Assert(i != end(state->rows));
 		return &*i;
-	};
-	const auto toast = Ui::Toast::Config{
-		.text = { ktr("ktg_filters_cloud_limit") },
-		.st = &st::windowArchiveToast,
 	};
 	const auto showLimitReached = [=] {
 		const auto removed = ranges::count_if(state->rows, [](FilterRow row) {
@@ -428,6 +422,9 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		st::settingsButton,
 		{ &st::settingsIconCloud }
 	);
+	if (highlights) {
+		highlights->push_back({ u"folders/create"_q, { newCloudButton.get() } });
+	}
 	const auto newLocalButton = AddButtonWithIcon(
 		container,
 		rktr("ktg_filters_create_local"),
@@ -524,7 +521,7 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 		}, button->lifetime());
 		button->restoreRequests(
 		) | rpl::on_next([=] {
-			if (showLimitReached()) {
+			if (!find(button)->filter.isLocal() && showLimitReached()) {
 				return;
 			}
 			if (find(button)->filter.id() == account->defaultFilterId()) {
@@ -540,10 +537,10 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			}
 			const auto doneCallback = [=](const Data::ChatFilter &result) {
 				find(button)->filter = result;
-				const auto isCurrentDefault = result.id() == account->defaultFilterId();
-				if ((isCurrentDefault && !result.isDefault())
-					|| (!isCurrentDefault && result.isDefault())) {
-					account->setDefaultFilterId(result.isDefault() ? result.id() : 0);
+				if (result.isDefault()) {
+					account->setDefaultFilterId(result.id());
+				} else if (account->defaultFilterId() == result.id()) {
+					account->setDefaultFilterId(0);
 				}
 				button->updateData(result);
 			};
@@ -722,7 +719,6 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			const FilterRowButton *single,
 			Fn<void(Data::ChatFilter)> next) {
 		auto ids = prepareGoodIdsForNewFilters();
-		bool needSave = false;
 
 		auto updated = Data::ChatFilter();
 
@@ -757,22 +753,23 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 					updated = row.filter;
 				}
 			}
+			if (row.filter.isLocal()) {
+				if (removed) {
+					realFilters.remove(id);
+				} else {
+					realFilters.set(row.filter);
+					order.push_back(newId);
+				}
+				localFoldersChanged = true;
+				continue;
+			}
 			const auto tl = removed
 				? MTPDialogFilter()
 				: row.filter.tl(newId);
 			const auto removeChatlistWithChats = removed
 				&& row.filter.chatlist()
 				&& !row.removePeers.empty();
-			if (row.filter.isLocal()) {
-				if (removed) {
-					realFilters.remove(id);
-				} else {
-					realFilters.set(row.filter);
-					order.push_back(id);
-				}
-				localFoldersChanged = true;
-				needSave = true;
-			} else if (removeChatlistWithChats) {
+			if (removeChatlistWithChats) {
 				auto inputs = ranges::views::all(
 					row.removePeers
 				) | ranges::views::transform([](not_null<PeerData*> peer) {
@@ -795,12 +792,6 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 					addRequests.push_back(request);
 					order.push_back(newId);
 				}
-				realFilters.apply(MTP_updateDialogFilter(
-					MTP_flags(removed
-						? MTPDupdateDialogFilter::Flag(0)
-						: MTPDupdateDialogFilter::Flag::f_filter),
-					MTP_int(newId),
-					tl));
 			}
 			updates.push_back(MTP_updateDialogFilter(
 				MTP_flags(removed
@@ -838,10 +829,8 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			next,
 			updated,
 			account,
-			controller,
+			weakController = base::make_weak(controller),
 			localFoldersChanged,
-			currentDefaultId,
-			&needSave,
 			order = std::move(order),
 			updates = std::move(updates),
 			addRequests = std::move(addRequests),
@@ -882,22 +871,19 @@ not_null<Ui::VerticalLayout*> SetupFoldersList(
 			sendRequests(removeRequests);
 			sendRequests(removeChatlistRequests);
 			sendRequests(addRequests);
-			if (!order.empty() && !addRequests.empty()) {
+			if (!order.empty()
+				&& (!addRequests.empty() || localFoldersChanged)) {
 				filters.saveOrder(order, previousId);
 			}
 			checkFinished();
 			if (currentDefaultRemoved) {
 				account->setDefaultFilterId(0);
-				controller->setActiveChatsFilter(0);
+				if (const auto controller = weakController.get()) {
+					controller->setActiveChatsFilter(0);
+				}
 			}
 			if (localFoldersChanged) {
 				filters.saveLocal();
-			}
-			if (currentDefaultId != account->defaultFilterId()) {
-				needSave = true;
-			}
-			if (needSave) {
-				Kotato::JsonSettings::Write();
 			}
 		});
 	};
@@ -917,9 +903,9 @@ void SetupRecommendedSection(
 	};
 
 	const auto showLimitReached = [=] {
-		const auto removed = ranges::count_if(
-			state->rows,
-			&FilterRow::removed);
+		const auto removed = ranges::count_if(state->rows, [](FilterRow row) {
+			return row.removed || row.filter.isLocal();
+		});
 		const auto count = int(state->rows.size() - removed);
 		if (count < limit()) {
 			return false;
@@ -987,7 +973,7 @@ void SetupRecommendedSection(
 			object_ptr<Ui::VerticalLayout>(container))
 	)->setDuration(0);
 	const auto aboutRows = nonEmptyAbout->entity();
-	Ui::AddDivider(aboutRows);
+	Ui::AddDividerText(aboutRows, rktr("ktg_filters_description"));
 	Ui::AddSkip(aboutRows);
 	const auto recommendedTitle = Ui::AddSubsectionTitle(
 		aboutRows,
@@ -1251,7 +1237,6 @@ void BuildViewSection(SectionBuilder &builder) {
 		wrap->toggleOn(controller->enoughSpaceForFiltersValue());
 		const auto content = wrap->entity();
 
-		Ui::AddDivider(content);
 		Ui::AddSkip(content);
 		const auto title = Ui::AddSubsectionTitle(
 			content,
@@ -1282,8 +1267,6 @@ void BuildViewSection(SectionBuilder &builder) {
 			Core::App().settings().setChatFiltersHorizontal(value);
 			Core::App().saveSettingsDelayed();
 		});
-		Ui::AddSkip(content);
-		Ui::AddSkip(content);
 
 		return SectionBuilder::WidgetToAdd{};
 	}, [] {
@@ -1292,6 +1275,65 @@ void BuildViewSection(SectionBuilder &builder) {
 			.title = tr::lng_filters_view_subtitle(tr::now),
 			.keywords = { u"view"_q, u"layout"_q, u"tabs"_q },
 		};
+	});
+
+	builder.add([](const WidgetContext &ctx) {
+		const auto controller = ctx.controller;
+		const auto parent = ctx.container;
+
+		// Compact folders force icons only in the side bar.
+		const auto wrap = parent->add(
+			object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
+				parent,
+				object_ptr<Ui::VerticalLayout>(parent)));
+		wrap->toggleOn(rpl::combine(
+			controller->enoughSpaceForFiltersValue(),
+			rpl::single(
+				Core::App().settings().chatFiltersHorizontal()
+			) | rpl::then(
+				Core::App().settings().chatFiltersHorizontalChanges()),
+			rpl::single(rpl::empty) | rpl::then(
+				::Kotato::JsonSettings::Events(
+					"folders/hide_names"
+				) | rpl::to_empty)
+		) | rpl::map([](bool enoughSpace, bool horizontal, auto) {
+			return !enoughSpace
+				|| horizontal
+				|| !::Kotato::JsonSettings::GetBool("folders/hide_names");
+		}));
+		const auto content = wrap->entity();
+
+		Ui::AddSkip(content);
+		Ui::AddSubsectionTitle(
+			content,
+			tr::lng_filters_tabs_subtitle());
+
+		using Mode = Ui::ChatsFiltersTabsMode;
+		const auto modeGroup = std::make_shared<Ui::RadioenumGroup<Mode>>(
+			Core::App().settings().chatFiltersTabsMode());
+		const auto addMode = [&](Mode value, const QString &text) {
+			content->add(
+				object_ptr<Ui::Radioenum<Mode>>(
+					content,
+					modeGroup,
+					value,
+					text,
+					st::settingsSendType),
+				st::settingsSendTypePadding);
+		};
+		addMode(Mode::Default, tr::lng_filters_tabs_default(tr::now));
+		addMode(Mode::TextOnly, tr::lng_filters_tabs_text(tr::now));
+		addMode(Mode::TextAndIcons, tr::lng_filters_tabs_text_icons(tr::now));
+		addMode(Mode::IconsOnly, tr::lng_filters_tabs_icons(tr::now));
+
+		modeGroup->setChangedCallback([=](Mode value) {
+			Core::App().settings().setChatFiltersTabsMode(value);
+			Core::App().saveSettingsDelayed();
+		});
+		Ui::AddSkip(content);
+		Ui::AddSkip(content);
+
+		return SectionBuilder::WidgetToAdd{};
 	});
 }
 

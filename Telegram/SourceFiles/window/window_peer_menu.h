@@ -15,6 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 class History;
 class HistoryItem;
+struct ShareBoxStyleOverrides;
 
 namespace Api {
 struct SendOptions;
@@ -56,6 +57,7 @@ using PeerTypes = base::flags<PeerType>;
 } // namespace InlineBots
 
 namespace Main {
+class Session;
 class SessionShow;
 } // namespace Main
 
@@ -91,17 +93,6 @@ void AddSenderUserpicModerateAction(
 	HistoryItem *moderateItem,
 	const PeerMenuCallback &addAction);
 
-void MenuAddMarkAsReadAllChatsAction(
-	not_null<Main::Session*> session,
-	std::shared_ptr<Ui::Show> show,
-	const PeerMenuCallback &addAction);
-
-void MenuAddMarkAsReadChatListAction(
-	not_null<Window::SessionController*> controller,
-	Fn<not_null<Dialogs::MainList*>()> &&list,
-	const PeerMenuCallback &addAction,
-	Fn<Dialogs::UnreadState()> customUnreadState = nullptr);
-
 void PeerMenuExportChat(
 	not_null<Window::SessionController*> controller,
 	not_null<PeerData*> peer);
@@ -117,6 +108,9 @@ void PeerMenuShareContactBox(
 	not_null<UserData*> user);
 void PeerMenuAddChannelMembers(
 	not_null<Window::SessionNavigation*> navigation,
+	not_null<ChannelData*> channel);
+void PeerMenuUngroupCommunity(
+	not_null<Window::SessionController*> controller,
 	not_null<ChannelData*> channel);
 void PeerMenuCreatePoll(
 	not_null<Window::SessionController*> controller,
@@ -204,6 +198,11 @@ base::weak_qptr<Ui::BoxContent> ShowChooseRecipientBox(
 	FnMut<void()> &&successCallback = nullptr,
 	InlineBots::PeerTypes typesRestriction = 0);
 base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
+	std::shared_ptr<Main::SessionShow> show,
+	Data::ForwardDraft &&draft,
+	Fn<void()> &&successCallback,
+	const ShareBoxStyleOverrides &st);
+base::weak_qptr<Ui::BoxContent> ShowForwardMessagesBox(
 	std::shared_ptr<ChatHelpers::Show> show,
 	Data::ForwardDraft &&draft,
 	Fn<void()> &&successCallback = nullptr);
@@ -246,6 +245,13 @@ void ToggleMessagePinned(
 	FullMsgId itemId,
 	bool pin,
 	Fn<void()> onHidden = Fn<void()>());
+[[nodiscard]] MessageIdsList MessagesToUnpin(
+	not_null<Main::Session*> session,
+	const MessageIdsList &items);
+void UnpinMessages(
+	not_null<Window::SessionNavigation*> navigation,
+	MessageIdsList items,
+	Fn<void()> onConfirmed = nullptr);
 void TogglePinnedThread(
 	not_null<Window::SessionController*> controller,
 	not_null<Dialogs::Entry*> entry,
@@ -257,12 +263,14 @@ void HidePinnedBar(
 	MsgId topicRootId,
 	PeerId monoforumPeerId,
 	Fn<void()> onHidden);
+void SetPinnedBarHidden(
+	not_null<PeerData*> peer,
+	MsgId topicRootId,
+	PeerId monoforumPeerId,
+	bool hidden);
 void UnpinAllMessages(
 	not_null<Window::SessionNavigation*> navigation,
 	not_null<Data::Thread*> thread);
-
-[[nodiscard]] bool IsUnreadThread(not_null<Data::Thread*> thread);
-void MarkAsReadThread(not_null<Data::Thread*> thread);
 
 void AddSeparatorAndShiftUp(const PeerMenuCallback &addAction);
 

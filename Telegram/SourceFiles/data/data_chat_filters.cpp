@@ -26,7 +26,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "main/main_account.h"
 #include "main/main_app_config.h"
-#include "mainwidget.h"
 #include "apiwrap.h"
 
 namespace Data {
@@ -257,9 +256,7 @@ ChatFilter::ChatFilter(
 	base::flat_set<not_null<History*>> always,
 	std::vector<not_null<History*>> pinned,
 	base::flat_set<not_null<History*>> never,
-	bool isDefault,
-	bool isLocal,
-	int cloudLocalOrder)
+	bool isLocal)
 : _id(id)
 , _title(std::move(title.text))
 , _iconEmoji(std::move(iconEmoji))
@@ -270,9 +267,7 @@ ChatFilter::ChatFilter(
 , _flags(title.isStatic
 	? (flags | Flag::StaticTitle)
 	: (flags & ~Flag::StaticTitle))
-, _isDefault(isDefault)
-, _isLocal(isLocal)
-, _cloudLocalOrder(cloudLocalOrder) {
+, _isLocal(isLocal) {
 }
 
 ChatFilter ChatFilter::local(
@@ -313,7 +308,6 @@ ChatFilter ChatFilter::local(
 		all.begin(),
 		all.end()
 	};
-	const auto defaultFilterId = owner->session().account().defaultFilterId();
 	return ChatFilter(
 		data.id,
 		ChatFilterTitle{ { data.name } },
@@ -323,15 +317,12 @@ ChatFilter ChatFilter::local(
 		std::move(list),
 		std::move(pinned),
 		{ never.begin(), never.end() },
-		(data.id == defaultFilterId),
-		true,
-		data.cloudOrder);
+		true);
 }
 
 ChatFilter ChatFilter::FromTL(
 		const MTPDialogFilter &data,
-		not_null<Session*> owner,
-		bool isLocal) {
+		not_null<Session*> owner) {
 	return data.match([&](const MTPDdialogFilter &data) {
 		const auto flags = (data.is_contacts() ? Flag::Contacts : Flag(0))
 			| (data.is_non_contacts() ? Flag::NonContacts : Flag(0))
@@ -365,7 +356,6 @@ ChatFilter ChatFilter::FromTL(
 			all.begin(),
 			all.end()
 		};
-		const auto defaultFilterId = owner->session().account().defaultFilterId();
 		return ChatFilter(
 			data.vid().v,
 			{
@@ -379,9 +369,7 @@ ChatFilter ChatFilter::FromTL(
 			flags,
 			std::move(list),
 			std::move(pinned),
-			{ never.begin(), never.end() },
-			(data.vid().v == defaultFilterId),
-			isLocal);
+			{ never.begin(), never.end() });
 	}, [](const MTPDdialogFilterDefault &) {
 		return ChatFilter();
 	}, [&](const MTPDdialogFilterChatlist &data) {
@@ -463,7 +451,7 @@ ChatFilter ChatFilter::withColorIndex(std::optional<uint8> c) const {
 
 ChatFilter ChatFilter::withChatlist(bool chatlist, bool hasMyLinks) const {
 	auto result = *this;
-	result._flags &= Flag::RulesMask;
+	result._flags &= (Flag() | Flag::RulesMask | Flag::LocalRulesMask);
 	if (chatlist) {
 		result._flags |= Flag::Chatlist;
 		if (hasMyLinks) {
@@ -480,6 +468,12 @@ ChatFilter ChatFilter::withoutAlways(not_null<History*> history) const {
 	if (CanRemoveFromChatFilter(result, history)) {
 		result._always.remove(history);
 	}
+	return result;
+}
+
+ChatFilter ChatFilter::withDefault(bool isDefault) const {
+	auto result = *this;
+	result._isDefault = isDefault;
 	return result;
 }
 
@@ -546,7 +540,7 @@ MTPDialogFilter ChatFilter::tl(FilterId replaceId) const {
 		MTP_vector<MTPInputPeer>(never));
 }
 
-LocalFolder ChatFilter::toLocal(FilterId replaceId) const {
+LocalFolder ChatFilter::toLocal() const {
 	auto always = _always;
 	auto pinned = std::vector<uint64>();
 	pinned.reserve(_pinned.size());
@@ -568,8 +562,7 @@ LocalFolder ChatFilter::toLocal(FilterId replaceId) const {
 		never.push_back(peer->id.value);
 	}
 	return {
-		.id = replaceId ? replaceId : _id,
-		.cloudOrder = _cloudLocalOrder,
+		.id = _id,
 		.name = _title.text,
 		.emoticon = _iconEmoji,
 		.always = include,
@@ -708,8 +701,9 @@ bool ChatFilter::contains(
 		}
 
 		const auto &list = history->owner().chatsFilters().list();
-		for (auto filter : list) {
-			if (filter.id() == _id) {
+		for (const auto &filter : list) {
+			// Two such folders would check each other endlessly.
+			if (filter.id() == _id || (filter.flags() & Flag::NoFilter)) {
 				continue;
 			}
 
@@ -720,6 +714,12 @@ bool ChatFilter::contains(
 
 		return true;
 	};
+	const auto channel = history->peer->asChannel();
+	if (channel && channel->isCommunity()) {
+		// A community never matches a filter by chat type (it is neither a
+		// group nor a channel); it can only be included explicitly by id.
+		return _always.contains(history);
+	}
 	const auto state = (_flags & (Flag::NoMuted | Flag::NoRead))
 		? history->chatListBadgesState()
 		: Dialogs::BadgesState();
@@ -855,7 +855,6 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 	auto localFilters = ::Kotato::JsonSettings::GetJsonArray("folders/local", accountId, isTestAccount);
 	const auto limit = Data::PremiumLimits(&_owner->session()).dialogFiltersCurrent();
 	auto position = 0;
-	auto originalPosition = 0;
 	auto changed = false;
 
 	auto addToList = [&] (ChatFilter parsed) {
@@ -895,41 +894,34 @@ void ChatFilters::received(const QVector<MTPDialogFilter> &list) {
 		}
 		::Kotato::JsonSettings::Set("folders/local", localFolders, accountId, isTestAccount);
 		::Kotato::JsonSettings::Write();
+		localFilters = localFolders;
 	}
 
-	// Now we're adding cloud filters and corresponding local filters.
+	// A local folder goes before the cloud one it was saved before
+	// (cloudOrder counts the cloud folders above it, "All chats" excluded).
+	auto locals = std::vector<LocalFolder>();
+	for (const auto &value : std::as_const(localFilters)) {
+		locals.push_back(MakeLocalFolder(value.toObject()));
+	}
+	ranges::stable_sort(locals, ranges::less(), &LocalFolder::cloudOrder);
+	auto nextLocal = begin(locals);
+	const auto addLocalsUpTo = [&](int order) {
+		for (; nextLocal != end(locals); ++nextLocal) {
+			if (nextLocal->cloudOrder > order) {
+				break;
+			}
+			addToList(ChatFilter::local(*nextLocal, _owner));
+		}
+	};
+	auto cloudOrder = 0;
 	for (const auto &filter : list) {
-		addToList(ChatFilter::FromTL(filter, _owner));
-		for (const auto &localFilter : localFilters) {
-			auto local = MakeLocalFolder(localFilter.toObject());
-			if (local.cloudOrder != originalPosition) {
-				continue;
-			}
-			addToList(ChatFilter::local(local, _owner));
+		auto parsed = ChatFilter::FromTL(filter, _owner);
+		if (parsed.id()) {
+			addLocalsUpTo(cloudOrder++);
 		}
-		++originalPosition;
+		addToList(std::move(parsed));
 	}
-
-	// Then we adding local filters, retaining cloud order
-	while (originalPosition < limit) {
-		for (const auto &localFilter : localFilters) {
-			auto local = MakeLocalFolder(localFilter.toObject());
-			if (local.cloudOrder != originalPosition) {
-				continue;
-			}
-			addToList(ChatFilter::local(local, _owner));
-		}
-		++originalPosition;
-	}
-
-	// And finally we adding other filters
-	for (const auto &localFilter : localFilters) {
-		auto local = MakeLocalFolder(localFilter.toObject());
-		if (local.cloudOrder < limit) {
-			continue;
-		}
-		addToList(ChatFilter::local(local, _owner));
-	}
+	addLocalsUpTo(std::numeric_limits<int>::max());
 
 	while (position < _list.size()) {
 		applyRemove(position);
@@ -1091,7 +1083,7 @@ void ChatFilters::applyInsert(ChatFilter filter, int position) {
 
 	_list.insert(
 		begin(_list) + position,
-		ChatFilter(filter.id(), {}, {}, {}, {}, {}, {}, {}, false, filter.isLocal()));
+		ChatFilter(filter.id(), {}, {}, {}, {}, {}, {}, {}, filter.isLocal()));
 	applyChange(*(begin(_list) + position), std::move(filter));
 }
 
@@ -1117,9 +1109,15 @@ void ChatFilters::moveAllToFront() {
 void ChatFilters::applyRemove(int position) {
 	Expects(position >= 0 && position < _list.size());
 
+	// Remove the filter from the list before applyChange() tears down its
+	// chats. Unpinning a chat re-caches its siblings' pinned indices, which
+	// runs Session::refreshChatListEntry(); while the filter is still listed
+	// but emptied that re-enters PinnedList::setPinned() on the same pinned
+	// list mid-iteration and crashes (see also PinnedList::setPinned).
 	const auto i = begin(_list) + position;
-	applyChange(*i, ChatFilter(i->id(), {}, {}, {}, {}, {}, {}, {}));
+	auto filter = std::move(*i);
 	_list.erase(i);
+	applyChange(filter, ChatFilter(filter.id(), {}, {}, {}, {}, {}, {}, {}));
 }
 
 bool ChatFilters::applyChange(ChatFilter &filter, ChatFilter &&updated) {
@@ -1129,7 +1127,7 @@ bool ChatFilters::applyChange(ChatFilter &filter, ChatFilter &&updated) {
 
 	const auto id = filter.id();
 	const auto exceptionsChanged = filter.always() != updated.always();
-	const auto rulesMask = Flag() | Flag::RulesMask;
+	const auto rulesMask = Flag() | Flag::RulesMask | Flag::LocalRulesMask;
 	const auto rulesChanged = exceptionsChanged
 		|| ((filter.flags() & rulesMask) != (updated.flags() & rulesMask))
 		|| (filter.never() != updated.never());
@@ -1269,7 +1267,6 @@ const ChatFilter &ChatFilters::applyUpdatedPinned(
 			}
 		}
 	}
-	const auto defaultFilterId = _owner->session().account().defaultFilterId();
 	set(ChatFilter(
 		id,
 		i->title(),
@@ -1279,7 +1276,6 @@ const ChatFilter &ChatFilters::applyUpdatedPinned(
 		std::move(always),
 		std::move(pinned),
 		i->never(),
-		(id == defaultFilterId),
 		i->isLocal()));
 	return *i;
 }
@@ -1292,27 +1288,30 @@ void ChatFilters::saveOrder(
 	}
 	const auto api = &_owner->session().api();
 	api->request(_saveOrderRequestId).cancel();
-	const auto limit = Data::PremiumLimits(&_owner->session()).dialogFiltersCurrent();
 
 	auto ids = QVector<MTPint>();
 	ids.reserve(order.size());
 	auto cloudIds = QVector<MTPint>();
-	cloudIds.reserve(limit);
+	cloudIds.reserve(order.size());
+	auto hasLocal = false;
 
 	for (const auto id : order) {
 		ids.push_back(MTP_int(id));
 
-		auto i = ranges::find(_list, id, &ChatFilter::id);
+		const auto i = ranges::find(_list, id, &ChatFilter::id);
 		Assert(i != end(_list));
 
-		if ((*i).isLocal()) {
-			i->setLocalCloudOrder(cloudIds.size());
+		if (i->isLocal()) {
+			hasLocal = true;
 		} else {
 			cloudIds.push_back(MTP_int(id));
 		}
 	}
 	const auto wrapped = MTP_vector<MTPint>(ids);
 	apply(MTP_updateDialogFilterOrder(wrapped));
+	if (hasLocal) {
+		saveLocal();
+	}
 
 	if (!cloudIds.isEmpty()) {
 		const auto cloudWrapped = MTP_vector<MTPint>(cloudIds);
@@ -1596,9 +1595,14 @@ void ChatFilters::saveLocal() {
 	const auto accountId = account->session().userId().bare;
 	const auto isTestAccount = account->mtp().isTestMode();
 
+	auto cloudOrder = 0;
 	for (const auto &folder : _list) {
 		if (folder.isLocal()) {
-			localFolders << folder.toLocal().toJson();
+			auto local = folder.toLocal();
+			local.cloudOrder = cloudOrder;
+			localFolders << local.toJson();
+		} else if (folder.id()) {
+			++cloudOrder;
 		}
 	}
 
@@ -1614,6 +1618,20 @@ bool CanRemoveFromChatFilter(
 		& ~(Flag::NoRead | Flag::NoArchived | Flag::NoMuted);
 	return (filter.always().size() > 1 || flagsWithoutNoReadNoArchivedNoMuted)
 		&& filter.contains(history);
+}
+
+bool ChatFilterLocked(
+		const std::vector<ChatFilter> &list,
+		int index,
+		int premiumFrom) {
+	if (list[index].isLocal()) {
+		return false;
+	}
+	const auto slot = ranges::count_if(
+		begin(list),
+		begin(list) + index,
+		[](const ChatFilter &filter) { return !filter.isLocal(); });
+	return (slot >= premiumFrom);
 }
 
 } // namespace Data

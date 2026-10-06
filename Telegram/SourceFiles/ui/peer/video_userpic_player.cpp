@@ -19,7 +19,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image_prepare.h"
 #include "ui/empty_userpic.h"
 #include "ui/painter.h"
-#include "styles/style_widgets.h"
 
 namespace Ui {
 
@@ -48,7 +47,10 @@ void VideoUserpicPlayer::clear() {
 	_peer = nullptr;
 }
 
-QImage VideoUserpicPlayer::frame(QSize size, not_null<PeerData*> peer) {
+QImage VideoUserpicPlayer::frame(
+		QSize size,
+		not_null<PeerData*> peer,
+		bool paused) {
 	if (!_streamed
 		|| !_streamed->player().ready()
 		|| _streamed->player().videoSize().isEmpty()
@@ -92,7 +94,9 @@ QImage VideoUserpicPlayer::frame(QSize size, not_null<PeerData*> peer) {
 			_monoforumMask);
 		q.end();
 	}
-	_streamed->markFrameShown();
+	if (!paused) {
+		_streamed->markFrameShown();
+	}
 	return result;
 }
 

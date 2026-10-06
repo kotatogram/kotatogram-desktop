@@ -1129,11 +1129,12 @@ std::shared_ptr<DynamicImage> MakeEmojiThumbnail(
 
 std::shared_ptr<DynamicImage> MakePhotoThumbnail(
 		not_null<PhotoData*> photo,
-		FullMsgId fullId) {
+		FullMsgId fullId,
+		bool forceRound) {
 	return std::make_shared<PhotoThumbnail>(
 		photo,
 		fullId,
-		false,
+		forceRound,
 		MediaThumbnailMode::Crop);
 }
 
@@ -1149,11 +1150,12 @@ std::shared_ptr<DynamicImage> MakePhotoThumbnailCenterCrop(
 
 std::shared_ptr<DynamicImage> MakeDocumentThumbnail(
 		not_null<DocumentData*> document,
-		FullMsgId fullId) {
+		FullMsgId fullId,
+		bool forceRound) {
 	return std::make_shared<VideoThumbnail>(
 		document,
 		fullId,
-		false,
+		forceRound,
 		MediaThumbnailMode::Crop);
 }
 

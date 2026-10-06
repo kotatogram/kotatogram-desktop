@@ -98,7 +98,8 @@ void Account::watchProxyChanges() {
 	Core::App().proxyChanges(
 	) | rpl::on_next([=](const ProxyChange &change) {
 		const auto key = [&](const MTP::ProxyData &proxy) {
-			return (proxy.type == MTP::ProxyData::Type::Mtproto)
+			return (proxy.type == MTP::ProxyData::Type::Mtproto
+				|| proxy.type == MTP::ProxyData::Type::Web)
 				? std::make_pair(proxy.host, proxy.port)
 				: std::make_pair(QString(), uint32(0));
 		};
@@ -176,7 +177,8 @@ void Account::createSession(
 			MTPPeerColor(), // profile_color
 			MTPint(), // bot_active_users
 			MTPlong(), // bot_verification_icon
-			MTPlong()), // send_paid_messages_stars
+			MTPlong(), // send_paid_messages_stars
+			MTPlong()), // linked_community_id
 		serialized,
 		streamVersion,
 		std::move(settings));
@@ -203,6 +205,7 @@ void Account::createSession(
 		"folders/default",
 		session().userId().bare,
 		_mtp->isTestMode());
+	_recent.clear();
 }
 
 void Account::destroySession(DestroyReason reason) {
@@ -213,12 +216,21 @@ void Account::destroySession(DestroyReason reason) {
 		return;
 	}
 
+	// Assigning _sessionValue fires sessionChanges() synchronously, and a
+	// listener may enter a nested event dispatch that drains crl::on_main.
+	// Nothing may delete this Account while we're still on the stack.
+	_destroyingSession = true;
 	_sessionValue = nullptr;
 
 	if (reason == DestroyReason::LoggedOut) {
 		_session->finishLogout();
 	}
 	_session = nullptr;
+	_destroyingSession = false;
+}
+
+bool Account::destroyingSession() const {
+	return _destroyingSession;
 }
 
 bool Account::sessionExists() const {
@@ -541,8 +553,8 @@ bool Account::loggingOut() const {
 
 void Account::forcedLogOut() {
 	if (sessionExists()) {
-		resetAuthorizationKeys();
 		loggedOut();
+		resetAuthorizationKeys();
 	}
 }
 
@@ -613,10 +625,13 @@ void Account::destroyStaleAuthorizationKeys() {
 	}
 }
 
-void Account::setDefaultFilterId(uint64 id) {
+void Account::setDefaultFilterId(FilterId id) {
 	Expects(_mtp != nullptr);
 	Expects(_session != nullptr);
 
+	if (_defaultFilterId == id) {
+		return;
+	}
 	_defaultFilterId = id;
 
 	::Kotato::JsonSettings::Set(
@@ -624,24 +639,15 @@ void Account::setDefaultFilterId(uint64 id) {
 		_defaultFilterId,
 		session().userId().bare,
 		_mtp->isTestMode());
-}
-
-bool Account::isCurrent(uint64 id, bool testMode) {
-	Expects(_mtp != nullptr);
-	Expects(_session != nullptr);
-
-	return id == session().userId().bare
-		&& _mtp->isTestMode() == testMode;
+	::Kotato::JsonSettings::Write();
 }
 
 void Account::addToRecent(PeerId id) {
-	if (!_recent.contains(id.value)) {
-		_recent << id.value;
-	}
+	_recent.emplace(id);
 }
 
-bool Account::isRecent(PeerId id) {
-	return _recent.contains(id.value);
+bool Account::isRecent(PeerId id) const {
+	return _recent.contains(id);
 }
 
 void Account::setHandleLoginCode(Fn<void(QString)> callback) {

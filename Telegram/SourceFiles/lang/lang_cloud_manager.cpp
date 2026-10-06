@@ -445,7 +445,6 @@ void CloudManager::sendSwitchingToLanguageRequest() {
 		const auto finalize = [=] {
 			if (canApplyWithoutRestart(language.id)) {
 				performSwitchAndAddToRecent(language);
-				Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 			} else {
 				performSwitchAndRestart(language);
 			}
@@ -481,7 +480,6 @@ void CloudManager::switchToLanguage(const Language &data) {
 		performSwitchToCustom();
 	} else if (canApplyWithoutRestart(data.id)) {
 		performSwitchAndAddToRecent(data);
-		Kotato::Lang::Load(Lang::GetInstance().baseId(), Lang::GetInstance().id());
 	} else {
 		QVector<MTPstring> keys;
 		keys.reserve(3);
@@ -578,6 +576,7 @@ void CloudManager::switchToTestLanguage() {
 void CloudManager::performSwitch(const Language &data) {
 	_restartAfterSwitch = false;
 	switchLangPackId(data);
+	Kotato::Lang::Load(_langpack.baseId(), _langpack.id());
 	requestLangPackDifference(Pack::Current);
 	requestLangPackDifference(Pack::Base);
 }

@@ -98,9 +98,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
+#include "styles/style_boxes.h"
 #include "styles/style_calls.h"
 #include "styles/style_channel_earn.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_credits.h"
 #include "styles/style_giveaway.h"
 #include "styles/style_info.h"
@@ -320,7 +322,7 @@ void AddViewMediaHandler(
 			fake.push_back(std::make_unique<Data::MediaPhoto>(
 				state->item,
 				owner->photo(item.id),
-				false)); // spoiler
+				Data::MediaPhoto::Args()));
 		} else {
 			const auto document = owner->document(item.id);
 			const auto item = state->item;
@@ -377,6 +379,44 @@ void AddViewMediaHandler(
 			state->over = false;
 		}
 	}, thumb->lifetime());
+}
+
+[[nodiscard]] PeerId SpendPurposePeerId(
+		not_null<Data::Session*> owner,
+		const SmallBalanceSource &source) {
+	const auto peerIfBotOrChannel = [&](PeerId id) -> PeerId {
+		if (!id) {
+			return PeerId();
+		}
+		const auto peer = owner->peer(id);
+		if (const auto broadcast = peer->monoforumBroadcast()) {
+			return broadcast->id;
+		} else if (!peer->isBot() && !peer->isChannel()) {
+			return PeerId();
+		}
+		return id;
+	};
+	return v::match(source, [](SmallBalanceBot value) {
+		return value.botId ? peerFromUser(value.botId) : PeerId();
+	}, [](SmallBalanceReaction value) {
+		return value.channelId ? peerFromChannel(value.channelId) : PeerId();
+	}, [&](SmallBalanceVideoStream value) {
+		return peerIfBotOrChannel(value.streamerId);
+	}, [](SmallBalanceSubscription) {
+		return PeerId();
+	}, [](SmallBalanceDeepLink) {
+		return PeerId();
+	}, [](SmallBalanceStarGift) {
+		return PeerId();
+	}, [&](SmallBalanceForMessage value) {
+		return peerIfBotOrChannel(value.recipientId);
+	}, [&](SmallBalanceForSuggest value) {
+		return peerIfBotOrChannel(value.recipientId);
+	}, [](SmallBalanceForOffer) {
+		return PeerId();
+	}, [](SmallBalanceForSearch) {
+		return PeerId();
+	});
 }
 
 } // namespace
@@ -1092,7 +1132,11 @@ void FillUniqueGiftMenu(
 		const auto url = show->session().createInternalLinkFull(local);
 		menu->addAction(tr::lng_context_copy_link(tr::now), [=] {
 			TextUtilities::SetClipboardText({ url });
-			show->showToast(tr::lng_channel_public_link_copied(tr::now));
+			show->showToast({
+				.text = { tr::lng_channel_public_link_copied(tr::now) },
+				.iconLottie = u"toast/voip_invite"_q,
+				.iconLottieSize = st::toastLottieIconSize,
+			});
 		}, st.link ? st.link : &st::menuIconLink);
 
 		const auto shareBoxSt = st.shareBox;
@@ -1352,6 +1396,25 @@ void GenericCreditsEntryCover(
 		: e.barePeerId
 		? owner->peer(PeerId(e.barePeerId)).get()
 		: nullptr;
+	auto message = rpl::producer<Ui::UniqueGiftCoverMessage>();
+	if (uniqueGift && e.hasGiftComment && !e.description.empty()) {
+		auto sender = static_cast<PeerData*>(session->user().get());
+		auto hidden = true;
+		if (!e.anonymous && e.bareGiftMessageAuthorId) {
+			const auto loaded = owner->peerLoaded(
+				PeerId(e.bareGiftMessageAuthorId));
+			if (loaded && !loaded->isServiceUser()) {
+				sender = loaded;
+				hidden = false;
+			}
+		}
+		message = rpl::single(Ui::UniqueGiftCoverMessage{
+			.text = e.description,
+			.placeholder = QString(),
+			.sender = sender,
+			.hidden = hidden,
+		});
+	}
 	if (uniqueGift) {
 		const auto forceTon = e.giftResaleForceTon;
 		const auto cover = Ui::UniqueGiftCover{ *uniqueGift };
@@ -1370,6 +1433,7 @@ void GenericCreditsEntryCover(
 				: rpl::producer<QString>(),
 			.resalePrice = UniqueGiftResalePrice(e.uniqueGift, forceTon),
 			.resaleClick = resaleClick,
+			.message = std::move(message),
 		});
 		if (e.bareGiftOwnerId == session->userPeerId().value) {
 			if (const auto fromId = PeerId(e.barePeerId)) {
@@ -1426,7 +1490,7 @@ void GenericCreditsEntryCover(
 			? st::creditsHistoryEntryStarGiftSize
 			: st::creditsHistoryEntryGiftStickerSize));
 		const auto state = icon->lifetime().make_state<State>();
-		auto &packs = session->giftBoxStickersPacks();
+		const auto &packs = session->giftBoxStickersPacks();
 		const auto document = starGiftSticker
 			? starGiftSticker
 			: e.credits.ton()
@@ -2770,6 +2834,7 @@ Data::CreditsHistoryEntry SavedStarGiftEntry(
 		.bareGiftStickerId = data.info.document->id,
 		.bareGiftOwnerId = ownerId.value,
 		.bareGiftHostId = hostId.value,
+		.bareGiftMessageAuthorId = data.anonymous ? 0 : data.fromId.value,
 		.bareActorId = data.fromId.value,
 		.bareEntryOwnerId = chatGiftPeer ? chatGiftPeer->id.value : 0,
 		.giftChannelSavedId = data.manageId.chatSavedId(),
@@ -2793,6 +2858,7 @@ Data::CreditsHistoryEntry SavedStarGiftEntry(
 		.savedToProfile = !data.hidden,
 		.fromGiftsList = true,
 		.canUpgradeGift = data.upgradable,
+		.hasGiftComment = !data.message.empty(),
 		.in = data.mine,
 		.gift = true,
 	};
@@ -2881,6 +2947,9 @@ void ShowStarGiftViewBox(
 		.bareGiftHostId = hostId.value,
 		.bareGiftReleasedById = (data.stargiftReleasedBy
 			? data.stargiftReleasedBy->id.value
+			: 0),
+		.bareGiftMessageAuthorId = (data.messageAuthor
+			? data.messageAuthor->id.value
 			: 0),
 		.bareActorId = (toChannel ? data.channelFrom->id.value : 0),
 		.bareEntryOwnerId = (toChannel ? data.channel->id.value : 0),
@@ -3181,39 +3250,7 @@ void SmallBalanceBox(
 			}));
 	}();
 
-	const auto peerIfBotOrChannel = [owner](PeerId id) -> PeerId {
-		if (!id) {
-			return PeerId();
-		}
-		const auto peer = owner->peer(id);
-		if (const auto broadcast = peer->monoforumBroadcast()) {
-			return broadcast->id;
-		} else if (!peer->isBot() && !peer->isChannel()) {
-			return PeerId();
-		}
-		return id;
-	};
-	const auto purposePeerId = v::match(source, [](SmallBalanceBot value) {
-		return value.botId ? peerFromUser(value.botId) : PeerId();
-	}, [](SmallBalanceReaction value) {
-		return value.channelId ? peerFromChannel(value.channelId) : PeerId();
-	}, [=](SmallBalanceVideoStream value) {
-		return peerIfBotOrChannel(value.streamerId);
-	}, [](SmallBalanceSubscription) {
-		return PeerId();
-	}, [](SmallBalanceDeepLink) {
-		return PeerId();
-	}, [](SmallBalanceStarGift) {
-		return PeerId();
-	}, [=](SmallBalanceForMessage value) {
-		return peerIfBotOrChannel(value.recipientId);
-	}, [=](SmallBalanceForSuggest value) {
-		return peerIfBotOrChannel(value.recipientId);
-	}, [](SmallBalanceForOffer) {
-		return PeerId();
-	}, [](SmallBalanceForSearch) {
-		return PeerId();
-	});
+	const auto purposePeerId = SpendPurposePeerId(owner, source);
 
 	FillCreditOptions(
 		show,
@@ -3414,8 +3451,13 @@ void AddWithdrawalWidget(
 					tr::lng_context_copy_link(tr::now),
 					[=, show = controller->uiShow()] {
 						TextUtilities::SetClipboardText({ urlState->url });
-						show->showToast(
-							tr::lng_channel_public_link_copied(tr::now));
+						show->showToast({
+							.text = {
+								tr::lng_channel_public_link_copied(tr::now),
+							},
+							.iconLottie = u"toast/voip_invite"_q,
+							.iconLottieSize = st::toastLottieIconSize,
+						});
 					},
 					&st::menuIconCopy);
 				urlState->menu->popup(QCursor::pos());
@@ -3649,6 +3691,12 @@ void MaybeRequestBalanceIncrease(
 		if (CreditsAmount(credits) <= balance) {
 			if (const auto onstack = done) {
 				onstack(SmallBalanceResult::Already);
+			}
+		} else if (session->appConfig().starsSpendTopupInvoiceDisabled()
+			&& SpendPurposePeerId(&session->data(), source)) {
+			show->showToast(tr::lng_credits_topup_disabled(tr::now));
+			if (const auto onstack = done) {
+				onstack(SmallBalanceResult::Blocked);
 			}
 		} else if (show->session().premiumPossible()) {
 			const auto success = [=] {

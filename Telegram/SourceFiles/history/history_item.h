@@ -63,6 +63,7 @@ class Story;
 class SavedSublist;
 struct PaidReactionSend;
 struct SendError;
+struct FileOriginCloudDraft;
 } // namespace Data
 
 namespace HistoryUnreadThings {
@@ -214,6 +215,7 @@ public:
 	[[nodiscard]] bool isSavedMusicItem() const;
 	[[nodiscard]] BusinessShortcutId shortcutId() const;
 	[[nodiscard]] bool isBusinessShortcut() const;
+	[[nodiscard]] bool isWelcomeTemplate() const;
 	void setRealShortcutId(BusinessShortcutId id);
 	void setCustomServiceLink(ClickHandlerPtr link);
 
@@ -277,6 +279,8 @@ public:
 	[[nodiscard]] bool isUnreadMedia() const;
 	[[nodiscard]] bool isIncomingUnreadMedia() const;
 	[[nodiscard]] bool hasUnreadMediaFlag() const;
+	[[nodiscard]] bool isTtlCoveredMedia() const;
+	[[nodiscard]] TimeId mediaDestroyAt() const;
 	void markReactionsRead();
 	void markPollVotesRead();
 	void markMediaAndMentionRead();
@@ -290,8 +294,11 @@ public:
 	[[nodiscard]] bool isEditingMedia() const;
 	void clearSavedMedia();
 
+	[[nodiscard]] HistoryMessageContent backupContent();
+	void applyContent(HistoryMessageContent &&content);
+
 	// Zero result means this message is not self-destructing right now.
-	[[nodiscard]] crl::time getSelfDestructIn(crl::time now);
+	void applyMediaContentsRead(TimeId readDate);
 
 	[[nodiscard]] bool definesReplyKeyboard() const;
 	[[nodiscard]] ReplyMarkupFlags replyKeyboardFlags() const;
@@ -344,6 +351,10 @@ public:
 	[[nodiscard]] bool isLocal() const {
 		return _flags & MessageFlag::Local;
 	}
+	[[nodiscard]] bool isEphemeral() const {
+		return _flags & MessageFlag::Ephemeral;
+	}
+	[[nodiscard]] bool canBeSelected() const;
 	[[nodiscard]] bool isFakeAboutView() const {
 		return _flags & MessageFlag::FakeAboutView;
 	}
@@ -391,10 +402,11 @@ public:
 	void applyEdition(const MTPDmessageService &message);
 	void applyEdition(const QVector<MTPMessageExtendedMedia> &media);
 	void updateForwardedInfo(const MTPMessageFwdHeader *fwd);
+	void updateSentContent(const MTPDmessage &data);
 	void updateSentContent(
 		const TextWithEntities &textWithEntities,
 		const MTPMessageMedia *media,
-		const MTPRichMessage *richMessage = nullptr);
+		const MTPRichMessage *richMessage);
 	void applySentMessage(const MTPDmessage &data);
 	void applySentMessage(
 		const QString &text,
@@ -444,8 +456,9 @@ public:
 	[[nodiscard]] TextForMimeData clipboardText() const;
 
 	bool changeViewsCount(int count);
+	bool changeForwardsCount(int count);
 	void setForwardsCount(int count);
-	void setReplies(HistoryMessageRepliesData &&data);
+	void setReplies(HistoryMessageRepliesData &&data, bool notify = true);
 	void clearReplies();
 	void changeRepliesCount(int delta, PeerId replier);
 	void setReplyFields(
@@ -454,6 +467,7 @@ public:
 		bool isForumPost);
 	void setPostAuthor(const QString &author);
 	void setRealId(MsgId newId);
+	void markEphemeralSent();
 	void markTextAppearingStarted();
 	void incrementReplyToTopCounter();
 	void applyEffectWatchedOnUnreadKnown();
@@ -473,6 +487,7 @@ public:
 	[[nodiscard]] bool allowsSendNow() const;
 	[[nodiscard]] bool allowsReschedule() const;
 	[[nodiscard]] bool allowsForward() const;
+	[[nodiscard]] bool allowsMediaDownloadControls() const;
 	[[nodiscard]] bool allowsEdit(TimeId now) const;
 	[[nodiscard]] bool allowsEditMedia() const;
 	[[nodiscard]] bool canDelete() const;
@@ -484,13 +499,16 @@ public:
 	[[nodiscard]] bool requiresSendInlineRight() const;
 	[[nodiscard]] Data::SendError errorTextForForward(
 		not_null<Data::Thread*> to,
-		bool isUnquotedForward) const;
+		bool forwardsLocally = false) const;
 	[[nodiscard]] Data::SendError errorTextForForwardIgnoreRights(
 		not_null<Data::Thread*> to) const;
 	[[nodiscard]] const HistoryMessageTranslation *translation() const;
 	[[nodiscard]] bool translationShowRequiresCheck(LanguageId to) const;
 	bool translationShowRequiresRequest(LanguageId to);
 	void translationDone(LanguageId to, TextWithEntities result);
+	void translationDone(
+		LanguageId to,
+		std::shared_ptr<const Iv::RichPage> result);
 
 	[[nodiscard]] bool canReact() const;
 	void toggleReaction(
@@ -539,7 +557,10 @@ public:
 	[[nodiscard]] Data::Media *media() const {
 		return _media.get();
 	}
+	[[nodiscard]] const Data::Media *savedMedia() const;
 	[[nodiscard]] std::shared_ptr<const Iv::RichPage> richPage() const;
+	[[nodiscard]] auto translatedRichPage() const
+		-> std::shared_ptr<const Iv::RichPage>;
 	[[nodiscard]] std::shared_ptr<const Iv::RichPage> fullRichPage() const;
 	[[nodiscard]] uint64 fullRichPageVersion() const;
 	[[nodiscard]] bool computeDropForwardedInfo() const;
@@ -550,6 +571,7 @@ public:
 		const TextWithEntities &summary);
 	void setRichPage(std::shared_ptr<const Iv::RichPage> page);
 	void setFullRichPage(std::shared_ptr<const Iv::RichPage> page);
+	void setRichDraftOrigin(Data::FileOriginCloudDraft origin);
 	void clearFullRichPage();
 	void clearRichPage();
 
@@ -695,6 +717,7 @@ private:
 	void changeReplyToTopCounter(
 		not_null<HistoryMessageReply*> reply,
 		int delta);
+	bool updateRepliesText(not_null<HistoryMessageViews*> views);
 	void refreshRepliesText(
 		not_null<HistoryMessageViews*> views,
 		bool forceResize = false);
@@ -720,7 +743,13 @@ private:
 	void translationToggle(
 		not_null<HistoryMessageTranslation*> translation,
 		bool used);
-	void setSelfDestruct(HistorySelfDestructType type, MTPint mtpTTLvalue);
+	void translationDone(
+		LanguageId to,
+		TextWithEntities result,
+		std::shared_ptr<const Iv::RichPage> page);
+	void setSelfDestruct(HistorySelfDestructType type, TimeId ttlSeconds);
+	void armMediaDestroy(TimeId destroyAt);
+	void unarmMediaDestroy();
 
 	void resolveDependent(not_null<HistoryServiceDependentData*> dependent);
 	void resolveDependent(not_null<HistoryMessageReply*> reply);

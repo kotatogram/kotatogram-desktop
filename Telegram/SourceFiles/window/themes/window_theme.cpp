@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 
 #include "window/themes/window_theme_preview.h"
+#include "window/themes/window_themes_chat.h"
 #include "window/themes/window_themes_embedded.h"
 #include "window/themes/window_theme_editor.h"
 #include "window/window_controller.h"
@@ -38,8 +39,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/background_box.h"
 #include "core/application.h"
 #include "webview/webview_common.h"
-#include "styles/style_widgets.h"
-#include "styles/style_chat.h"
 
 #include <QtCore/QBuffer>
 #include <QtCore/QJsonDocument>
@@ -429,6 +428,20 @@ bool InitializeFromSaved(Saved &&saved) {
 	GlobalBackground.createIfNull();
 	if (!editing && InitializeFromCache(saved.object.content, saved.cache)) {
 		return true;
+	}
+
+	if (!editing
+		&& !saved.object.cloud.emoticon.isEmpty()
+		&& !saved.object.cloud.settings.empty()) {
+		auto preview = PreviewFromChatTheme(saved.object.cloud, IsNightMode());
+		if (preview) {
+			style::main_palette::apply(preview->instance.palette);
+			Background()->saveAdjustableColors();
+			saved.object.content = std::move(preview->object.content);
+			saved.cache = std::move(preview->instance.cached);
+			Local::writeTheme(saved);
+			return true;
+		}
 	}
 
 	const auto colorizer = ColorizerForTheme(saved.object.pathAbsolute);
@@ -1661,7 +1674,14 @@ std::shared_ptr<FilePrepareResult> PrepareWallPaper(
 std::unique_ptr<Ui::ChatTheme> DefaultChatThemeOn(rpl::lifetime &lifetime) {
 	auto result = std::make_unique<Ui::ChatTheme>();
 
-	const auto push = [=, raw = result.get()] {
+	// The subscription below lives in the caller-provided lifetime, while
+	// the theme is owned by the returned pointer, and callers may destroy
+	// the theme first (see the font preview in chat settings).
+	const auto push = [=, weak = base::make_weak(result.get())] {
+		const auto raw = weak.get();
+		if (!raw) {
+			return;
+		}
 		const auto background = Background();
 		const auto &paper = background->paper();
 		raw->setBackground({

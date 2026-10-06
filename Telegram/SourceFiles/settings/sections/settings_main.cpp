@@ -73,6 +73,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/rect.h"
 #include "ui/text/format_values.h"
 #include "ui/text/text_utilities.h"
+#include "ui/toast/toast.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/continuous_sliders.h"
@@ -82,6 +83,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -193,6 +195,7 @@ Cover::Cover(
 	initViewers();
 	setupChildGeometry();
 
+	_userpic->setVideoAllowed(true);
 	_userpic->switchChangePhotoOverlay(_user->isSelf(), [=](
 			Ui::UserpicButton::ChosenImage chosen) {
 		auto &image = chosen.image;
@@ -201,9 +204,10 @@ Cover::Cover(
 		_user->session().api().peerPhoto().upload(
 			_user,
 			{
-				std::move(image),
-				chosen.markup.documentId,
-				chosen.markup.colors,
+				.image = std::move(image),
+				.markupDocumentId = chosen.markup.documentId,
+				.markupColors = chosen.markup.colors,
+				.video = std::move(chosen.video),
 			});
 		if (!isMarkup) {
 			_userpic->showUploadProgress();
@@ -290,7 +294,11 @@ void Cover::initViewers() {
 		} else {
 			QGuiApplication::clipboard()->setText(
 				_user->session().createInternalLinkFull(username));
-			_controller->showToast(tr::lng_username_copied(tr::now));
+			_controller->showToast({
+				.text = { tr::lng_username_copied(tr::now) },
+				.iconLottie = u"toast/voip_invite"_q,
+				.iconLottieSize = st::toastLottieIconSize,
+			});
 		}
 	});
 }
@@ -638,9 +646,25 @@ rpl::producer<QString> Main::title() {
 
 void Main::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	const auto &list = Core::App().domain().accounts();
-	if (list.size() < ::Main::Domain::kMaxAccountsWarn) {
+	if (list.size() < Core::App().domain().maxAccounts()) {
 		addAction(tr::lng_menu_add_account(tr::now), [=] {
-			Core::App().domain().addActivated(MTP::Environment{});
+			const auto add = [=] {
+				Core::App().setActivePrimaryWindow(&controller()->window());
+				Core::App().domain().addActivated(MTP::Environment{});
+			};
+			if (Core::App().domain().accounts().size()
+					< ::Main::Domain::kMaxAccountsWarn) {
+				add();
+				return;
+			}
+			controller()->show(Ui::MakeConfirmBox({
+				.text = ktr("ktg_too_many_accounts_warning"),
+				.confirmed = [=](Fn<void()> &&close) {
+					close();
+					add();
+				},
+				.confirmText = ktr("ktg_account_add_anyway"),
+			}));
 		}, &st::menuIconAddAccount);
 	}
 	if (!controller()->session().supportMode()) {

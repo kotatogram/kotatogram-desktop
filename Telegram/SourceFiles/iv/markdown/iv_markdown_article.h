@@ -7,13 +7,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "iv/markdown/iv_markdown_button_row.h"
 #include "iv/markdown/iv_markdown_common.h"
 #include "iv/markdown/iv_markdown_media_block.h"
 #include "iv/markdown/iv_markdown_prepare.h"
+#include "iv/iv_rich_page.h"
 
 #include "base/flat_map.h"
 #include "spellcheck/spellcheck_highlight_syntax.h"
 #include "ui/chat/chat_style.h"
+#include "ui/chat/unsupported_notice.h"
 #include "ui/effects/radial_animation.h"
 #include "ui/effects/ripple_animation.h"
 #include "ui/style/style_core_types.h"
@@ -47,6 +50,7 @@ struct PlaceholderBlockRuntime {
 	Ui::InfiniteRadialAnimation loadingAnimation;
 	std::unique_ptr<Ui::RippleAnimation> ripple;
 	QSize rippleSize;
+	std::unique_ptr<Ui::UnsupportedNoticeCard> unsupportedCard;
 };
 
 struct TaskMarkerRippleRuntime {
@@ -133,6 +137,27 @@ struct PaintSelectionState {
 	}
 };
 
+struct MarkdownArticleSearchMatch {
+	int segment = -1;
+	int from = 0;
+	int to = 0;
+};
+
+struct MarkdownArticleSearchSource {
+	QString text;
+	QString hiddenText;
+	QString detailsAnchorId;
+};
+
+struct PaintSearchState {
+	const std::vector<MarkdownArticleSearchMatch> *matches = nullptr;
+	int current = -1;
+
+	[[nodiscard]] bool empty() const {
+		return !matches || matches->empty();
+	}
+};
+
 struct MarkdownArticleThinkingPaintCache {
 	QImage mask;
 	QImage gradient;
@@ -181,10 +206,15 @@ struct MarkdownArticlePaintContext final : Ui::ChatPaintContext {
 
 	MarkdownArticlePaintCaches caches;
 	PaintSelectionState selectionState;
+	PaintSearchState searchState;
 	MarkdownArticleRevealPaintState *reveal = nullptr;
 	int hiddenTextSegmentIndex = -1;
 	int hiddenSegmentIndex = -1;
 	bool debugBlockGeometry = false;
+	bool bubbleGradient = false;
+	RichButtonLoading buttonLoading;
+	RichButtonLoadingCoverage buttonLoadingCoverage;
+	double mediaPixelScale = 1.;
 
 	[[nodiscard]] MarkdownArticlePaintContext translated(int x, int y) const {
 		auto result = *this;
@@ -200,12 +230,21 @@ struct MarkdownArticlePaintContext final : Ui::ChatPaintContext {
 	}
 };
 
+struct MarkdownArticleButtonRowHit {
+	PreparedMediaBlockId id;
+	QPoint localPoint;
+	int index = -1;
+};
+
 struct MarkdownArticleHitTestResult {
 	int segmentIndex = -1;
 	Ui::Text::StateResult state;
 	std::optional<PreparedLink> preparedLink;
 	MediaActivation mediaActivation;
 	QPoint placeholderLocalPoint;
+	MarkdownArticleButtonRowHit buttonRow;
+	std::optional<QPoint> inlineButton;
+	QString customTooltip;
 	int forcedOffset = -1;
 	bool direct = false;
 	bool codeHeaderCopy = false;
@@ -226,6 +265,9 @@ enum class MarkdownArticleEditControlHitKind {
 	None,
 	TaskMarker,
 	DetailsToggle,
+	QuoteCollapse,
+	ButtonEdit,
+	ButtonRowMenu,
 };
 
 struct MarkdownArticleEditControlHit {
@@ -233,13 +275,18 @@ struct MarkdownArticleEditControlHit {
 		= MarkdownArticleEditControlHitKind::None;
 	std::optional<PreparedEditListItemSource> listItem;
 	std::optional<PreparedEditBlockSource> block;
+	int buttonIndex = -1;
 
 	[[nodiscard]] bool valid() const {
 		switch (kind) {
 		case MarkdownArticleEditControlHitKind::TaskMarker:
 			return listItem.has_value();
 		case MarkdownArticleEditControlHitKind::DetailsToggle:
+		case MarkdownArticleEditControlHitKind::QuoteCollapse:
+		case MarkdownArticleEditControlHitKind::ButtonRowMenu:
 			return block.has_value();
+		case MarkdownArticleEditControlHitKind::ButtonEdit:
+			return block.has_value() && (buttonIndex >= 0);
 		case MarkdownArticleEditControlHitKind::None:
 			break;
 		}
@@ -252,12 +299,45 @@ inline bool operator==(
 		MarkdownArticleEditControlHit b) {
 	return (a.kind == b.kind)
 		&& (a.listItem == b.listItem)
-		&& (a.block == b.block);
+		&& (a.block == b.block)
+		&& (a.buttonIndex == b.buttonIndex);
 }
 
 inline bool operator!=(
 		MarkdownArticleEditControlHit a,
 		MarkdownArticleEditControlHit b) {
+	return !(a == b);
+}
+
+struct MarkdownArticleButtonRowButtonHit {
+	std::optional<PreparedEditBlockSource> block;
+	int index = -1;
+	bool disabled = false;
+
+	[[nodiscard]] bool valid() const {
+		return block.has_value() && (index >= 0);
+	}
+};
+
+struct MarkdownArticleDropLocation {
+	std::optional<PreparedEditDropTarget> target;
+	QRect indicatorRect;
+
+	[[nodiscard]] bool valid() const {
+		return target.has_value();
+	}
+};
+
+inline bool operator==(
+		MarkdownArticleDropLocation a,
+		MarkdownArticleDropLocation b) {
+	return (a.target == b.target)
+		&& (a.indicatorRect == b.indicatorRect);
+}
+
+inline bool operator!=(
+		MarkdownArticleDropLocation a,
+		MarkdownArticleDropLocation b) {
 	return !(a == b);
 }
 
@@ -279,6 +359,20 @@ struct MarkdownArticleAnchorExpansion {
 	bool changed = false;
 };
 
+struct MarkdownArticleScrollAnchor {
+	int segmentIndex = -1;
+	double fraction = 0.;
+};
+
+struct MarkdownArticleMediaGeometry {
+	PreparedEditBlockSource block;
+	QRect mediaRect;
+	QRect visibleMediaRect;
+	bool grouped = false;
+	std::vector<QRect> itemRects;
+	int activeItemIndex = -1;
+};
+
 class MarkdownArticle {
 public:
 	MarkdownArticle(
@@ -291,23 +385,39 @@ public:
 
 	void setRenderer(std::shared_ptr<MathRenderer> renderer);
 	void setMediaBlockHost(MediaBlockHost *host);
+	void setMediaPixelScale(double scale);
 	void setTextRepaintCallbacks(
 		Fn<void()> repaint,
 		Fn<void(QRect)> repaintRect,
 		Fn<bool(const ClickContext&)> spoilerLinkFilter = nullptr);
 	void setContent(MarkdownArticleContent content);
+	void setSearchMatches(
+		std::vector<MarkdownArticleSearchMatch> matches,
+		int current);
+	[[nodiscard]] auto searchSources() const
+	-> std::vector<MarkdownArticleSearchSource>;
 	void updatePreparedLeaf(
 		const PreparedEditLeafSource &source,
 		const MarkdownArticleContent &prepared);
+	void setEditableMaxLineWidthOverride(
+		const PreparedEditLeafSource &source,
+		int width);
+	void setEditableTextEmptyOverride(
+		const PreparedEditLeafSource &source,
+		bool empty);
 	void setEditableHeightOverride(int editableIndex, int height);
 	void setEditableHeightOverrideForSegment(int segmentIndex, int height);
+	void clearEditableMaxLineWidthOverride();
+	void clearEditableTextEmptyOverride();
 	void clearEditableHeightOverride();
 	void setTextLeafHeightOverride(int textLeafIndex, int height);
 	void clearTextLeafHeightOverride();
 	void invalidateLayout();
 	[[nodiscard]] int maxWidth() const;
 	[[nodiscard]] int lastLayoutWidth() const;
-	[[nodiscard]] int resizeGetHeight(int width);
+	[[nodiscard]] int contentDemandedWidth() const;
+	[[nodiscard]] bool hasMissingMediaBlocks() const;
+	int resizeGetHeight(int width);
 	[[nodiscard]] auto countRevealLinesGeometry(int width)
 	-> std::vector<MarkdownArticleRevealLine>;
 	void setVisibleTopBottom(int visibleTop, int visibleBottom);
@@ -316,24 +426,50 @@ public:
 		QPoint point,
 		Ui::Text::StateRequest::Flags flags) const;
 	[[nodiscard]] PreparedEditHit editHitTest(QPoint point) const;
+	[[nodiscard]] MarkdownArticleDropLocation editDropTarget(
+		QPoint point) const;
+	[[nodiscard]] MarkdownArticleDropLocation editBlockDropTarget(
+		QPoint point) const;
+	[[nodiscard]] MarkdownArticleDropLocation editStructuralDropTarget(
+		QPoint point,
+		const PreparedEditSelection &selection) const;
 	[[nodiscard]] MarkdownArticleEditControlHit editControlHitTest(
+		QPoint point) const;
+	[[nodiscard]] MarkdownArticleButtonRowButtonHit buttonRowButtonHitTest(
 		QPoint point) const;
 	void addTaskMarkerRipple(
 		const PreparedEditListItemSource &source,
 		QPoint point);
+	void clickHandlerActiveChanged(
+		const ClickHandlerPtr &handler,
+		bool active);
+	void clickHandlerPressedChanged(
+		const ClickHandlerPtr &handler,
+		bool pressed);
+	void updatePressed(QPoint point);
 	[[nodiscard]] MarkdownArticleHorizontalScrollHit horizontalScrollHit(
 		QPoint point) const;
 	[[nodiscard]] bool canConsumeHorizontalScroll(
 		QPoint point,
 		int delta) const;
-	[[nodiscard]] bool consumeHorizontalScroll(QPoint point, int delta);
+	bool consumeHorizontalScroll(
+		QPoint point,
+		int delta,
+		Qt::ScrollPhase phase);
 	[[nodiscard]] bool beginHorizontalScroll(QPoint point, bool fromTouch);
-	[[nodiscard]] bool updateHorizontalScroll(QPoint point);
+	bool updateHorizontalScroll(QPoint point);
 	void endHorizontalScroll();
 	[[nodiscard]] int anchorTop(const QString &anchorId) const;
+	[[nodiscard]] auto scrollAnchorForTop(int top) const
+	-> std::optional<MarkdownArticleScrollAnchor>;
+	[[nodiscard]] int scrollTopForAnchor(
+		const MarkdownArticleScrollAnchor &anchor) const;
 	[[nodiscard]] MarkdownArticleAnchorExpansion expandDetailsToAnchor(
 		const QString &anchorId);
+	[[nodiscard]] MarkdownArticleAnchorExpansion expandDetailsBlock(
+		const QString &anchorId);
 	[[nodiscard]] bool toggleDetails(const QString &anchorId);
+	[[nodiscard]] bool toggleBlockquote(const QString &toggleId);
 	[[nodiscard]] bool segmentIsText(int index) const;
 	[[nodiscard]] bool segmentIsDisplayMath(int index) const;
 	[[nodiscard]] bool segmentIsEditable(int index) const;
@@ -344,11 +480,25 @@ public:
 	[[nodiscard]] int segmentIndexForTextLeafIndex(int textLeafIndex) const;
 	[[nodiscard]] int editableIndexForSegment(int segmentIndex) const;
 	[[nodiscard]] int segmentIndexForEditableIndex(int editableIndex) const;
+	[[nodiscard]] auto editableLeafForSegment(int segmentIndex) const
+	-> std::optional<PreparedEditLeafSource>;
+	[[nodiscard]] int segmentIndexForEditableLeaf(
+		const PreparedEditLeafSource &source) const;
 	[[nodiscard]] QRect textSegmentRect(int segmentIndex) const;
 	[[nodiscard]] QRect logicalSegmentRect(int segmentIndex) const;
 	[[nodiscard]] QRect segmentRect(int segmentIndex) const;
+	[[nodiscard]] std::vector<MarkdownArticleMediaGeometry>
+		mediaBlockGeometries() const;
+	[[nodiscard]] std::vector<QRect> buttonRowControlRects() const;
+	[[nodiscard]] std::vector<QRect> unsupportedNoticeRects() const;
+	[[nodiscard]] bool hasUnsupportedNotices() const;
+	void setGroupedActiveIndex(
+		const PreparedEditBlockSource &source,
+		int index);
 	[[nodiscard]] QRect displayMathEditRect(int segmentIndex) const;
 	[[nodiscard]] QRect displayMathBlockRect(int segmentIndex) const;
+	[[nodiscard]] int pullquoteAvailableTextWidthForEditableLeaf(
+		const PreparedEditLeafSource &source) const;
 	[[nodiscard]] bool revealSegment(int segmentIndex);
 	[[nodiscard]] MarkdownArticleTextLeafStyle textLeafStyleForSegment(
 		int segmentIndex) const;
@@ -371,8 +521,13 @@ public:
 		MarkdownArticleSelection selection,
 		const MarkdownArticleSelectionEndpoints *endpoints,
 		const PreparedEditSelection *structuralSelection = nullptr) const;
+	[[nodiscard]] std::vector<RichPage::Block> richPageSliceForSelection(
+		MarkdownArticleSelection selection) const;
+	[[nodiscard]] bool richPageRtl() const;
 	[[nodiscard]] bool highlightProcessDone(
 		Spellchecker::HighlightProcessId processId);
+	[[nodiscard]] TimeId nextFormattedDateUpdate() const;
+	void refreshFormattedDates(TimeId now);
 	void invalidatePaletteCache();
 	void invalidateRasterCache();
 	[[nodiscard]] bool hasHeavyPart() const;
@@ -384,6 +539,13 @@ public:
 	void clearAllPlaceholderLoading();
 	void addPlaceholderRipple(PreparedPlaceholderBlockId id, QPoint point);
 	void stopPlaceholderRipple(PreparedPlaceholderBlockId id);
+	void addButtonRowRipple(
+		PreparedMediaBlockId id,
+		int index,
+		QPoint point);
+	void stopButtonRowRipple(PreparedMediaBlockId id);
+	void addInlineButtonRipple(QPoint point);
+	void stopInlineButtonRipple();
 
     void clearBeforeDestroy();
 

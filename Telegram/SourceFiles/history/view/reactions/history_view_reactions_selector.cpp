@@ -47,6 +47,7 @@ constexpr auto kExpandDuration = crl::time(300);
 constexpr auto kScaleDuration = crl::time(120);
 constexpr auto kFullDuration = kExpandDuration + kScaleDuration;
 constexpr auto kExpandDelay = crl::time(40);
+constexpr auto kAcceptClicksAfter = crl::time(300);
 constexpr auto kDefaultColumns = 8;
 constexpr auto kMinNonTransparentColumns = 7;
 
@@ -208,7 +209,8 @@ Selector::Selector(
 	Fn<void(bool fast)> close,
 	IconFactory iconFactory,
 	Fn<bool()> paused,
-	bool child)
+	bool child,
+	QWidget *mediaPreviewParent)
 : Selector(
 	parent,
 	st,
@@ -224,7 +226,8 @@ Selector::Selector(
 	std::move(iconFactory),
 	std::move(paused),
 	std::move(close),
-	child) {
+	child,
+	mediaPreviewParent) {
 }
 
 #if 0 // not ready
@@ -261,7 +264,8 @@ Selector::Selector(
 	IconFactory iconFactory,
 	Fn<bool()> paused,
 	Fn<void(bool fast)> close,
-	bool child)
+	bool child,
+	QWidget *mediaPreviewParent)
 : RpWidget(parent)
 , _st(st)
 , _show(std::move(show))
@@ -269,6 +273,7 @@ Selector::Selector(
 , _recent(std::move(recent))
 , _listMode(mode)
 , _paused(std::move(paused))
+, _mediaPreviewParent(mediaPreviewParent)
 , _jumpedToPremium([=] { close(false); })
 , _cachedRound(
 	QSize(2 * st::reactStripSkip + st::reactStripSize, st::reactStripHeight),
@@ -873,11 +878,22 @@ void Selector::paintEvent(QPaintEvent *e) {
 	}
 }
 
+void Selector::showEvent(QShowEvent *e) {
+	_shownAt = crl::now();
+}
+
 void Selector::mouseMoveEvent(QMouseEvent *e) {
 	if (!_strip) {
 		return;
 	}
 	setSelected(lookupSelectedIndex(e->pos()));
+}
+
+bool Selector::inVisibleArea(QPoint position) const {
+	return !_strip
+		|| _expandScheduled
+		|| _outerWithBubble.isEmpty()
+		|| _outerWithBubble.contains(position);
 }
 
 int Selector::lookupSelectedIndex(QPoint position) const {
@@ -917,14 +933,25 @@ void Selector::leaveEventHook(QEvent *e) {
 }
 
 void Selector::mousePressEvent(QMouseEvent *e) {
-	if (!_strip) {
+	if (!inVisibleArea(e->pos())) {
+		e->ignore();
+		return;
+	} else if (!_strip) {
 		return;
 	}
+	_shownAt = 0;
 	_pressed = lookupSelectedIndex(e->pos());
 }
 
 void Selector::mouseReleaseEvent(QMouseEvent *e) {
-	if (!_strip) {
+	if (!inVisibleArea(e->pos())) {
+		e->ignore();
+		return;
+	} else if (!_strip) {
+		return;
+	} else if (e->button() == Qt::RightButton
+		&& crl::now() < _shownAt + kAcceptClicksAfter) {
+		_pressed = -1;
 		return;
 	}
 	if (_pressed != lookupSelectedIndex(e->pos())) {
@@ -1103,8 +1130,11 @@ void Selector::createList() {
 			.customRecentFactory = _unifiedFactoryOwner->factory(),
 			.freeEffects = std::move(freeEffects),
 			.st = st,
-			.mediaPreviewParent = this,
+			.mediaPreviewParent = _mediaPreviewParent
+				? _mediaPreviewParent
+				: this,
 			.mediaPreviewMargins = marginsForShadow(),
+			.mediaPreviewPanelStyle = (_mediaPreviewParent == nullptr),
 		}));
 	if (!_reactions.stickers.empty()) {
 		auto descriptors = ranges::views::all(

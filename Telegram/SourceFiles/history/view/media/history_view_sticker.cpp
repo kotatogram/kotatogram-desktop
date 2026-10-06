@@ -48,11 +48,6 @@ constexpr auto kPremiumMultiplier = (1 + 0.245 * 2);
 constexpr auto kEmojiMultiplier = 3;
 constexpr auto kMessageEffectMultiplier = 2;
 
-base::options::option<int> OptionStickerSize({
-	.id = "sticker-size",
-	.name = "Sticker size",
-});
-
 [[nodiscard]] QImage CacheDiceImage(
 		const QString &emoji,
 		int index,
@@ -199,11 +194,12 @@ bool Sticker::readyToDrawAnimationFrame() {
 }
 
 QSize Sticker::Size() {
-	const auto currentStickerHeight = ::Kotato::JsonSettings::GetInt("sticker_height");
-	const auto currentScaleBoth = ::Kotato::JsonSettings::GetBool("sticker_scale_both");
-	const auto maxHeight = int(st::maxStickerSize / 256.0 * currentStickerHeight);
-	const auto maxWidth = currentScaleBoth ? maxHeight : st::maxStickerSize;
-	return { maxWidth, maxHeight };
+	const auto height = style::ConvertScale(
+		::Kotato::JsonSettings::GetInt("sticker_height"));
+	const auto width = ::Kotato::JsonSettings::GetBool("sticker_scale_both")
+		? height
+		: style::ConvertScale(256);
+	return { width, height };
 }
 
 QSize Sticker::Size(not_null<DocumentData*> document) {
@@ -228,9 +224,9 @@ QSize Sticker::MessageEffectSize() {
 }
 
 QSize Sticker::EmojiSize() {
-	const auto currentStickerHeight = ::Kotato::JsonSettings::GetInt("sticker_height");
-	const auto maxHeight = int(st::maxStickerSize / 256.0 * currentStickerHeight / 2);
-	const auto side = std::min(maxHeight, kMaxEmojiSizeFixed);
+	const auto side = std::min(
+		style::ConvertScale(::Kotato::JsonSettings::GetInt("sticker_height")) / 2,
+		kMaxEmojiSizeFixed);
 	return { side, side };
 }
 

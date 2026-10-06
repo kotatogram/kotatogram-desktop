@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "chat_helpers/stickers_emoji_image_loader.h"
 
-#include "kotato/kotato_settings.h"
 #include "styles/style_chat.h"
 
 #include <QtCore/QtMath>
@@ -29,16 +28,14 @@ void EmojiImageLoader::init(
 	}
 }
 
-QImage EmojiImageLoader::prepare(EmojiPtr emoji) const {
+QImage EmojiImageLoader::prepare(EmojiPtr emoji, bool outline) const {
 	const auto loaded = _images->ensureLoaded();
 	const auto factor = style::DevicePixelRatio();
 	const auto side = st::largeEmojiSize + 2 * st::largeEmojiOutline;
 	auto tinted = QImage(
 		QSize(st::largeEmojiSize, st::largeEmojiSize) * factor,
 		QImage::Format_ARGB32_Premultiplied);
-	tinted.fill(::Kotato::JsonSettings::GetBool("big_emoji_outline")
-		? Qt::white
-		: QColor(0, 0, 0, 0));
+	tinted.fill(outline ? Qt::white : QColor(0, 0, 0, 0));
 	if (loaded) {
 		QPainter p(&tinted);
 		p.setCompositionMode(QPainter::CompositionMode_DestinationIn);

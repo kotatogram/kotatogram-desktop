@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_user.h"
 #include "data/data_peer_values.h"
 #include "history/history_item_components.h"
+#include "kotato/kotato_radius.h"
 #include "main/main_session.h"
 #include "ui/chat/chat_style.h"
 #include "ui/chat/chat_theme.h"
@@ -27,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_style.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
@@ -745,10 +747,19 @@ void Preview::validateUserpicCache() {
 		|| _userpic.isEmpty()) {
 		return;
 	}
-	_userpicImage = Images::Circle(_userpicOriginal.scaled(
+	_userpicImage = _userpicOriginal.scaled(
 		_userpic.size() * _ratio,
 		Qt::IgnoreAspectRatio,
-		Qt::SmoothTransformation));
+		Qt::SmoothTransformation);
+	if (const auto r = Kotato::UserpicRadius(); r >= 0.5) {
+		_userpicImage = Images::Circle(std::move(_userpicImage));
+	} else if (const auto corner = int(_userpicImage.width()
+			* r
+			/ style::DevicePixelRatio())) {
+		_userpicImage = Images::Round(
+			std::move(_userpicImage),
+			Images::CornersMask(corner));
+	}
 	_userpicImage.setDevicePixelRatio(_ratio);
 }
 

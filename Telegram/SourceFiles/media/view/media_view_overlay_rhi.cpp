@@ -25,16 +25,18 @@ namespace {
 
 using namespace Ui::GL;
 
+// The NDC Y flip stays at offset 12 in every block, see NdcFlipY().
 struct ImageUniforms {
 	float viewport[2];
 	float g_opacity;
-	float _pad0;
+	float flipY;
 };
 static_assert(sizeof(ImageUniforms) % 16 == 0);
 
 struct ContentUniforms {
 	float viewport[2];
-	float _pad0[2];
+	float fragCoordYUp;
+	float flipY;
 	float shadowTopRect[4];
 	float shadowBottomSkipOpacityFullFade[4];
 	float roundRect[4];
@@ -45,7 +47,8 @@ static_assert(sizeof(ContentUniforms) == 80);
 
 struct TransparentContentUniforms {
 	float viewport[2];
-	float _pad0[2];
+	float fragCoordYUp;
+	float flipY;
 	float shadowTopRect[4];
 	float shadowBottomSkipOpacityFullFade[4];
 	float transparentBg[4];
@@ -57,7 +60,8 @@ static_assert(sizeof(TransparentContentUniforms) == 96);
 
 struct RoundedCornersUniforms {
 	float viewport[2];
-	float _pad0[2];
+	float fragCoordYUp;
+	float flipY;
 	float roundRect[4];
 	float roundRadius;
 	float _pad1[3];
@@ -95,6 +99,16 @@ static_assert(sizeof(RoundedCornersUniforms) == 48);
 [[nodiscard]] QShader LoadShader(const QString &name) {
 	return Ui::Rhi::ShaderFromFile(
 		u":/shaders/"_q + name + u".qsb"_q);
+}
+
+// Vulkan is the only backend with the NDC Y axis pointing down.
+[[nodiscard]] float NdcFlipY(not_null<QRhi*> rhi) {
+	return rhi->isYUpInNDC() ? 1.f : -1.f;
+}
+
+// OpenGL is the only backend with gl_FragCoord.y counting from the bottom.
+[[nodiscard]] float FragCoordYUp(not_null<QRhi*> rhi) {
+	return rhi->isYUpInFramebuffer() ? 1.f : 0.f;
 }
 
 } // namespace
@@ -189,11 +203,12 @@ void OverlayWidget::RendererRhi::createPipelines() {
 
 	auto *sampleSrb = _rhi->newShaderResourceBindings();
 	sampleSrb->setBindings({
-		QRhiShaderResourceBinding::uniformBufferWithDynamicOffset(
+		QRhiShaderResourceBinding::uniformBuffer(
 			0,
 			QRhiShaderResourceBinding::VertexStage
 				| QRhiShaderResourceBinding::FragmentStage,
 			_uniformBuffer,
+			0,
 			sizeof(ImageUniforms)),
 		QRhiShaderResourceBinding::sampledTexture(
 			1,
@@ -465,6 +480,8 @@ void OverlayWidget::RendererRhi::render(
 		QRhiRenderTarget *rt,
 		QRhiCommandBuffer *cb) {
 	if (_owner->_hideWorkaround) {
+		cb->beginPass(rt, QColor(0, 0, 0, 0), { 1.0f, 0 });
+		cb->endPass();
 		return;
 	}
 	_rhi = rhi;
@@ -702,6 +719,7 @@ void OverlayWidget::RendererRhi::drawTexturedQuad(
 	uniforms.viewport[0] = _viewport.width() * _factor;
 	uniforms.viewport[1] = _viewport.height() * _factor;
 	uniforms.g_opacity = opacity;
+	uniforms.flipY = NdcFlipY(_rhi);
 	_rub->updateDynamicBuffer(
 		_uniformBuffer, uOffset, sizeof(ImageUniforms), &uniforms);
 
@@ -895,6 +913,8 @@ void OverlayWidget::RendererRhi::drawContentQuad(
 		TransparentContentUniforms uniforms{};
 		uniforms.viewport[0] = vw;
 		uniforms.viewport[1] = vh;
+		uniforms.flipY = NdcFlipY(_rhi);
+		uniforms.fragCoordYUp = FragCoordYUp(_rhi);
 		fillShadowUniforms(
 			uniforms.shadowTopRect,
 			uniforms.shadowBottomSkipOpacityFullFade,
@@ -918,6 +938,8 @@ void OverlayWidget::RendererRhi::drawContentQuad(
 		ContentUniforms uniforms{};
 		uniforms.viewport[0] = vw;
 		uniforms.viewport[1] = vh;
+		uniforms.flipY = NdcFlipY(_rhi);
+		uniforms.fragCoordYUp = FragCoordYUp(_rhi);
 		fillShadowUniforms(
 			uniforms.shadowTopRect,
 			uniforms.shadowBottomSkipOpacityFullFade,
@@ -1195,6 +1217,8 @@ void OverlayWidget::RendererRhi::paintTransformedVideoFrame(
 	ContentUniforms uniforms{};
 	uniforms.viewport[0] = vw;
 	uniforms.viewport[1] = vh;
+	uniforms.flipY = NdcFlipY(_rhi);
+	uniforms.fragCoordYUp = FragCoordYUp(_rhi);
 	fillShadowUniforms(
 		uniforms.shadowTopRect,
 		uniforms.shadowBottomSkipOpacityFullFade,
@@ -1333,6 +1357,24 @@ void OverlayWidget::RendererRhi::paintRecognitionOverlay(
 				r.width() * _ifactor * scale,
 				r.height() * _ifactor * scale), Qt::transparent);
 		}
+		const auto spans = _owner->_recognition.spans();
+		if (!spans.empty()) {
+			p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+			const auto color = QColor(48, 128, 255, int(128 * opacity));
+			for (const auto &span : spans) {
+				const auto band = _owner->_recognition.bandFor(
+					span.item,
+					span.from,
+					span.till);
+				if (!band.isEmpty()) {
+					p.fillRect(QRectF(
+						band.x() * _ifactor * scale,
+						band.y() * _ifactor * scale,
+						band.width() * _ifactor * scale,
+						band.height() * _ifactor * scale), color);
+				}
+			}
+		}
 	}
 
 	auto *tex = acquirePoolTexture(overlaySize);
@@ -1343,11 +1385,25 @@ void OverlayWidget::RendererRhi::paintRecognitionOverlay(
 				QRhiTextureSubresourceUploadDescription(overlay))));
 
 	const auto rRect = scaleRect(transformRect(rect), geometry.scale);
+	const auto centerx = rRect.x() + rRect.width() / 2;
+	const auto centery = rRect.y() + rRect.height() / 2;
+	const auto rsin = float(std::sin(geometry.rotation * M_PI / 180.));
+	const auto rcos = float(std::cos(geometry.rotation * M_PI / 180.));
+	const auto rotated = [&](float x, float y) -> std::array<float, 2> {
+		x -= centerx;
+		y -= centery;
+		return { centerx + x * rcos + y * rsin,
+		         centery + y * rcos - x * rsin };
+	};
+	const auto tl = rotated(rRect.left(), rRect.bottom());
+	const auto tr = rotated(rRect.right(), rRect.bottom());
+	const auto bl = rotated(rRect.left(), rRect.top());
+	const auto br = rotated(rRect.right(), rRect.top());
 	const float coords[] = {
-		rRect.left(), rRect.bottom(), 0.f, 0.f,
-		rRect.right(), rRect.bottom(), 1.f, 0.f,
-		rRect.left(), rRect.top(), 0.f, 1.f,
-		rRect.right(), rRect.top(), 1.f, 1.f,
+		tl[0], tl[1], 0.f, 0.f,
+		tr[0], tr[1], 1.f, 0.f,
+		bl[0], bl[1], 0.f, 1.f,
+		br[0], br[1], 1.f, 1.f,
 	};
 	drawTexturedQuad(_imagePipeline, tex, coords, 1.f, true);
 }
@@ -1686,6 +1742,8 @@ void OverlayWidget::RendererRhi::paintRoundedCorners(int radius) {
 	RoundedCornersUniforms uniforms{};
 	uniforms.viewport[0] = vw;
 	uniforms.viewport[1] = vh;
+	uniforms.flipY = NdcFlipY(_rhi);
+	uniforms.fragCoordYUp = FragCoordYUp(_rhi);
 	const auto roundRect = transformRect(QRect(QPoint(), _viewport));
 	uniforms.roundRect[0] = roundRect.x();
 	uniforms.roundRect[1] = roundRect.y();

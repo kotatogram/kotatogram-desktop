@@ -79,6 +79,7 @@ std::optional<GlobalMediaRequest> PrepareGlobalMediaRequest(
 	return MTPmessages_SearchGlobal(
 		MTP_flags(MTPmessages_SearchGlobal::Flag::f_folder_id), // No archive
 		MTP_int(folderId),
+		MTPInputChannel(),
 		MTP_string(query),
 		filter,
 		MTP_int(minDate),
@@ -93,7 +94,8 @@ std::optional<GlobalMediaRequest> PrepareGlobalMediaRequest(
 
 GlobalMediaResult ParseGlobalMediaResult(
 		not_null<Main::Session*> session,
-		const MTPmessages_Messages &data) {
+		const MTPmessages_Messages &data,
+		bool onlyForwardable) {
 	auto result = GlobalMediaResult();
 
 	auto messages = (const QVector<MTPMessage>*)nullptr;
@@ -125,7 +127,12 @@ GlobalMediaResult ParseGlobalMediaResult(
 			MessageFlags(),
 			addType);
 		if (item) {
-			result.messageIds.push_back(item->position());
+			result.offsetPosition = item->position();
+			if (onlyForwardable && !item->allowsForward()) {
+				++result.filteredCount;
+			} else {
+				result.messageIds.push_back(item->position());
+			}
 		}
 	}
 	return result;

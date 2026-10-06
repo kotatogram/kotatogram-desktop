@@ -151,7 +151,7 @@ void PrepareTableCellText(
 [[nodiscard]] bool ShouldFlattenTable(
 		const MarkdownNode &node,
 		PrepareState *state) {
-	const auto &limits = PrepareLimitsForIv().tableRender;
+	const auto &limits = PrepareMarkdownTableRenderLimitsForIv();
 	if (node.children.empty()) {
 		if (state) {
 			state->addPrepareWarning();
@@ -224,6 +224,7 @@ void PrepareTableCellText(
 	block.tableAlignments = NormalizedTableAlignments(node, columnCount);
 	block.tableBordered = true;
 	block.tableStriped = false;
+	block.tableCompact = false;
 	block.tableRows.reserve(node.children.size());
 
 	for (const auto &rowNode : node.children) {

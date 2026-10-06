@@ -3,18 +3,12 @@
 
 {
     // "fonts": {
-    //     "main": "Open Sans",
-    //     "semibold": "Open Sans Semibold",
     //     "semibold_is_bold": false,
     //     "monospaced": "Consolas"
     // },
     // "sticker_height": 170,
     // "big_emoji_outline": true,
     // "always_show_scheduled": false,
-    // "show_chat_id": false,
-    // "net_speed_boost": null,
-    // "show_phone_in_drawer": true,
-    // "scales": [],
-    // "confirm_before_calls": false,
+    // "show_chat_id": 0,
     // "recent_stickers_limit": 20
 }

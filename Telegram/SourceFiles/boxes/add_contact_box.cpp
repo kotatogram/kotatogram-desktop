@@ -42,6 +42,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_peer_photo.h"
 #include "api/api_self_destruct.h"
 #include "main/main_session.h"
+#include "styles/style_add_contact_box.h"
+#include "styles/style_boxes.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
@@ -570,6 +573,9 @@ void GroupInfoBox::prepare() {
 		_initialTitle);
 	_title->setMaxLength(Ui::EditPeer::kMaxGroupChannelTitle);
 	_title->setInstantReplaces(Core::App().settings().instantReplacesValue());
+	_title->setInstantReplacesEnabled(
+		rpl::single(true),
+		Core::App().settings().systemTextReplaceValue());
 	Ui::Emoji::SuggestionsController::Init(
 		getDelegate()->outerContainer(),
 		_title,
@@ -584,6 +590,9 @@ void GroupInfoBox::prepare() {
 		_description->show();
 		_description->setMaxLength(Ui::EditPeer::kMaxChannelDescription);
 		_description->setInstantReplaces(Core::App().settings().instantReplacesValue());
+		_description->setInstantReplacesEnabled(
+			rpl::single(true),
+			Core::App().settings().systemTextReplaceValue());
 		_description->setSubmitSettings(
 			Core::App().settings().sendSubmitWay());
 
@@ -869,7 +878,11 @@ void GroupInfoBox::createChannel(
 				}
 				channel->session().api().requestFullPeer(channel);
 				_createdChannel = channel;
-				checkInviteLink();
+				if (_done && !_mustBePublic) {
+					channelReady();
+				} else {
+					checkInviteLink();
+				}
 			};
 		if (!success) {
 			LOG(("API Error: channel not found in updates "
@@ -1242,7 +1255,11 @@ void SetupChannelBox::mousePressEvent(QMouseEvent *e) {
 		return;
 	} else if (!_channel->inviteLink().isEmpty()) {
 		QGuiApplication::clipboard()->setText(_channel->inviteLink());
-		showToast(tr::lng_create_channel_link_copied(tr::now));
+		showToast({
+			.text = { tr::lng_create_channel_link_copied(tr::now) },
+			.iconLottie = u"toast/voip_invite"_q,
+			.iconLottieSize = st::toastLottieIconSize,
+		});
 	} else if (_channel->isFullLoaded() && !_creatingInviteLink) {
 		_creatingInviteLink = true;
 		_channel->session().api().inviteLinks().create({ _channel });
@@ -1562,15 +1579,16 @@ void EditNameBox::prepare() {
 	_last->submits(
 	) | rpl::on_next([=] { submit(); }, _last->lifetime());
 
+	using TabbedRequest = Ui::InputField::TabbedRequest;
 	_first->tabbed(
-	) | rpl::on_next([=](not_null<bool*> handled) {
+	) | rpl::on_next([=](not_null<TabbedRequest*> request) {
 		_last->setFocus();
-		*handled = true;
+		request->handled = true;
 	}, _first->lifetime());
 	_last->tabbed(
-	) | rpl::on_next([=](not_null<bool*> handled) {
+	) | rpl::on_next([=](not_null<TabbedRequest*> request) {
 		_first->setFocus();
-		*handled = true;
+		request->handled = true;
 	}, _last->lifetime());
 }
 

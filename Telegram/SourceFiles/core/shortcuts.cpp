@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/event_filter.h"
 #include "base/parse_helper.h"
 #include "core/application.h"
+#include "core/version.h"
 #include "mainwindow.h"
 #include "mainwidget.h"
 #include "window/window_controller.h"
@@ -71,68 +72,71 @@ const auto SupportCommands = base::flat_set<Command>{
 };
 
 const auto CommandByName = base::flat_map<QString, Command>{
-	{ u"close_telegram"_q    , Command::Close },
-	{ u"lock_telegram"_q     , Command::Lock },
-	{ u"minimize_telegram"_q , Command::Minimize },
-	{ u"quit_telegram"_q     , Command::Quit },
+	{ u"close_telegram"_q                , Command::Close },
+	{ u"lock_telegram"_q                 , Command::Lock },
+	{ u"minimize_telegram"_q             , Command::Minimize },
+	{ u"quit_telegram"_q                 , Command::Quit },
+	{ u"reopen_closed_window"_q          , Command::ReopenClosedWindow },
+	{ u"close_other_windows"_q           , Command::CloseOtherWindows },
 
-	{ u"media_play"_q        , Command::MediaPlay },
-	{ u"media_pause"_q       , Command::MediaPause },
-	{ u"media_playpause"_q   , Command::MediaPlayPause },
-	{ u"media_stop"_q        , Command::MediaStop },
-	{ u"media_previous"_q    , Command::MediaPrevious },
-	{ u"media_next"_q        , Command::MediaNext },
+	{ u"media_play"_q                    , Command::MediaPlay },
+	{ u"media_pause"_q                   , Command::MediaPause },
+	{ u"media_playpause"_q               , Command::MediaPlayPause },
+	{ u"media_stop"_q                    , Command::MediaStop },
+	{ u"media_previous"_q                , Command::MediaPrevious },
+	{ u"media_next"_q                    , Command::MediaNext },
 
-	{ u"search"_q            , Command::Search },
+	{ u"search"_q                        , Command::Search },
 
-	{ u"previous_chat"_q     , Command::ChatPrevious },
-	{ u"next_chat"_q         , Command::ChatNext },
-	{ u"first_chat"_q        , Command::ChatFirst },
-	{ u"last_chat"_q         , Command::ChatLast },
-	{ u"self_chat"_q         , Command::ChatSelf },
-	{ u"pinned_chat1"_q      , Command::ChatPinned1 },
-	{ u"pinned_chat2"_q      , Command::ChatPinned2 },
-	{ u"pinned_chat3"_q      , Command::ChatPinned3 },
-	{ u"pinned_chat4"_q      , Command::ChatPinned4 },
-	{ u"pinned_chat5"_q      , Command::ChatPinned5 },
-	{ u"pinned_chat6"_q      , Command::ChatPinned6 },
-	{ u"pinned_chat7"_q      , Command::ChatPinned7 },
-	{ u"pinned_chat8"_q      , Command::ChatPinned8 },
+	{ u"previous_chat"_q                 , Command::ChatPrevious },
+	{ u"next_chat"_q                     , Command::ChatNext },
+	{ u"first_chat"_q                    , Command::ChatFirst },
+	{ u"last_chat"_q                     , Command::ChatLast },
+	{ u"self_chat"_q                     , Command::ChatSelf },
+	{ u"pinned_chat1"_q                  , Command::ChatPinned1 },
+	{ u"pinned_chat2"_q                  , Command::ChatPinned2 },
+	{ u"pinned_chat3"_q                  , Command::ChatPinned3 },
+	{ u"pinned_chat4"_q                  , Command::ChatPinned4 },
+	{ u"pinned_chat5"_q                  , Command::ChatPinned5 },
+	{ u"pinned_chat6"_q                  , Command::ChatPinned6 },
+	{ u"pinned_chat7"_q                  , Command::ChatPinned7 },
+	{ u"pinned_chat8"_q                  , Command::ChatPinned8 },
 
-	{ u"previous_folder"_q   , Command::FolderPrevious },
-	{ u"next_folder"_q       , Command::FolderNext },
-	{ u"all_chats"_q         , Command::ShowAllChats },
+	{ u"previous_folder"_q               , Command::FolderPrevious },
+	{ u"next_folder"_q                   , Command::FolderNext },
+	{ u"all_chats"_q                     , Command::ShowAllChats },
 
-	{ u"account1"_q          , Command::ShowAccount1 },
-	{ u"account2"_q          , Command::ShowAccount2 },
-	{ u"account3"_q          , Command::ShowAccount3 },
-	{ u"account4"_q          , Command::ShowAccount4 },
-	{ u"account5"_q          , Command::ShowAccount5 },
-	{ u"account6"_q          , Command::ShowAccount6 },
+	{ u"account1"_q                      , Command::ShowAccount1 },
+	{ u"account2"_q                      , Command::ShowAccount2 },
+	{ u"account3"_q                      , Command::ShowAccount3 },
+	{ u"account4"_q                      , Command::ShowAccount4 },
+	{ u"account5"_q                      , Command::ShowAccount5 },
+	{ u"account6"_q                      , Command::ShowAccount6 },
 
-	{ u"folder1"_q           , Command::ShowFolder1 },
-	{ u"folder2"_q           , Command::ShowFolder2 },
-	{ u"folder3"_q           , Command::ShowFolder3 },
-	{ u"folder4"_q           , Command::ShowFolder4 },
-	{ u"folder5"_q           , Command::ShowFolder5 },
-	{ u"folder6"_q           , Command::ShowFolder6 },
-	{ u"last_folder"_q       , Command::ShowFolderLast },
+	{ u"folder1"_q                       , Command::ShowFolder1 },
+	{ u"folder2"_q                       , Command::ShowFolder2 },
+	{ u"folder3"_q                       , Command::ShowFolder3 },
+	{ u"folder4"_q                       , Command::ShowFolder4 },
+	{ u"folder5"_q                       , Command::ShowFolder5 },
+	{ u"folder6"_q                       , Command::ShowFolder6 },
+	{ u"last_folder"_q                   , Command::ShowFolderLast },
 
-	{ u"show_archive"_q      , Command::ShowArchive },
-	{ u"show_contacts"_q     , Command::ShowContacts },
+	{ u"show_archive"_q                  , Command::ShowArchive },
+	{ u"show_contacts"_q                 , Command::ShowContacts },
 
-	{ u"read_chat"_q         , Command::ReadChat },
+	{ u"read_chat"_q                     , Command::ReadChat },
 
-	{ u"show_chat_menu"_q    , Command::ShowChatMenu },
-	{ u"show_chat_preview"_q , Command::ShowChatPreview },
+	{ u"show_chat_menu"_q                , Command::ShowChatMenu },
+	{ u"show_chat_preview"_q             , Command::ShowChatPreview },
 
-	{ u"record_voice"_q      , Command::RecordVoice },
+	{ u"record_voice"_q                  , Command::RecordVoice },
 
 	// Shortcuts that have no default values.
 	{ u"message"_q                       , Command::JustSendMessage },
 	{ u"message_silently"_q              , Command::SendSilentMessage },
 	{ u"message_scheduled"_q             , Command::ScheduleMessage },
 	{ u"ai_compose_apply"_q              , Command::ComposeAiApplyInPlace },
+	{ u"show_rich_editor"_q              , Command::ShowRichEditor },
 	{ u"toggle_webpage_preview"_q        , Command::ToggleWebPagePreview },
 	{ u"media_viewer_video_fullscreen"_q , Command::MediaViewerFullscreen },
 	{ u"show_scheduled"_q                , Command::ShowScheduled },
@@ -152,18 +156,11 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ qsl("pinned_4")          , Command::ChatPinned4 },
 	{ qsl("pinned_5")          , Command::ChatPinned5 },
 
-	{ qsl("account1")          , Command::ShowAccount1 },
-	{ qsl("account2")          , Command::ShowAccount2 },
-	{ qsl("account3")          , Command::ShowAccount3 },
-	{ qsl("account4")          , Command::ShowAccount4 },
-	{ qsl("account5")          , Command::ShowAccount5 },
-	{ qsl("account6")          , Command::ShowAccount6 },
 	{ qsl("account7")          , Command::ShowAccount7 },
 	{ qsl("account8")          , Command::ShowAccount8 },
 	{ qsl("account9")          , Command::ShowAccount9 },
 	{ qsl("last_account")      , Command::ShowAccountLast },
 
-	// Kotatogram: legacy keys
 	{ qsl("folder_all")        , Command::ShowAllChats },
 	{ qsl("folder_1")          , Command::ShowFolder1 },
 	{ qsl("folder_2")          , Command::ShowFolder2 },
@@ -177,11 +174,33 @@ const auto CommandByName = base::flat_map<QString, Command>{
 	{ qsl("folder_previous")   , Command::FolderPrevious },
 };
 
+// Kotatogram names of commands upstream has its own names for:
+// still read from the custom file, never written.
+const auto LegacyNames = base::flat_set<QString>{
+	qsl("pinned_1"),
+	qsl("pinned_2"),
+	qsl("pinned_3"),
+	qsl("pinned_4"),
+	qsl("pinned_5"),
+	qsl("folder_all"),
+	qsl("folder_1"),
+	qsl("folder_2"),
+	qsl("folder_3"),
+	qsl("folder_4"),
+	qsl("folder_5"),
+	qsl("folder_6"),
+	qsl("folder_last"),
+	qsl("folder_next"),
+	qsl("folder_previous"),
+};
+
 const base::flat_map<Command, QString> &CommandNames() {
 	static const auto result = [&] {
 		auto result = base::flat_map<Command, QString>();
 		for (const auto &[name, command] : CommandByName) {
-			result.emplace(command, name);
+			if (!LegacyNames.contains(name)) {
+				result.emplace(command, name);
+			}
 		}
 		return result;
 	}();
@@ -193,11 +212,14 @@ const base::flat_map<Command, QString> &CommandNames() {
 	Command::SendSilentMessage,
 	Command::ScheduleMessage,
 	Command::ComposeAiApplyInPlace,
+	Command::ShowRichEditor,
 	Command::ToggleWebPagePreview,
 	Command::MediaViewerFullscreen,
 	Command::ShowScheduled,
 	Command::ArchiveChat,
 	Command::RecordRound,
+	Command::ReloadLang,
+	Command::Restart,
 };
 
 class Manager {
@@ -507,45 +529,47 @@ bool Manager::readCustomFile() {
 void Manager::fillDefaults() {
 	const auto ctrl = Platform::IsMac() ? u"meta"_q : u"ctrl"_q;
 
-	set(u"ctrl+w"_q, Command::Close);
-	set(u"ctrl+f4"_q, Command::Close);
-	set(u"ctrl+l"_q, Command::Lock);
-	set(u"ctrl+m"_q, Command::Minimize);
-	set(u"ctrl+q"_q, Command::Quit);
+	set(u"ctrl+w"_q                  , Command::Close);
+	set(u"ctrl+f4"_q                 , Command::Close);
+	set(u"ctrl+l"_q                  , Command::Lock);
+	set(u"ctrl+m"_q                  , Command::Minimize);
+	set(u"ctrl+q"_q                  , Command::Quit);
+	set(u"ctrl+shift+t"_q            , Command::ReopenClosedWindow);
+	set(u"ctrl+shift+w"_q            , Command::CloseOtherWindows);
 
-	set(u"media play"_q, Command::MediaPlay);
-	set(u"media pause"_q, Command::MediaPause);
-	set(u"toggle media play/pause"_q, Command::MediaPlayPause);
-	set(u"media stop"_q, Command::MediaStop);
-	set(u"media previous"_q, Command::MediaPrevious);
-	set(u"media next"_q, Command::MediaNext);
+	set(u"media play"_q              , Command::MediaPlay);
+	set(u"media pause"_q             , Command::MediaPause);
+	set(u"toggle media play/pause"_q , Command::MediaPlayPause);
+	set(u"media stop"_q              , Command::MediaStop);
+	set(u"media previous"_q          , Command::MediaPrevious);
+	set(u"media next"_q              , Command::MediaNext);
 
-	set(u"ctrl+f"_q, Command::Search);
-	set(u"search"_q, Command::Search);
-	set(u"find"_q, Command::Search);
+	set(u"ctrl+f"_q                  , Command::Search);
+	set(u"search"_q                  , Command::Search);
+	set(u"find"_q                    , Command::Search);
 
-	set(u"ctrl+pgdown"_q, Command::ChatNext);
-	set(u"alt+down"_q, Command::ChatNext);
-	set(u"ctrl+pgup"_q, Command::ChatPrevious);
-	set(u"alt+up"_q, Command::ChatPrevious);
+	set(u"ctrl+pgdown"_q             , Command::ChatNext);
+	set(u"alt+down"_q                , Command::ChatNext);
+	set(u"ctrl+pgup"_q               , Command::ChatPrevious);
+	set(u"alt+up"_q                  , Command::ChatPrevious);
 
-	set(u"ctrl+alt+home"_q, Command::ChatFirst);
-	set(u"ctrl+alt+end"_q, Command::ChatLast);
+	set(u"ctrl+alt+home"_q           , Command::ChatFirst);
+	set(u"ctrl+alt+end"_q            , Command::ChatLast);
 
-	set(u"f5"_q, Command::SupportReloadTemplates);
-	set(u"ctrl+delete"_q, Command::SupportToggleMuted);
-	set(u"ctrl+insert"_q, Command::SupportScrollToCurrent);
-	set(u"ctrl+shift+x"_q, Command::SupportHistoryBack);
-	set(u"ctrl+shift+c"_q, Command::SupportHistoryForward);
+	set(u"f5"_q                      , Command::SupportReloadTemplates);
+	set(u"ctrl+delete"_q             , Command::SupportToggleMuted);
+	set(u"ctrl+insert"_q             , Command::SupportScrollToCurrent);
+	set(u"ctrl+shift+x"_q            , Command::SupportHistoryBack);
+	set(u"ctrl+shift+c"_q            , Command::SupportHistoryForward);
 
-	set(u"ctrl+1"_q, Command::ChatPinned1);
-	set(u"ctrl+2"_q, Command::ChatPinned2);
-	set(u"ctrl+3"_q, Command::ChatPinned3);
-	set(u"ctrl+4"_q, Command::ChatPinned4);
-	set(u"ctrl+5"_q, Command::ChatPinned5);
-	set(u"ctrl+6"_q, Command::ChatPinned6);
-	set(u"ctrl+7"_q, Command::ChatPinned7);
-	set(u"ctrl+8"_q, Command::ChatPinned8);
+	set(u"ctrl+1"_q                  , Command::ChatPinned1);
+	set(u"ctrl+2"_q                  , Command::ChatPinned2);
+	set(u"ctrl+3"_q                  , Command::ChatPinned3);
+	set(u"ctrl+4"_q                  , Command::ChatPinned4);
+	set(u"ctrl+5"_q                  , Command::ChatPinned5);
+	set(u"ctrl+6"_q                  , Command::ChatPinned6);
+	set(u"ctrl+7"_q                  , Command::ChatPinned7);
+	set(u"ctrl+8"_q                  , Command::ChatPinned8);
 
 	auto &&folders = ranges::views::zip(
 		kShowFolder,
@@ -560,25 +584,25 @@ void Manager::fillDefaults() {
 		ranges::views::ints(1, ranges::unreachable));
 
 	for (const auto [command, index] : accounts) {
-		set(u"alt+%1"_q.arg(index), command);
+		set(u"alt+%1"_q.arg(index)   , command);
 	}
 
-	set(u"alt+0"_q, Command::ShowAccountLast);
+	set(u"alt+0"_q                   , Command::ShowAccountLast);
 
-	set(u"%1+shift+down"_q.arg(ctrl), Command::FolderNext);
-	set(u"%1+shift+up"_q.arg(ctrl), Command::FolderPrevious);
+	set(u"%1+shift+down"_q.arg(ctrl) , Command::FolderNext);
+	set(u"%1+shift+up"_q.arg(ctrl)   , Command::FolderPrevious);
 
-	set(u"ctrl+0"_q, Command::ChatSelf);
+	set(u"ctrl+0"_q                  , Command::ChatSelf);
 
-	set(u"ctrl+9"_q, Command::ShowArchive);
-	set(u"ctrl+j"_q, Command::ShowContacts);
+	set(u"ctrl+9"_q                  , Command::ShowArchive);
+	set(u"ctrl+j"_q                  , Command::ShowContacts);
 
-	set(u"ctrl+r"_q, Command::ReadChat);
+	set(u"ctrl+r"_q                  , Command::ReadChat);
 
-	set(u"ctrl+\\"_q, Command::ShowChatMenu);
-	set(u"ctrl+]"_q, Command::ShowChatPreview);
+	set(u"ctrl+\\"_q                 , Command::ShowChatMenu);
+	set(u"ctrl+]"_q                  , Command::ShowChatPreview);
 
-	set(u"ctrl+r"_q, Command::RecordVoice);
+	set(u"ctrl+r"_q                  , Command::RecordVoice);
 
 	set(u"ctrl+s"_q, Command::SaveDraft);
 	set(u"ctrl+h"_q, Command::JumpToDate);
@@ -619,8 +643,8 @@ void Manager::writeDefaultFile() {
 		}
 	}
 
-	// Commands without a default value.
-	for (const auto c : ranges::views::concat(kShowAccount, kNoValue)) {
+	// Commands without a default value (Kotatogram has them for accounts).
+	for (const auto c : kNoValue) {
 		for (const auto &[name, command] : CommandByName) {
 			if (c == command) {
 				auto entry = QJsonObject();
@@ -699,7 +723,7 @@ void Manager::writeCustomFile() {
 		return;
 	}
 	const char *customHeader = R"HEADER(
-// This is a list of changed shortcuts for Telegram Desktop
+// This is a list of changed shortcuts for Kotatogram Desktop
 // You can edit them in Settings > Chat Settings > Keyboard Shortcuts.
 
 )HEADER";

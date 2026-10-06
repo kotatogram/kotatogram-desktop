@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/stickers/data_custom_emoji.h"
 #include "history/history_item.h"
 #include "info/channel_statistics/boosts/giveaway/boost_badge.h"
+#include "kotato/kotato_radius.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "main/session/session_show.h"
@@ -52,7 +53,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
 #include "styles/style_statistics.h"
-#include "styles/style_window.h"
 #include "styles/style_chat.h"
 
 namespace Info::Statistics {
@@ -125,7 +125,7 @@ struct PublicForwardsDescriptor final {
 struct MembersDescriptor final {
 	not_null<Main::Session*> session;
 	Fn<void(not_null<PeerData*>)> showPeerInfo;
-	Data::SupergroupStatistics data;
+	Data::StatisticsLists data;
 };
 
 struct BoostsDescriptor final {
@@ -141,6 +141,7 @@ struct CreditsDescriptor final {
 	bool in = false;
 	bool out = false;
 	bool subscription = false;
+	bool currency = false;
 };
 
 class PeerListRowWithFullId : public PeerListRow {
@@ -217,7 +218,7 @@ private:
 
 	const not_null<Main::Session*> _session;
 	Fn<void(not_null<PeerData*>)> _showPeerInfo;
-	Data::SupergroupStatistics _data;
+	Data::StatisticsLists _data;
 	int _limit = 0;
 
 };
@@ -527,7 +528,7 @@ void BoostRow::init() {
 				int y,
 				int outerWidth,
 				int size) mutable {
-			_userpic.paintCircle(p, x, y, outerWidth, size);
+			Kotato::PaintEmptyUserpic(_userpic, p, x, y, outerWidth, size);
 			if (creditsIcon->isNull()) {
 				*creditsIcon = Ui::CreditsWhiteDoubledIcon(size, 1.);
 			}
@@ -540,7 +541,7 @@ void BoostRow::init() {
 				int y,
 				int outerWidth,
 				int size) mutable {
-			_userpic.paintCircle(p, x, y, outerWidth, size);
+			Kotato::PaintEmptyUserpic(_userpic, p, x, y, outerWidth, size);
 			(_boost.isUnclaimed
 				? st::boostsListUnclaimedIcon
 				: st::boostsListUnknownIcon).paintInCenter(
@@ -1231,7 +1232,7 @@ CreditsController::CreditsController(CreditsDescriptor d)
 : _session(&d.peer->session())
 , _subscription(d.subscription)
 , _entryClickedCallback(std::move(d.entryClickedCallback))
-, _api(d.peer, d.in, d.out)
+, _api(d.peer, d.in, d.out, d.currency)
 , _firstSlice(std::move(d.firstSlice))
 , _context([&]() -> Ui::Text::MarkedContext {
 	const auto height = st::creditsHistoryRowRightStyle.font->height
@@ -1429,7 +1430,7 @@ void AddPublicForwards(
 }
 
 void AddMembersList(
-		Data::SupergroupStatistics data,
+		Data::StatisticsLists data,
 		not_null<Ui::VerticalLayout*> container,
 		Fn<void(not_null<PeerData*>)> showPeerInfo,
 		not_null<PeerData*> peer,
@@ -1535,7 +1536,8 @@ void AddCreditsHistoryList(
 		not_null<PeerData*> bot,
 		bool in,
 		bool out,
-		bool subs) {
+		bool subs,
+		bool currency) {
 	struct State final {
 		State(CreditsDescriptor d) : controller(std::move(d)) {
 		}
@@ -1544,7 +1546,15 @@ void AddCreditsHistoryList(
 		CreditsController controller;
 	};
 	const auto state = container->lifetime().make_state<State>(
-		CreditsDescriptor{ firstSlice, callback, bot, in, out, subs });
+		CreditsDescriptor{
+			firstSlice,
+			callback,
+			bot,
+			in,
+			out,
+			subs,
+			currency,
+		});
 	if (subs) {
 		state->subscriptionDelegate.emplace();
 		state->subscriptionDelegate->setUiShow(show);

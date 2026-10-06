@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_layout.h"
 
+#include "kotato/kotato_radius.h"
+#include "kotato/kotato_settings.h"
 #include "base/options.h"
 #include "base/unixtime.h"
 #include "core/ui_integration.h"
@@ -47,6 +49,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/unread_badge_paint.h"
 #include "ui/unread_counter_format.h"
 #include "styles/style_dialogs.h"
+#include "styles/style_dialogs_layout.h"
 #include "styles/style_widgets.h"
 #include "styles/style_window.h"
 
@@ -116,9 +119,7 @@ int PaintRightButtonImpl(QPainter &p, const PaintContext &context) {
 		const auto left = context.width
 			- size.width()
 			- rightButton->st->margin.right();
-		const auto top = (context.st == &st::compactDialogRow)
-			? (context.st->height - size.height()) / 2
-			: rightButton->st->margin.top();
+		const auto top = RightButtonTop(*rightButton->st);
 		p.drawImage(
 			left,
 			top,
@@ -302,10 +303,84 @@ void PaintExpandedTopicsBar(QPainter &p, float64 progress) {
 		radius);
 }
 
+[[nodiscard]] bool IsCompactRow(not_null<const style::DialogRow*> st) {
+	return (st == &st::compactDialogRow)
+		|| (st == &st::communityInfoCompactDialogRow)
+		|| (st == &st::compactForumTopicRow);
+}
+
+// Only one badge fits over the small userpic of a compact narrow row,
+// an unread mention is the most important one.
+void PaintCompactNarrowBadge(
+		QPainter &p,
+		const PaintContext &context,
+		const BadgesState &state) {
+	auto st = UnreadBadgeStyle();
+	st.active = context.active;
+	st.selected = context.selected;
+	const style::ThreeStateIcon *icons = nullptr;
+	auto text = QString();
+	if (state.mention) {
+		icons = state.mentionMuted
+			? &st::dialogsUnreadMentionBadgeMuted
+			: &st::dialogsUnreadMentionBadge;
+		st.muted = state.mentionMuted;
+	} else if (state.unread) {
+		text = (state.unreadCounter > 99)
+			? u"99+"_q
+			: state.unreadCounter
+			? QString::number(state.unreadCounter)
+			: QString();
+		st.muted = state.unreadMuted;
+	} else if (state.reaction) {
+		icons = state.reactionMuted
+			? &st::dialogsUnreadReactionBadgeMuted
+			: &st::dialogsUnreadReactionBadge;
+		st.muted = state.reactionMuted;
+		st.sizeId = UnreadBadgeSize::ReactionInDialogs;
+	} else if (state.poll) {
+		icons = state.pollMuted
+			? &st::dialogsUnreadPollBadgeMuted
+			: &st::dialogsUnreadPollBadge;
+		st.muted = state.pollMuted;
+		st.sizeId = UnreadBadgeSize::PollInDialogs;
+	} else {
+		return;
+	}
+	if (icons) {
+		st.padding = 0;
+		st.textTop = 0;
+	}
+	const auto width = CountUnreadBadgeSize(text, st).width();
+	// A narrow topic icon is centered in the row, a userpic keeps its place.
+	const auto topic = (context.st == &st::compactForumTopicRow);
+	const auto center = topic
+		? (context.width / 2)
+		: (context.st->padding.left() + context.st->photoSize / 2);
+	const auto top = topic
+		? ((context.st->height - st.size) / 2)
+		: context.st->padding.top();
+	const auto badge = PaintUnreadBadge(
+		p,
+		text,
+		center + (width + 1) / 2,
+		top,
+		st);
+	if (icons) {
+		ThreeStateIcon(*icons, st.active, st.selected).paintInCenter(
+			p,
+			badge);
+	}
+}
+
 void PaintNarrowCounter(
 		QPainter &p,
 		const PaintContext &context,
 		BadgesState badgesState) {
+	if (IsCompactRow(context.st)) {
+		PaintCompactNarrowBadge(p, context, badgesState);
+		return;
+	}
 	const auto top = context.st->padding.top()
 		+ context.st->photoSize
 		- st::dialogsUnreadHeight;
@@ -359,6 +434,45 @@ void PaintFolderEntryText(
 		? st::dialogsTextFgOver
 		: st::dialogsTextFg);
 	folder->listEntryCache().draw(p, {
+		.position = rect.topLeft(),
+		.availableWidth = rect.width(),
+		.palette = &(context.active
+			? st::dialogsTextPaletteArchiveActive
+			: context.selected
+			? st::dialogsTextPaletteArchiveOver
+			: st::dialogsTextPaletteArchive),
+		.spoiler = Text::DefaultSpoilerCache(),
+		.now = context.now,
+		.pausedEmoji = context.paused || On(PowerSaving::kEmojiChat),
+		.pausedSpoiler = context.paused || On(PowerSaving::kChatSpoiler),
+		.elisionHeight = rect.height(),
+	});
+}
+
+[[nodiscard]] Data::CommunityInfo *CommunityListInfo(History *history) {
+	const auto channel = history ? history->peer->asChannel() : nullptr;
+	const auto info = (channel && channel->isCommunity())
+		? channel->communityInfo()
+		: nullptr;
+	return (info && !info->lastHistories().empty()) ? info : nullptr;
+}
+
+void PaintCommunityEntryText(
+		Painter &p,
+		not_null<Data::CommunityInfo*> info,
+		const PaintContext &context,
+		QRect rect) {
+	if (rect.isEmpty()) {
+		return;
+	}
+	info->validateListEntryCache();
+	p.setFont(st::dialogsTextFont);
+	p.setPen(context.active
+		? st::dialogsTextFgActive
+		: context.selected
+		? st::dialogsTextFgOver
+		: st::dialogsTextFg);
+	info->listEntryCache().draw(p, {
 		.position = rect.topLeft(),
 		.availableWidth = rect.width(),
 		.palette = &(context.active
@@ -432,19 +546,19 @@ void PaintRow(
 		: context.selected
 		? st::dialogsBgOver
 		: context.currentBg;
-	auto swipeTranslation = 0;
+	auto swipeTranslation = 0.;
+	auto swipeMirrored = false;
 	if (history
 		&& context.quickActionContext
 		&& !context.quickActionContext->ripple
 		&& (history->peer->id.value
 			== context.quickActionContext->data.msgBareId)) {
-		if (context.quickActionContext->data.translation != 0) {
-			swipeTranslation = context.quickActionContext->data.translation
-				* -2;
-		}
+		swipeTranslation = context.quickActionContext->data.exactTranslation
+			* -2;
+		swipeMirrored = !context.quickActionContext->data.inverted;
 	}
 	if (swipeTranslation) {
-		p.translate(-swipeTranslation, 0);
+		p.translate(swipeMirrored ? swipeTranslation : -swipeTranslation, 0);
 	}
 	p.fillRect(geometry, bg);
 	if (!(flags & Flag::TopicJumpRipple)) {
@@ -483,7 +597,8 @@ void PaintRow(
 			context.width,
 			context.st->photoSize);
 	} else if (!from && hiddenSenderInfo) {
-		hiddenSenderInfo->emptyUserpic.paintCircle(
+		Kotato::PaintEmptyUserpic(
+			hiddenSenderInfo->emptyUserpic,
 			p,
 			context.st->padding.left(),
 			context.st->padding.top(),
@@ -505,7 +620,6 @@ void PaintRow(
 			videoUserpic,
 			context,
 			(context.narrow
-				&& (context.st != &st::compactDialogRow)
 				&& !badgesState.empty()
 				&& !draft
 				&& item
@@ -517,10 +631,7 @@ void PaintRow(
 		PaintExpandedTopicsBar(p, context.topicsExpanded);
 	}
 	if (context.narrow) {
-		if (!draft
-			&& item
-			&& !item->isEmpty()
-			&& (context.st != &st::compactDialogRow)) {
+		if (!draft && item && !item->isEmpty()) {
 			PaintNarrowCounter(p, context, badgesState);
 		}
 		return;
@@ -572,7 +683,17 @@ void PaintRow(
 		}
 	}
 	auto texttop = context.st->textTop;
-	if (context.st == &st::compactDialogRow) {
+	if (IsCompactRow(context.st) && fakeRow && item) {
+		// Compact search result: the found message follows the name.
+		const auto nameWidth = std::min(
+			rowName.maxWidth(),
+			rectForName.width() / 2);
+		const auto textLeft = rectForName.left()
+			+ nameWidth
+			+ 2 * st::dialogsTextFont->spacew;
+		rectForName.setWidth(nameWidth);
+		paintItemCallback(textLeft, nameleft + namewidth - textLeft);
+	} else if (IsCompactRow(context.st)) {
 		// Compact chat list: single line, no message preview, counter only.
 		// Name shares the line with the counter, so shrink it accordingly.
 		const auto displayPinnedIcon = badgesState.empty()
@@ -600,6 +721,25 @@ void PaintRow(
 			availableWidth,
 			st::dialogsTextFont->height);
 		PaintFolderEntryText(p, folder, context, rect);
+	} else if (const auto info = CommunityListInfo(history)) {
+		// Unlike the Archive folder (fixed on top), a collapsed community is
+		// a movable pinned entry, so it shows the pinned icon when pinned and
+		// without an unread counter, exactly like an ordinary chat.
+		const auto displayPinnedIcon = entry->isPinnedDialog(context.filter)
+			&& (context.filter || !entry->fixedOnTopIndex());
+		const auto availableWidth = PaintWideCounter(
+			p,
+			context,
+			badgesState,
+			texttop,
+			namewidth,
+			displayPinnedIcon);
+		const auto rect = QRect(
+			nameleft,
+			texttop,
+			availableWidth,
+			st::dialogsTextFont->height);
+		PaintCommunityEntryText(p, info, context, rect);
 	} else if (promoted && !history->topPromotionMessage().isEmpty()) {
 		auto availableWidth = namewidth;
 		p.setFont(st::dialogsTextFont);
@@ -678,11 +818,13 @@ void PaintRow(
 						lt_from_part,
 						std::move(draftWrapped),
 						lt_message,
-						DialogsPreviewText({
-							.text = draft->textWithTags.text,
-							.entities = ConvertTextTagsToEntities(
-								draft->textWithTags.tags),
-						}),
+						(draft->hasRichMessage()
+							? DialogsPreviewText(draft->richMessageSummary)
+							: DialogsPreviewText({
+								.text = draft->textWithTags.text,
+								.entities = ConvertTextTagsToEntities(
+									draft->textWithTags.tags),
+							})),
 						tr::marked);
 				if (draft && draft->reply) {
 					draftText = Ui::Text::Colorized(
@@ -754,7 +896,14 @@ void PaintRow(
 				context.width,
 				color,
 				context.now)) {
-			// Empty history
+			if (context.insideCommunity && !entry->chatListMessageKnown()) {
+				p.setPen(color);
+				p.drawTextLeft(
+					nameleft,
+					texttop,
+					context.width,
+					tr::lng_community_chat_loading(tr::now));
+			}
 		}
 	} else if (!item->isEmpty()) {
 		if ((thread || sublist) && !promoted) {
@@ -885,12 +1034,6 @@ void PaintRow(
 			context.width,
 			text);
 	} else if (from) {
-		auto badgeWidth = 0;
-		if ((history || sublist) && !context.search) {
-			const auto widthBefore = rectForName.width();
-			paintPeerBadge(rowName.maxWidth());
-			badgeWidth = widthBefore - rectForName.width();
-		}
 		const auto drawMuteIcon = DialogsMuteIcon.value()
 			&& thread
 			&& thread->muted();
@@ -903,6 +1046,12 @@ void PaintRow(
 				rectForName.width()
 					- muteIcon.width()
 					- st::dialogsMuteIconSkip);
+		}
+		auto badgeWidth = 0;
+		if ((history || sublist) && !context.search) {
+			const auto widthBefore = rectForName.width();
+			paintPeerBadge(rowName.maxWidth());
+			badgeWidth = widthBefore - rectForName.width();
 		}
 		p.setPen(context.active
 			? st::dialogsNameFgActive
@@ -967,13 +1116,15 @@ void PaintRow(
 		}
 	}
 	if (swipeTranslation) {
-		p.translate(swipeTranslation, 0);
-		const auto swipeActionRect = QRect(
-			rect::right(geometry) - swipeTranslation,
+		p.translate(swipeMirrored ? -swipeTranslation : swipeTranslation, 0);
+		const auto swipeActionRect = QRectF(
+			swipeMirrored
+				? geometry.x()
+				: (rect::right(geometry) - swipeTranslation),
 			geometry.y(),
 			swipeTranslation,
 			geometry.height());
-		p.setClipRegion(swipeActionRect);
+		p.setClipRect(swipeActionRect);
 		const auto labelType = ResolveQuickDialogLabel(
 			history,
 			context.quickActionContext->action,
@@ -986,14 +1137,23 @@ void PaintRow(
 				* context.quickActionContext->data.reachRatio;
 			const auto offset = st::dialogsQuickActionSize
 				+ st::dialogsQuickActionSize / 2.;
-			p.drawEllipse(QPointF(geometry.width() - offset, offset), r, r);
+			p.drawEllipse(
+				QPointF(
+					swipeMirrored
+						? (geometry.x() + offset)
+						: (geometry.width() - offset),
+					offset),
+				r,
+				r);
 		}
 		const auto quickWidth = st::dialogsQuickActionSize * 3;
 		if (context.quickActionContext->icon) {
 			DrawQuickAction(
 				p,
 				QRect(
-					rect::right(geometry) - quickWidth,
+					swipeMirrored
+						? geometry.x()
+						: (rect::right(geometry) - quickWidth),
 					geometry.y(),
 					quickWidth,
 					geometry.height()),
@@ -1051,7 +1211,8 @@ const style::icon *ChatTypeIcon(
 			st::dialogsChannelIcon,
 			context.active,
 			context.selected);
-	} else if (peer->displayAsForum()) {
+	} else if (peer->displayAsForum()
+		|| (peer->isChannel() && peer->asChannel()->isCommunity())) {
 		return &ThreeStateIcon(
 			st::dialogsForumIcon,
 			context.active,
@@ -1377,11 +1538,10 @@ void PaintCollapsedRow(
 			// : context.st->padding.left();
 		p.drawText(left, textBaseline, text);
 	} else if (!context.narrow) {
-
 		const auto textBaseline = unreadTop
 			+ (st::dialogsUnreadHeight - st::dialogsUnreadFont->height) / 2
 			+ st::dialogsUnreadFont->ascent;
-		const auto left = context.st->padding.left();
+		const auto left = st::dialogsTopBarLeftPadding;
 		const auto textLeft = left * 2 + st::dialogsUnreadHeight;
 
 		folder->paintUserpic(
@@ -1393,7 +1553,6 @@ void PaintCollapsedRow(
 		p.setFont(st::semiboldFont);
 		p.setPen(st::dialogsNameFg);
 		p.drawText(textLeft, textBaseline, text);
-
 	} else {
 		folder->paintUserpic(
 			p,
@@ -1416,6 +1575,35 @@ void PaintCollapsedRow(
 
 int PaintRightButton(QPainter &p, const PaintContext &context) {
 	return PaintRightButtonImpl(p, context);
+}
+
+bool CompactChatList() {
+	return (::Kotato::JsonSettings::GetInt("chat_list_lines") == 1);
+}
+
+const style::DialogRow &ChatListRowStyle() {
+	return CompactChatList() ? st::compactDialogRow : st::defaultDialogRow;
+}
+
+const style::DialogRow &ForumTopicRowStyle() {
+	return CompactChatList() ? st::compactForumTopicRow : st::forumTopicRow;
+}
+
+int ChatListNarrowWidth() {
+	const auto &st = ChatListRowStyle();
+	return st.padding.left() + st.photoSize + st.padding.left();
+}
+
+int RightButtonTop(const style::DialogRightButton &st) {
+	if (!CompactChatList()) {
+		return st.margin.top();
+	}
+	// The label goes on the name baseline, like the unread counter.
+	const auto &row = st::compactDialogRow;
+	return row.nameTop
+		+ st::semiboldFont->ascent
+		- st.button.textTop
+		- st.button.style.font->ascent;
 }
 
 } // namespace Dialogs::Ui

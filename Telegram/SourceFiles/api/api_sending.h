@@ -7,6 +7,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "data/data_file_origin.h"
+
+#include <QtCore/QString>
+
+#include <vector>
+
 class History;
 class PhotoData;
 class DocumentData;
@@ -14,12 +20,7 @@ struct FilePrepareResult;
 
 namespace Data {
 struct InputVenue;
-class LocationPoint;
 } // namespace Data
-
-namespace MTP {
-class Error;
-} // namespace MTP
 
 namespace Main {
 class Session;
@@ -29,13 +30,10 @@ namespace Api {
 
 struct MessageToSend;
 struct SendAction;
-
-void SendWebDocument(
-	MessageToSend &&message,
-	not_null<DocumentData*> document,
-	std::optional<MsgId> localMessageId = std::nullopt,
-	Fn<void()> doneCallback = nullptr,
-	bool forwarding = false);
+struct MusicSelectionItem {
+	not_null<DocumentData*> document;
+	Data::FileOrigin origin;
+};
 
 void SendExistingDocument(
 	MessageToSend &&message,
@@ -44,12 +42,21 @@ void SendExistingDocument(
 	Fn<void()> doneCallback = nullptr,
 	bool forwarding = false);
 
+void SendMusicSelection(
+	MessageToSend &&message,
+	std::vector<MusicSelectionItem> items);
+
 void SendExistingPhoto(
 	MessageToSend &&message,
 	not_null<PhotoData*> photo,
 	std::optional<MsgId> localMessageId = std::nullopt,
 	Fn<void()> doneCallback = nullptr,
 	bool forwarding = false);
+
+// Unquoted forward that copies the messages on the client.
+[[nodiscard]] bool ForwardsLocally(
+	Data::ForwardOptions options,
+	Data::GroupingOptions groupOptions);
 
 bool SendDice(
 	MessageToSend &message,
@@ -59,7 +66,12 @@ bool SendDice(
 // We can't create Data::LocationPoint() and use it
 // for a local sending message, because we can't request
 // map thumbnail in messages history without access hash.
-void SendLocation(SendAction action, float64 lat, float64 lon);
+void SendLocation(
+	SendAction action,
+	float64 lat,
+	float64 lon,
+	Fn<void()> done = nullptr,
+	bool forwarding = false);
 
 void SendVenue(SendAction action, Data::InputVenue venue);
 
@@ -71,11 +83,5 @@ void FillMessagePostFlags(
 void SendConfirmedFile(
 	not_null<Main::Session*> session,
 	const std::shared_ptr<FilePrepareResult> &file);
-
-void SendLocationPoint(
-	const Data::LocationPoint &data,
-	const SendAction &action,
-	Fn<void()> done,
-	Fn<void(const MTP::Error &error)> fail);
 
 } // namespace Api

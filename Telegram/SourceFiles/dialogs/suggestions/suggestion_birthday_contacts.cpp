@@ -20,9 +20,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
-#include "styles/style_boxes.h"
-#include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
+#include "styles/style_dialogs.h"
+#include "styles/style_userpic_button.h"
 
 namespace Dialogs::TopBarSuggestions {
 namespace {
@@ -43,7 +43,8 @@ void Activate(ActivateArgs args) {
 	const auto recompute = args.recompute;
 	const auto done = args.done;
 
-	promo->requestContactBirthdays(crl::guard(content.get(), [=] {
+	const auto alive = args.lifetime->make_state<base::has_weak_ptr>();
+	auto ready = crl::guard(content.get(), [=] {
 		const auto users = promo->knownBirthdaysToday().value_or(
 			std::vector<UserId>());
 		if (users.empty()) {
@@ -102,10 +103,10 @@ void Activate(ActivateArgs args) {
 					inRow.push_back({ .peer = user });
 				}
 			}
-			const auto &userpicsSt = st::historyCommentsUserpics;
+			const auto &userpicsSt = st::dialogsTopBarSuggestionUserpics;
 			const auto rowCount = int(inRow.size());
-			const auto rowWidth = rowCount * userpicsSt.size
-				- userpicsSt.shift;
+			const auto rowWidth = userpicsSt.size
+				+ (rowCount - 1) * (userpicsSt.size - userpicsSt.shift);
 			const auto rowHeight = userpicsSt.size;
 			const auto widget = Ui::CreateChild<Ui::RpWidget>(content.get());
 			widget->resize(rowWidth, rowHeight);
@@ -118,7 +119,7 @@ void Activate(ActivateArgs args) {
 					HistoryView::GenerateUserpicsInRow(
 						s->userpics,
 						s->inRow,
-						st::historyCommentsUserpics,
+						st::dialogsTopBarSuggestionUserpics,
 						3);
 				}
 				p.drawImage(0, 0, s->userpics);
@@ -132,7 +133,8 @@ void Activate(ActivateArgs args) {
 			content->setLeadingWidget(fake);
 		}
 		done(content, [content] { content->prepareCollapseSnapshot(); });
-	}));
+	});
+	promo->requestContactBirthdays(crl::guard(alive, std::move(ready)));
 }
 
 } // namespace

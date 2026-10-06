@@ -19,6 +19,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "ui/widgets/labels.h"
 #include "ui/widgets/continuous_sliders.h"
 #include "styles/style_layers.h"
+#include "styles/style_background_preview_box.h"
 #include "styles/style_boxes.h"
 #include "styles/style_calls.h"
 #include "styles/style_settings.h"

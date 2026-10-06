@@ -15,7 +15,7 @@ typedef struct _NOTIFICATION_USER_INPUT_DATA
 
 [
 	object,
-	uuid("53E31837-6600-4A81-9395-75CFFE746F94"),
+	uuid("A113FA79-1670-46BE-9FDF-7A4546B938C1"),
 	pointer_default(ref)
 ]
 

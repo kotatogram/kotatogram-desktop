@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/section_widget.h"
 
+#include "kotato/kotato_settings.h"
 #include "mainwidget.h"
 #include "mainwindow.h"
 #include "ui/ui_utility.h"
@@ -104,10 +105,21 @@ struct ResolvedPaper {
 [[nodiscard]] auto MaybeChatThemeDataValueFromPeer(
 	not_null<PeerData*> peer)
 -> rpl::producer<std::optional<Data::CloudTheme>> {
-	return PeerThemeTokenValue(
-		peer
-	) | rpl::map([=](const QString &token)
+	auto disabled = rpl::single(
+		QString()
+	) | rpl::then(
+		::Kotato::JsonSettings::Events("disable_chat_themes")
+	) | rpl::map([] {
+		return ::Kotato::JsonSettings::GetBool("disable_chat_themes");
+	});
+	return rpl::combine(
+		PeerThemeTokenValue(peer),
+		std::move(disabled)
+	) | rpl::map([=](const QString &token, bool disabled)
 	-> rpl::producer<std::optional<Data::CloudTheme>> {
+		if (disabled) {
+			return rpl::single(std::optional<Data::CloudTheme>());
+		}
 		return peer->owner().cloudThemes().themeForTokenValue(token);
 	}) | rpl::flatten_latest();
 }
@@ -481,7 +493,7 @@ void SectionWidget::PaintBackground(
 		return;
 	} else if (background.isPattern) {
 		const auto w = prepared.width() * fill.height() / prepared.height();
-		const auto cx = qCeil(fill.width() / float64(w));
+		const auto cx = int(std::ceil(fill.width() / float64(w)));
 		const auto cols = (cx / 2) * 2 + 1;
 		const auto xshift = (fill.width() - w * cols) / 2;
 		for (auto i = 0; i != cols; ++i) {
@@ -498,10 +510,10 @@ void SectionWidget::PaintBackground(
 		const auto bottom = clip.top() + clip.height();
 		const auto w = tiled.width() / float64(style::DevicePixelRatio());
 		const auto h = tiled.height() / float64(style::DevicePixelRatio());
-		const auto sx = qFloor(left / w);
-		const auto sy = qFloor(top / h);
-		const auto cx = qCeil(right / w);
-		const auto cy = qCeil(bottom / h);
+		const auto sx = int(std::floor(left / w));
+		const auto sy = int(std::floor(top / h));
+		const auto cx = int(std::ceil(right / w));
+		const auto cy = int(std::ceil(bottom / h));
 		for (auto i = sx; i < cx; ++i) {
 			for (auto j = sy; j < cy; ++j) {
 				p.drawImage(QPointF(i * w, j * h), tiled);

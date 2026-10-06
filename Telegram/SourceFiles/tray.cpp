@@ -160,6 +160,7 @@ rpl::producer<> Tray::hideToTrayRequests() const {
 void Tray::toggleSound() {
 	auto &settings = Core::App().settings();
 	settings.setSoundNotify(!settings.soundNotify());
+	settings.setRememberedSoundNotifyFromTray(false);
 	Core::App().saveSettingsDelayed();
 	using Change = Window::Notifications::ChangeType;
 	auto &notifications = Core::App().notifications();

@@ -26,7 +26,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/emoji_config.h"
 #include "chat_helpers/emoji_sets_manager.h"
 #include "window/window_session_controller.h"
-#include "window/window_filters_menu.h"
 #include "window/themes/window_theme_editor.h"
 #include "ui/boxes/confirm_box.h"
 #include "data/components/promo_suggestions.h"
@@ -146,27 +145,21 @@ void Controller::showAccount(
 		MsgId singlePeerShowAtMsgId) {
 	Expects(isPrimary() || _id.account == account);
 
+	const auto prevAccount = _id.account;
 	const auto prevSession = maybeSession();
 	const auto prevSessionUniqueId = prevSession
 		? prevSession->uniqueId()
 		: 0;
+	// Weak: the account can be destroyed by removeRedundantAccounts()
+	// before this subscription fires again.
+	const auto accountBeforeIntro = (prevAccount
+		&& prevAccount != account
+		&& prevAccount->sessionExists())
+		? base::make_weak(prevAccount)
+		: base::weak_ptr<Main::Account>();
 	_accountLifetime.destroy();
 	_id.account = account;
 	Core::App().checkWindowId(this);
-
-	const auto updateOnlineOfPrevSesssion = crl::guard(account, [=] {
-		if (!prevSessionUniqueId) {
-			return;
-		}
-		for (auto &[index, account] : _id.account->domain().accounts()) {
-			if (const auto anotherSession = account->maybeSession()) {
-				if (anotherSession->uniqueId() == prevSessionUniqueId) {
-					anotherSession->updates().updateOnline(crl::now());
-					return;
-				}
-			}
-		}
-	});
 
 	if (!isPrimary()) {
 		_id.account->sessionChanges(
@@ -218,11 +211,25 @@ void Controller::showAccount(
 			session->updates().updateOnline(crl::now());
 		} else {
 			sideBarChanged();
-			setupIntro(std::move(oldContentCache));
+			setupIntro(
+				accountBeforeIntro.get(),
+				std::move(oldContentCache));
 			_widget.updateGlobalMenu();
 		}
 
-		crl::on_main(updateOnlineOfPrevSesssion);
+		crl::on_main(this, [=] {
+			if (!prevSessionUniqueId) {
+				return;
+			}
+			for (auto &[index, account] : _id.account->domain().accounts()) {
+				if (const auto anotherSession = account->maybeSession()) {
+					if (anotherSession->uniqueId() == prevSessionUniqueId) {
+						anotherSession->updates().updateOnline(crl::now());
+						return;
+					}
+				}
+			}
+		});
 	}, _accountLifetime);
 }
 
@@ -240,7 +247,6 @@ void Controller::setupSideBar() {
 	if (_sessionController->session().settings().dialogsFiltersEnabled()
 		&& _sessionController->enoughSpaceForFilters()
 		&& !Core::App().settings().chatFiltersHorizontal()) {
-		ResetFiltersFirstLoad();
 		_sessionController->toggleFiltersMenu(true);
 	} else {
 		sideBarChanged();
@@ -396,11 +402,13 @@ void Controller::clearSetupEmailLock() {
 	_widget.clearSetupEmailLock();
 }
 
-void Controller::setupIntro(QPixmap oldContentCache) {
+void Controller::setupIntro(
+		Main::Account *accountBeforeIntro,
+		QPixmap oldContentCache) {
 	const auto point = Core::App().domain().maybeLastOrSomeAuthedAccount()
 		? Intro::EnterPoint::Qr
 		: Intro::EnterPoint::Start;
-	_widget.setupIntro(point, std::move(oldContentCache));
+	_widget.setupIntro(point, accountBeforeIntro, std::move(oldContentCache));
 }
 
 void Controller::setupMain(
@@ -547,9 +555,15 @@ void Controller::invokeForSessionController(
 }
 
 QPoint Controller::getPointForCallPanelCenter() const {
-	return _widget.isActive()
-		? _widget.geometry().center()
-		: _widget.screen()->geometry().center();
+	if (_widget.isActive()) {
+		return _widget.geometry().center();
+	}
+	// When the last monitor is removed QGuiApplication has no screens at
+	// all, so screen() is nullptr.
+	const auto screen = _widget.screen();
+	return screen
+		? screen->geometry().center()
+		: _widget.geometry().center();
 }
 
 void Controller::showLogoutConfirmation() {

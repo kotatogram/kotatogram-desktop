@@ -32,9 +32,11 @@ constexpr auto kNoiseTextureSize = 256;
 constexpr auto kBlurTextureSizeFactor = 4.;
 constexpr auto kBlurOpacity = 0.65f;
 
+// The NDC Y flip stays at offset 12 in every block, see NdcFlipY().
 struct GroupFrameUniforms {
 	float viewport[2];
-	float _pad0[2];
+	float _pad0;
+	float flipY;
 	float frameBg[4];
 	float shadow[4];
 	float paused;
@@ -56,13 +58,30 @@ static_assert(sizeof(BlurUniforms) == 16);
 struct ImageUniforms {
 	float viewport[2];
 	float g_opacity;
-	float _pad;
+	float flipY;
 };
 static_assert(sizeof(ImageUniforms) == 16);
 
 [[nodiscard]] QShader LoadShader(const QString &name) {
 	return Ui::Rhi::ShaderFromFile(
 		u":/shaders/"_q + name + u".qsb"_q);
+}
+
+// Vulkan is the only backend with the NDC Y axis pointing down.
+[[nodiscard]] float NdcFlipY(not_null<QRhi*> rhi) {
+	return rhi->isYUpInNDC() ? 1.f : -1.f;
+}
+
+// A full render target quad for the offscreen passes, with the same
+// orientation on every backend.
+[[nodiscard]] std::array<float, 16> OffscreenQuad(not_null<QRhi*> rhi) {
+	const auto flipY = NdcFlipY(rhi);
+	return { {
+		-1.f, -1.f * flipY, 0.f, 1.f,
+		 1.f, -1.f * flipY, 1.f, 1.f,
+		-1.f,  1.f * flipY, 0.f, 0.f,
+		 1.f,  1.f * flipY, 1.f, 0.f,
+	} };
 }
 
 [[nodiscard]] bool UseExpandForCamera(QSize original, QSize viewport) {
@@ -544,21 +563,10 @@ void Viewport::RendererRhi::render(
 		screenRub->merge(_rub);
 	}
 	_rub = screenRub;
-	renderOnscreen(rhi, rt, cb);
+	collectOnscreenDraws();
 	cb->beginPass(rt, *clearColor(), { 1.0f, 0 }, _rub);
 	_rub = nullptr;
-	const auto pw = float(rt->pixelSize().width());
-	const auto ph = float(rt->pixelSize().height());
-	for (const auto &draw : _onscreenDraws) {
-		cb->setGraphicsPipeline(draw.pipeline);
-		cb->setShaderResources(draw.srb);
-		cb->setViewport({ 0, 0, pw, ph });
-		const QRhiCommandBuffer::VertexInput vbuf(
-			_onscreenVertexBuffer, draw.vertexOffset);
-		cb->setVertexInput(0, 1, &vbuf);
-		cb->draw(4);
-	}
-	_onscreenDraws.clear();
+	issueOnscreenDraws();
 	cb->endPass();
 }
 
@@ -600,18 +608,26 @@ void Viewport::RendererRhi::renderOffscreen(
 			tile.get(),
 			_tileData[_tileDataIndices[index++]]);
 	}
+
+	if (_owner->_borrowed) {
+		// The borrowed host owns the on-screen pass, so prepare draws and
+		// flush their buffer updates now; renderOnscreen() issues them in-pass.
+		_nextOnscreenSlot = 0;
+		_onscreenDraws.clear();
+		auto *rub = _rhi->nextResourceUpdateBatch();
+		if (_rub) {
+			rub->merge(_rub);
+		}
+		_rub = rub;
+		collectOnscreenDraws();
+		cb->resourceUpdate(_rub);
+		_rub = nullptr;
+	}
 }
 
-void Viewport::RendererRhi::renderOnscreen(
-		QRhi *rhi,
-		QRhiRenderTarget *rt,
-		QRhiCommandBuffer *cb) {
-	_rhi = rhi;
-	_rt = rt;
-	_cb = cb;
-
-	const auto pw = float(rt->pixelSize().width());
-	const auto ph = float(rt->pixelSize().height());
+void Viewport::RendererRhi::collectOnscreenDraws() {
+	const auto pw = float(_rt->pixelSize().width());
+	const auto ph = float(_rt->pixelSize().height());
 
 	auto index = 0;
 	for (const auto &tile : _owner->_tiles) {
@@ -624,6 +640,34 @@ void Viewport::RendererRhi::renderOnscreen(
 			_tileData[_tileDataIndices[index++]],
 			pw, ph);
 	}
+}
+
+void Viewport::RendererRhi::issueOnscreenDraws() {
+	const auto pw = float(_rt->pixelSize().width());
+	const auto ph = float(_rt->pixelSize().height());
+	for (const auto &draw : _onscreenDraws) {
+		_cb->setGraphicsPipeline(draw.pipeline);
+		_cb->setShaderResources(draw.srb);
+		_cb->setViewport({ 0, 0, pw, ph });
+		const QRhiCommandBuffer::VertexInput vbuf(
+			_onscreenVertexBuffer, draw.vertexOffset);
+		_cb->setVertexInput(0, 1, &vbuf);
+		_cb->draw(4);
+	}
+	_onscreenDraws.clear();
+}
+
+void Viewport::RendererRhi::renderOnscreen(
+		QRhi *rhi,
+		QRhiRenderTarget *rt,
+		QRhiCommandBuffer *cb) {
+	_rhi = rhi;
+	_rt = rt;
+	_cb = cb;
+
+	// Only used by a borrowed host: issue the draws prepared in
+	// renderOffscreen(), now that the host has opened its render pass.
+	issueOnscreenDraws();
 }
 
 void Viewport::RendererRhi::ensureNoiseTexture() {
@@ -961,30 +1005,15 @@ void Viewport::RendererRhi::drawYuv2RgbPass(
 		tileData.convertedSize = frameSize;
 	}
 
-	// Y-flip the UV for Linux: QRhi/OpenGL on Linux lands YUV frames
-	// upside-down in the offscreen RGB target compared with Metal/D3D11
-	// backends used on macOS/Windows, which already render correctly.
-#ifdef Q_OS_LINUX
-	const float coords[] = {
-		-1.f, -1.f, 0.f, 0.f,
-		 1.f, -1.f, 1.f, 0.f,
-		-1.f,  1.f, 0.f, 1.f,
-		 1.f,  1.f, 1.f, 1.f,
-	};
-#else // Q_OS_LINUX
-	const float coords[] = {
-		-1.f, -1.f, 0.f, 1.f,
-		 1.f, -1.f, 1.f, 1.f,
-		-1.f,  1.f, 0.f, 0.f,
-		 1.f,  1.f, 1.f, 0.f,
-	};
-#endif // Q_OS_LINUX
+	// Convert with a fixed orientation for every backend; the OpenGL
+	// compositing flip is compensated later, in drawFramePass().
+	const auto coords = OffscreenQuad(_rhi);
 
 	if (!_rub) {
 		_rub = _rhi->nextResourceUpdateBatch();
 	}
 	_rub->updateDynamicBuffer(
-		_offscreenVertexBuffer, 0, sizeof(coords), coords);
+		_offscreenVertexBuffer, 0, sizeof(coords), coords.data());
 
 	auto *srb = _rhi->newShaderResourceBindings();
 	_perDrawSrbs.push_back(srb);
@@ -1026,18 +1055,13 @@ void Viewport::RendererRhi::drawDownscalePass(
 		QSize blurSize) {
 	const float w = float(blurSize.width());
 	const float h = float(blurSize.height());
-	const float coords[] = {
-		-1.f, -1.f, 0.f, 1.f,
-		 1.f, -1.f, 1.f, 1.f,
-		-1.f,  1.f, 0.f, 0.f,
-		 1.f,  1.f, 1.f, 0.f,
-	};
+	const auto coords = OffscreenQuad(_rhi);
 
 	if (!_rub) {
 		_rub = _rhi->nextResourceUpdateBatch();
 	}
 	_rub->updateDynamicBuffer(
-		_offscreenVertexBuffer, 0, sizeof(coords), coords);
+		_offscreenVertexBuffer, 0, sizeof(coords), coords.data());
 
 	auto *srb = _rhi->newShaderResourceBindings();
 	_perDrawSrbs.push_back(srb);
@@ -1073,19 +1097,14 @@ void Viewport::RendererRhi::drawBlurPass(
 		QSize blurSize) {
 	const float w = float(blurSize.width());
 	const float h = float(blurSize.height());
-	const float coords[] = {
-		-1.f, -1.f, 0.f, 1.f,
-		 1.f, -1.f, 1.f, 1.f,
-		-1.f,  1.f, 0.f, 0.f,
-		 1.f,  1.f, 1.f, 0.f,
-	};
+	const auto coords = OffscreenQuad(_rhi);
 
 	{
 		BlurUniforms blurUniforms{};
 		blurUniforms.texelOffset = 1.f / w;
 		auto *rub = _rhi->nextResourceUpdateBatch();
 		rub->updateDynamicBuffer(
-			_offscreenVertexBuffer, 0, sizeof(coords), coords);
+			_offscreenVertexBuffer, 0, sizeof(coords), coords.data());
 		rub->updateDynamicBuffer(
 			_uniformBuffer, 0, sizeof(blurUniforms), &blurUniforms);
 
@@ -1121,7 +1140,7 @@ void Viewport::RendererRhi::drawBlurPass(
 		blurUniforms.texelOffset = 1.f / h;
 		auto *rub = _rhi->nextResourceUpdateBatch();
 		rub->updateDynamicBuffer(
-			_offscreenVertexBuffer, 0, sizeof(coords), coords);
+			_offscreenVertexBuffer, 0, sizeof(coords), coords.data());
 		rub->updateDynamicBuffer(
 			_uniformBuffer, 0, sizeof(blurUniforms), &blurUniforms);
 
@@ -1194,7 +1213,11 @@ void Viewport::RendererRhi::drawFramePass(
 		std::swap(blurTexCoords[0], blurTexCoords[1]);
 		std::swap(blurTexCoords[2], blurTexCoords[3]);
 	}
-	if (const auto shift = (frameRotation / 90); shift > 0) {
+	const auto flipY = _rhi->isYUpInFramebuffer();
+	if (auto shift = (frameRotation / 90); shift > 0) {
+		if (flipY) {
+			shift = 4 - shift;
+		}
 		std::rotate(
 			texCoords.begin(),
 			texCoords.begin() + shift,
@@ -1218,27 +1241,32 @@ void Viewport::RendererRhi::drawFramePass(
 
 	const auto rect = transformRect(geometry);
 
+	const auto tl = flipY ? 3 : 0;
+	const auto tr = flipY ? 2 : 1;
+	const auto bl = flipY ? 0 : 3;
+	const auto br = flipY ? 1 : 2;
 	const float frameCoords[] = {
 		rect.left(), rect.top(),
-		texCoords[0][0], texCoords[0][1],
-		blurTexCoords[0][0], blurTexCoords[0][1],
+		texCoords[tl][0], texCoords[tl][1],
+		blurTexCoords[tl][0], blurTexCoords[tl][1],
 
 		rect.right(), rect.top(),
-		texCoords[1][0], texCoords[1][1],
-		blurTexCoords[1][0], blurTexCoords[1][1],
+		texCoords[tr][0], texCoords[tr][1],
+		blurTexCoords[tr][0], blurTexCoords[tr][1],
 
 		rect.left(), rect.bottom(),
-		texCoords[3][0], texCoords[3][1],
-		blurTexCoords[3][0], blurTexCoords[3][1],
+		texCoords[bl][0], texCoords[bl][1],
+		blurTexCoords[bl][0], blurTexCoords[bl][1],
 
 		rect.right(), rect.bottom(),
-		texCoords[2][0], texCoords[2][1],
-		blurTexCoords[2][0], blurTexCoords[2][1],
+		texCoords[br][0], texCoords[br][1],
+		blurTexCoords[br][0], blurTexCoords[br][1],
 	};
 
 	GroupFrameUniforms uniforms{};
 	uniforms.viewport[0] = pw;
 	uniforms.viewport[1] = ph;
+	uniforms.flipY = NdcFlipY(_rhi);
 
 	const auto bg = fullscreen ? QColor(0, 0, 0) : rhiClearColor();
 	uniforms.frameBg[0] = bg.redF();
@@ -1516,6 +1544,7 @@ void Viewport::RendererRhi::paintUsingRaster(
 	raster.fill(Qt::transparent);
 	{
 		auto painter = Painter(&raster);
+		painter.translate(-rect.topLeft());
 		method(painter);
 	}
 
@@ -1539,6 +1568,7 @@ void Viewport::RendererRhi::paintUsingRaster(
 	imgUniforms.viewport[0] = pw;
 	imgUniforms.viewport[1] = ph;
 	imgUniforms.g_opacity = opacity;
+	imgUniforms.flipY = NdcFlipY(_rhi);
 
 	_rub->updateDynamicBuffer(
 		_uniformBuffer, uOffset, sizeof(imgUniforms), &imgUniforms);

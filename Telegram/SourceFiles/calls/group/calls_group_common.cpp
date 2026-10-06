@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/group/calls_group_common.h"
 
+#include "kotato/kotato_lang.h"
 #include "apiwrap.h"
 #include "base/platform/base_platform_info.h"
 #include "base/random.h"
@@ -33,12 +34,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "window/window_session_controller.h"
-#include "styles/style_info.h"
+#include "window/window_unlock_passcode_box.h"
 #include "styles/style_layers.h"
 #include "styles/style_media_view.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_calls.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_helpers.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QClipboard>
@@ -55,8 +57,8 @@ object_ptr<Ui::GenericBox> ScreenSharingPrivacyRequestBox() {
 			object_ptr<Ui::FlatLabel>(
 				box.get(),
 				rpl::combine(
-					tr::lng_group_call_mac_screencast_access(),
-					tr::lng_group_call_mac_recording()
+					rktr("ktg_group_call_mac_screencast_access"),
+					rktr("ktg_group_call_mac_recording")
 				) | rpl::map([](QString a, QString b) {
 					auto result = tr::rich(a);
 					result.append("\n\n").append(tr::rich(b));
@@ -269,6 +271,16 @@ ConferenceCallLinkStyleOverrides DarkConferenceCallLinkStyle() {
 	};
 }
 
+::Window::UnlockPasscodeBoxStyle DarkUnlockPasscodeBoxStyle() {
+	return {
+		.box = &st::groupCallUnlockBox,
+		.close = &st::storiesStealthBoxClose,
+		.description = &st::groupCallUnlockDescription,
+		.field = &st::groupCallUnlockField,
+		.error = &st::groupCallUnlockError,
+	};
+}
+
 void ShowConferenceCallLinkBox(
 		std::shared_ptr<Main::SessionShow> show,
 		std::shared_ptr<Data::GroupCall> call,
@@ -376,7 +388,11 @@ void ShowConferenceCallLinkBox(
 
 		const auto copyCallback = [=] {
 			QApplication::clipboard()->setText(link);
-			show->showToast(tr::lng_username_copied(tr::now));
+			show->showToast({
+				.text = { tr::lng_username_copied(tr::now) },
+				.iconLottie = u"toast/voip_invite"_q,
+				.iconLottieSize = st::toastLottieIconSize,
+			});
 		};
 		const auto shareCallback = [=] {
 			FastShareLink(

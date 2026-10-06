@@ -9,7 +9,6 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 #include "kotato/kotato_lang.h"
 #include "kotato/kotato_settings.h"
-#include "kotato/kotato_radius.h"
 #include "base/options.h"
 #include "base/platform/base_platform_info.h"
 #include "settings/settings_common.h"
@@ -40,6 +39,7 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 #include "data/data_cloud_themes.h"
 #include "main/main_session.h"
 #include "mainwindow.h"
+#include "styles/style_background_preview_box.h"
 #include "styles/style_boxes.h"
 #include "styles/style_calls.h"
 #include "styles/style_settings.h"
@@ -230,7 +230,6 @@ void SetupKotatoChats(
 		updateUserpicRoundingLabel(value);
 		::Kotato::JsonSettings::Set("userpic_corner_radius", value);
 		::Kotato::JsonSettings::Write();
-		::Kotato::RefreshRadius();
 	};
 	userpicRoundingSlider->resize(st::defaultContinuousSlider.seekSize);
 	userpicRoundingSlider->setPseudoDiscrete(
@@ -268,7 +267,6 @@ void SetupKotatoChats(
 		updateUserpicForumLabel(value);
 		::Kotato::JsonSettings::Set("userpic_corner_radius_forum", value);
 		::Kotato::JsonSettings::Write();
-		::Kotato::RefreshRadius();
 	};
 	userpicForumSlider->resize(st::defaultContinuousSlider.seekSize);
 	userpicForumSlider->setPseudoDiscrete(
@@ -291,7 +289,6 @@ void SetupKotatoChats(
 		userpicForumWrap->toggle(!enabled, anim::type::normal);
 		::Kotato::JsonSettings::Set("userpic_corner_radius_forum_use_default", enabled);
 		::Kotato::JsonSettings::Write();
-		::Kotato::RefreshRadius();
 	}, container->lifetime());
 
 	SettingsMenuJsonSwitch(ktg_settings_top_bar_mute, profile_top_mute);
@@ -320,20 +317,7 @@ void SetupKotatoChats(
 		Ui::show(Box<FontsBox>());
 	});
 
-	container->add(object_ptr<Button>(
-		container,
-		rktr("ktg_disable_chat_themes"),
-		st::settingsButtonNoIcon
-	))->toggleOn(
-		rpl::single(::Kotato::JsonSettings::GetBool("disable_chat_themes"))
-	)->toggledValue(
-	) | rpl::filter([](bool enabled) {
-		return (enabled != ::Kotato::JsonSettings::GetBool("disable_chat_themes"));
-	}) | rpl::on_next([controller](bool enabled) {
-		::Kotato::JsonSettings::Set("disable_chat_themes", enabled);
-		controller->session().data().cloudThemes().refreshChatThemes();
-		::Kotato::JsonSettings::Write();
-	}, container->lifetime());
+	SettingsMenuJsonSwitch(ktg_disable_chat_themes, disable_chat_themes);
 
 	container->add(object_ptr<Button>(
 		container,
@@ -357,7 +341,25 @@ void SetupKotatoChats(
 	Ui::AddDividerText(container, rktr("ktg_settings_view_profile_on_top_about"));
 	Ui::AddSkip(container);
 
-	SettingsMenuJsonSwitch(ktg_settings_emoji_sidebar, emoji_sidebar);
+	container->add(object_ptr<Button>(
+		container,
+		rktr("ktg_settings_emoji_sidebar"),
+		st::settingsButtonNoIcon
+	))->toggleOn(
+		rpl::single(::Kotato::JsonSettings::GetBool("emoji_sidebar"))
+	)->toggledValue(
+	) | rpl::filter([](bool enabled) {
+		return (enabled != ::Kotato::JsonSettings::GetBool("emoji_sidebar"));
+	}) | rpl::on_next([](bool enabled) {
+		::Kotato::JsonSettings::Set("emoji_sidebar", enabled);
+		if (!enabled
+			&& Core::App().settings().tabbedSelectorSectionEnabled()) {
+			Core::App().settings().setTabbedSelectorSectionEnabled(false);
+			Core::App().saveSettingsDelayed();
+		}
+		::Kotato::JsonSettings::Write();
+	}, container->lifetime());
+
 	SettingsMenuJsonSwitch(ktg_settings_emoji_sidebar_right_click, emoji_sidebar_right_click);
 
 	Ui::AddSkip(container);
@@ -538,7 +540,6 @@ void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container) {
 	Ui::AddSkip(container);
 	Ui::AddSubsectionTitle(container, rktr("ktg_settings_network"));
 
-
 	SettingsMenuJsonSwitch(ktg_settings_video_download_boost, video_download_boost);
 	SettingsMenuJsonSwitch(ktg_settings_telegram_sites_autologin, telegram_sites_autologin);
 
@@ -552,7 +553,6 @@ void SetupKotatoFolders(
 	Ui::AddSkip(container);
 	Ui::AddSubsectionTitle(container, rktr("ktg_settings_filters"));
 
-	SettingsMenuJsonFilterSwitch(ktg_settings_filters_only_unmuted_counter, folders/count_unmuted_only);
 	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_all, folders/hide_all_chats);
 	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_edit, folders/hide_edit_button);
 	SettingsMenuJsonFilterSwitch(ktg_settings_filters_hide_folder_names, folders/hide_names);
@@ -620,6 +620,10 @@ void SetupKotatoSystem(
 			[=] (int value) {
 				::Kotato::JsonSettings::Set("custom_app_icon", value);
 				controller->session().data().notifyUnreadBadgeChanged();
+				Core::App().enumerateWindows([](
+						not_null<Window::Controller*> window) {
+					window->widget()->updateWindowIcon();
+				});
 				::Kotato::JsonSettings::Write();
 			}, false));
 	});
@@ -667,7 +671,6 @@ void SetupKotatoOther(
 			}));
 	});
 
-	SettingsMenuJsonSwitch(ktg_settings_remember_compress_images, remember_compress_images);
 	container->add(object_ptr<Button>(
 		container,
 		rktr("ktg_settings_compress_images_default"),
@@ -683,19 +686,14 @@ void SetupKotatoOther(
 		Core::App().settings().setSendFilesWay(way);
 		Core::App().saveSettingsDelayed();
 	}, container->lifetime());
-	SettingsMenuJsonSwitch(ktg_settings_ffmpeg_multithread, ffmpeg_multithread);
 
-	Ui::AddSkip(container);
-	Ui::AddDividerText(container, rktr("ktg_settings_ffmpeg_multithread_about"));
 	Ui::AddSkip(container);
 }
 
 void KotatoTopBarOptions(const Ui::Menu::MenuCallback &addAction) {
-	const auto customSettingsFile = cWorkingDir() + "tdata/kotato-settings-custom.json";
-
 	addAction(
 		ktr("ktg_settings_show_json_settings"),
-		[=] { File::ShowInFolder(customSettingsFile); },
+		[] { File::ShowInFolder(::Kotato::JsonSettings::CustomFilePath()); },
 		&st::menuIconSettings);
 	addAction(
 		ktr("ktg_settings_restart"),

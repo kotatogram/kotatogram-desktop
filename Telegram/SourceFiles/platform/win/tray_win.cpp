@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/invoke_queued.h"
 #include "base/qt_signal_producer.h"
 #include "core/application.h"
+#include "core/version.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "storage/localstorage.h"
@@ -58,23 +59,6 @@ bool DarkTasbarValueValid/* = false*/;
 	}
 
 	return (value == 0);
-}
-
-[[nodiscard]] std::optional<bool> IsDarkTaskbar() {
-	static const auto kSystemVersion = QOperatingSystemVersion::current();
-	static const auto kDarkModeAddedVersion = QOperatingSystemVersion(
-		QOperatingSystemVersion::Windows,
-		10,
-		0,
-		18282);
-	static const auto kSupported = (kSystemVersion >= kDarkModeAddedVersion);
-	if (!kSupported) {
-		return std::nullopt;
-	} else if (!DarkTasbarValueValid) {
-		DarkTasbarValueValid = true;
-		DarkTaskbar = ReadDarkTaskbarValue();
-	}
-	return DarkTaskbar;
 }
 
 [[nodiscard]] QImage MonochromeIconFor(int size, bool darkMode) {
@@ -124,10 +108,11 @@ bool DarkTasbarValueValid/* = false*/;
 		bool supportMode,
 		bool smallIcon,
 		bool monochrome) {
-	static auto ScaledLogo = base::flat_map<int, QImage>();
-	static auto ScaledLogoNoMargin = base::flat_map<int, QImage>();
-	static auto ScaledLogoDark = base::flat_map<int, QImage>();
-	static auto ScaledLogoLight = base::flat_map<int, QImage>();
+	using Key = std::pair<int, int>; // size, custom_app_icon
+	static auto ScaledLogo = base::flat_map<Key, QImage>();
+	static auto ScaledLogoNoMargin = base::flat_map<Key, QImage>();
+	static auto ScaledLogoDark = base::flat_map<Key, QImage>();
+	static auto ScaledLogoLight = base::flat_map<Key, QImage>();
 	static auto CustomIcon = QImage(cWorkingDir() + "tdata/icon.png");
 
 	const auto darkMode = IsDarkTaskbar();
@@ -143,18 +128,19 @@ bool DarkTasbarValueValid/* = false*/;
 		const auto idx = CustomIcon.isNull()
 			? ::Kotato::JsonSettings::GetInt("custom_app_icon")
 			: 0;
-		if (const auto it = scaled.find(args.size); it != scaled.end()) {
+		const auto key = Key(args.size, idx);
+		if (const auto it = scaled.find(key); it != scaled.end()) {
 			return it->second;
 		} else if (monochrome && darkMode) {
 			return MonochromeIconFor(args.size, *darkMode);
 		}
 		return scaled.emplace(
-			args.size + idx,
+			key,
 			!CustomIcon.isNull()
 				? CustomIcon.scaledToWidth(args.size, Qt::SmoothTransformation)
 				: (smallIcon
-					? Window::LogoNoMargin(::Kotato::JsonSettings::GetInt("custom_app_icon"))
-					: Window::Logo(::Kotato::JsonSettings::GetInt("custom_app_icon"))
+					? Window::LogoNoMargin(idx)
+					: Window::Logo(idx)
 				).scaledToWidth(args.size, Qt::SmoothTransformation)
 		).first->second;
 	}();
@@ -451,6 +437,23 @@ QString Tray::QuitJumpListIconPath() {
 
 bool HasMonochromeSetting() {
 	return IsDarkTaskbar().has_value();
+}
+
+std::optional<bool> IsDarkTaskbar() {
+	static const auto kSystemVersion = QOperatingSystemVersion::current();
+	static const auto kDarkModeAddedVersion = QOperatingSystemVersion(
+		QOperatingSystemVersion::Windows,
+		10,
+		0,
+		18282);
+	static const auto kSupported = (kSystemVersion >= kDarkModeAddedVersion);
+	if (!kSupported) {
+		return std::nullopt;
+	} else if (!DarkTasbarValueValid) {
+		DarkTasbarValueValid = true;
+		DarkTaskbar = ReadDarkTaskbarValue();
+	}
+	return DarkTaskbar;
 }
 
 void RefreshTaskbarThemeValue() {

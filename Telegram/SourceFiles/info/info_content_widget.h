@@ -10,11 +10,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/info_flexible_scroll.h"
 #include "info/info_wrap_widget.h"
 #include "info/statistics/info_statistics_tag.h"
+#include "ui/controls/swipe_handler.h"
 #include "ui/controls/swipe_handler_data.h"
 
 namespace Api {
 struct WhoReadList;
 } // namespace Api
+
+namespace Data {
+class SavedMessages;
+} // namespace Data
 
 namespace Dialogs::Stories {
 struct Content;
@@ -111,12 +116,6 @@ public:
 	virtual void enableBackButton() {
 	}
 
-	// When resizing the widget with top edge moved up or down and we
-	// want to add this top movement to the scroll position, so inner
-	// content will not move.
-	void setGeometryWithTopMoved(
-		const QRect &newGeometry,
-		int topDelta);
 	void applyAdditionalScroll(int additionalScroll);
 	void applyMaxVisibleHeight(int maxVisibleHeight);
 	int scrollTillBottom(int forHeight) const;
@@ -134,6 +133,10 @@ public:
 	}
 	virtual void fillTopBarMenu(const Ui::Menu::MenuCallback &addAction);
 
+	[[nodiscard]] virtual rpl::producer<> topBarMenuFilledChanges() const {
+		return rpl::never<>();
+	}
+
 	[[nodiscard]] virtual bool closeByOutsideClick() const {
 		return true;
 	}
@@ -141,6 +144,11 @@ public:
 		close();
 	}
 	virtual void checkBeforeCloseByEscape(Fn<void()> close);
+	[[nodiscard]] virtual bool searchAvailable() const {
+		return false;
+	}
+	virtual void showSearch() {
+	}
 	[[nodiscard]] virtual rpl::producer<QString> title() = 0;
 	[[nodiscard]] virtual rpl::producer<QString> subtitle() {
 		return nullptr;
@@ -151,6 +159,10 @@ public:
 	virtual void saveChanges(FnMut<void()> done);
 	[[nodiscard]] virtual SendMenu::Details sendMenuDetails() const;
 	virtual bool processChosenSticker(ChatHelpers::FileChosen &&chosen);
+	virtual bool processZoomKey(not_null<QKeyEvent*> e) {
+		return false;
+	}
+	bool processScrollKey(not_null<QKeyEvent*> e);
 
 	[[nodiscard]] int scrollBottomSkip() const;
 	[[nodiscard]] rpl::producer<int> scrollBottomSkipValue() const;
@@ -158,6 +170,10 @@ public:
 		-> rpl::producer<bool>;
 
 	void replaceSwipeHandler(Ui::Controls::SwipeHandlerArgs *incompleteArgs);
+
+	using SwipeInterceptor = Fn<Ui::Controls::SwipeHandlerFinishData(
+		Ui::Controls::SwipeHandlerInitData)>;
+	void setSwipeInterceptor(SwipeInterceptor interceptor);
 
 protected:
 	template <typename Widget>
@@ -193,10 +209,18 @@ protected:
 
 	void setScrollTopSkip(int scrollTopSkip);
 	void setScrollBottomSkip(int scrollBottomSkip);
+	void setInnerTopReserve(int reserve);
+	void setupFlexibleRegularScroll(
+		not_null<Ui::RpWidget*> inner,
+		not_null<Ui::RpWidget*> pinnedToTop,
+		bool abortSnapOnExternalScroll = false);
 	int scrollTopSave() const;
 	void scrollTopRestore(int scrollTop);
 	void scrollTo(const Ui::ScrollToRequest &request);
 	[[nodiscard]] rpl::producer<int> scrollTopValue() const;
+	[[nodiscard]] int innerTopReserve() const {
+		return _innerTopReserve;
+	}
 
 	void setPaintPadding(const style::margins &padding);
 
@@ -204,6 +228,7 @@ protected:
 
 private:
 	Ui::RpWidget *doSetInnerWidget(object_ptr<Ui::RpWidget> inner);
+	void applyScrollTopRestore();
 	Ui::RpWidget *doSetupFlexibleInnerWidget(
 		object_ptr<Ui::RpWidget> inner,
 		FlexibleScrollData &flexibleScroll,
@@ -227,18 +252,19 @@ private:
 	base::unique_qptr<Ui::RpWidget> _searchWrap = nullptr;
 	QPointer<Ui::InputField> _searchField;
 	int _innerDesiredHeight = 0;
+	int _innerTopReserve = 0;
 	int _additionalScroll = 0;
 	int _addedHeight = 0;
 	int _maxVisibleHeight = 0;
+	std::optional<int> _scrollTopRestore;
+	bool _applyingScrollTopRestore = false;
 	bool _isStackBottom = false;
-
-	// Saving here topDelta in setGeometryWithTopMoved() to get it passed to resizeEvent().
-	int _topDelta = 0;
 
 	// To paint round edges from content.
 	style::margins _paintPadding;
 
 	Ui::Controls::SwipeBackResult _swipeBackData;
+	SwipeInterceptor _swipeInterceptor;
 	rpl::lifetime _swipeHandlerLifetime;
 
 };
@@ -250,6 +276,7 @@ public:
 		Data::ForumTopic *topic,
 		Data::SavedSublist *sublist,
 		PeerId migratedPeerId);
+	explicit ContentMemento(not_null<Data::SavedMessages*> savedMessages);
 	explicit ContentMemento(PeerGifts::Tag gifts);
 	explicit ContentMemento(Settings::Tag settings);
 	explicit ContentMemento(Downloads::Tag downloads);
@@ -284,6 +311,9 @@ public:
 	}
 	[[nodiscard]] Data::SavedSublist *sublist() const {
 		return _sublist;
+	}
+	[[nodiscard]] Data::SavedMessages *savedMessages() const {
+		return _savedMessages;
 	}
 	[[nodiscard]] UserData *settingsSelf() const {
 		return _settingsSelf;
@@ -368,6 +398,7 @@ private:
 	const PeerId _migratedPeerId = 0;
 	Data::ForumTopic *_topic = nullptr;
 	Data::SavedSublist *_sublist = nullptr;
+	Data::SavedMessages * const _savedMessages = nullptr;
 	UserData * const _settingsSelf = nullptr;
 	PeerData * const _storiesPeer = nullptr;
 	int _storiesAlbumId = 0;

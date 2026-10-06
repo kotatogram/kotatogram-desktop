@@ -11,7 +11,9 @@ https://github.com/kotatogram/kotatogram-desktop/blob/dev/LEGAL
 
 namespace Settings {
 
-void SetupKotatoChats(not_null<Ui::VerticalLayout*> container);
+void SetupKotatoChats(
+	not_null<Window::SessionController*> controller,
+	not_null<Ui::VerticalLayout*> container);
 void SetupKotatoMessages(not_null<Ui::VerticalLayout*> container);
 void SetupKotatoForward(not_null<Ui::VerticalLayout*> container);
 void SetupKotatoNetwork(not_null<Ui::VerticalLayout*> container);
@@ -21,7 +23,9 @@ void SetupKotatoFolders(
 void SetupKotatoSystem(
 	not_null<Window::SessionController*> controller,
 	not_null<Ui::VerticalLayout*> container);
-void SetupKotatoOther(not_null<Ui::VerticalLayout*> container);
+void SetupKotatoOther(
+	not_null<Window::SessionController*> controller,
+	not_null<Ui::VerticalLayout*> container);
 
 void KotatoTopBarOptions(const Ui::Menu::MenuCallback &addAction);
 

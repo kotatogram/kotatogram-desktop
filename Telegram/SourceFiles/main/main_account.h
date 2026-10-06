@@ -75,6 +75,7 @@ public:
 	[[nodiscard]] bool sessionExists() const;
 	[[nodiscard]] Session &session() const;
 	[[nodiscard]] Session *maybeSession() const;
+	[[nodiscard]] bool destroyingSession() const;
 	[[nodiscard]] rpl::producer<Session*> sessionValue() const;
 	[[nodiscard]] rpl::producer<Session*> sessionChanges() const;
 
@@ -117,15 +118,13 @@ public:
 		return _lifetime;
 	}
 
-	[[nodiscard]] int defaultFilterId() {
+	[[nodiscard]] FilterId defaultFilterId() const {
 		return _defaultFilterId;
 	}
-	void setDefaultFilterId(uint64 id);
-
-	[[nodiscard]] bool isCurrent(uint64 id, bool testMode);
+	void setDefaultFilterId(FilterId id);
 
 	void addToRecent(PeerId id);
-	[[nodiscard]] bool isRecent(PeerId id);
+	[[nodiscard]] bool isRecent(PeerId id) const;
 
 private:
 	static constexpr auto kDefaultSaveDelay = crl::time(1000);
@@ -174,9 +173,9 @@ private:
 	MTP::Instance::Fields _mtpFields;
 	MTP::AuthKeysList _mtpKeysToDestroy;
 	bool _loggingOut = false;
-	int _defaultFilterId = 0;
-
-	QSet<uint64> _recent;
+	bool _destroyingSession = false;
+	FilterId _defaultFilterId = 0;
+	base::flat_set<PeerId> _recent;
 
 	rpl::lifetime _lifetime;
 

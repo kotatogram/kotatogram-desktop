@@ -184,6 +184,10 @@ void Load(const QString &baseLangCode, const QString &langCode) {
 	LangChanges.fire({});
 }
 
+void Reload() {
+	Load(base::duplicate(BaseLangCode), base::duplicate(LangCode));
+}
+
 QString Translate(const QString &key, Var var1, Var var2, Var var3, Var var4) {
 	auto phrase = (CurrentValues.contains(key) && !CurrentValues.value(key).isEmpty())
 		? CurrentValues.value(key)
@@ -215,7 +219,7 @@ QString Translate(const QString &key, Var var1, Var var2, Var var3, Var var4) {
 
 QString Translate(const QString &key, float64 value, Var var1, Var var2, Var var3, Var var4) {
 	const auto shift = ::Lang::PluralShift(value);
-	return Translate(key + kPostfixes.at(shift), var1, var2, var3);
+	return Translate(key + kPostfixes.at(shift), var1, var2, var3, var4);
 }
 
 TextWithEntities TranslateWithEntities(const QString &key, EntVar var1, EntVar var2, EntVar var3, EntVar var4) {

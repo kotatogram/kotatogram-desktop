@@ -13,6 +13,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "media/view/media_view_pip.h"
 #include "storage/storage_media_prepare.h"
 
+#include <QtGui/QClipboard>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QKeyEvent>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QWheelEvent>
 
@@ -30,6 +33,7 @@ PhotoEditorContent::PhotoEditorContent(
 : RpWidget(parent)
 , _photoSize(photo->size())
 , _fixedCrop(data.fixedCrop)
+, _composeAnimated(data.composeAnimated)
 , _paint(base::make_unique_q<Paint>(
 	this,
 	modifications,
@@ -47,7 +51,7 @@ PhotoEditorContent::PhotoEditorContent(
 		result.setDevicePixelRatio(dpr);
 		return result;
 	},
-	data.fixedCrop))
+	data))
 , _crop(base::make_unique_q<Crop>(
 	this,
 	modifications,
@@ -177,6 +181,9 @@ void PhotoEditorContent::save(PhotoModifications &modifications) {
 }
 
 void PhotoEditorContent::applyMode(const PhotoEditorMode &mode) {
+	if (mode.mode != PhotoEditorMode::Mode::Paint) {
+		_paint->disarmShapeTool();
+	}
 	if (mode.mode == PhotoEditorMode::Mode::Out) {
 		if (mode.action == PhotoEditorMode::Action::Discard) {
 			_paint->restoreScene();
@@ -214,8 +221,34 @@ void PhotoEditorContent::createTextItem() {
 	_paint->createTextItem();
 }
 
+void PhotoEditorContent::createShapeItem(
+		ShapeType shape,
+		const Brush &brush,
+		bool fill) {
+	_paint->createShapeItem(shape, brush, fill);
+}
+
+void PhotoEditorContent::armShapeTool(
+		ShapeType shape,
+		const Brush &brush,
+		bool fill) {
+	_paint->armShapeTool(shape, brush, fill);
+}
+
+void PhotoEditorContent::disarmShapeTool() {
+	_paint->disarmShapeTool();
+}
+
+void PhotoEditorContent::applyBrushToSelectedShape(const Brush &brush) {
+	_paint->applyBrushToSelectedShape(brush);
+}
+
 void PhotoEditorContent::clearSelection() {
 	_paint->clearSelection();
+}
+
+void PhotoEditorContent::applyTextPrefs(const TextPrefs &prefs) {
+	_paint->applyTextPrefs(prefs);
 }
 
 void PhotoEditorContent::setTextColor(const QColor &color) {
@@ -230,6 +263,10 @@ rpl::producer<QColor> PhotoEditorContent::textColorRequests() const {
 	return _paint->textColorRequests();
 }
 
+rpl::producer<TextPrefs> PhotoEditorContent::textPrefsUsed() const {
+	return _paint->textPrefsUsed();
+}
+
 rpl::producer<QColor> PhotoEditorContent::textItemSelections() const {
 	return _paint->textItemSelections();
 }
@@ -242,15 +279,48 @@ rpl::producer<bool> PhotoEditorContent::textEditStates() const {
 	return _paint->textEditStates();
 }
 
-bool PhotoEditorContent::handleKeyPress(not_null<QKeyEvent*> e) const {
-	return false;
+rpl::producer<QColor> PhotoEditorContent::shapeItemSelections() const {
+	return _paint->shapeItemSelections();
+}
+
+rpl::producer<> PhotoEditorContent::shapeItemDeselections() const {
+	return _paint->shapeItemDeselections();
+}
+
+rpl::producer<bool> PhotoEditorContent::shapeToolStates() const {
+	return _paint->shapeToolStates();
+}
+
+rpl::producer<> PhotoEditorContent::paintModeRequests() const {
+	return _paintModeRequests.events();
+}
+
+bool PhotoEditorContent::handleKeyPress(not_null<QKeyEvent*> e) {
+	if (e->matches(QKeySequence::Paste)) {
+		return pasteFromClipboard();
+	}
+	return _paint->handleKeyPress(e);
+}
+
+bool PhotoEditorContent::pasteFromClipboard() {
+	const auto data = QGuiApplication::clipboard()->mimeData();
+	if (!_paint->canHandleMimeData(data)) {
+		return false;
+	}
+	addMimeData(data);
+	return true;
+}
+
+void PhotoEditorContent::addMimeData(not_null<const QMimeData*> data) {
+	if (_mode.mode != PhotoEditorMode::Mode::Paint) {
+		_paintModeRequests.fire({});
+	}
+	_paint->handleMimeData(data);
 }
 
 void PhotoEditorContent::setupDragArea() {
 	auto dragEnterFilter = [=](const QMimeData *data) {
-		return (_mode.mode == PhotoEditorMode::Mode::Paint)
-			? Storage::ValidatePhotoEditorMediaDragData(data)
-			: false;
+		return _paint->canHandleMimeData(data);
 	};
 
 	const auto areas = DragArea::SetupDragAreaToContainer(
@@ -258,11 +328,16 @@ void PhotoEditorContent::setupDragArea() {
 		std::move(dragEnterFilter),
 		nullptr,
 		nullptr,
-		[](const QMimeData *d) { return Storage::MimeDataState::Image; },
+		[=](const QMimeData *data) {
+			return _composeAnimated
+				? Storage::MimeDataState::Media
+				: Storage::MimeDataState::Image;
+		},
+		nullptr,
 		true);
 
 	areas.photo->setDroppedCallback([=](const QMimeData *data) {
-		_paint->handleMimeData(data);
+		addMimeData(data);
 	});
 }
 

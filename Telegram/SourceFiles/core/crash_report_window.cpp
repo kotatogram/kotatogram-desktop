@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/sandbox.h"
 #include "core/update_checker.h"
 #include "core/ui_integration.h"
+#include "core/version.h"
 #include "window/main_window.h"
 #include "platform/platform_specific.h"
 #include "base/zlib_help.h"
@@ -353,7 +354,10 @@ LastCrashedWindow::LastCrashedWindow(
 				QString name = list.at(i).fileName();
 				if (name.endsWith(qstr(".dmp"))) {
 					QDateTime modified = list.at(i).lastModified();
-					if (maxDump.isEmpty() || qAbs(workingModified.secsTo(modified)) < qAbs(workingModified.secsTo(maxDumpModified))) {
+					if (maxDump.isEmpty()
+						|| std::abs(workingModified.secsTo(modified))
+							< std::abs(
+								workingModified.secsTo(maxDumpModified))) {
 						maxDump = name;
 						maxDumpModified = modified;
 						maxDumpFull = list.at(i).absoluteFilePath();
@@ -361,7 +365,8 @@ LastCrashedWindow::LastCrashedWindow(
 					}
 				}
 			}
-			if (!maxDump.isEmpty() && qAbs(workingModified.secsTo(maxDumpModified)) < 10) {
+			if (!maxDump.isEmpty()
+				&& std::abs(workingModified.secsTo(maxDumpModified)) < 10) {
 				_minidumpName = maxDump;
 				_minidumpFull = maxDumpFull;
 			}
@@ -482,7 +487,7 @@ LastCrashedWindow::LastCrashedWindow(
 	connect(&_saveReport, &QPushButton::clicked, [=] { saveReport(); });
 	_getApp.setText(u"GET THE LATEST OFFICIAL VERSION OF KOTATOGRAM DESKTOP"_q);
 	connect(&_getApp, &QPushButton::clicked, [=] {
-		QDesktopServices::openUrl(u"https://kotatgram.github.io"_q);
+		QDesktopServices::openUrl(u"https://kotatogram.github.io"_q);
 	});
 
 	/*
@@ -502,7 +507,7 @@ LastCrashedWindow::LastCrashedWindow(
 }
 
 void LastCrashedWindow::saveReport() {
-	QString to = QFileDialog::getSaveFileName(0, u"Telegram Crash Report"_q, QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + u"/report.telegramcrash"_q, u"Telegram crash report (*.telegramcrash)"_q);
+	QString to = QFileDialog::getSaveFileName(0, u"Kotatogram Crash Report"_q, QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + u"/report.telegramcrash"_q, u"Kotatogram crash report (*.telegramcrash)"_q);
 	if (!to.isEmpty()) {
 		QFile file(to);
 		if (file.open(QIODevice::WriteOnly)) {

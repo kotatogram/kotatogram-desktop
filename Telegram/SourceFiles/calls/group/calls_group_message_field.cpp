@@ -33,9 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "ui/userpic_view.h"
-#include "styles/style_calls.h"
 #include "styles/style_chat_helpers.h"
-#include "styles/style_chat.h"
 #include "styles/style_media_view.h"
 
 namespace Calls::Group {
@@ -56,6 +54,7 @@ public:
 	~ReactionPanel();
 
 	[[nodiscard]] rpl::producer<Chosen> chosen() const;
+	[[nodiscard]] bool ownsInputAt(QPoint globalPosition) const;
 
 	void show();
 	void hide();
@@ -107,6 +106,19 @@ ReactionPanel::~ReactionPanel() = default;
 
 auto ReactionPanel::chosen() const -> rpl::producer<Chosen> {
 	return _chosen.events();
+}
+
+bool ReactionPanel::ownsInputAt(QPoint globalPosition) const {
+	if (_selector && _parent) {
+		const auto local = _parent->mapFromGlobal(globalPosition);
+		if (_selector->geometry().contains(local)) {
+			return true;
+		}
+	}
+	const auto local = _outer->mapFromGlobal(globalPosition);
+	return ranges::any_of(_hiding, [&](const auto &hiding) {
+		return hiding->widget.geometry().contains(local);
+	});
 }
 
 void ReactionPanel::show() {
@@ -197,8 +209,10 @@ void ReactionPanel::create() {
 				_show,
 				PremiumFeature::AnimatedEmoji);
 		} else {
-			_chosen.fire(std::move(reaction));
 			hide();
+			// Fire last: a consumer may synchronously destroy the
+			// MessageField that owns this ReactionPanel.
+			_chosen.fire(std::move(reaction));
 		}
 	}, _selector->lifetime());
 
@@ -362,6 +376,9 @@ void MessageField::createControls(PeerData *peer) {
 
 	_reactionPanel->chosen(
 	) | rpl::on_next([=](Chosen reaction) {
+		// Nothing may touch `this` after the fire below: a consumer of
+		// _submitted destroys this MessageField synchronously when
+		// animations are disabled. ReactionPanel hides itself first.
 		if (const auto customId = reaction.id.custom()) {
 			const auto document = _show->session().data().document(customId);
 			if (const auto sticker = document->sticker()) {
@@ -375,7 +392,6 @@ void MessageField::createControls(PeerData *peer) {
 		} else {
 			_submitted.fire({ reaction.id.emoji() });
 		}
-		_reactionPanel->hide();
 	}, _field->lifetime());
 
 	const auto show = _show;
@@ -609,6 +625,11 @@ void MessageField::raise() {
 	if (_emojiPanel) {
 		_emojiPanel->raise();
 	}
+}
+
+bool MessageField::ownsReactionPanelInput(QPoint globalPosition) const {
+	return _reactionPanel
+		&& _reactionPanel->ownsInputAt(globalPosition);
 }
 
 void MessageField::updateWrapSize(int widthOverride) {

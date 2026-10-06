@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+class PeerData;
+
 namespace ChatHelpers {
 class Show;
 } // namespace ChatHelpers
@@ -40,6 +42,8 @@ enum class ChatAdminRight {
 	ManageDirect = (1 << 17),
 	ManageRanks = (1 << 18),
 	ProcessJoinRequests = (1 << 19),
+	ManageLinkedPeers = (1 << 20),
+	ManageWelcomeMessages = (1 << 21),
 };
 inline constexpr bool is_flag_type(ChatAdminRight) { return true; }
 using ChatAdminRights = base::flags<ChatAdminRight>;
@@ -68,6 +72,7 @@ enum class ChatRestriction {
 	CreateTopics = (1 << 18),
 	EditRank = (1 << 26),
 	SendReactions = (1 << 27),
+	ManageLinkedPeers = (1 << 28),
 };
 inline constexpr bool is_flag_type(ChatRestriction) { return true; }
 using ChatRestrictions = base::flags<ChatRestriction>;
@@ -105,8 +110,10 @@ class Thread;
 struct AdminRightsSetOptions {
 	bool isGroup : 1 = false;
 	bool isForum : 1 = false;
+	bool isCommunity : 1 = false;
 	bool anyoneCanAddMembers : 1 = false;
 	bool canProcessJoinRequests : 1 = false;
+	bool isBot : 1 = false;
 };
 
 struct RestrictionsSetOptions {
@@ -268,11 +275,13 @@ bool ShowSendError(
 	not_null<PeerData*> peer,
 	const Ui::PreparedList &list,
 	std::optional<bool> compress,
-	bool ignoreSlowmodeLeft = false);
+	bool ignoreSlowmodeLeft = false,
+	bool ignoreRestrictions = false);
 bool ShowSendError(
 	std::shared_ptr<ChatHelpers::Show> show,
 	not_null<PeerData*> peer,
 	const Ui::PreparedBundle &bundle,
-	bool ignoreSlowmodeLeft = false);
+	bool ignoreSlowmodeLeft = false,
+	bool ignoreRestrictions = false);
 
 } // namespace Data

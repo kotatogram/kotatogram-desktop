@@ -345,7 +345,7 @@ bool checkInstalled(QString path = {}) {
 		}
 	}
 
-	const auto installed = u"Kotatogram Desktop/Telegram.lnk"_q;
+	const auto installed = u"Kotatogram Desktop/Kotatogram.lnk"_q;
 	//const auto old = u"Telegram Win (Unofficial)/Telegram.lnk"_q;
 	return validateShortcutAt(path + installed);
 	//	|| validateShortcutAt(path + old);

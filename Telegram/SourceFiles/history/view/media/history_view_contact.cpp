@@ -33,7 +33,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_session_controller.h"
 #include "styles/style_boxes.h"
 #include "styles/style_chat.h"
-#include "styles/style_layers.h"
 
 namespace HistoryView {
 namespace {
@@ -216,12 +215,7 @@ Contact::Contact(
 
 	_nameLine.setText(
 		st::webPageTitleStyle,
-		tr::lng_full_name(
-			tr::now,
-			lt_first_name,
-			data.firstName,
-			lt_last_name,
-			data.lastName).trimmed(),
+		langFullName(data.firstName, data.lastName),
 		Ui::WebpageTextTitleOptions());
 
 	_phoneLine.setText(
@@ -424,10 +418,22 @@ void Contact::draw(Painter &p, const PaintContext &context) const {
 					history()->owner().registerHeavyViewPart(_parent);
 				}
 			} else {
-				_photoEmpty->paintCircle(p, left, top, _pixh, _pixh);
+				Kotato::PaintEmptyUserpic(
+					*_photoEmpty,
+					p,
+					left,
+					top,
+					_pixh,
+					_pixh);
 			}
 		} else {
-			_photoEmpty->paintCircle(p, left, top, _pixh, _pixh);
+			Kotato::PaintEmptyUserpic(
+				*_photoEmpty,
+				p,
+				left,
+				top,
+				_pixh,
+				_pixh);
 		}
 		if (context.selected()) {
 			auto hq = PainterHighQualityEnabler(p);

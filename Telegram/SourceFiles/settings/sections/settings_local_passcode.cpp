@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_local_passcode.h"
 
+#include "kotato/kotato_lang.h"
 #include "base/platform/base_platform_last_input.h"
 #include "base/platform/base_platform_info.h"
 #include "base/system_unlock.h"
@@ -155,51 +156,27 @@ void LocalPasscodeEnter::setupContent() {
 
 	addDescription(tr::lng_passcode_about1());
 	Ui::AddSkip(content);
-	addDescription(tr::lng_passcode_about2());
+	addDescription(rktr("ktg_passcode_about2"));
 
 	Ui::AddSkip(content, st::settingLocalPasscodeDescriptionBottomSkip);
 
-	const auto addField = [&](rpl::producer<QString> &&text) {
-		const auto &st = st::settingLocalPasscodeInputField;
-		auto container = object_ptr<Ui::RpWidget>(content);
-		container->resize(container->width(), st.heightMin);
-		const auto field = Ui::CreateChild<Ui::PasswordInput>(
-			container.data(),
-			st,
-			std::move(text));
-
-		container->geometryValue(
-		) | rpl::on_next([=](const QRect &r) {
-			field->moveToLeft((r.width() - field->width()) / 2, 0);
-		}, container->lifetime());
-
-		content->add(std::move(container));
-		return field;
-	};
-
-	const auto addError = [&](not_null<Ui::PasswordInput*> input) {
-		const auto error = content->add(
-			object_ptr<Ui::FlatLabel>(
-				content,
-				tr::lng_language_name(tr::now),
-				st::settingLocalPasscodeError),
-			st::changePhoneDescriptionPadding,
-			style::al_top);
-		error->hide();
-		QObject::connect(input.get(), &Ui::MaskedInputField::changed, [=] {
-			error->hide();
-		});
-		return error;
-	};
-
-	const auto newPasscode = addField(isCreate
-		? tr::lng_passcode_enter_first()
-		: tr::lng_passcode_enter());
+	const auto newPasscode = CloudPassword::AddPasswordField(
+		content,
+		isCreate
+			? tr::lng_passcode_enter_first()
+			: tr::lng_passcode_enter(),
+		QString());
 
 	const auto reenterPasscode = isCheck
 		? (Ui::PasswordInput*)(nullptr)
-		: addField(tr::lng_passcode_confirm_new());
-	const auto error = addError(isCheck ? newPasscode : reenterPasscode);
+		: CloudPassword::AddPasswordField(
+			content,
+			tr::lng_passcode_confirm_new(),
+			QString()).get();
+	const auto error = CloudPassword::AddError(
+		content,
+		isCheck ? newPasscode.get() : reenterPasscode);
+	error->setText(tr::lng_language_name(tr::now));
 
 	const auto button = content->add(
 		object_ptr<Ui::RoundButton>(
@@ -465,7 +442,7 @@ void BuildManageContent(SectionBuilder &builder) {
 					ctx.container,
 					rpl::combine(
 						tr::lng_passcode_about1(),
-						tr::lng_passcode_about3()
+						rktr("ktg_passcode_about3")
 					) | rpl::map([](const QString &s1, const QString &s2) {
 						return s1 + "\n\n" + s2;
 					}),
@@ -549,12 +526,12 @@ void BuildManageContent(SectionBuilder &builder) {
 			Ui::AddDividerText(
 				systemUnlockContent,
 				(Platform::IsWindows()
-					? tr::lng_settings_use_winhello_about()
+					? rktr("ktg_settings_use_winhello_about")
 					: (type == UnlockType::Biometrics)
-					? tr::lng_settings_use_touchid_about()
+					? rktr("ktg_settings_use_touchid_about")
 					: (type == UnlockType::Companion)
-					? tr::lng_settings_use_applewatch_about()
-					: tr::lng_settings_use_systempwd_about()));
+					? rktr("ktg_settings_use_applewatch_about")
+					: rktr("ktg_settings_use_systempwd_about")));
 
 		}, systemUnlockContent->lifetime());
 

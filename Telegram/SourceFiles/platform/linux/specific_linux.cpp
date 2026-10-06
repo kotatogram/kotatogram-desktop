@@ -11,21 +11,20 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/random.h"
 #include "base/platform/base_platform_info.h"
 #include "base/platform/linux/base_linux_dbus_utilities.h"
+#include "base/platform/linux/base_linux_xcb_utilities.h"
 #include "base/platform/linux/base_linux_xdp_utilities.h"
 #include "base/platform/linux/base_linux_app_launch_context.h"
+#include "base/platform/base_platform_process.h"
 #include "lang/lang_keys.h"
 #include "kotato/kotato_lang.h"
 #include "core/launcher.h"
 #include "core/sandbox.h"
 #include "core/application.h"
 #include "core/update_checker.h"
+#include "core/version.h"
 #include "data/data_location.h"
 #include "window/window_controller.h"
 #include "webview/platform/linux/webview_linux_webkitgtk.h"
-
-#ifndef DESKTOP_APP_DISABLE_X11_INTEGRATION
-#include "base/platform/linux/base_linux_xcb_utilities.h"
-#endif // !DESKTOP_APP_DISABLE_X11_INTEGRATION
 
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QSystemTrayIcon>
@@ -662,13 +661,11 @@ bool TrayIconSupported() {
 }
 
 bool SkipTaskbarSupported() {
-#ifndef DESKTOP_APP_DISABLE_X11_INTEGRATION
 	if (IsX11()) {
 		return base::Platform::XCB::IsSupportedByWM(
 			base::Platform::XCB::Connection(),
 			"_NET_WM_STATE_SKIP_TASKBAR");
 	}
-#endif // !DESKTOP_APP_DISABLE_X11_INTEGRATION
 
 	return false;
 }
@@ -842,6 +839,16 @@ void NewVersionLaunched(int oldVersion) {
 
 QImage DefaultApplicationIcon() {
 	return Window::Logo();
+}
+
+void ActivateThisProcess() {
+	const auto window = Core::IsAppLaunched()
+		? Core::App().activeWindow()
+		: nullptr;
+	if (window) {
+		base::Platform::ActivateThisProcessWindow(
+			window->widget()->winId());
+	}
 }
 
 QString ApplicationIconName() {

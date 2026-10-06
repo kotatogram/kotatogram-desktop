@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "kotato/kotato_settings.h"
 #include "kotato/kotato_radius.h"
 #include "api/api_premium.h"
+#include "base/call_delayed.h"
 #include "base/random.h"
 #include "lang/lang_keys.h"
 #include "base/qthelp_url.h"
@@ -27,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/slide_wrap.h"
 #include "ui/text/text_options.h"
 #include "ui/text/text_utilities.h"
+#include "ui/toast/toast.h"
 #include "ui/painter.h"
 #include "ui/ui_utility.h"
 #include "chat_helpers/message_field.h"
@@ -46,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/business/data_shortcut_messages.h"
 #include "data/data_channel.h"
 #include "data/data_chat_filters.h"
+#include "data/data_community.h"
 #include "data/data_game.h"
 #include "data/data_histories.h"
 #include "data/data_user.h"
@@ -61,10 +64,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "styles/style_calls.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
-#include "styles/style_boxes.h"
+#include "styles/style_share_box.h"
 #include "styles/style_info.h"
-#include "styles/style_menu_icons.h"
 #include "styles/style_media_player.h"
 
 #include <QtGui/QGuiApplication>
@@ -199,6 +202,7 @@ private:
 	void changeCheckState(Chat *chat);
 	void chooseForumTopic(not_null<Data::Forum*> forum);
 	void chooseMonoforumSublist(not_null<Data::SavedMessages*> monoforum);
+	void chooseCommunityChat(not_null<Data::CommunityInfo*> community);
 	enum class ChangeStateWay {
 		Default,
 		SkipCallback,
@@ -343,7 +347,12 @@ void ShareBox::prepare() {
 		? tr::lng_share_title()
 		: tr::lng_selected_forward());
 
-	const auto forwardOptions = [] {
+	// Non-default options come from an existing forward draft.
+	const auto forwardOptions = [&] {
+		if (_descriptor.forwardOptions.options
+			!= Data::ForwardOptions::PreserveInfo) {
+			return _descriptor.forwardOptions.options;
+		}
 		switch (::Kotato::JsonSettings::GetInt("forward_mode")) {
 			case 1: return Data::ForwardOptions::NoSenderNames;
 			case 2: return Data::ForwardOptions::NoNamesAndCaptions;
@@ -351,7 +360,11 @@ void ShareBox::prepare() {
 		}
 	}();
 
-	const auto groupOptions = [] {
+	const auto groupOptions = [&] {
+		if (_descriptor.forwardOptions.groupOptions
+			!= Data::GroupingOptions::GroupAsIs) {
+			return _descriptor.forwardOptions.groupOptions;
+		}
 		switch (::Kotato::JsonSettings::GetInt("forward_grouping_mode")) {
 			case 1: return Data::GroupingOptions::RegroupAll;
 			case 2: return Data::GroupingOptions::Separate;
@@ -563,7 +576,7 @@ void ShareBox::peopleDone(
 	if (_peopleRequest == requestId) {
 		switch (result.type()) {
 		case mtpc_contacts_found: {
-			auto &found = result.c_contacts_found();
+			const auto &found = result.c_contacts_found();
 			_descriptor.session->data().processUsers(found.vusers());
 			_descriptor.session->data().processChats(found.vchats());
 			_inner->peopleReceived(
@@ -614,7 +627,9 @@ void ShareBox::keyPressEvent(QKeyEvent *e) {
 			_inner->activateSkipPage(contentHeight(), -1);
 		} else if (e->key() == Qt::Key_PageDown) {
 			_inner->activateSkipPage(contentHeight(), 1);
-		} else if (e->key() == Qt::Key_Escape && !_select->getQuery().isEmpty()) {
+		} else if (e->key() == Qt::Key_Escape
+			&& !_select->getQuery().isEmpty()) {
+			// The query is kept after selection, so clear it first.
 			_select->clearQuery();
 		} else {
 			BoxContent::keyPressEvent(e);
@@ -690,7 +705,7 @@ void ShareBox::showMenu(not_null<Ui::RpWidget*> parent) {
 
 void ShareBox::createButtons() {
 	clearButtons();
-	if (!_descriptor.forwardOptions.isShare && _descriptor.forwardOptions.show) {
+	if (_descriptor.forwardOptions.show) {
 		const auto moreButton = addTopButton(st::infoTopBarMenu);
 		moreButton->setClickedCallback([=] { showForwardMenu(moreButton.data()); });
 	}
@@ -877,7 +892,7 @@ bool ShareBox::showForwardMenu(not_null<Ui::IconButton*> button) {
 }
 
 void ShareBox::updateAdditionalTitle() {
-	if (!_descriptor.forwardOptions.show || _descriptor.forwardOptions.isShare) {
+	if (!_descriptor.forwardOptions.show) {
 		return;
 	}
 
@@ -950,7 +965,6 @@ void ShareBox::innerSelectedChanged(
 		bool checked) {
 	if (checked) {
 		addPeerToMultiSelect(thread);
-		//_select->clearQuery();
 	} else {
 		_select->removeItem(thread->peer()->id.value);
 	}
@@ -1148,6 +1162,7 @@ ShareBox::Inner::Inner(
 			if (const auto history = row->history()) {
 				if (!history->peer->isSelf()
 					&& (history->asForum()
+						|| JoinedCommunityChats(history->peer)
 						|| _descriptor.filterCallback(history))) {
 					_defaultChatsIndexed->addToEnd(history);
 				}
@@ -1310,7 +1325,12 @@ void ShareBox::Inner::repaintChatAtIndex(int index) {
 
 	auto row = index / _columnCount;
 	auto column = index % _columnCount;
-	update(style::rtlrect(_rowsLeft + qFloor(column * _rowWidthReal), row * _rowHeight, _rowWidth, _rowHeight, width()));
+	update(style::rtlrect(
+		_rowsLeft + int(std::floor(column * _rowWidthReal)),
+		row * _rowHeight,
+		_rowWidth,
+		_rowHeight,
+		width()));
 }
 
 ShareBox::Inner::Chat *ShareBox::Inner::getChatAtIndex(int index) {
@@ -1483,7 +1503,8 @@ void ShareBox::Inner::paintChat(
 		Painter &p,
 		not_null<Chat*> chat,
 		int index) {
-	auto x = _rowsLeft + qFloor((index % _columnCount) * _rowWidthReal);
+	auto x = _rowsLeft
+		+ int(std::floor((index % _columnCount) * _rowWidthReal));
 	auto y = _rowsTop + (index / _columnCount) * _rowHeight;
 
 	auto outerWidth = width();
@@ -1522,9 +1543,13 @@ ShareBox::Inner::Chat::Chat(
 	st.checkbox,
 	updateCallback,
 	PaintUserpicCallback(peer, true),
-	[=](int size) { return std::optional<int>(int(size
-		* Kotato::UserpicRadius(
-			peer->isForum() || peer->isMonoforum()))); })
+	[=](int size) {
+		const auto channel = peer->asChannel();
+		return std::optional<int>(int(size
+			* Kotato::UserpicRadius(peer->isForum()
+				|| peer->isMonoforum()
+				|| (channel && channel->isCommunity()))));
+	})
 , name(st.checkbox.imageRadius * 2) {
 }
 
@@ -1615,14 +1640,16 @@ void ShareBox::Inner::mouseMoveEvent(QMouseEvent *e) {
 void ShareBox::Inner::updateUpon(const QPoint &pos) {
 	auto x = pos.x(), y = pos.y();
 	auto row = (y - _rowsTop) / _rowHeight;
-	auto column = qFloor((x - _rowsLeft) / _rowWidthReal);
+	auto column = int(std::floor((x - _rowsLeft) / _rowWidthReal));
 
 	if (column < 0 || column >= _columnCount) {
 		_upon = -1;
 		return;
 	}
 
-	auto left = _rowsLeft + qFloor(column * _rowWidthReal) + st::shareColumnSkip / 2;
+	auto left = _rowsLeft
+		+ int(std::floor(column * _rowWidthReal))
+		+ st::shareColumnSkip / 2;
 	auto top = _rowsTop + row * _rowHeight + st::sharePhotoTop;
 	auto xupon = (x >= left) && (x < left + (_rowWidth - st::shareColumnSkip));
 	auto yupon = (y >= top) && (y < top + _st.item.checkbox.imageRadius * 2 + st::shareNameTop + _st.item.nameStyle.font->height * 2);
@@ -1671,8 +1698,8 @@ void ShareBox::Inner::selectionMade() {
 void ShareBox::Inner::resizeEvent(QResizeEvent *e) {
 	_columnSkip = (width() - _columnCount * _st.item.checkbox.imageRadius * 2) / float64(_columnCount + 1);
 	_rowWidthReal = _st.item.checkbox.imageRadius * 2 + _columnSkip;
-	_rowsLeft = qFloor(_columnSkip / 2);
-	_rowWidth = qFloor(_rowWidthReal);
+	_rowsLeft = int(std::floor(_columnSkip / 2));
+	_rowWidth = int(std::floor(_rowWidthReal));
 	update();
 }
 
@@ -1694,12 +1721,15 @@ void ShareBox::Inner::changeCheckState(Chat *chat) {
 	const auto checked = chat->checkbox.checked();
 	const auto forum = chat->peer->forum();
 	const auto monoforum = chat->peer->monoforum();
-	if (checked || (!forum && !monoforum)) {
+	const auto community = JoinedCommunityChats(chat->peer);
+	if (checked || (!forum && !monoforum && !community)) {
 		changePeerCheckState(chat, !checked);
 	} else if (forum) {
 		chooseForumTopic(forum);
 	} else if (monoforum) {
 		chooseMonoforumSublist(monoforum);
+	} else if (community) {
+		chooseCommunityChat(community);
 	}
 }
 
@@ -1793,6 +1823,66 @@ void ShareBox::Inner::chooseMonoforumSublist(
 	auto box = Box<PeerListBox>(
 		std::make_unique<ChooseSublistBoxController>(
 			monoforum,
+			std::move(chosen),
+			std::move(filter)),
+		std::move(initBox));
+	*weak = box.data();
+	_show->showBox(std::move(box));
+}
+
+void ShareBox::Inner::chooseCommunityChat(
+		not_null<Data::CommunityInfo*> community) {
+	const auto guard = base::make_weak(this);
+	const auto weak = std::make_shared<base::weak_qptr<Ui::BoxContent>>();
+	auto chosen = [=](not_null<Data::Thread*> thread) {
+		if (const auto strong = *weak) {
+			strong->closeBox();
+		}
+		if (!guard) {
+			return;
+		}
+		const auto history = thread->owningHistory();
+		auto row = _chatsIndexed->getRow(history);
+		if (!row) {
+			row = _chatsIndexed->addToEnd(history).main;
+		}
+		const auto chat = getChat(row);
+		if (chat->checkbox.checked()) {
+			changePeerCheckState(chat, false);
+		}
+		_chatsIndexed->moveToTop(history);
+		refresh();
+		if (const auto topic = thread->asTopic()) {
+			chat->topic = topic;
+			chat->topic->destroyed(
+			) | rpl::on_next([=] {
+				changePeerCheckState(chat, false);
+			}, chat->topicLifetime);
+		}
+		updateChatName(chat);
+		changePeerCheckState(chat, true);
+	};
+	auto initBox = [=](not_null<PeerListBox*> box) {
+		box->addButton(tr::lng_cancel(), [=] {
+			box->closeBox();
+		});
+
+		community->channel()->flagsValue(
+		) | rpl::filter([=](const ChannelData::Flags::Change &update) {
+			using Flag = ChannelData::Flag;
+			return (update.diff & Flag::Community)
+				&& !(update.value & Flag::Community);
+		}) | rpl::on_next([=] {
+			box->closeBox();
+		}, box->lifetime());
+	};
+	auto filter = [=](not_null<Data::Thread*> thread) {
+		return guard
+			&& (thread->asForum() || _descriptor.filterCallback(thread));
+	};
+	auto box = Box<PeerListBox>(
+		std::make_unique<ChooseCommunityChatBoxController>(
+			community,
 			std::move(chosen),
 			std::move(filter)),
 		std::move(initBox));
@@ -1908,6 +1998,7 @@ void ShareBox::Inner::applyChatFilter(FilterId id) {
 			for (const auto &row : list->all()) {
 				if (const auto history = row->history()) {
 					if (history->asForum()
+							|| JoinedCommunityChats(history->peer)
 							|| _descriptor.filterCallback(history)) {
 						_customChatsIndexed->addToEnd(history);
 					}
@@ -1938,6 +2029,7 @@ void ShareBox::Inner::peopleReceived(
 				const auto history = _descriptor.session->data().history(
 					peer);
 				if (!history->asForum()
+					&& !JoinedCommunityChats(peer)
 					&& !_descriptor.filterCallback(history)) {
 					continue;
 				} else if (history && _chatsIndexed->getRow(history)) {
@@ -2006,6 +2098,29 @@ ChatHelpers::ForwardedMessagePhraseArgs CreateForwardedMessagePhraseArgs(
 	};
 }
 
+void ShowForwardedMessageToast(
+		std::shared_ptr<Ui::Show> show,
+		not_null<Main::Session*> session,
+		ChatHelpers::ForwardedMessagePhraseArgs args) {
+	const auto phrase = rpl::variable<TextWithEntities>(
+		ChatHelpers::ForwardedMessagePhrase(args)).current();
+	if (phrase.empty()) {
+		return;
+	}
+	const auto icon = ChatHelpers::ForwardedMessagePhraseIcon(args);
+	base::call_delayed(st::boxDuration, session, [=] {
+		if (!show->valid()) {
+			return;
+		}
+		show->showToast({
+			.text = phrase,
+			.filter = ChatHelpers::ForwardedToSavedMessagesFilter(session),
+			.iconLottie = icon,
+			.iconLottieSize = st::toastLottieIconSize,
+		});
+	});
+}
+
 ShareBox::CountMessagesCallback ShareBox::DefaultForwardCountMessages(
 		not_null<History*> history,
 		MessageIdsList msgIds) {
@@ -2020,24 +2135,10 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 		not_null<History*> history,
 		MessageIdsList msgIds,
 		std::optional<TimeId> videoTimestamp) {
-	return [=](
-			std::vector<not_null<Data::Thread*>> &&result,
-			Fn<bool()> checkPaid,
-			TextWithTags &&comment,
-			Api::SendOptions options,
-			Data::ForwardOptions forwardOptions,
-			Data::GroupingOptions groupingOptions) {
-		const auto window = history->session().tryResolveWindow();
-		if (window) {
-			Window::ShowForwardMessagesBox(
-				window,
-				Data::ForwardDraft{ msgIds, forwardOptions, groupingOptions });
-		}
-	};
-	/*
 	struct State final {
 		base::flat_set<mtpRequestId> requests;
 		mtpRequestId nextRequestKey = 0;
+		bool failed = false;
 	};
 	const auto state = std::make_shared<State>();
 	return [=](
@@ -2045,10 +2146,12 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 			Fn<bool()> checkPaid,
 			TextWithTags comment,
 			Api::SendOptions options,
-			Data::ForwardOptions forwardOptions) {
+			Data::ForwardOptions forwardOptions,
+			Data::GroupingOptions) {
 		if (!state->requests.empty()) {
 			return; // Share clicked already.
 		}
+		state->failed = false;
 
 		const auto items = history->owner().idsToItems(msgIds);
 		const auto existingIds = history->owner().itemsToIds(items);
@@ -2088,10 +2191,9 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 			| (videoTimestamp.has_value()
 				? Flag::f_video_timestamp
 				: Flag(0));
-		auto mtpMsgIds = QVector<MTPint>();
-		mtpMsgIds.reserve(existingIds.size());
-		for (const auto &fullId : existingIds) {
-			mtpMsgIds.push_back(MTP_int(fullId.msg));
+		const auto ranges = CollectForwardRanges(items);
+		if (ranges.empty()) {
+			return;
 		}
 		auto &api = history->session().api();
 		auto &histories = history->owner().histories();
@@ -2131,66 +2233,6 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 				? nullptr
 				: thread->maybeSublistPeer();
 			const auto fromPeer = history->peer;
-			const auto msgCount = int(existingIds.size());
-			const auto starsPaid = std::min(
-				peer->starsPerMessageChecked(),
-				options.starsApproved);
-			if (starsPaid) {
-				options.starsApproved -= starsPaid;
-			}
-			const auto sendFlags = commonSendFlags
-				| (ShouldSendSilent(peer, options)
-					? Flag::f_silent
-					: Flag(0))
-				| (options.shortcutId
-					? Flag::f_quick_reply_shortcut
-					: Flag(0))
-				| (starsPaid ? Flag::f_allow_paid_stars : Flag())
-				| (sublistPeer ? Flag::f_reply_to : Flag())
-				| (options.suggest ? Flag::f_suggested_post : Flag())
-				| (options.effectId ? Flag::f_effect : Flag());
-			auto buildMessage = [=](
-					not_null<History*> history,
-					FullReplyTo replyTo)
-				-> Data::Histories::PreparedMessage {
-				const auto kGeneralId
-					= Data::ForumTopic::kGeneralId;
-				const auto realTopMsgId
-					= (replyTo.topicRootId == kGeneralId)
-					? MsgId(0)
-					: replyTo.topicRootId;
-				auto flags = sendFlags;
-				if (realTopMsgId) {
-					flags |= Flag::f_top_msg_id;
-				} else {
-					flags &= ~Flag::f_top_msg_id;
-				}
-				auto randoms = QVector<MTPlong>(msgCount);
-				for (auto &value : randoms) {
-					value = base::RandomValue<MTPlong>();
-				}
-				return MTPmessages_ForwardMessages(
-					MTP_flags(flags),
-					fromPeer->input(),
-					MTP_vector<MTPint>(mtpMsgIds),
-					MTP_vector<MTPlong>(randoms),
-					history->peer->input(),
-					MTP_int(realTopMsgId),
-					(sublistPeer
-						? MTP_inputReplyToMonoForum(
-							sublistPeer->input())
-						: MTPInputReplyTo()),
-					MTP_int(options.scheduled),
-					MTP_int(options.scheduleRepeatPeriod),
-					MTP_inputPeerEmpty(),
-					Data::ShortcutIdToMTP(
-						&history->session(),
-						options.shortcutId),
-					MTP_long(options.effectId),
-					MTP_int(videoTimestamp.value_or(0)),
-					MTP_long(starsPaid),
-					Api::SuggestToMTP(options.suggest));
-			};
 			const auto requestDone = [=](
 					const MTPUpdates &updates,
 					mtpRequestId requestKey) {
@@ -2204,25 +2246,20 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 				state->requests.remove(requestKey);
 				if (state->requests.empty()) {
 					if (show->valid()) {
-						auto phrase = rpl::variable<
-							TextWithEntities>(
-							ChatHelpers::ForwardedMessagePhrase(
-								donePhraseArgs)).current();
-						if (!phrase.empty()) {
-							show->showToast({
-								.text = std::move(phrase),
-								.filter = ChatHelpers
-									::ForwardedToSavedMessagesFilter(
-										&history->session()),
-							});
-						}
 						show->hideLayer();
+						if (!state->failed) {
+							ShowForwardedMessageToast(
+								show,
+								&history->session(),
+								donePhraseArgs);
+						}
 					}
 				}
 			};
 			const auto requestFail = [=](
 					const MTP::Error &error,
 					mtpRequestId requestKey) {
+				state->failed = true;
 				const auto type = error.type();
 				if (type.startsWith(
 						u"ALLOW_PAYMENT_REQUIRED_"_q)) {
@@ -2244,40 +2281,103 @@ ShareBox::SubmitCallback ShareBox::DefaultForwardCallback(
 					}
 				}
 			};
-			const auto requestKey = ++state->nextRequestKey;
-			state->requests.insert(requestKey);
-			histories.sendPreparedMessage(
-				threadHistory,
-				FullReplyTo{ .topicRootId = topicRootId },
-				uint64(0),
-				std::move(buildMessage),
-				[=](const MTPUpdates &updates,
-						const MTP::Response &) {
-					requestDone(updates, requestKey);
-				},
-				[=](const MTP::Error &error,
-						const MTP::Response &) {
-					requestFail(error, requestKey);
-				});
+			for (const auto &range : ranges) {
+				const auto mtpMsgIds = ForwardRangeIds(
+					&history->session(),
+					range);
+				if (mtpMsgIds.isEmpty()) {
+					continue;
+				}
+				const auto msgCount = int(mtpMsgIds.size());
+				const auto starsPaid = std::min(
+					options.starsApproved,
+					msgCount * peer->starsPerMessageChecked());
+				if (starsPaid) {
+					options.starsApproved -= starsPaid;
+				}
+				const auto sendFlags = commonSendFlags
+					| (ShouldSendSilent(peer, options)
+						? Flag::f_silent
+						: Flag(0))
+					| (options.shortcutId
+						? Flag::f_quick_reply_shortcut
+						: Flag(0))
+					| (starsPaid ? Flag::f_allow_paid_stars : Flag())
+					| (sublistPeer ? Flag::f_reply_to : Flag())
+					| (options.suggest ? Flag::f_suggested_post : Flag())
+					| (options.effectId ? Flag::f_effect : Flag())
+					| (range.fromEphemeral
+						? Flag::f_from_ephemeral
+						: Flag(0));
+				auto buildMessage = [=](
+						not_null<History*> history,
+						FullReplyTo replyTo)
+					-> Data::Histories::PreparedMessage {
+					const auto kGeneralId
+						= Data::ForumTopic::kGeneralId;
+					const auto realTopMsgId
+						= (replyTo.topicRootId == kGeneralId)
+						? MsgId(0)
+						: replyTo.topicRootId;
+					auto flags = sendFlags;
+					if (realTopMsgId) {
+						flags |= Flag::f_top_msg_id;
+					} else {
+						flags &= ~Flag::f_top_msg_id;
+					}
+					auto randoms = QVector<MTPlong>(msgCount);
+					for (auto &value : randoms) {
+						value = base::RandomValue<MTPlong>();
+					}
+					return MTPmessages_ForwardMessages(
+						MTP_flags(flags),
+						fromPeer->input(),
+						MTP_vector<MTPint>(mtpMsgIds),
+						MTP_vector<MTPlong>(randoms),
+						history->peer->input(),
+						MTP_int(realTopMsgId),
+						(sublistPeer
+							? MTP_inputReplyToMonoForum(
+								sublistPeer->input())
+							: MTPInputReplyTo()),
+						MTP_int(options.scheduled),
+						MTP_int(options.scheduleRepeatPeriod),
+						MTP_inputPeerEmpty(),
+						Data::ShortcutIdToMTP(
+							&history->session(),
+							options.shortcutId),
+						MTP_long(options.effectId),
+						MTP_int(videoTimestamp.value_or(0)),
+						MTP_long(starsPaid),
+						Api::SuggestToMTP(options.suggest));
+				};
+				const auto requestKey = ++state->nextRequestKey;
+				state->requests.insert(requestKey);
+				histories.sendPreparedMessage(
+					threadHistory,
+					FullReplyTo{ .topicRootId = topicRootId },
+					uint64(0),
+					std::move(buildMessage),
+					[=](const MTPUpdates &updates,
+							const MTP::Response &) {
+						requestDone(updates, requestKey);
+					},
+					[=](const MTP::Error &error,
+							const MTP::Response &) {
+						requestFail(error, requestKey);
+					});
+			}
 		}
 		if (state->requests.empty()) {
 			if (show->valid()) {
-				auto phrase = rpl::variable<TextWithEntities>(
-					ChatHelpers::ForwardedMessagePhrase(
-						donePhraseArgs)).current();
-				if (!phrase.empty()) {
-					show->showToast({
-						.text = std::move(phrase),
-						.filter = ChatHelpers
-							::ForwardedToSavedMessagesFilter(
-								&history->session()),
-					});
-				}
 				show->hideLayer();
+				ShowForwardedMessageToast(
+					show,
+					&history->session(),
+					donePhraseArgs);
 			}
 		}
 	};
-	*/
 }
 
 ShareBoxStyleOverrides DarkShareBoxStyle() {
@@ -2309,7 +2409,7 @@ ShareBoxStyleOverrides DarkShareBoxStyle() {
 }
 
 void FastShareMessage(
-		std::shared_ptr<ChatHelpers::Show> show,
+		std::shared_ptr<Main::SessionShow> show,
 		not_null<HistoryItem*> item,
 		ShareBoxStyleOverrides st) {
 	const auto history = item->history();
@@ -2317,7 +2417,9 @@ void FastShareMessage(
 	const auto msgIds = owner->itemOrItsGroup(item);
 	Window::ShowForwardMessagesBox(
 		std::move(show),
-		Data::ForwardDraft{ .ids = msgIds });
+		Data::ForwardDraft{ .ids = msgIds },
+		nullptr,
+		st);
 #if 0
 	const auto isGame = item->getMessageBot()
 		&& item->media()
@@ -2355,8 +2457,13 @@ void FastShareMessage(
 
 					QGuiApplication::clipboard()->setText(link);
 
-					show->showToast(
-						tr::lng_share_game_link_copied(tr::now));
+					show->showToast({
+						.text = {
+							tr::lng_share_game_link_copied(tr::now),
+						},
+						.iconLottie = u"toast/voip_invite"_q,
+						.iconLottieSize = st::toastLottieIconSize,
+					});
 				}
 			}
 		}
@@ -2427,6 +2534,9 @@ void FastShareMessageToSelf(
 					.text = std::move(phrase),
 					.filter = ChatHelpers::ForwardedToSavedMessagesFilter(
 						&show->session()),
+					.iconLottie = ChatHelpers::ForwardedMessagePhraseIcon(
+						donePhraseArgs),
+					.iconLottieSize = st::toastLottieIconSize,
 				});
 			}
 		});
@@ -2454,7 +2564,11 @@ void FastShareLink(
 	const auto sending = std::make_shared<bool>();
 	auto copyCallback = [=] {
 		QGuiApplication::clipboard()->setText(url);
-		show->showToast(tr::lng_background_link_copied(tr::now));
+		show->showToast({
+			.text = { tr::lng_background_link_copied(tr::now) },
+			.iconLottie = u"toast/voip_invite"_q,
+			.iconLottieSize = st::toastLottieIconSize,
+		});
 	};
 	auto countMessagesCallback = [=](const TextWithTags &comment) {
 		return 1;

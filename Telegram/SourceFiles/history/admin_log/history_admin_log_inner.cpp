@@ -60,7 +60,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "boxes/peers/edit_participants_box.h"
-#include "ui/boxes/confirm_box.h"
 #include "data/data_changes.h"
 #include "data/data_session.h"
 #include "data/data_photo.h"
@@ -187,16 +186,23 @@ void InnerWidget::enumerateUserpics(Method method) {
 
 		// Call method on a userpic for all messages that have it and for those who are not showing it
 		// because of their attachment to the next message if they are bottom-most visible.
-		if (view->displayFromPhoto() || (view->hasFromPhoto() && itembottom >= _visibleBottom)) {
+		if (view->displayFromPhoto()
+			|| (view->hasFromPhoto()
+				&& view->isAttachedToNext()
+				&& itembottom >= _visibleBottom)) {
 			if (lowestAttachedItemTop < 0) {
 				lowestAttachedItemTop = itemtop + view->marginTop();
 			}
 			// Attach userpic to the bottom of the visible area with the same margin as the last message.
 			auto userpicMinBottomSkip = st::historyPaddingBottom + st::msgMargin.bottom();
-			auto userpicBottom = qMin(itembottom - view->marginBottom(), _visibleBottom - userpicMinBottomSkip);
+			auto userpicBottom = std::min(
+				itembottom - view->marginBottom(),
+				_visibleBottom - userpicMinBottomSkip);
 
 			// Do not let the userpic go above the attached messages pack top line.
-			userpicBottom = qMax(userpicBottom, lowestAttachedItemTop + st::msgPhotoSize);
+			userpicBottom = std::max(
+				userpicBottom,
+				lowestAttachedItemTop + st::msgPhotoSize);
 
 			// Call the template callback function that was passed
 			// and return if it finished everything it needed.
@@ -235,11 +241,14 @@ void InnerWidget::enumerateDates(Method method) {
 				lowestInOneDayItemBottom = itembottom - view->marginBottom();
 			}
 			// Attach date to the top of the visible area with the same margin as it has in service message.
-			auto dateTop = qMax(itemtop, _visibleTop) + st::msgServiceMargin.top();
+			auto dateTop = std::max(itemtop, _visibleTop)
+				+ st::msgServiceMargin.top();
 
 			// Do not let the date go below the single-day messages pack bottom line.
 			auto dateHeight = st::msgServicePadding.bottom() + st::msgServiceFont->height + st::msgServicePadding.top();
-			dateTop = qMin(dateTop, lowestInOneDayItemBottom - dateHeight);
+			dateTop = std::min(
+				dateTop,
+				lowestInOneDayItemBottom - dateHeight);
 
 			// Call the template callback function that was passed
 			// and return if it finished everything it needed.
@@ -361,7 +370,9 @@ InnerWidget::InnerWidget(
 }
 
 bool InnerWidget::myView(not_null<const HistoryView::Element*> view) const {
-	return !_items.empty() && (view->delegate().get() == this);
+	return !_beingDestroyed
+		&& !_items.empty()
+		&& (view->delegate().get() == this);
 }
 
 Main::Session &InnerWidget::session() const {
@@ -834,6 +845,12 @@ void InnerWidget::elementShowTooltip(
 	Fn<void()> hiddenCallback) {
 }
 
+void InnerWidget::elementShowHiddenSenderTooltip(
+		FullMsgId itemId,
+		const TextWithEntities &text) {
+	_controller->showToast(TextWithEntities(text));
+}
+
 bool InnerWidget::elementAnimationsPaused() {
 	return _controller->isGifPausedAtLeastFor(Window::GifPauseReason::Any);
 }
@@ -1080,7 +1097,7 @@ void InnerWidget::preloadMore(Direction direction) {
 
 		requestId = 0;
 
-		auto &results = result.c_channels_adminLogResults();
+		const auto &results = result.c_channels_adminLogResults();
 		_channel->owner().processUsers(results.vusers());
 		_channel->owner().processChats(results.vchats());
 		if (!loadedFlag) {
@@ -2392,9 +2409,9 @@ void InnerWidget::suggestRestrictParticipant(
 		}
 	}
 	const auto user = participant->asUser();
-
-	_menu->addAction(user ? tr::lng_context_restrict_user(tr::now) : tr::lng_context_remove_from_group(tr::now), [=] {
-		const auto user = participant->asUser();
+	_menu->addAction((user
+		? tr::lng_context_restrict_user(tr::now)
+		: tr::lng_context_remove_from_group(tr::now)), [=] {
 		auto editRestrictions = [=](
 				bool hasAdminRights,
 				ChatRestrictionsInfo currentRights,
@@ -2473,65 +2490,20 @@ void InnerWidget::suggestRestrictParticipant(
 		}
 	}, user ? &st::menuIconPermissions : &st::menuIconRemove);
 
-	if (user) {
-		_menu->addAction(tr::lng_context_remove_from_group(tr::now), [=] {
-			auto editRestrictions = [=](bool hasAdminRights, ChatRestrictionsInfo currentRights) {
-				const auto text = (_channel->isBroadcast()
-					? tr::lng_profile_sure_kick_channel
-					: tr::lng_profile_sure_kick)(
-						tr::now,
-						lt_user,
-						participant->name());
-				auto weakBox = std::make_shared<base::weak_qptr<Ui::BoxContent>>();
-				const auto sure = crl::guard(this, [=] {
-					restrictParticipant(
-						participant,
-						ChatRestrictionsInfo(),
-						ChannelData::KickedRestrictedRights(participant));
-					if (*weakBox) {
-						(*weakBox)->closeBox();
-					}
-				});
-				*weakBox = _controller->show(Ui::MakeConfirmBox({ text, sure }));
-			};
-			if (base::contains(_admins, user)) {
-				editRestrictions(true, ChatRestrictionsInfo());
-			} else {
-				_api.request(MTPchannels_GetParticipant(
-					_channel->inputChannel(),
-					user->input()
-				)).done([=](const MTPchannels_ChannelParticipant &result) {
-					Expects(result.type() == mtpc_channels_channelParticipant);
-
-					auto &participant = result.c_channels_channelParticipant();
-					_channel->owner().processUsers(participant.vusers());
-					auto type = participant.vparticipant().type();
-					if (type == mtpc_channelParticipantBanned) {
-						auto &banned = participant.vparticipant().c_channelParticipantBanned();
-						editRestrictions(false, ChatRestrictionsInfo(banned.vbanned_rights()));
-					} else {
-						auto hasAdminRights = (type == mtpc_channelParticipantAdmin)
-							|| (type == mtpc_channelParticipantCreator);
-						auto bannedRights = ChatRestrictionsInfo();
-						editRestrictions(hasAdminRights, bannedRights);
-					}
-				}).fail([=](const MTP::Error &error) {
-					auto bannedRights = ChatRestrictionsInfo();
-					editRestrictions(false, bannedRights);
-				}).send();
-			}
-		}, &st::menuIconRemove);
-	}
-
 	{
 		const auto lifetime = std::make_shared<rpl::lifetime>();
+		const auto weak = base::make_weak(this);
 		auto handler = [=, this] {
 			participant->session().changes().peerUpdates(
 				_channel,
 				Data::PeerUpdate::Flag::Members
-			) | rpl::on_next([=](const Data::PeerUpdate &update) {
-				_downLoaded = false;
-				preloadMore(Direction::Down);
+			) | rpl::on_next_done([=] {
+				lifetime->destroy();
+				if (const auto strong = weak.get()) {
+					strong->_downLoaded = false;
+					strong->preloadMore(Direction::Down);
+				}
+			}, [=] {
 				lifetime->destroy();
 			}, *lifetime);
 			participant->session().api().chatParticipants().kick(
@@ -3150,11 +3122,11 @@ void InnerWidget::touchUpdateSpeed() {
 			const QPoint newPixelDiff = (_touchPos - _touchPrevPos);
 			const QPoint pixelsPerSecond = newPixelDiff * (1000 / elapsed);
 
-			const int newSpeedY = (qAbs(pixelsPerSecond.y())
+			const int newSpeedY = (std::abs(pixelsPerSecond.y())
 					> Ui::kFingerAccuracyThreshold)
 				? pixelsPerSecond.y()
 				: 0;
-			const int newSpeedX = (qAbs(pixelsPerSecond.x())
+			const int newSpeedX = (std::abs(pixelsPerSecond.x())
 					> Ui::kFingerAccuracyThreshold)
 				? pixelsPerSecond.x()
 				: 0;
@@ -3207,13 +3179,13 @@ void InnerWidget::touchDeaccelerate(int32 elapsed) {
 	_touchSpeed.setX((x == 0)
 		? x
 		: (x > 0)
-		? qMax(0, x - elapsed)
-		: qMin(0, x + elapsed));
+		? std::max(0, x - elapsed)
+		: std::min(0, x + elapsed));
 	_touchSpeed.setY((y == 0)
 		? y
 		: (y > 0)
-		? qMax(0, y - elapsed)
-		: qMin(0, y + elapsed));
+		? std::max(0, y - elapsed)
+		: std::min(0, y + elapsed));
 }
 
 void InnerWidget::touchEvent(QTouchEvent *e) {
@@ -3335,6 +3307,10 @@ void InnerWidget::touchScrollUpdated(const QPoint &screenPos) {
 	touchUpdateSpeed();
 }
 
-InnerWidget::~InnerWidget() = default;
+InnerWidget::~InnerWidget() {
+	_beingDestroyed = true;
+	clearDisplayItems(DisplayPointerScope::All);
+	base::take(_items);
+}
 
 } // namespace AdminLog

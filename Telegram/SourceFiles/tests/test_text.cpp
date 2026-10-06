@@ -269,11 +269,11 @@ namespace {
 [[nodiscard]] QRect ScaleRect(QRect rect, qreal ratio) {
 	return QRect(
 		QPoint(
-			qRound(rect.x() * ratio),
-			qRound(rect.y() * ratio)),
+			int(base::SafeRound(rect.x() * ratio)),
+			int(base::SafeRound(rect.y() * ratio))),
 		QSize(
-			qRound(rect.width() * ratio),
-			qRound(rect.height() * ratio)));
+			int(base::SafeRound(rect.width() * ratio)),
+			int(base::SafeRound(rect.height() * ratio))));
 }
 
 class FormulaLikeObject final : public Ui::Text::CustomEmoji {
@@ -360,10 +360,9 @@ QString name() {
 	return u"text"_q;
 }
 
-void test(not_null<Ui::RpWindow*> window, not_null<Ui::RpWidget*> body) {
-	(void)window;
-
-	const auto formulaEntityData = u"test-formula-like-object"_q;
+void test(not_null<Ui::RpWindow*>, not_null<Ui::RpWidget*> body) {
+	const auto formulaEntityData =
+		u"iv-markdown:inline-text-object;formula;copy;tex"_q;
 	const auto formulaReplacementText = u"$\\frac{a}{b}$"_q;
 	const auto controlEntityData = u"test-custom-emoji"_q;
 	const auto formulaImage = MakeObjectImage(
@@ -435,6 +434,13 @@ void test(not_null<Ui::RpWindow*> window, not_null<Ui::RpWidget*> body) {
 	Expects(formulaMime.expanded == expectedFormulaExport);
 	Expects(formulaMime.rich.text == expectedFormulaExport);
 	Expects(!HasEntityType(formulaMime.rich.entities, EntityType::CustomEmoji));
+	Expects(formulaMime.tags.size() == 1);
+	const auto expectedFormulaTag = TextForMimeDataTag{
+		.offset = int(formulaPosition),
+		.length = int(formulaReplacementText.size()),
+		.id = Ui::InputField::kTagIvMath,
+	};
+	Expects(formulaMime.tags.front() == expectedFormulaTag);
 	const auto formulaRich = formulaText->toTextWithEntities();
 	Expects(formulaRich.text == expectedFormulaExport);
 	Expects(!HasEntityType(formulaRich.entities, EntityType::CustomEmoji));
@@ -455,6 +461,46 @@ void test(not_null<Ui::RpWindow*> window, not_null<Ui::RpWidget*> body) {
 	Expects(!formulaText->hasCustomEmoji());
 	Expects(!formulaText->isOnlyCustomEmoji());
 	Expects(!formulaText->isIsolatedEmoji());
+
+	auto longFormulaSource = QString();
+	while (longFormulaSource.size() <= 4096) {
+		longFormulaSource.append(u"\\alpha+\\beta "_q);
+	}
+	auto longFormulaData = TextWithEntities();
+	longFormulaData.append(u"Before "_q);
+	const auto longFormulaPosition = longFormulaData.text.size();
+	longFormulaData.append(longFormulaSource);
+	longFormulaData.entities.push_back(EntityInText(
+		EntityType::CustomEmoji,
+		longFormulaPosition,
+		longFormulaSource.size(),
+		formulaEntityData));
+	longFormulaData.append(u" after"_q);
+	const auto longFormulaText = Ui::Text::String(
+		st::defaultTextStyle,
+		longFormulaData,
+		kMarkupTextOptions,
+		scale(64),
+		context);
+	Expects(longFormulaText.maxWidth() >= formulaImage.width());
+	Expects(longFormulaText.countHeight(scale(200)) > 0);
+	Expects(
+		longFormulaText.toString()
+			== u"Before "_q + formulaReplacementText + u" after"_q);
+	const auto longFormulaRender = RenderTextOffscreen(
+		longFormulaText,
+		scale(200));
+	Expects(HasPaintedPixels(longFormulaRender));
+
+	const auto longSpacedEmojiText = Ui::Text::String(
+		st::defaultTextStyle,
+		QString::fromUtf8("\xF0\x9F\x98\x80")
+			+ QString(4100, QChar(' '))
+			+ u"x"_q,
+		kDefaultTextOptions,
+		scale(64));
+	Expects(longSpacedEmojiText.maxWidth() > 0);
+	Expects(longSpacedEmojiText.countHeight(scale(200)) > 0);
 
 	auto controlData = TextWithEntities();
 	controlData.append(QChar::ObjectReplacementCharacter);
@@ -570,9 +616,9 @@ void test(not_null<Ui::RpWindow*> window, not_null<Ui::RpWidget*> body) {
 		field->setText(inlineBotPrefix);
 		field->finishAnimating();
 		const auto inlinePlaceholderImage = Ui::GrabWidgetToImage(field.get());
-		const auto inlineSkipWidth = qRound(
+		const auto inlineSkipWidth = int(base::SafeRound(
 			fieldStyle.style.font->width(inlineBotPrefix)
-				* inlinePlaceholderImage.devicePixelRatio());
+				* inlinePlaceholderImage.devicePixelRatio()));
 		const auto inlineScanLeft = placeholderPoint
 			? std::min(
 				placeholderPoint->x() + inlineSkipWidth,

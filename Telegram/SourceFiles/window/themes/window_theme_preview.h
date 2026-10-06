@@ -38,13 +38,10 @@ std::unique_ptr<Preview> GeneratePreview(
 	const QString &filepath,
 	const Data::CloudTheme &cloud,
 	CurrentData &&data,
-	PreviewType type,
-	QMap<QString, QString> lang);
+	PreviewType type);
 QImage GeneratePreview(
 	const QByteArray &bytes,
-	const QString &filepath,
-	QMap<QString, QString> lang);
-QMap<QString, QString> CollectStrings();
+	const QString &filepath);
 
 int DefaultPreviewTitleHeight();
 void DefaultPreviewWindowFramePaint(

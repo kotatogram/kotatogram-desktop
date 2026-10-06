@@ -65,6 +65,7 @@ struct FileChosen {
 	Ui::MessageSendingAnimationFrom messageSendingFrom;
 	std::shared_ptr<Data::EmojiStatusCollectible> collectible;
 	TextWithTags caption;
+	bool needsCaption = false;
 };
 
 struct PhotoChosen {
@@ -82,7 +83,10 @@ using InlineChosen = InlineBots::ResultSelected;
 enum class TabbedSelectorMode {
 	Full,
 	EmojiOnly,
+	CustomEmojiOnly,
+	CustomEmojiAndGifs,
 	StickersOnly,
+	StickersAndGifs,
 	MediaEditor,
 	EmojiStatus,
 	ChannelStatus,
@@ -101,6 +105,7 @@ struct TabbedSelectorDescriptor {
 	Fn<QColor()> customTextColor;
 	ComposeFeatures features;
 	uint64 excludeStickerSetId = 0;
+	int searchRightReserved = 0;
 };
 
 enum class TabbedSearchType {
@@ -145,6 +150,7 @@ public:
 	[[nodiscard]] rpl::producer<FileChosen> fileChosen() const;
 	[[nodiscard]] rpl::producer<PhotoChosen> photoChosen() const;
 	[[nodiscard]] rpl::producer<InlineChosen> inlineResultChosen() const;
+	[[nodiscard]] rpl::producer<> photoRequests() const;
 
 	[[nodiscard]] rpl::producer<> cancelled() const;
 	[[nodiscard]] rpl::producer<> checkForHide() const;
@@ -158,6 +164,8 @@ public:
 	void setCurrentPeer(PeerData *peer);
 	void provideRecentEmoji(
 		const std::vector<EmojiStatusId> &customRecentList);
+	void setMarkedCustomIds(const base::flat_set<DocumentId> &ids);
+	void setSearchRightReserved(int value);
 
 	void hideFinished();
 	void showStarted();
@@ -199,6 +207,7 @@ public:
 protected:
 	void paintEvent(QPaintEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
+	void contextMenuEvent(QContextMenuEvent *e) override;
 
 private:
 	class Tab {
@@ -277,6 +286,7 @@ private:
 	void createTabsSlider();
 	void fillTabsSliderSections();
 	void updateTabsSliderGeometry();
+	[[nodiscard]] int tabsSliderHeight() const;
 	void switchTab();
 
 	not_null<Tab*> getTab(int index);
@@ -289,7 +299,7 @@ private:
 	not_null<GifsListWidget*> gifs() const;
 	not_null<StickersListWidget*> masks() const;
 
-	void reinstallSwipe(not_null<Ui::RpWidget*> widget);
+	void reinstallSwipe(not_null<Inner*> widget);
 
 	const style::EmojiPan &_st;
 	const ComposeFeatures _features;
@@ -390,6 +400,11 @@ public:
 	virtual void afterShown() {
 	}
 	virtual void beforeHiding() {
+	}
+	[[nodiscard]] virtual bool canConsumeHorizontalScroll(
+			QPoint position,
+			int delta) {
+		return false;
 	}
 	[[nodiscard]] virtual base::unique_qptr<Ui::PopupMenu> fillContextMenu(
 			const SendMenu::Details &details) {

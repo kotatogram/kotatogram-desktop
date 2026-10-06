@@ -146,7 +146,7 @@ PaintRoundImageCallback TypeRow::generatePaintUserpicCallback(
 }
 
 Flag TypeRow::flag() const {
-	return static_cast<Flag>(id() & 0xFFFF);
+	return static_cast<Flag>(id() & 0xFFFFFFFF);
 }
 
 ExceptionRow::ExceptionRow(

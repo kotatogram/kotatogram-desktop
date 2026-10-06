@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "ui/rect.h"
 #include "base/timer.h"
+#include "base/weak_qptr.h"
 #include "base/platform/base_platform_info.h"
 #include "styles/style_widgets.h"
 
@@ -101,8 +102,12 @@ void ContinuousSlider::mousePressEvent(QMouseEvent *e) {
 void ContinuousSlider::mouseReleaseEvent(QMouseEvent *e) {
 	if (_mouseDown) {
 		_mouseDown = false;
+		const auto weak = base::make_weak(this);
 		if (_changeFinishedCallback) {
 			_changeFinishedCallback(_downValue);
+		}
+		if (!weak) {
+			return;
 		}
 		_value = _downValue;
 		update();
@@ -122,11 +127,15 @@ void ContinuousSlider::wheelEvent(QWheelEvent *e) {
 	} else {
 		deltaX *= -1;
 	}
-	auto delta = (qAbs(deltaX) > qAbs(deltaY)) ? deltaX : deltaY;
+	auto delta = (std::abs(deltaX) > std::abs(deltaY)) ? deltaX : deltaY;
 	auto finalValue = std::clamp(_value + delta * coef, 0., 1.);
 	setValue(finalValue);
+	const auto weak = base::make_weak(this);
 	if (_changeProgressCallback) {
 		_changeProgressCallback(finalValue);
+	}
+	if (!weak) {
+		return;
 	}
 	_byWheelFinished->callOnce(kByWheelFinishedTimeout);
 }
@@ -171,11 +180,15 @@ void ContinuousSlider::keyPressEvent(QKeyEvent *e) {
 		return;
 	}
 	setValue(newValue);
+	const auto weak = base::make_weak(this);
 	if (_changeProgressCallback) {
 		_changeProgressCallback(_value);
 	}
-	if (_changeFinishedCallback) {
+	if (weak && _changeFinishedCallback) {
 		_changeFinishedCallback(_value);
+	}
+	if (!weak) {
+		return;
 	}
 	accessibilityValueChanged();
 }
@@ -231,7 +244,7 @@ void FilledSlider::paintEvent(QPaintEvent *e) {
 	const auto seekRect = getSeekRect();
 	const auto value = getCurrentValue();
 	const auto from = seekRect.x();
-	const auto mid = qRound(from + value * seekRect.width());
+	const auto mid = int(base::SafeRound(from + value * seekRect.width()));
 	const auto end = from + seekRect.width();
 	if (mid > from) {
 		p.setOpacity(masterOpacity);
@@ -361,12 +374,12 @@ void MediaSlider::paintEvent(QPaintEvent *e) {
 		? _st.seekSize.width()
 		: _st.seekSize.height();
 	const auto mid = _alwaysDisplayMarker
-		? qRound(from
+		? int(base::SafeRound(from
 			+ (alwaysSeekSize / 2.)
-			+ value * (length - alwaysSeekSize))
-		: qRound(from + value * length);
+			+ value * (length - alwaysSeekSize)))
+		: int(base::SafeRound(from + value * length));
 	const auto till = horizontal
-		? std::max(mid, qRound(from + receivedTill * length))
+		? std::max(mid, int(base::SafeRound(from + receivedTill * length)))
 		: mid;
 	const auto end = from + length;
 	const auto activeFg = disabled
@@ -497,7 +510,8 @@ void MediaSlider::paintEvent(QPaintEvent *e) {
 		? 0.
 		: (_alwaysDisplayMarker ? 1. : over);
 	if (markerSizeRatio > 0) {
-		const auto position = qRound(markerFrom + value * markerLength)
+		const auto exactPosition = markerFrom + value * markerLength;
+		const auto position = int(base::SafeRound(exactPosition))
 			- (horizontal
 				? (_st.seekSize.width() / 2)
 				: (_st.seekSize.height() / 2));

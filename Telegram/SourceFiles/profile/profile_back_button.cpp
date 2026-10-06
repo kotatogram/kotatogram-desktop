@@ -8,8 +8,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "profile/profile_back_button.h"
 
 #include "ui/text/text.h"
-#include "styles/style_widgets.h"
-#include "styles/style_window.h"
 #include "styles/style_profile.h"
 #include "styles/style_info.h"
 #include "styles/style_chat.h"
@@ -88,8 +86,8 @@ void BackButton::paintEvent(QPaintEvent *e) {
 
 	auto p = QPainter(this);
 
-	p.fillRect(e->rect(), st::profileBg);
-	st::topBarBack.paint(
+	p.fillRect(e->rect(), st::ktgTopBarBg);
+	st::ktgTopBarBack.paint(
 		p,
 		st::historyAdminLogTopBarLeft,
 		(st::topBarHeight - st::topBarBack.height()) / 2,
@@ -113,7 +111,7 @@ void BackButton::paintEvent(QPaintEvent *e) {
 		.availableWidth = _elisionWidth,
 		.elisionLines = 1,
 	};
-	p.setPen(st::dialogsNameFg);
+	p.setPen(st::ktgTopBarNameFg);
 	_text.draw(p, context);
 
 	if (!_subtext.isEmpty()) {
@@ -123,7 +121,7 @@ void BackButton::paintEvent(QPaintEvent *e) {
 			.availableWidth = _elisionWidth,
 			.elisionLines = 1,
 		};
-		p.setPen(st::historyStatusFg);
+		p.setPen(st::ktgTopBarStatusFg);
 		_subtext.draw(p, subtextContext);
 	}
 }

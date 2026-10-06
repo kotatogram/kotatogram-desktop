@@ -80,7 +80,7 @@ private:
 	Flags _selected;
 	int _limit = 0;
 	bool _chatlist = false;
-	bool _isLocal;
+	bool _isLocal = false;
 
 	Fn<void(PeerListRowId)> _deselectOption;
 

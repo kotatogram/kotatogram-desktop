@@ -19,6 +19,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/media/history_view_sticker_player.h"
 #include "info/bot/starref/info_bot_starref_common.h"
 #include "info/userpic/info_userpic_emoji_builder_preview.h"
+#include "kotato/kotato_radius.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "ui/effects/premium_graphics.h"
@@ -39,7 +40,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_intro.h" // introFragmentIcon.
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
-#include "styles/style_widgets.h"
 
 #include <QtSvg/QSvgRenderer>
 
@@ -105,43 +105,47 @@ QByteArray CreditsIconSvg(int strokeWidth) {
 
 } // namespace
 
-QImage GenerateStars(int height, int count) {
+QImage GenerateStars(int height, int count, int ratio) {
 	constexpr auto kOutlineWidth = .6;
 	constexpr auto kStrokeWidth = 3;
 	constexpr auto kShift = 3;
 
+	if (!ratio) {
+		ratio = style::DevicePixelRatio();
+	}
 	auto svg = QSvgRenderer(CreditsIconSvg(kStrokeWidth));
 	svg.setViewBox(svg.viewBox() + Margins(kStrokeWidth));
 
 	const auto starSize = Size(height - kOutlineWidth * 2);
 
 	auto frame = QImage(
-		QSize(
-			(height + kShift * (count - 1)) * style::DevicePixelRatio(),
-			height * style::DevicePixelRatio()),
+		QSize((height + kShift * (count - 1)) * ratio, height * ratio),
 		QImage::Format_ARGB32_Premultiplied);
-	frame.setDevicePixelRatio(style::DevicePixelRatio());
+	frame.setDevicePixelRatio(ratio);
 	frame.fill(Qt::transparent);
 	const auto drawSingle = [&](QPainter &q) {
 		const auto s = kOutlineWidth;
 		q.save();
 		q.translate(s, s);
-		q.setCompositionMode(QPainter::CompositionMode_Clear);
-		svg.render(&q, QRectF(QPointF(s, 0), starSize));
-		svg.render(&q, QRectF(QPointF(s, s), starSize));
-		svg.render(&q, QRectF(QPointF(0, s), starSize));
-		svg.render(&q, QRectF(QPointF(-s, s), starSize));
-		svg.render(&q, QRectF(QPointF(-s, 0), starSize));
-		svg.render(&q, QRectF(QPointF(-s, -s), starSize));
-		svg.render(&q, QRectF(QPointF(0, -s), starSize));
-		svg.render(&q, QRectF(QPointF(s, -s), starSize));
-		q.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		if (count > 1) {
+			// Cut a gap in the star below, they overlap by kShift.
+			q.setCompositionMode(QPainter::CompositionMode_Clear);
+			svg.render(&q, QRectF(QPointF(s, 0), starSize));
+			svg.render(&q, QRectF(QPointF(s, s), starSize));
+			svg.render(&q, QRectF(QPointF(0, s), starSize));
+			svg.render(&q, QRectF(QPointF(-s, s), starSize));
+			svg.render(&q, QRectF(QPointF(-s, 0), starSize));
+			svg.render(&q, QRectF(QPointF(-s, -s), starSize));
+			svg.render(&q, QRectF(QPointF(0, -s), starSize));
+			svg.render(&q, QRectF(QPointF(s, -s), starSize));
+			q.setCompositionMode(QPainter::CompositionMode_SourceOver);
+		}
 		svg.render(&q, Rect(starSize));
 		q.restore();
 	};
 	{
 		auto q = QPainter(&frame);
-		q.translate(frame.width() / style::DevicePixelRatio() - height, 0);
+		q.translate(frame.width() / ratio - height, 0);
 		for (auto i = count; i > 0; --i) {
 			drawSingle(q);
 			q.translate(-kShift, 0);
@@ -219,7 +223,7 @@ PaintRoundImageCallback GenerateCreditsPaintUserpicCallback(
 				gradient.setStops(Ui::Premium::ButtonGradientStops());
 				p.setBrush(gradient);
 			}
-			p.drawEllipse(x, y, size, size);
+			Kotato::DrawUserpicShape(p, x, y, size, size, size);
 			svg->render(&p, QRectF(x, y, size, size) - Margins(size / 5.));
 		};
 	}
@@ -258,7 +262,7 @@ PaintRoundImageCallback GenerateCreditsPaintUserpicCallback(
 		const auto svg = std::make_shared<QSvgRenderer>(Ui::Premium::Svg());
 		const auto image = std::make_shared<QImage>();
 		return [=](Painter &p, int x, int y, int outer, int size) mutable {
-			userpic->paintCircle(p, x, y, outer, size);
+			Kotato::PaintEmptyUserpic(*userpic, p, x, y, outer, size);
 			if (image->isNull()) {
 				*image = QImage(
 					Size(size) * style::DevicePixelRatio(),
@@ -311,7 +315,7 @@ PaintRoundImageCallback GenerateCreditsPaintUserpicCallback(
 		};
 	}
 	return [=](Painter &p, int x, int y, int outerWidth, int size) mutable {
-		userpic->paintCircle(p, x, y, outerWidth, size);
+		Kotato::PaintEmptyUserpic(*userpic, p, x, y, outerWidth, size);
 		const auto rect = QRect(x, y, size, size);
 		(entry.postsSearch
 			? st::creditsHistorySearchPostsIcon
@@ -343,7 +347,7 @@ PaintRoundImageCallback GenerateCreditsPaintEntryCallback(
 
 	rpl::single(rpl::empty_value()) | rpl::then(
 		photo->session().downloaderTaskFinished()
-	) | rpl::on_next([=] {
+	) | rpl::on_next([=, state = state.get()] {
 		using Size = Data::PhotoSize;
 		if (const auto large = state->view->image(Size::Large)) {
 			state->imagePtr = large;
@@ -393,7 +397,7 @@ PaintRoundImageCallback GenerateCreditsPaintEntryCallback(
 
 	rpl::single(rpl::empty_value()) | rpl::then(
 		video->session().downloaderTaskFinished()
-	) | rpl::on_next([=] {
+	) | rpl::on_next([=, state = state.get()] {
 		if (const auto thumbnail = state->view->thumbnail()) {
 			state->imagePtr = thumbnail;
 		}

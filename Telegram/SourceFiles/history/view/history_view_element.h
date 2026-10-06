@@ -11,11 +11,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/runtime_composer.h"
 #include "base/flags.h"
 #include "base/weak_ptr.h"
+#include "iv/iv_rich_page.h"
 #include "ui/userpic_view.h"
 
 class History;
 class HistoryBlock;
 class HistoryItem;
+class UserData;
 struct HistoryMessageReply;
 struct PreparedServiceText;
 struct HistoryMessageReplyMarkup;
@@ -76,6 +78,7 @@ enum class Context : char {
 	ShortcutMessages,
 	ScheduledTopic,
 	ChatPreview,
+	WelcomeMessages,
 };
 
 enum class OnlyEmojiAndSpaces : char {
@@ -130,6 +133,9 @@ public:
 	virtual void elementShowTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback) = 0;
+	virtual void elementShowHiddenSenderTooltip(
+		FullMsgId itemId,
+		const TextWithEntities &text) = 0;
 	virtual bool elementAnimationsPaused() = 0;
 	virtual bool elementHideReply(not_null<const Element*> view) = 0;
 	virtual bool elementShownUnread(not_null<const Element*> view) = 0;
@@ -195,6 +201,9 @@ public:
 	void elementShowTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback) override;
+	void elementShowHiddenSenderTooltip(
+		FullMsgId itemId,
+		const TextWithEntities &text) override;
 	bool elementHideReply(not_null<const Element*> view) override;
 	bool elementShownUnread(not_null<const Element*> view) override;
 	void elementSendBotCommand(
@@ -375,6 +384,15 @@ struct FakeBotAboutTop : RuntimeComponent<FakeBotAboutTop, Element> {
 	int height = 0;
 };
 
+struct EphemeralBadge : RuntimeComponent<EphemeralBadge, Element> {
+	void init(not_null<const Element*> view);
+
+	Ui::Text::String text;
+	UserData *receiver = nullptr;
+	int maxWidth = 0;
+	int height = 0;
+};
+
 struct PurchasedTag : RuntimeComponent<PurchasedTag, Element> {
 	Ui::Text::String text;
 };
@@ -443,6 +461,8 @@ public:
 	[[nodiscard]] Context context() const;
 	void refreshDataId();
 
+	[[nodiscard]] PeerData *displayFrom() const;
+
 	[[nodiscard]] uint8 colorIndex() const;
 	[[nodiscard]] auto colorCollectible() const
 		-> const std::shared_ptr<Ui::ColorCollectible> &;
@@ -475,10 +495,10 @@ public:
 
 	[[nodiscard]] bool isTopicRootReply() const;
 
+	[[nodiscard]] bool hidesBottomInfo() const;
 	[[nodiscard]] int skipBlockWidth() const;
 	[[nodiscard]] int skipBlockHeight() const;
 	[[nodiscard]] virtual int infoWidth() const;
-	[[nodiscard]] virtual int plainMaxWidth() const;
 	[[nodiscard]] virtual int bottomInfoFirstLineWidth() const;
 	[[nodiscard]] virtual bool bottomInfoIsWide() const;
 
@@ -530,6 +550,7 @@ public:
 
 	[[nodiscard]] bool displayForumThreadBar() const;
 	[[nodiscard]] bool isInOneBunchWithPrevious() const;
+	void refreshForumThreadBar(Element *previous, bool enabled);
 
 	virtual void draw(Painter &p, const PaintContext &context) const = 0;
 	[[nodiscard]] virtual PointState pointState(QPoint point) const = 0;
@@ -555,6 +576,8 @@ public:
 		TextSelectType type) const;
 	virtual TextForMimeData selectedText(TextSelection selection) const = 0;
 	virtual TextForMimeData selectedText(
+		const MessageSelection &selection) const;
+	[[nodiscard]] Iv::RichPageBlocksSlice selectedRichBlocks(
 		const MessageSelection &selection) const;
 	virtual SelectedQuote selectedQuote(
 		TextSelection selection) const = 0;
@@ -718,7 +741,10 @@ public:
 		not_null<const Element*> view,
 		QRect countedGeometry = QRect());
 
-	virtual bool consumeHorizontalScroll(QPoint position, int delta) {
+	virtual bool consumeHorizontalScroll(
+			QPoint position,
+			int delta,
+			Qt::ScrollPhase phase) {
 		return false;
 	}
 	[[nodiscard]] virtual bool canConsumeHorizontalScroll(
@@ -759,6 +785,7 @@ protected:
 	[[nodiscard]] int textHeightFor(int textWidth) const;
 	[[nodiscard]] int textRealWidth() const { return _textRealWidth; }
 	void validateText();
+	void invalidateTextSizeCache();
 	void validateTextSkipBlock(bool has, int width, int height);
 	void validateInlineKeyboard(HistoryMessageReplyMarkup *markup);
 
@@ -786,6 +813,8 @@ private:
 	// HistoryView::Element::Flag::AttachedToPrevious.
 	void recountAttachToPreviousInBlocks();
 
+	void refreshEphemeralBadge();
+
 	[[nodiscard]] bool countIsTopicRootReply() const;
 
 	QSize countOptimalSize() final override;
@@ -797,7 +826,6 @@ private:
 	}
 
 	void refreshMedia(Element *replacing);
-	void invalidateTextSizeCache();
 	void setTextWithLinks(
 		const TextWithEntities &text,
 		const std::vector<ClickHandlerPtr> &links = {});

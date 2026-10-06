@@ -7,10 +7,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include "base/flat_set.h"
 #include "ui/unread_badge_paint.h"
+#include "ui/widgets/chat_filters_tabs_mode.h"
 #include "ui/widgets/discrete_sliders.h"
 
 namespace style {
+namespace internal {
+class Icon;
+} // namespace internal
 struct SettingsSlider;
 } // namespace style
 
@@ -34,10 +39,14 @@ public:
 
 	void fitWidthToSections() override;
 	void setUnreadCount(int index, int unreadCount, bool muted);
-	void setLockedFrom(int index);
+	void setTabsMode(ChatsFiltersTabsMode mode);
+	void setSectionIcons(std::vector<const style::internal::Icon*> icons);
+	// Sections in `unlocked` stay available after the locked one.
+	void setLockedFrom(int index, base::flat_set<int> unlocked = {});
 	[[nodiscard]] int lockedFrom() const {
 		return _lockedFrom;
 	}
+	[[nodiscard]] bool isLocked(int index) const;
 
 	[[nodiscard]] rpl::producer<int> contextMenuRequested() const;
 	[[nodiscard]] rpl::producer<> lockedClicked() const;
@@ -71,6 +80,12 @@ protected:
 private:
 	[[nodiscard]] QImage cacheUnreadCount(int count, bool muted) const;
 	[[nodiscard]] int calculateLockedFromX() const;
+	[[nodiscard]] int sectionIndexAt(int x) const;
+	[[nodiscard]] auto sectionIcon(int index) const
+	-> const style::internal::Icon*;
+	[[nodiscard]] int iconExtraWidth(const style::internal::Icon *icon) const;
+	[[nodiscard]] int badgeExtraWidth(int index) const;
+	void updateSectionsContentWidths();
 
 	using Index = int;
 	struct Unread final {
@@ -83,10 +98,14 @@ private:
 	const UnreadBadgeStyle _unreadSt;
 	const QString _unreadMaxString;
 	const int _unreadSkip;
+	const int _iconSkip;
+	ChatsFiltersTabsMode _tabsMode = ChatsFiltersTabsMode::TextOnly;
+	std::vector<const style::internal::Icon*> _sectionIcons;
 	std::vector<int> _cachedBadgeWidths;
 	int _cachedBadgeHeight = 0;
 	int _lockedFrom = 0;
 	int _lockedFromX = 0;
+	base::flat_set<int> _unlocked;
 	bool _lockedPressed = false;
 	std::optional<Ui::RoundRect> _bar;
 	std::optional<Ui::RoundRect> _barActive;

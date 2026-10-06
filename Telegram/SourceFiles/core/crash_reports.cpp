@@ -9,6 +9,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "kotato/kotato_settings.h"
 #include "kotato/kotato_version.h"
+#include "core/version.h"
 #include "platform/platform_specific.h"
 #include "base/platform/base_platform_info.h"
 #include "core/launcher.h"
@@ -68,6 +69,8 @@ FILE *ReportFile = nullptr;
 int ReportFileNo = 0;
 
 void SafeWriteChar(char ch) {
+	if (!ReportFile) return;
+
 	fwrite(&ch, 1, 1, ReportFile);
 }
 
@@ -325,7 +328,7 @@ void StartCatching() {
 	ProcessAnnotations["ApiId"] = QString::number(::Kotato::JsonSettings::GetInt("api_id")).toUtf8().constData();
 	ProcessAnnotations["Version"] = (cAlphaVersion()
 		? u"%1 %2"_q.arg(cAlphaVersion()).arg(AppKotatoTestBranch)
-		: (AppBetaVersion
+		: (AppKotatoBetaVersion
 			? u"%1 beta"_q
 			: u"%1"_q).arg(AppKotatoVersion)).toUtf8().constData();
 	ProcessAnnotations["Launched"] = QDateTime::currentDateTime().toString("dd.MM.yyyy hh:mm:ss").toUtf8().constData();

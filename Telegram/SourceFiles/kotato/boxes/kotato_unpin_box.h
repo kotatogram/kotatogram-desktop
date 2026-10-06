@@ -19,7 +19,6 @@ public:
 	UnpinMessageBox(
 		QWidget*,
 		not_null<PeerData*> peer,
-		MsgId topicRootId,
 		MsgId msgId,
 		Fn<void()> onHidden);
 
@@ -31,10 +30,10 @@ protected:
 
 private:
 	void unpinMessage();
+	void hideMessage();
 
 	const not_null<PeerData*> _peer;
 	MTP::Sender _api;
-	MsgId _topicRootId = 0;
 	MsgId _msgId = 0;
 	Fn<void()> _onHidden;
 

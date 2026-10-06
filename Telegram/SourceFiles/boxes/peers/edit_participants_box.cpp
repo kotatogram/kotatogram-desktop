@@ -8,7 +8,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/peers/edit_participants_box.h"
 
 #include "kotato/kotato_lang.h"
-#include "core/application.h"
 #include "api/api_chat_participants.h"
 #include "boxes/peers/edit_participant_box.h"
 #include "boxes/peers/edit_tag_control.h"
@@ -23,7 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "mtproto/mtproto_config.h"
 #include "apiwrap.h"
 #include "lang/lang_keys.h"
-#include "mainwindow.h"
+#include "chat_helpers/message_field.h" // InsertMentionTag
 #include "mainwidget.h"
 #include "dialogs/dialogs_indexed_list.h"
 #include "data/data_peer_values.h"
@@ -43,11 +42,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/popup_menu.h"
 #include "ui/text/text_utilities.h"
 #include "info/profile/info_profile_values.h"
-#include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "history/history.h"
 #include "history/view/history_view_message.h"
-#include "styles/style_boxes.h"
 #include "styles/style_chat.h"
 #include "styles/style_menu_icons.h"
 
@@ -60,6 +57,11 @@ constexpr auto kForwardMessagesOnAdd = 100;
 constexpr auto kParticipantsFirstPageCount = 16;
 constexpr auto kParticipantsPerPage = 200;
 constexpr auto kSortByOnlineDelay = crl::time(1000);
+
+[[nodiscard]] bool SupportsMemberTags(not_null<PeerData*> peer) {
+	const auto channel = peer->asChannel();
+	return !channel || (!channel->isBroadcast() && !channel->isCommunity());
+}
 
 void RemoveAdmin(
 		std::shared_ptr<Ui::Show> show,
@@ -362,7 +364,7 @@ Fn<void(
 			ChatAdminRightsInfo newRights,
 			const std::optional<QString> &rank)> onDone,
 		Fn<void()> onFail) {
-	return [=](
+	const auto save = [=](
 			ChatAdminRightsInfo oldRights,
 			ChatAdminRightsInfo newRights,
 			const std::optional<QString> &rank) {
@@ -420,6 +422,38 @@ Fn<void(
 		} else {
 			Unexpected("Peer in SaveAdminCallback.");
 		}
+	};
+	return [=](
+			ChatAdminRightsInfo oldRights,
+			ChatAdminRightsInfo newRights,
+			const std::optional<QString> &rank) {
+		const auto channel = peer->asChannel();
+		const auto promoting = channel
+			&& channel->isCommunity()
+			&& !oldRights.flags
+			&& newRights.flags;
+		if (!promoting) {
+			save(oldRights, newRights, rank);
+			return;
+		}
+		const auto sure = [
+				save,
+				oldRights,
+				newRights,
+				rank](Fn<void()> &&close) {
+			close();
+			save(oldRights, newRights, rank);
+		};
+		show->showBox(Ui::MakeConfirmBox({
+			.text = tr::lng_community_admin_promote_sure(
+				tr::now,
+				lt_user,
+				tr::bold(user->shortName()),
+				tr::marked),
+			.confirmed = sure,
+			.confirmText = tr::lng_community_admin_promote(),
+			.title = tr::lng_community_admin_promote_title(),
+		}));
 	};
 }
 
@@ -791,16 +825,17 @@ void ParticipantsAdditionalData::applyBannedLocally(
 	} else {
 		const auto kicked = rights.flags & ChatRestriction::ViewMessages;
 		const auto alreadyRestrictedBy = restrictedBy(participant);
-		applyParticipant(Api::ChatParticipant(
-			kicked
-				? Api::ChatParticipant::Type::Banned
-				: Api::ChatParticipant::Type::Restricted,
-			participant->id,
-			alreadyRestrictedBy
-				? peerToUser(alreadyRestrictedBy->id)
-				: participant->session().userId(),
-			std::move(rights),
-			ChatAdminRightsInfo()));
+		applyParticipant(
+			Api::ChatParticipant(
+				kicked
+					? Api::ChatParticipant::Type::Banned
+					: Api::ChatParticipant::Type::Restricted,
+				participant->id,
+				alreadyRestrictedBy
+					? peerToUser(alreadyRestrictedBy->id)
+					: participant->session().userId(),
+				std::move(rights),
+				ChatAdminRightsInfo()));
 	}
 }
 
@@ -1039,14 +1074,20 @@ void ParticipantsOnlineSorter::sort() {
 		_onlineCount = 0;
 		return;
 	}
-	const auto now = base::unixtime::now();
-	_delegate->peerListSortRows([&](
-			const PeerListRow &a,
-			const PeerListRow &b) {
-		return Data::SortByOnlineValue(a.peer()->asUser(), now) >
-			Data::SortByOnlineValue(b.peer()->asUser(), now);
-	});
+	if (_sortingEnabled) {
+		const auto now = base::unixtime::now();
+		_delegate->peerListSortRows([&](
+				const PeerListRow &a,
+				const PeerListRow &b) {
+			return Data::SortByOnlineValue(a.peer()->asUser(), now) >
+				Data::SortByOnlineValue(b.peer()->asUser(), now);
+		});
+	}
 	refreshOnlineCount();
+}
+
+void ParticipantsOnlineSorter::setSortingEnabled(bool enabled) {
+	_sortingEnabled = enabled;
 }
 
 rpl::producer<int> ParticipantsOnlineSorter::onlineCountValue() const {
@@ -1055,17 +1096,15 @@ rpl::producer<int> ParticipantsOnlineSorter::onlineCountValue() const {
 
 void ParticipantsOnlineSorter::refreshOnlineCount() {
 	const auto now = base::unixtime::now();
-	auto left = 0, right = _delegate->peerListFullRowsCount();
-	while (right > left) {
-		const auto middle = (left + right) / 2;
-		const auto row = _delegate->peerListRowAt(middle);
-		if (Data::OnlineTextActive(row->peer()->asUser(), now)) {
-			left = middle + 1;
-		} else {
-			right = middle;
+	auto count = 0;
+	const auto rows = _delegate->peerListFullRowsCount();
+	for (auto i = 0; i != rows; ++i) {
+		const auto user = _delegate->peerListRowAt(i)->peer()->asUser();
+		if (user && Data::OnlineTextActive(user, now)) {
+			++count;
 		}
 	}
-	_onlineCount = left;
+	_onlineCount = count;
 }
 
 ParticipantsBoxController::SavedState::SavedState(
@@ -1117,6 +1156,20 @@ void ParticipantsBoxController::setupListChangeViewers() {
 	channel->owner().megagroupParticipantAdded(
 		channel
 	) | rpl::on_next([=](not_null<UserData*> user) {
+		if (_groupByRole.current()) {
+			if (!delegate()->peerListFindRow(user->id.value)) {
+				if (auto row = createRow(user)) {
+					const auto raw = row.get();
+					delegate()->peerListPrependRow(std::move(row));
+					if (_stories) {
+						_stories->process(raw);
+					}
+					refreshRows();
+					resort();
+				}
+			}
+			return;
+		}
 		if (delegate()->peerListFullRowsCount() > 0) {
 			if (delegate()->peerListRowAt(0)->peer() == user) {
 				return;
@@ -1133,9 +1186,7 @@ void ParticipantsBoxController::setupListChangeViewers() {
 				_stories->process(raw);
 			}
 			refreshRows();
-			if (_onlineSorter) {
-				_onlineSorter->sort();
-			}
+			resort();
 		}
 	}, lifetime());
 
@@ -1326,6 +1377,9 @@ auto ParticipantsBoxController::saveState() const
 	my->offset = _offset;
 	my->allLoaded = _allLoaded;
 	my->wasLoading = (_loadRequestId != 0);
+	my->groupByRole = _groupByRole.current();
+	my->adminsPreloaded = _adminsPreloaded;
+	my->wasPreloadingAdmins = (_adminsRequestId != 0);
 	if (const auto search = searchController()) {
 		my->searchState = search->saveState();
 	}
@@ -1386,11 +1440,16 @@ void ParticipantsBoxController::restoreState(
 		_additional = std::move(my->additional);
 		_offset = my->offset;
 		_allLoaded = my->allLoaded;
+		_adminsPreloaded = my->adminsPreloaded;
+		_groupByRole = my->groupByRole;
 		if (const auto search = searchController()) {
 			search->restoreState(std::move(my->searchState));
 		}
 		if (my->wasLoading) {
 			loadMoreRows();
+		}
+		if (my->wasPreloadingAdmins) {
+			preloadAdmins();
 		}
 		const auto was = _fullCountValue.current();
 		PeerListController::restoreState(std::move(state));
@@ -1406,9 +1465,7 @@ void ParticipantsBoxController::restoreState(
 				refreshRows();
 			}
 		}
-		if (_onlineSorter) {
-			_onlineSorter->sort();
-		}
+		resort();
 	}
 }
 
@@ -1506,6 +1563,9 @@ void ParticipantsBoxController::prepare() {
 			}
 		}
 		recomputeTypeFor(user);
+		if (_groupByRole.current()) {
+			resort();
+		}
 		refreshRows();
 	}, lifetime());
 
@@ -1533,7 +1593,11 @@ void ParticipantsBoxController::unload() {
 	if (const auto requestId = base::take(_loadRequestId)) {
 		_api.request(requestId).cancel();
 	}
+	if (const auto requestId = base::take(_adminsRequestId)) {
+		_api.request(requestId).cancel();
+	}
 	_allLoaded = false;
+	_adminsPreloaded = false;
 	_offset = 0;
 }
 
@@ -1542,6 +1606,7 @@ void ParticipantsBoxController::rebuild() {
 		prepareChatRows(chat);
 	} else {
 		loadMoreRows();
+		preloadAdmins();
 	}
 	refreshRows();
 }
@@ -1599,7 +1664,7 @@ void ParticipantsBoxController::rebuildChatParticipants(
 		return;
 	}
 
-	auto &participants = chat->participants;
+	const auto &participants = chat->participants;
 	auto count = delegate()->peerListFullRowsCount();
 	for (auto i = 0; i != count;) {
 		auto row = delegate()->peerListRowAt(i);
@@ -1623,7 +1688,7 @@ void ParticipantsBoxController::rebuildChatParticipants(
 			}
 		}
 	}
-	_onlineSorter->sort();
+	resort();
 
 	refreshRows();
 	chatListReady();
@@ -1782,9 +1847,7 @@ void ParticipantsBoxController::loadMoreRows() {
 			|| (firstLoad && delegate()->peerListFullRowsCount() > 0)) {
 			refreshDescription();
 		}
-		if (_onlineSorter) {
-			_onlineSorter->sort();
-		}
+		resort();
 		refreshRows();
 	}).fail([this] {
 		_loadRequestId = 0;
@@ -1792,8 +1855,11 @@ void ParticipantsBoxController::loadMoreRows() {
 }
 
 void ParticipantsBoxController::refreshDescription() {
+	const auto channel = _peer->asChannel();
 	setDescriptionText((_role == Role::Kicked)
-		? ((_peer->isChat() || _peer->isMegagroup())
+		? ((channel && channel->isCommunity())
+			? tr::lng_community_removed_list_about
+			: (_peer->isChat() || _peer->isMegagroup())
 			? tr::lng_group_removed_list_about
 			: tr::lng_channel_removed_list_about)(tr::now)
 		: (delegate()->peerListFullRowsCount() > 0)
@@ -1841,9 +1907,7 @@ bool ParticipantsBoxController::feedMegagroupLastParticipants() {
 		//
 		//++_offset;
 	}
-	if (_onlineSorter) {
-		_onlineSorter->sort();
-	}
+	resort();
 	return added;
 }
 
@@ -1998,7 +2062,7 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 				? &st::menuIconProfile
 				: &st::menuIconInfo));
 	}
-	if (user && !_peer->isBroadcast()) {
+	if (user && SupportsMemberTags(_peer)) {
 		const auto isSelf = user->isSelf();
 		const auto canEditSelf = isSelf
 			&& !_peer->amRestricted(ChatRestriction::EditRank);
@@ -2040,27 +2104,28 @@ base::unique_qptr<Ui::PopupMenu> ParticipantsBoxController::rowContextMenu(
 					: &st::menuIconTagEdit));
 		}
 	}
-	if (const auto window = _navigation->parentController()) {
-		if (const auto mainwidget = window->widget()->sessionContent()) {
-			result->addAction(
-				ktr("ktg_context_show_messages_from"),
-				crl::guard(this, [=] {
-					mainwidget->searchMessages(
-						" ",
-						(_peer && !_peer->isUser())
-							? _peer->owner().history(_peer).get()
-							: Dialogs::Key(),
-							participant);
-				}), &st::menuIconSearch);
-			if (const auto openedPeer = mainwidget->peer()) {
-				if (Data::CanSendTexts(openedPeer) && participant->isUser()) {
-					result->addAction(
-						ktr("ktg_profile_mention_user"),
-						crl::guard(this, [=] { mainwidget->mentionUser(user); }),
-						&st::menuIconMention);
-				}
-			}
-		}
+	const auto navigation = (_peer->isChat() || _peer->isMegagroup())
+		? _navigation
+		: nullptr;
+	if (navigation) {
+		const auto history = _peer->owner().history(_peer);
+		result->addAction(
+			ktr("ktg_context_show_messages_from"),
+			crl::guard(this, [=] {
+				navigation->searchInChat(history, participant);
+			}),
+			&st::menuIconSearch);
+	}
+	const auto content = _navigation
+		? _navigation->parentController()->content().get()
+		: nullptr;
+	if (const auto field = (content && user)
+			? content->fieldForMention()
+			: nullptr) {
+		result->addAction(
+			ktr("ktg_profile_mention_user"),
+			crl::guard(field, [=] { InsertMentionTag(field, user); }),
+			&st::menuIconMention);
 	}
 	if (_role == Role::Kicked) {
 		if (_peer->isMegagroup()
@@ -2503,7 +2568,7 @@ auto ParticipantsBoxController::computeType(
 	} break;
 	}
 
-	if (user && !_peer->isBroadcast()) {
+	if (user && SupportsMemberTags(_peer)) {
 		const auto isSelf = user->isSelf();
 		const auto canEditSelf = isSelf
 			&& !_peer->amRestricted(ChatRestriction::EditRank);
@@ -2642,6 +2707,130 @@ void ParticipantsBoxController::fullListRefresh() {
 void ParticipantsBoxController::refreshRows() {
 	_fullCountValue = delegate()->peerListFullRowsCount();
 	delegate()->peerListRefreshRows();
+}
+
+int ParticipantsBoxController::memberRoleTier(
+		not_null<PeerData*> peer) const {
+	const auto user = peer->asUser();
+	if (user && _additional.isCreator(user)) {
+		return 0;
+	} else if (user && user->isBot()) {
+		return 2;
+	} else if (user && _additional.adminRights(user).has_value()) {
+		return 1;
+	}
+	return 3;
+}
+
+void ParticipantsBoxController::sortByRoleAndName() {
+	delegate()->peerListSortRows([&](
+			const PeerListRow &a,
+			const PeerListRow &b) {
+		const auto tierA = memberRoleTier(a.peer());
+		const auto tierB = memberRoleTier(b.peer());
+		return (tierA != tierB)
+			? (tierA < tierB)
+			: (a.peer()->name().compare(
+				b.peer()->name(),
+				Qt::CaseInsensitive) < 0);
+	});
+}
+
+void ParticipantsBoxController::applyRoleSectionHeaders() {
+	const auto count = delegate()->peerListFullRowsCount();
+	for (auto i = 0; i != count; ++i) {
+		const auto row = delegate()->peerListRowAt(i);
+		row->setSection([&] {
+			switch (memberRoleTier(row->peer())) {
+			case 0: return tr::lng_channel_admin_status_creator(tr::now);
+			case 1: return tr::lng_channel_admins(tr::now);
+			case 2: return tr::lng_filters_type_bots(tr::now);
+			}
+			return tr::lng_profile_participants_section(tr::now);
+		}());
+	}
+}
+
+void ParticipantsBoxController::preloadAdmins() {
+	if (_adminsPreloaded
+		|| _adminsRequestId
+		|| !_groupByRole.current()
+		|| (_role != Role::Profile && _role != Role::Members)) {
+		return;
+	}
+	const auto channel = _peer->asChannel();
+	if (!channel || !channel->canViewAdmins()) {
+		return;
+	}
+	const auto offset = 0;
+	const auto participantsHash = uint64(0);
+	_adminsRequestId = _api.request(MTPchannels_GetParticipants(
+		channel->inputChannel(),
+		MTP_channelParticipantsAdmins(),
+		MTP_int(offset),
+		MTP_int(channel->session().serverConfig().chatSizeMax),
+		MTP_long(participantsHash)
+	)).done([=](const MTPchannels_ChannelParticipants &result) {
+		_adminsRequestId = 0;
+		_adminsPreloaded = true;
+		result.match([&](const MTPDchannels_channelParticipants &data) {
+			const auto &[availableCount, list]
+				= Api::ChatParticipants::Parse(channel, data);
+			for (const auto &data : list) {
+				if (const auto participant = _additional.applyParticipant(
+						data)) {
+					appendRow(participant);
+				}
+			}
+		}, [](const MTPDchannels_channelParticipantsNotModified &) {
+			LOG(("API Error: "
+				"channels.channelParticipantsNotModified received!"));
+		});
+		resort();
+		refreshRows();
+	}).fail([=] {
+		_adminsRequestId = 0;
+	}).send();
+}
+
+void ParticipantsBoxController::resort() {
+	if (_groupByRole.current()) {
+		if (_onlineSorter) {
+			_onlineSorter->setSortingEnabled(false);
+			_onlineSorter->sort();
+		}
+		sortByRoleAndName();
+		applyRoleSectionHeaders();
+		delegate()->peerListSetShowSectionHeaders(true);
+		delegate()->peerListRefreshRows();
+	} else {
+		delegate()->peerListSetShowSectionHeaders(false);
+		if (_onlineSorter) {
+			_onlineSorter->setSortingEnabled(true);
+			_onlineSorter->sort();
+		}
+	}
+}
+
+void ParticipantsBoxController::setGroupByRole(bool grouped) {
+	if (_groupByRole.current() == grouped) {
+		return;
+	}
+	_groupByRole = grouped;
+	preloadAdmins();
+	resort();
+}
+
+rpl::producer<bool> ParticipantsBoxController::groupByRoleValue() const {
+	return _groupByRole.value();
+}
+
+auto ParticipantsBoxController::groupByRoleAvailableValue() const
+-> rpl::producer<bool> {
+	if (_peer->isMegagroup()) {
+		return Info::Profile::CanViewParticipantsValue(_peer->asMegagroup());
+	}
+	return rpl::single(true);
 }
 
 ParticipantsBoxSearchController::ParticipantsBoxSearchController(

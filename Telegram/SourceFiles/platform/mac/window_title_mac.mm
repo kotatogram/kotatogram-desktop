@@ -77,7 +77,12 @@ void PreviewWindowTitle(Painter &p, const style::palette &palette, QRect body, i
 	}
 
 	p.setPen(st::titleFgActive[palette]);
-	p.setFont(style::font(font.pixelSize(), 0, font.family()));
+	p.setFont(style::font(
+		font.pixelSize(),
+		(font.bold()
+			? style::FontFlags(style::FontFlag::Bold)
+			: style::FontFlags()),
+		font.family()));
 
 	p.drawText(titleRect, u"Kotatogram"_q, style::al_center);
 

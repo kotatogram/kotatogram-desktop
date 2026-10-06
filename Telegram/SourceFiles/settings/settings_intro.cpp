@@ -69,7 +69,7 @@ object_ptr<Ui::RpWidget> CreateIntroSettings(
 	if (HasUpdate()) {
 		Ui::AddDivider(result);
 		Ui::AddSkip(result);
-		SetupUpdate(window, result);
+		SetupUpdate(result);
 		Ui::AddSkip(result);
 	}
 	{
@@ -457,7 +457,7 @@ void LayerWidget::parentResized() {
 	const auto parentWidth = parentSize.width();
 	const auto newWidth = (parentWidth < MinimalSupportedWidth())
 		? parentWidth
-		: qMin(
+		: std::min(
 			parentWidth - 2 * st::infoMinimalLayerMargin,
 			st::infoDesiredWidth);
 	resizeToWidth(newWidth);

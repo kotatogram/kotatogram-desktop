@@ -45,11 +45,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/wrap/vertical_layout.h"
 #include "ui/ui_utility.h"
 #include "window/window_session_controller.h"
-#include "styles/style_boxes.h"
 #include "styles/style_chat_helpers.h" // defaultComposeFiles.
 #include "styles/style_layers.h"
 #include "styles/style_polls.h"
-#include "styles/style_settings.h"
 
 namespace {
 
@@ -71,6 +69,7 @@ public:
 	[[nodiscard]] bool isValid() const;
 	[[nodiscard]] std::vector<TodoListItem> toTodoListItems() const;
 	void focusFirst();
+	void focusLast();
 
 	[[nodiscard]] rpl::producer<int> addedCount() const;
 	[[nodiscard]] rpl::producer<not_null<QWidget*>> scrollToWidget() const;
@@ -184,6 +183,9 @@ void InitField(
 		not_null<Ui::InputField*> field,
 		not_null<Main::Session*> session) {
 	field->setInstantReplaces(Core::App().settings().instantReplacesValue());
+	field->setInstantReplacesEnabled(
+		rpl::single(true),
+		Core::App().settings().systemTextReplaceValue());
 	auto options = Ui::Emoji::SuggestionsController::Options();
 	options.suggestExactFirstWord = false;
 	Ui::Emoji::SuggestionsController::Init(
@@ -561,7 +563,7 @@ std::vector<TodoListItem> Tasks::toTodoListItems() const {
 	auto usedId = 0;
 	for (const auto &task : _list) {
 		if (const auto id = task->id()) {
-			usedId = id;
+			usedId = id > usedId ? id : usedId;
 		} else if (task->isGood()) {
 			++usedId;
 		}
@@ -576,6 +578,12 @@ void Tasks::focusFirst() {
 	const auto locked = _existingLocked ? _existingCount : 0;
 	Assert(locked < _list.size());
 	FocusAtEnd((_list.begin() + locked)->get()->field());
+}
+
+void Tasks::focusLast() {
+	Expects(!_list.empty());
+
+	_list.back()->setFocus();
 }
 
 bool Tasks::correctShadows() const {
@@ -762,14 +770,21 @@ void Tasks::initTaskField(not_null<Task*> task, TextWithEntities text) {
 		_scrollToWidget.fire_copy(field);
 	}, field->lifetime());
 	field->tabbed(
-	) | rpl::on_next([=](not_null<bool*> handled) {
+	) | rpl::on_next([=](not_null<Ui::InputField::TabbedRequest*> request) {
 		const auto index = findField(field);
-		if (index + 1 < _list.size()) {
+		if (request->backward) {
+			const auto locked = _existingLocked ? _existingCount : 0;
+			if (index > locked) {
+				_list[index - 1]->setFocus();
+			} else {
+				_tabbed.fire({});
+			}
+		} else if (index + 1 < _list.size()) {
 			_list[index + 1]->setFocus();
 		} else {
 			_tabbed.fire({});
 		}
-		*handled = true;
+		request->handled = true;
 	}, field->lifetime());
 	base::install_event_filter(field, [=](not_null<QEvent*> event) {
 		if (event->type() != QEvent::KeyPress
@@ -795,8 +810,12 @@ void Tasks::initTaskField(not_null<Task*> task, TextWithEntities text) {
 		Ui::PostponeCall(crl::guard(field, [=] {
 			Expects(!_list.empty());
 
-			const auto item = begin(_list) + findField(field);
-			if (item == _list.end() - 1) {
+			// The task may already be removed and be animating its hide,
+			// while its remove button still receives clicks.
+			const auto item = ranges::find(_list, field, &Task::field);
+			if (item == _list.end()) {
+				return;
+			} else if (item == _list.end() - 1) {
 				(*item)->clearValue();
 				return;
 			}
@@ -1040,9 +1059,13 @@ object_ptr<Ui::RpWidget> EditTodoListBox::setupContent() {
 			st::createPollLimitPadding));
 
 	title->tabbed(
-	) | rpl::on_next([=](not_null<bool*> handled) {
-		tasks->focusFirst();
-		*handled = true;
+	) | rpl::on_next([=](not_null<Ui::InputField::TabbedRequest*> request) {
+		if (request->backward) {
+			tasks->focusLast();
+		} else {
+			tasks->focusFirst();
+		}
+		request->handled = true;
 	}, title->lifetime());
 
 	Ui::AddSkip(container);

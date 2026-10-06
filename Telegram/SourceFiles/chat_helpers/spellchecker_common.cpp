@@ -25,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "spellcheck/spellcheck_value.h"
 #include "core/application.h"
 #include "core/core_settings.h"
+#include "core/version.h"
 
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
@@ -42,6 +43,7 @@ constexpr auto kDictExtensions = { "dic", "aff" };
 
 constexpr auto kExceptions = {
 	AppFile,
+	"Telegram"_cs,
 	"\xd0\xa2\xd0\xb5\xd0\xbb\xd0\xb5\xd0\xb3\xd1\x80\xd0\xb0\xd0\xbc"_cs,
 };
 
@@ -349,14 +351,20 @@ DictLoader::DictLoader(
 }
 
 void DictLoader::unpack(const QString &path) {
+	const auto weak = base::make_weak(this);
+	const auto id = DictLoader::id();
 	crl::async([=] {
-		const auto success = Spellchecker::UnpackDictionary(path, id());
+		const auto success = Spellchecker::UnpackDictionary(path, id);
 		if (success) {
 			QFile(path).remove();
-			destroy();
-			return;
 		}
-		crl::on_main([=] { fail(); });
+		crl::on_main(weak, [=] {
+			if (success) {
+				destroy();
+			} else {
+				fail();
+			}
+		});
 	});
 }
 
@@ -393,7 +401,10 @@ MTP::DedicatedLoader::Location GetDownloadLocation(int id) {
 	if (i == end(DictionariesList)) {
 		return MTP::DedicatedLoader::Location{};
 	}
-	return MTP::DedicatedLoader::Location{ i->channel, i->postId };
+	return MTP::DedicatedLoader::Location{
+		.username = i->channel,
+		.postId = i->postId,
+	};
 }
 
 QString DictPathByLangId(int langId) {
@@ -556,6 +567,11 @@ void Start(not_null<Main::Session*> session) {
 		onEnabled(settings->spellcheckerEnabled());
 	});
 
+	// The custom dictionary of user-added words is stored here on every
+	// platform, including those using the system spellchecker, so the
+	// working dir must be set before the early return below.
+	Spellchecker::SetWorkingDirPath(DictionariesPath());
+
 	if (Platform::Spellchecker::IsSystemSpellchecker()) {
 		Spellchecker::SupportedScriptsChanged()
 		| rpl::take(1)
@@ -566,8 +582,6 @@ void Start(not_null<Main::Session*> session) {
 
 	Spellchecker::SupportedScriptsChanged(
 	) | rpl::on_next(AddExceptions, lifetime);
-
-	Spellchecker::SetWorkingDirPath(DictionariesPath());
 
 	settings->dictionariesEnabledChanges(
 	) | rpl::on_next([](auto dictionaries) {

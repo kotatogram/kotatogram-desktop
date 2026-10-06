@@ -16,7 +16,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 #include "main/main_session.h"
 #include "ui/basic_click_handlers.h"
-#include "base/qthelp_regex.h"
 #include "base/qthelp_url.h"
 
 namespace Api {
@@ -69,6 +68,10 @@ using namespace TextUtilities;
 			MTP_long(parsed.userId),
 			MTP_long(parsed.accessHash));
 	return MTP_inputMessageEntityMentionName(offset, length, input);
+}
+
+[[nodiscard]] bool IsInternalUrl(const QString &url) {
+	return url.startsWith(u"internal:"_q, Qt::CaseInsensitive);
 }
 
 } // namespace
@@ -140,11 +143,15 @@ EntitiesInText EntitiesFromMTP(
 				qs(d.vlanguage()),
 			});
 		}, [&](const MTPDmessageEntityTextUrl &d) {
+			const auto url = qs(d.vurl());
+			if (IsInternalUrl(url)) {
+				return;
+			}
 			result.push_back({
 				EntityType::CustomUrl,
 				d.voffset().v,
 				d.vlength().v,
-				qs(d.vurl()),
+				url,
 			});
 		}, [&](const MTPDmessageEntityMentionName &d) {
 			if (!session) {
@@ -311,40 +318,40 @@ MTPVector<MTPMessageEntity> EntitiesToMTP(
 		case EntityType::CustomUrl: {
 			const auto external = UrlClickHandler::ExternalUrlFromInternalUrl(
 				entity.data());
-			auto url = external.isEmpty() ? entity.data() : external;
-			auto inputUser = [&](const QString &data) -> MTPInputUser {
-				const auto trimmed = url.trimmed();
-				if (trimmed.isEmpty()) {
+			const auto url = external.isEmpty() ? entity.data() : external;
+			const auto inputUser = [&]() -> MTPInputUser {
+				static const auto regex = QRegularExpression(
+					u"^tg://user\\?(.+)"_q,
+					QRegularExpression::CaseInsensitiveOption);
+				const auto match = regex.match(url.trimmed());
+				if (!session || !match.hasMatch()) {
 					return MTP_inputUserEmpty();
 				}
-				auto regex = QRegularExpression(
-					QString::fromUtf8("^(?i)tg://user\\?(.+)"),
-					QRegularExpression::UseUnicodePropertiesOption);
-				regex.optimize();
-				const auto match = regex.match(trimmed);
-				if (!match.hasMatch() || match.capturedStart() != 0) {
+				const auto parsed = qthelp::url_parse_params(
+					match.captured(1),
+					qthelp::UrlParamNameTransform::ToLower);
+				auto success = false;
+				const auto uid = UserId(
+					parsed.value(u"id"_q).toULongLong(&success));
+				if (!success) {
 					return MTP_inputUserEmpty();
-				}
-				const auto parsed = qthelp::url_parse_params(match.captured(1), qthelp::UrlParamNameTransform::ToLower);
-				const auto qstr_uid = parsed.value("id");
-				if (qstr_uid.isEmpty()) {
-					return MTP_inputUserEmpty();
-				}
-				bool success;
-				UserId uid = qstr_uid.toLongLong(&success);
-				if (success && session) {
-					if (uid == session->userId()) {
-						return MTP_inputUserSelf();
-					} else if (const auto user = session->data().userLoaded(uid)) {
-						return MTP_inputUser(MTP_long(uid.bare), MTP_long(user->accessHash()));
-					}
+				} else if (uid == session->userId()) {
+					return MTP_inputUserSelf();
+				} else if (const auto user = session->data().userLoaded(uid)) {
+					return user->inputUser();
 				}
 				return MTP_inputUserEmpty();
-			}(url);
+			}();
 			if (inputUser.type() != mtpc_inputUserEmpty) {
-				v.push_back(MTP_inputMessageEntityMentionName(offset, length, inputUser));
-			} else {
-				v.push_back(MTP_messageEntityTextUrl(offset, length, MTP_string(url)));
+				v.push_back(MTP_inputMessageEntityMentionName(
+					offset,
+					length,
+					inputUser));
+			} else if (!IsInternalUrl(url)) {
+				v.push_back(MTP_messageEntityTextUrl(
+					offset,
+					length,
+					MTP_string(url)));
 			}
 		} break;
 		case EntityType::Email: {

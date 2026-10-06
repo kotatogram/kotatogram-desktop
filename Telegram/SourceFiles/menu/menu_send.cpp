@@ -652,7 +652,9 @@ FillMenuResult AttachSendMenuEffect(
 		? AttachSelectorToMenu(
 			menu,
 			position,
-			st::reactPanelEmojiPan,
+			(details.effectsPan
+				? *details.effectsPan
+				: st::reactPanelEmojiPan),
 			show,
 			LookupPossibleEffects(&show->session()),
 			{ tr::lng_effect_add_title(tr::now) },
@@ -749,6 +751,7 @@ FillMenuResult FillSendMenu(
 		&& (details.spoiler == SpoilerState::None)
 		&& (details.caption == CaptionState::None)
 		&& (details.photoQuality == PhotoQualityState::None)
+		&& (details.cover == CoverState::None)
 		&& !details.price.has_value();
 	if (empty || !action) {
 		return FillMenuResult::Skipped;
@@ -792,6 +795,7 @@ FillMenuResult FillSendMenu(
 		&& ((details.spoiler != SpoilerState::None)
 			|| (details.caption != CaptionState::None)
 			|| (details.photoQuality != PhotoQualityState::None)
+			|| (details.cover != CoverState::None)
 			|| details.price.has_value())) {
 		menu->addSeparator(&st::expandedMenuSeparator);
 	}
@@ -830,6 +834,18 @@ FillMenuResult FillSendMenu(
 				: ActionType::CaptionUp
 			}, details); },
 			above ? &icons.menuBelow : &icons.menuAbove);
+	}
+	if (details.cover != CoverState::None) {
+		menu->addAction(
+			tr::lng_context_edit_cover(tr::now),
+			[=] { action({ .type = ActionType::EditCover }, details); },
+			&icons.menuCover);
+		if (details.cover == CoverState::Has) {
+			menu->addAction(
+				tr::lng_context_clear_cover(tr::now),
+				[=] { action({ .type = ActionType::RemoveCover }, details); },
+				&icons.menuCoverRemove);
+		}
 	}
 	if (details.price) {
 		menu->addAction(
@@ -870,17 +886,15 @@ FillMenuResult FillSendPreviewMenu(
 	if (defaultSend) {
 		menu->addAction(ktr("ktg_send_preview"), defaultSend);
 	}
-	if (type != Type::PreviewOnly) {
-		if (silent && now != Type::Reminder) {
-			menu->addAction(ktr("ktg_send_silent_preview"), silent);
-		}
-		if (schedule && now != Type::SilentOnly) {
-			menu->addAction(
-				(now == Type::Reminder
-					? ktr("ktg_reminder_preview")
-					: ktr("ktg_schedule_preview")),
-				schedule);
-		}
+	if (silent && now != Type::Reminder) {
+		menu->addAction(ktr("ktg_send_silent_preview"), silent);
+	}
+	if (schedule && now != Type::SilentOnly) {
+		menu->addAction(
+			(now == Type::Reminder
+				? ktr("ktg_reminder_preview")
+				: ktr("ktg_schedule_preview")),
+			schedule);
 	}
 	return FillMenuResult::Prepared;
 }
@@ -923,7 +937,7 @@ void SetupMenuAndShortcuts(
 		using Command = Shortcuts::Command;
 
 		const auto now = details().type;
-		if (now == Type::Disabled || now == Type::PreviewOnly) {
+		if (now == Type::Disabled) {
 			return;
 		}
 		((now != Type::Reminder)

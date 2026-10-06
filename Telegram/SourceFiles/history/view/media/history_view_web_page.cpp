@@ -87,7 +87,7 @@ constexpr auto kLogEntryPreviewLines = 2;
 			result.push_back(std::make_unique<Data::MediaPhoto>(
 				parent,
 				*photo,
-				spoiler));
+				Data::MediaPhoto::Args{ .spoiler = spoiler }));
 		} else {
 			return {};
 		}
@@ -428,9 +428,11 @@ QSize WebPage::countOptimalSize() {
 			kMarkupTextOptions,
 			context);
 	} else if (sponsored && !sponsored->buttonText.isEmpty()) {
-		_openButton.setText(
-			st::semiboldTextStyle,
-			tr::upper(sponsored->buttonText));
+		auto phrase = TextWithEntities{ tr::upper(sponsored->buttonText) };
+		if (!sponsored->isLinkInternal) {
+			phrase.append(st::historyExternalLinkIcon);
+		}
+		_openButton.setMarkedText(st::semiboldTextStyle, std::move(phrase));
 	}
 
 	const auto padding = inBubblePadding() + innerMargin();
@@ -749,7 +751,7 @@ QSize WebPage::countOptimalSize() {
 	}
 	if (::Kotato::JsonSettings::GetBool("adaptive_bubbles")) {
 		accumulate_min(maxWidth, st::msgMaxWidth);
-		accumulate_max(maxWidth, _parent->plainMaxWidth());
+		accumulate_max(maxWidth, _parent->textualMaxWidth());
 	}
 	maxWidth += rect::m::sum::h(padding);
 	minHeight += rect::m::sum::v(padding);
@@ -1106,7 +1108,7 @@ void WebPage::draw(Painter &p, const PaintContext &context) const {
 		ensurePhotoMediaCreated();
 
 		auto pix = QPixmap();
-		const auto pw = qMax(_pixw, lineHeight);
+		const auto pw = std::max(_pixw, lineHeight);
 		const auto ph = _pixh;
 		auto pixw = _pixw;
 		auto pixh = ArticleThumbHeight(_photoMedia.get(), _pixw);

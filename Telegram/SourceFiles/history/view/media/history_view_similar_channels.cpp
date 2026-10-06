@@ -21,6 +21,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/similar_peers/info_similar_peers_widget.h"
 #include "info/info_controller.h"
 #include "info/info_memento.h"
+#include "kotato/kotato_radius.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "settings/sections/settings_premium.h"
@@ -33,6 +34,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_style.h"
 #include "styles/style_polls.h"
 
 namespace HistoryView {
@@ -220,8 +222,11 @@ void SimilarChannels::draw(Painter &p, const PaintContext &context) const {
 		const auto size = st::chatSimilarChannelPhoto;
 		const auto paintCircle = [&] {
 			auto hq = PainterHighQualityEnabler(*q);
-			q->drawEllipse(QRectF(left, top, size, size).marginsAdded(
-				{ add, add, add, add }));
+			Kotato::DrawUserpicShape(
+				*q,
+				QRectF(left, top, size, size).marginsAdded(
+					{ add, add, add, add }),
+				size + stroke);
 		};
 		if (channel.more) {
 			pen.setWidthF(stroke);

@@ -40,13 +40,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/vertical_list.h"
 #include "window/window_session_controller.h"
-#include "styles/style_boxes.h"
+#include "styles/style_api_chat_invite.h"
 #include "styles/style_chat_helpers.h"
 #include "styles/style_color_indices.h"
 #include "styles/style_credits.h"
 #include "styles/style_info.h"
 #include "styles/style_layers.h"
-#include "styles/style_premium.h"
 
 namespace Api {
 
@@ -250,11 +249,11 @@ void ConfirmSubscriptionBox(
 					auto pixmap = image->pix(
 						Size(photoSize),
 						{ .options = options });
-					if (userpicRadius > 0. && userpicRadius < 0.5) {
+					const auto corner = int(photoSize * userpicRadius);
+					if (corner > 0 && userpicRadius < 0.5) {
 						pixmap = Images::PixmapFast(Images::Round(
 							pixmap.toImage(),
-							Images::CornersMask(
-								photoSize * userpicRadius)));
+							Images::CornersMask(corner)));
 					}
 					p.drawPixmap(0, 0, pixmap);
 				}
@@ -520,10 +519,11 @@ void ConfirmInviteBox(
 					{ .options = (userpicRadius >= 0.5)
 						? Images::Option::RoundCircle
 						: Images::Option::None });
-				if (userpicRadius > 0. && userpicRadius < 0.5) {
+				const auto corner = int(photoSize * userpicRadius);
+				if (corner > 0 && userpicRadius < 0.5) {
 					pixmap = Images::PixmapFast(Images::Round(
 						pixmap.toImage(),
-						Images::CornersMask(photoSize * userpicRadius)));
+						Images::CornersMask(corner)));
 				}
 				p.drawPixmap(0, 0, pixmap);
 			}
@@ -711,7 +711,7 @@ void ProcessChatInviteJoinResult(
 				.maySkipConfirmation = false,
 			},
 			.source = InlineBots::WebViewSourceJoinChat{
-				.result = InlineBots::ParseWebViewResult(data.vwebview()),
+				.queryId = data.vquery_id().v,
 			},
 		});
 	});

@@ -21,7 +21,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "core/application.h"
 #include "styles/style_info.h"
-#include "styles/style_window.h"
 #include "styles/style_layers.h"
 
 namespace Info {
@@ -131,7 +130,11 @@ void LayerWidget::setupHeightConsumers() {
 			_heightAnimation.start([=] {
 				setContentHeight(_heightAnimation.value(_desiredHeight));
 			}, _contentWrapHeight, _desiredHeight, st::slideDuration);
-			resizeToWidth(width());
+			if (_inResize) {
+				_pendingResize = true;
+			} else {
+				resizeToWidth(width());
+			}
 		}
 	}, lifetime());
 }
@@ -149,6 +152,12 @@ void LayerWidget::setContentHeight(int height) {
 }
 
 void LayerWidget::showFinished() {
+	if (!_contentWrap) {
+		// parentResized() may have moved the content out into a
+		// MoveMemento and only queued hideSpecialLayer(), so we stay
+		// alive with no content for at least one event loop turn.
+		return;
+	}
 	floatPlayerShowVisible();
 	_contentWrap->showFast();
 }
@@ -195,7 +204,7 @@ void LayerWidget::parentResized() {
 	//} else if (_controller->canShowThirdSectionWithoutResize()) {
 	//	takeToThirdSection();
 	} else {
-		auto newWidth = qMin(
+		auto newWidth = std::min(
 			parentWidth - 2 * st::infoMinimalLayerMargin,
 			st::infoDesiredWidth);
 		resizeToWidth(newWidth);
@@ -331,7 +340,7 @@ QRect LayerWidget::countGeometry(int newWidth) {
 		contentTop,
 		contentWidth,
 		contentHeight,
-	}, expanding, additionalScroll, maxVisibleHeight);
+	}, expanding, _contentTillBottom, additionalScroll, maxVisibleHeight);
 
 	return QRect(newLeft, newTop, newWidth, desiredHeight);
 }
@@ -343,6 +352,12 @@ void LayerWidget::doSetInnerFocus() {
 }
 
 void LayerWidget::paintEvent(QPaintEvent *e) {
+	if (!_contentWrap) {
+		// parentResized() may have moved the content out into a MoveMemento
+		// and only queued hideSpecialLayer(), and LayerStackWidget renders
+		// us synchronously through Ui::Shadow::grab() during transitions.
+		return;
+	}
 	auto p = QPainter(this);
 
 	const auto clip = e->rect();

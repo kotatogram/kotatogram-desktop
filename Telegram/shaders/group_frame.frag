@@ -2,6 +2,7 @@
 
 layout(location = 0) in vec2 v_texcoord;
 layout(location = 1) in vec2 b_texcoord;
+layout(location = 2) in vec2 v_position;
 layout(location = 0) out vec4 fragColor;
 
 layout(binding = 1) uniform sampler2D s_texture;
@@ -18,6 +19,8 @@ layout(std140, binding = 0) uniform Params {
 	vec4 roundBg;
 	vec4 outlineFg;
 };
+
+const float noiseGrain = 0.002;
 
 vec2 roundedCorner(vec2 fc) {
 	vec2 rectHalf = roundRect.zw / 2.0;
@@ -41,14 +44,25 @@ float insideTexture() {
 	return step(outsideCheck, 0.0);
 }
 
+// Dithering the blurred background against the banding it shows.
 vec4 background() {
-	vec4 blur = texture(b_texture, b_texcoord);
-	float blurOpacity = shadow.w;
-	return mix(frameBg, blur, blurOpacity);
+	// Plain blurred color, main() mixes it with frameBg by shadow.w.
+	vec4 result = texture(b_texture, b_texcoord);
+
+	float noiseClamped = texture(n_texture, v_position / 256.0).r;
+	float noiseIntensity = (noiseClamped * 4.0) - 2.0;
+
+	vec3 lumcoeff = vec3(0.299, 0.587, 0.114);
+	float luminance = dot(result.rgb, lumcoeff);
+	float lum = smoothstep(0.2, 0.0, luminance) + luminance;
+	vec3 noiseColor = mix(vec3(noiseIntensity), vec3(0.0), pow(lum, 4.0));
+
+	result.rgb = result.rgb + noiseColor * noiseGrain;
+	return result;
 }
 
 void main() {
-	vec2 fc = vec2(gl_FragCoord.x, viewport.y - gl_FragCoord.y);
+	vec2 fc = v_position;
 
 	float inside = insideTexture() * (1.0 - paused);
 	vec4 result;
@@ -62,9 +76,6 @@ void main() {
 	float shadowValue = max(1.0 - (shadowCoord / shadow.x), 0.0);
 	float shadowShown = max(shadowValue * shadow.y, paused) * shadow.z;
 	result = vec4(result.rgb * (1.0 - shadowShown), result.a);
-
-	float noiseValue = texture(n_texture, fc / vec2(256.0)).r;
-	result.rgb += (noiseValue - 0.5) * 0.002;
 
 	vec2 roundOutline = roundedCorner(fc);
 	result = result * roundOutline.y

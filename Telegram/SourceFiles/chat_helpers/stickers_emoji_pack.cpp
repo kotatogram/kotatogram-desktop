@@ -200,11 +200,13 @@ std::shared_ptr<LargeEmojiImage> EmojiPack::image(EmojiPtr emoji) {
 	const auto raw = result.get();
 	const auto weak = base::make_weak(_session);
 	raw->load = [=] {
+		const auto outline = ::Kotato::JsonSettings::GetBool(
+			"big_emoji_outline");
 		Core::App().emojiImageLoader().with([=](
 				const EmojiImageLoader &loader) {
 			crl::on_main(weak, [
 				=,
-				image = loader.prepare(emoji)
+				image = loader.prepare(emoji, outline)
 			]() mutable {
 				const auto i = _images.find(emoji);
 				if (i != end(_images)) {
@@ -470,7 +472,6 @@ void EmojiPack::refreshAll() {
 }
 
 void EmojiPack::refreshItems(EmojiPtr emoji) {
-	const auto i = _items.find(IsolatedEmoji{ { emoji } });
 	if (!emoji->colored()) {
 		if (const auto count = emoji->variantsCount()) {
 			for (auto i = 0; i != count; ++i) {
@@ -478,6 +479,9 @@ void EmojiPack::refreshItems(EmojiPtr emoji) {
 			}
 		}
 	}
+	// Refreshing variants recreates views synchronously, which may erase
+	// keys from _items, so look up the entry only after that.
+	const auto i = _items.find(IsolatedEmoji{ { emoji } });
 	if (i == end(_items)) {
 		return;
 	}

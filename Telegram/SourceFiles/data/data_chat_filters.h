@@ -64,6 +64,7 @@ public:
 		NotAdmin    = (1 << 16),
 		Recent      = (1 << 17),
 		NoFilter    = (1 << 18),
+		LocalRulesMask = ((1 << 19) - (1 << 13)),
 	};
 	friend constexpr inline bool is_flag_type(Flag) { return true; };
 	using Flags = base::flags<Flag>;
@@ -79,9 +80,7 @@ public:
 		base::flat_set<not_null<History*>> always,
 		std::vector<not_null<History*>> pinned,
 		base::flat_set<not_null<History*>> never,
-		bool isDefault = false,
-		bool isLocal = false,
-		int localCloudOrder = 0);
+		bool isLocal = false);
 
 	[[nodiscard]] static ChatFilter local(
 		const LocalFolder &data,
@@ -95,12 +94,14 @@ public:
 		bool hasMyLinks) const;
 	[[nodiscard]] ChatFilter withoutAlways(not_null<History*>) const;
 
+	// Carries the "Default folder" checkbox from the edit box.
+	[[nodiscard]] ChatFilter withDefault(bool isDefault) const;
+
 	[[nodiscard]] static ChatFilter FromTL(
 		const MTPDialogFilter &data,
-		not_null<Session*> owner,
-		bool isLocal = false);
+		not_null<Session*> owner);
 	[[nodiscard]] MTPDialogFilter tl(FilterId replaceId = 0) const;
-	[[nodiscard]] LocalFolder toLocal(FilterId replaceId = 0) const;
+	[[nodiscard]] LocalFolder toLocal() const;
 
 	[[nodiscard]] FilterId id() const;
 	[[nodiscard]] ChatFilterTitle title() const;
@@ -122,10 +123,6 @@ public:
 
 	[[nodiscard]] bool isLocal() const;
 
-	void setLocalCloudOrder(int order) {
-		_cloudLocalOrder = order;
-	}
-
 private:
 	FilterId _id = 0;
 	TextWithEntities _title;
@@ -137,7 +134,6 @@ private:
 	Flags _flags;
 	bool _isDefault = false;
 	bool _isLocal = false;
-	int _cloudLocalOrder = 0;
 
 };
 
@@ -316,5 +312,12 @@ struct LocalFolder {
 };
 
 LocalFolder MakeLocalFolder(const QJsonObject &obj);
+
+// Only "All chats" and cloud folders take premium limit slots,
+// local folders are never locked.
+[[nodiscard]] bool ChatFilterLocked(
+	const std::vector<ChatFilter> &list,
+	int index,
+	int premiumFrom);
 
 } // namespace Data

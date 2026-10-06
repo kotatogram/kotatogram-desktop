@@ -133,7 +133,9 @@ bool GroupedMedia::hideMessageText() const {
 
 GroupedMedia::Mode GroupedMedia::DetectMode(not_null<Data::Media*> media) {
 	const auto document = media->document();
-	return (document && !document->isVideoFile())
+	return (document
+		&& !document->isVideoFile()
+		&& !document->isAnimation())
 		? Mode::Column
 		: Mode::Grid;
 }
@@ -333,8 +335,21 @@ QRect GroupedMedia::groupItemRect(int index) const {
 	return {};
 }
 
+Media *GroupedMedia::partMediaAt(QPoint point) const {
+	point -= QPoint(0, groupedPadding().top());
+	for (const auto &part : _parts) {
+		if (part.geometry.contains(point)) {
+			return part.content.get();
+		}
+	}
+	return nullptr;
+}
+
 Media *GroupedMedia::lookupSpoilerTagMedia() const {
-	if (_parts.empty()) {
+	// Only Photo and Gif parts implement the spoiler tag methods, and they
+	// are the only kinds a Mode::Grid group holds. A Mode::Column group is
+	// built from Document parts, which would hit the base class Unexpected().
+	if (_parts.empty() || _mode == Mode::Column) {
 		return nullptr;
 	}
 	const auto media = _parts.front().content.get();
@@ -526,7 +541,7 @@ TextState GroupedMedia::getPartState(
 				part.sides,
 				point,
 				request);
-			result.symbol += shift;
+			AddTextStateOffset(&result, uint16(shift));
 			result.itemId = part.item->fullId();
 			return result;
 		}

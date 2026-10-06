@@ -48,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "webrtc/webrtc_video_track.h"
 #include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
+#include "styles/style_history_view_voice_record_bar.h"
 #include "styles/style_layers.h"
 #include "styles/style_media_player.h"
 
@@ -737,7 +738,7 @@ private:
 	const style::font &_durationFont;
 	QString _duration;
 	int _durationWidth = 0;
-	const style::MediaPlayerButton &_playPauseSt;
+	const style::MediaPlayerPlayIcon &_playPauseSt;
 	const base::unique_qptr<Ui::AbstractButton> _playPauseButton;
 	const QColor _activeWaveformBar;
 	const QColor _inactiveWaveformBar;
@@ -790,7 +791,7 @@ ListenWrap::ListenWrap(
 , _durationFont(font)
 , _duration(FormatTrimDuration(_data->duration))
 , _durationWidth(_durationFont->width(_duration))
-, _playPauseSt(st::mediaPlayerButton)
+, _playPauseSt(st::historyRecordCenterControlIcon)
 , _playPauseButton(base::make_unique_q<Ui::AbstractButton>(parent))
 , _activeWaveformBar(st::historyRecordVoiceFgActiveIcon->c)
 , _inactiveWaveformBar(
@@ -1078,7 +1079,7 @@ void ListenWrap::initPlayButton() {
 		? VoiceDocument
 		: RoundVideoDocument;
 
-	const auto &play = _playPauseSt.playOuter;
+	const auto &play = _playPauseSt.size;
 	updateControlGeometry();
 	_playPauseButton->show();
 	_playPauseButton->setAccessibleName(tr::lng_record_lock_play(tr::now));

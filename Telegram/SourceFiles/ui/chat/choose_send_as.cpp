@@ -7,7 +7,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/chat/choose_send_as.h"
 
-#include "kotato/kotato_radius.h"
 #include "boxes/peer_list_box.h"
 #include "data/data_group_call.h"
 #include "data/data_peer.h"
@@ -23,7 +22,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "settings/sections/settings_premium.h"
 #include "styles/style_calls.h"
-#include "styles/style_chat.h"
 #include "styles/style_chat_helpers.h"
 
 namespace Ui {
@@ -286,8 +284,7 @@ void SetupSendAsButton(
 		) | rpl::map([=](not_null<PeerData*> chosen) {
 			return Data::PeerUserpicImageValue(
 				chosen,
-				size * style::DevicePixelRatio(),
-				size * Kotato::UserpicRadius());
+				size * style::DevicePixelRatio());
 		}) | rpl::flatten_latest();
 	}) | rpl::flatten_latest();
 

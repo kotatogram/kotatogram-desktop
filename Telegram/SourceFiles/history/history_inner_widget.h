@@ -16,11 +16,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/dragging_scroll_manager.h"
 #include "ui/widgets/middle_click_autoscroll.h"
 #include "ui/widgets/tooltip.h"
-#include "ui/widgets/scroll_area.h"
+#include "ui/widgets/elastic_scroll.h"
 #include "ui/userpic_view.h"
 #include "history/history_message_selection.h"
 #include "history/history_inner_widget_accessibility.h"
 #include "history/view/history_view_cursor_state.h"
+#include "history/view/history_view_keyboard_text_selection.h"
 #include "history/view/history_view_top_bar_widget.h"
 
 #include <QtGui/QPainterPath>
@@ -69,6 +70,7 @@ class SessionController;
 namespace Ui {
 class ChatTheme;
 class ChatStyle;
+class ElasticScroll;
 class PopupMenu;
 struct ChatPaintContext;
 class PathShiftGradient;
@@ -109,7 +111,7 @@ public:
 
 	HistoryInner(
 		not_null<HistoryWidget*> historyWidget,
-		not_null<Ui::ScrollArea*> scroll,
+		not_null<Ui::ElasticScroll*> scroll,
 		not_null<Window::SessionController*> controller,
 		not_null<History*> history);
 	~HistoryInner();
@@ -121,6 +123,7 @@ public:
 	Qt::FocusPolicy accessibilityFocusPolicy() override {
 		return Qt::TabFocus;
 	}
+	Ui::AccessibilityState accessibilityState() const override;
 	int accessibilityChildCount() const override;
 	QString accessibilityChildName(int index) const override;
 	QAccessible::State accessibilityChildState(int index) const override;
@@ -132,6 +135,12 @@ public:
 		int row, int column) const override;
 	QString accessibilityChildSubItemValue(
 		int row, int column) const override;
+	bool accessibilityChildSupportsActions(int index) const override;
+	quintptr accessibilityChildIdentity(int index) const override;
+	int accessibilityChildIndexByIdentity(
+		quintptr identity) const override;
+	void accessibilityChildSetFocus(quintptr identity) override;
+	void accessibilityChildActivate(quintptr identity) override;
 
 	[[nodiscard]] Main::Session &session() const;
 	[[nodiscard]] not_null<Ui::ChatTheme*> theme() const {
@@ -141,7 +150,6 @@ public:
 	Ui::ChatPaintContext preparePaintContext(const QRect &clip) const;
 
 	using CollapseGap = Ui::CollapseGap;
-	void setCollapseGaps(std::vector<CollapseGap> gaps);
 
 	void messagesReceived(
 		not_null<PeerData*> peer,
@@ -151,6 +159,7 @@ public:
 		const QVector<MTPMessage> &messages);
 
 	[[nodiscard]] TextForMimeData getSelectedText() const;
+	[[nodiscard]] Iv::RichPageBlocksSlice getSelectedRichBlocks() const;
 
 	void touchScrollUpdated(const QPoint &screenPos);
 
@@ -172,8 +181,13 @@ public:
 		-> HistoryView::TopBarWidget::SelectedState;
 	void clearSelected(bool onlyTextSelection = false);
 	[[nodiscard]] MessageIdsList getSelectedItems() const;
+	[[nodiscard]] MessageIdsList getSelectedForwardItems() const;
+	[[nodiscard]] auto getSelectedEphemeral() const
+		-> std::vector<not_null<HistoryItem*>>;
 	[[nodiscard]] bool hasSelectedItems() const;
 	[[nodiscard]] HistoryView::SelectionModeResult inSelectionMode() const;
+	[[nodiscard]] HistoryView::SelectionModeResult inSelectionMode(
+		const Element *view) const;
 	[[nodiscard]] bool elementIntersectsRange(
 		not_null<const Element*> view,
 		int from,
@@ -200,6 +214,9 @@ public:
 	void elementShowTooltip(
 		const TextWithEntities &text,
 		Fn<void()> hiddenCallback);
+	void elementShowHiddenSenderTooltip(
+		FullMsgId itemId,
+		const TextWithEntities &text);
 	bool elementAnimationsPaused();
 	void elementSendBotCommand(
 		const QString &command,
@@ -259,7 +276,7 @@ public:
 	bool tooltipWindowActive() const override;
 
 	void onParentGeometryChanged();
-	bool consumeScrollAction(QPoint delta);
+	bool consumeScrollAction(QPoint delta, Qt::ScrollPhase phase);
 
 	[[nodiscard]] Fn<HistoryView::ElementDelegate*()> elementDelegateFactory(
 		FullMsgId itemId) const;
@@ -295,10 +312,17 @@ protected:
 private:
 	[[nodiscard]] std::vector<Element*> accessibleElements() const;
 	[[nodiscard]] int accessibilityUnreadBarIndex() const;
+	[[nodiscard]] HistoryItem *accessibilityItemAtIndex(
+		int index,
+		const std::vector<Element*> &elements,
+		int barIndex) const;
 	void toggleMessageSelection();
 	void playPauseFocusedMedia();
 	void setAccessibilityFocusedItem(int index, HistoryItem *item);
 	void announceAccessibilityFocus(int index);
+	void checkAnnounceFirstMessages();
+	void announceAccessibilityFocusedChild();
+	void applyAccessibilityFocus(int index, bool announceAlways);
 	[[nodiscard]] auto computeActiveColumns(int row) const
 		-> const std::vector<HistoryView::MessageSubItem> &;
 
@@ -500,6 +524,8 @@ private:
 		not_null<SelectedItems*> toItems,
 		not_null<HistoryItem*> item,
 		SelectAction action) const;
+	void changeAccessibilitySelection(int index, SelectAction action);
+	void extendAccessibilitySelection(int oldIndex, int newIndex);
 	void forwardItem(FullMsgId itemId);
 	void forwardAsGroup(FullMsgId itemId);
 	void deleteItem(not_null<HistoryItem*> item);
@@ -543,11 +569,17 @@ private:
 
 	int _accessibilityFocusedIndex = -1;
 	HistoryItem *_accessibilityFocusedItem = nullptr;
+	HistoryItem *_accessibilitySelectionAnchor = nullptr;
+	bool _announceFirstMessages = false;
+	mutable base::flat_map<
+		not_null<const HistoryItem*>,
+		quintptr> _accessibilityIdentities;
+	mutable quintptr _accessibilityIdentityCounter = 0;
 	mutable const HistoryView::Element *_activeColumnsView = nullptr;
 	mutable std::vector<HistoryView::MessageSubItem> _activeColumns;
 
 	const not_null<HistoryWidget*> _widget;
-	const not_null<Ui::ScrollArea*> _scroll;
+	const not_null<Ui::ElasticScroll*> _scroll;
 	const not_null<Window::SessionController*> _controller;
 	const not_null<PeerData*> _peer;
 	const not_null<History*> _history;
@@ -572,6 +604,9 @@ private:
 	// the first _history message date (just skip it by height).
 	int _historySkipHeight = 0;
 
+	FullMsgId _prependAnchorId;
+	int _prependAnchorDateHeight = 0;
+
 	std::unique_ptr<HistoryView::AboutView> _aboutView;
 	std::unique_ptr<HistoryView::EmptyPainter> _emptyPainter;
 	std::unique_ptr<HistoryView::TranslateTracker> _translateTracker;
@@ -588,6 +623,7 @@ private:
 	HistoryItem *_selectedTextItem = nullptr;
 	MessageSelection _selectedTextSelection;
 	TextForMimeData _selectedText;
+	HistoryView::KeyboardTextSelection _keyboardTextSelection;
 	std::optional<Data::ReportInput> _chooseForReportReason;
 
 	const std::unique_ptr<Ui::PathShiftGradient> _pathGradient;
@@ -679,9 +715,10 @@ private:
 	std::unique_ptr<HistoryView::ElementOverlayHost> _overlayHost;
 
 	void setupThanosEffect();
+	void collapseGapsUpdated();
+	[[nodiscard]] const std::vector<CollapseGap> &collapseGaps() const;
 
 	std::unique_ptr<Ui::ThanosEffectController> _thanosController;
-	std::vector<CollapseGap> _collapseGaps;
 
 };
 

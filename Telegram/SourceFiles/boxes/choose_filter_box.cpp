@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/choose_filter_box.h"
 
 #include "apiwrap.h"
+#include "base/qt/qt_key_modifiers.h"
 #include "boxes/filters/edit_filter_box.h"
 #include "boxes/premium_limits_box.h"
 #include "core/application.h" // primaryWindow
@@ -32,10 +33,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 #include "main/main_session_settings.h"
-#include "styles/style_dialogs.h"
 #include "styles/style_media_player.h" // mediaPlayerMenuCheck
 #include "styles/style_menu_icons.h"
-#include "styles/style_settings.h"
 
 namespace {
 
@@ -134,7 +133,8 @@ Data::ChatFilter ChangedFilter(
 		filter.flags(),
 		std::move(always),
 		pinned,
-		std::move(never));
+		std::move(never),
+		filter.isLocal());
 	const auto in = result.contains(history);
 	if (in == add) {
 		return result;
@@ -154,7 +154,8 @@ Data::ChatFilter ChangedFilter(
 		filter.flags(),
 		std::move(always),
 		std::move(pinned),
-		std::move(never));
+		std::move(never),
+		filter.isLocal());
 }
 
 void ChangeFilterById(
@@ -169,11 +170,9 @@ void ChangeFilterById(
 		const auto was = *i;
 		const auto filter = ChangedFilter(was, history, add);
 		history->owner().chatsFilters().set(filter);
-		history->session().api().request(MTPmessages_UpdateDialogFilter(
-			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
-			MTP_int(filter.id()),
-			filter.tl()
-		)).done([=, chat = history->peer->name(), name = filter.title()] {
+		const auto showToast = [=,
+				chat = history->peer->name(),
+				name = filter.title()] {
 			const auto account = not_null(&history->session().account());
 			if (const auto controller = Core::App().windowFor(account)) {
 				const auto isStatic = name.isStatic;
@@ -193,7 +192,17 @@ void ChangeFilterById(
 					}),
 				});
 			}
-		}).fail([=](const MTP::Error &error) {
+		};
+		if (filter.isLocal()) {
+			history->owner().chatsFilters().saveLocal();
+			showToast();
+			return;
+		}
+		history->session().api().request(MTPmessages_UpdateDialogFilter(
+			MTP_flags(MTPmessages_UpdateDialogFilter::Flag::f_filter),
+			MTP_int(filter.id()),
+			filter.tl()
+		)).done(showToast).fail([=](const MTP::Error &error) {
 			LOG(("API Error: failed to %1 a dialog to a folder. %2")
 				.arg(add ? u"add"_q : u"remove"_q)
 				.arg(error.type()));
@@ -209,7 +218,17 @@ ChooseFilterValidator::ChooseFilterValidator(not_null<History*> history)
 : _history(history) {
 }
 
+bool ChooseFilterValidator::communityAddBlocked() const {
+	const auto channel = _history->peer->asChannel();
+	return channel
+		&& channel->isCommunity()
+		&& !channel->collapsedInDialogs();
+}
+
 bool ChooseFilterValidator::canAdd() const {
+	if (communityAddBlocked()) {
+		return false;
+	}
 	for (const auto &filter : _history->owner().chatsFilters().list()) {
 		if (filter.id() && !filter.contains(_history)) {
 			return true;
@@ -221,6 +240,9 @@ bool ChooseFilterValidator::canAdd() const {
 bool ChooseFilterValidator::canAdd(FilterId filterId) const {
 	Expects(filterId != 0);
 
+	if (communityAddBlocked()) {
+		return false;
+	}
 	const auto list = _history->owner().chatsFilters().list();
 	const auto i = ranges::find(list, filterId, &Data::ChatFilter::id);
 	if (i != end(list)) {
@@ -251,6 +273,7 @@ ChooseFilterValidator::LimitData ChooseFilterValidator::limitReached(
 	const auto &chatsList = always ? i->always() : i->never();
 	return {
 		.reached = (i != end(list))
+			&& !i->isLocal()
 			&& !ranges::contains(chatsList, _history)
 			&& (chatsList.size() >= limit),
 		.count = int(chatsList.size()),
@@ -273,16 +296,38 @@ void FillChooseFilterMenu(
 	const auto validator = ChooseFilterValidator(history);
 	const auto &list = history->owner().chatsFilters().list();
 	const auto showColors = history->owner().chatsFilters().tagsEnabled();
+	const auto suppressClose = menu->lifetime().make_state<bool>(false);
 	for (const auto &filter : list) {
 		const auto id = filter.id();
 		if (!id) {
 			continue;
 		}
 
-		auto callback = [=] {
-			const auto toAdd = !filter.contains(history);
+		const auto contains = menu->lifetime().make_state<bool>(
+			filter.contains(history));
+		const auto title = filter.title();
+		auto item = base::make_unique_q<FilterAction>(
+			menu->menu(),
+			menu->st().menu,
+			new QAction(
+				Ui::Text::FixAmpersandInAction(title.text.text),
+				menu.get()),
+			*contains ? &st::mediaPlayerMenuCheck : nullptr,
+			*contains ? &st::mediaPlayerMenuCheck : nullptr);
+		const auto raw = item.get();
+		const auto refresh = [=] {
+			raw->Ui::Menu::Action::setIcon(
+				*contains ? &st::mediaPlayerMenuCheck : nullptr,
+				*contains ? &st::mediaPlayerMenuCheck : nullptr);
+			raw->action()->setEnabled(*contains
+				? validator.canRemove(id)
+				: validator.canAdd());
+		};
+		item->setActionTriggered([=] {
+			const auto toAdd = !*contains;
 			const auto r = validator.limitReached(id, toAdd);
 			if (r.reached) {
+				menu->hideMenu();
 				controller->show(Box(
 					FilterChatsLimitBox,
 					&controller->session(),
@@ -290,34 +335,30 @@ void FillChooseFilterMenu(
 					toAdd));
 				return;
 			} else if (toAdd ? validator.canAdd() : validator.canRemove(id)) {
+				*suppressClose = true;
 				if (toAdd) {
 					validator.add(id);
 				} else {
 					validator.remove(id);
 				}
+				*suppressClose = false;
+				*contains = toAdd;
+				refresh();
 			}
-		};
-
-		const auto contains = filter.contains(history);
-		const auto title = filter.title();
-		auto item = base::make_unique_q<FilterAction>(
-			menu->menu(),
-			menu->st().menu,
-			Ui::Menu::CreateAction(
-				menu.get(),
-				Ui::Text::FixAmpersandInAction(title.text.text),
-				std::move(callback)),
-			contains ? &st::mediaPlayerMenuCheck : nullptr,
-			contains ? &st::mediaPlayerMenuCheck : nullptr);
+			if (!base::IsShiftPressed() && !base::IsCtrlPressed()) {
+				menu->hideMenu();
+			}
+		});
+		item->setPreventClose(true);
 		item->setMarkedText(title.text, QString(), Core::TextContext({
 			.session = &history->session(),
-			.repaint = [raw = item.get()] { raw->update(); },
+			.repaint = [raw] { raw->update(); },
 			.customEmojiLoopLimit = title.isStatic ? -1 : 0,
 		}));
 
 		item->setIcon(Icon(showColors ? filter : filter.withColorIndex({})));
 		const auto action = menu->addAction(std::move(item));
-		action->setEnabled(contains
+		action->setEnabled(*contains
 			? validator.canRemove(id)
 			: validator.canAdd());
 	}
@@ -325,7 +366,10 @@ void FillChooseFilterMenu(
 	const auto limit = [session = &controller->session()] {
 		return Data::PremiumLimits(session).dialogFiltersCurrent();
 	};
-	if ((list.size() - 1) < limit()) {
+	const auto cloud = ranges::count_if(list, [](const auto &filter) {
+		return filter.id() && !filter.isLocal();
+	});
+	if (cloud < limit()) {
 		menu->addAction(tr::lng_filters_create(tr::now), [=] {
 			const auto strong = weak.get();
 			if (!strong) {
@@ -361,6 +405,9 @@ void FillChooseFilterMenu(
 
 	history->owner().chatsFilters().changed(
 	) | rpl::on_next([=] {
+		if (*suppressClose) {
+			return;
+		}
 		menu->hideMenu();
 	}, menu->lifetime());
 }

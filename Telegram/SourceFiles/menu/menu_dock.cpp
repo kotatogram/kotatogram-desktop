@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "menu/menu_dock.h"
 
+#include "kotato/kotato_lang.h"
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "data/data_user.h"
@@ -16,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "media/audio/media_audio.h"
 #include "media/player/media_player_instance.h"
+#include "tray.h"
 #include "ui/text/text_utilities.h"
 
 #include <QtWidgets/QMenu>
@@ -58,6 +60,11 @@ void RefreshDockMenu(QMenu *menu) {
 			auto &settings = Core::App().settings();
 			settings.setDesktopNotify(!settings.desktopNotify());
 		});
+	menu->addAction(
+		Core::App().settings().soundNotify()
+			? ktr("ktg_settings_disable_sound_from_tray")
+			: ktr("ktg_settings_enable_sound_from_tray"),
+		[] { Core::App().tray().toggleSound(); });
 
 	using namespace Media::Player;
 	const auto type = instance()->getActiveType();

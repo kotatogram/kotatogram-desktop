@@ -18,7 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 class History;
 
 namespace Ui {
-class ScrollArea;
+class ElasticScroll;
 class PlainShadow;
 class FlatButton;
 } // namespace Ui
@@ -60,6 +60,8 @@ public:
 		not_null<Window::SectionMemento*> memento,
 		const Window::SectionShow &params) override;
 	std::shared_ptr<Window::SectionMemento> createMemento() override;
+	auto createIdentityMemento()
+		-> std::shared_ptr<Window::SectionMemento> override;
 	bool showMessage(
 		PeerId peerId,
 		const Window::SectionShow &params,
@@ -138,7 +140,7 @@ public:
 	History *listTranslateHistory() override;
 	void listAddTranslatedItems(
 		not_null<TranslateTracker*> tracker) override;
-	Ui::ScrollArea *listScrollArea() const override;
+	Ui::ElasticScroll *listScrollArea() const override;
 	bool listThanosEffectEnabled() const override;
 
 	// CornerButtonsDelegate delegate.
@@ -196,7 +198,7 @@ private:
 	int _translateBarHeight = 0;
 
 	bool _skipScrollEvent = false;
-	std::unique_ptr<Ui::ScrollArea> _scroll;
+	std::unique_ptr<Ui::ElasticScroll> _scroll;
 	std::unique_ptr<Ui::FlatButton> _clearButton;
 	std::unique_ptr<ComposeSearch> _composeSearch;
 

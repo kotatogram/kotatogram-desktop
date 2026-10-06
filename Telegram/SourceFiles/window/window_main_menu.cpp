@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/event_filter.h"
 #include "base/qt_signal_producer.h"
 #include "boxes/about_box.h"
+#include "core/update_channel.h"
 #include "boxes/peer_list_controllers.h"
 #include "boxes/premium_preview_box.h"
 #include "calls/group/calls_group_common.h"
@@ -68,11 +69,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_peer_menu.h"
 #include "window/window_session_controller.h"
 #include "styles/style_chat.h" // popupMenuExpandedSeparator
-#include "styles/style_info.h" // infoTopBarMenu
-#include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
 #include "styles/style_window.h"
+#include "styles/style_window_main_menu.h"
 
 #include <QtGui/QWindow>
 #include <QtGui/QScreen>
@@ -389,7 +389,7 @@ MainMenu::MainMenu(
 		std::make_shared<LambdaClickHandler>([=] {
 			controller->show(Box(AboutBox));
 		}));
-	_version->setMarkedText(Ui::Text::Link(currentVersionText(), 1));
+	_version->setMarkedText(Ui::Text::Link(currentVersionShortText(), 1));
 	_version->setLink(1, std::make_shared<UrlClickHandler>(qsl("https://github.com/kotatogram/kotatogram-desktop")));
 
 	rpl::combine(
@@ -489,7 +489,8 @@ void MainMenu::setupArchive() {
 		const auto f = folder();
 		return f
 			&& (!f->chatsList()->empty() || f->storiesCount() > 0)
-			&& controller->session().settings().archiveInMainMenu();
+			&& (controller->session().settings().archiveInMainMenu()
+				|| controller->hiddenAllChatsIndex() >= 0);
 	};
 
 	const auto wrap = _menu->add(
@@ -814,10 +815,28 @@ void MainMenu::chooseEmojiStatus() {
 	if (_controller->showFrozenError()) {
 		return;
 	} else if (const auto widget = _badge->widget()) {
+		setupEmojiStatusDismiss();
 		_emojiStatusPanel->show(_controller, widget, _badge->sizeTag());
 	} else {
 		ShowPremiumPreviewBox(_controller, PremiumFeature::EmojiStatus);
 	}
+}
+
+void MainMenu::setupEmojiStatusDismiss() {
+	if (_emojiStatusDismissSetup) {
+		return;
+	}
+	_emojiStatusDismissSetup = true;
+
+	base::install_event_filter(this, parentWidget(), [=](
+			not_null<QEvent*> e) {
+		if (e->type() != QEvent::MouseButtonPress
+			|| !_emojiStatusPanel->shown()) {
+			return base::EventFilterResult::Continue;
+		}
+		_emojiStatusPanel->hideAnimated();
+		return base::EventFilterResult::Cancel;
+	});
 }
 
 bool MainMenu::eventHook(QEvent *event) {
@@ -829,6 +848,10 @@ bool MainMenu::eventHook(QEvent *event) {
 		QGuiApplication::sendEvent(_inner, event);
 	}
 	return RpWidget::eventHook(event);
+}
+
+void MainMenu::hideEvent(QHideEvent *e) {
+	_emojiStatusPanel->hideFast();
 }
 
 void MainMenu::paintEvent(QPaintEvent *e) {
@@ -903,7 +926,7 @@ void MainMenu::initResetScaleButton() {
 
 OthersUnreadState OtherAccountsUnreadStateCurrent(
 		not_null<Main::Account*> current) {
-	auto &domain = Core::App().domain();
+	const auto &domain = Core::App().domain();
 	auto counter = 0;
 	auto allMuted = true;
 	for (const auto &[index, account] : domain.accounts()) {
