@@ -1,4 +1,4 @@
-# Kotatogram – experimental [Telegram Desktop][telegram_desktop] fork.
+# ❛ 𝐆Ⓞ𝐊𝐔 𝐗 𝐄𝐝𝐢𝐭𝐢𝐨𝐧™श्रीराम ❜ [Telegram Desktop][telegram_desktop] fork.
 
 [![GitHub release (latest by date including pre-releases)](https://badgen.net/github/release/kotatogram/kotatogram-desktop?label=Latest%20release)][releases]
 [![GitHub Workflow Status: Windows](https://github.com/kotatogram/kotatogram-desktop/workflows/Windows./badge.svg?event=push)][actions]
